@@ -8,6 +8,7 @@
 /obj
 /.vs
 /Assets/Resources/Font/SmileySans-Oblique SDF.asset
+/.idea
 
 
 # This .gitignore file should be placed at the root of your Unity project directory

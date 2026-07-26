@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 480513a5f76480641b7854a6c25d4ddf, type: 3}
+  m_Name: Warehouse
+  m_EditorClassIdentifier: 
+  displayName: "\u4ED3\u5E93"
+  size: {x: 2.6, y: 3.4}
+  cardColor: {r: 0.24, g: 0.28, b: 0.4, a: 1}
+  resources:
+  - {fileID: 11400000, guid: f6f907173d8bda14e8c55ab14489907a, type: 2}
+  - {fileID: 11400000, guid: 295901bc6a81965428ae425d6ab99b0a, type: 2}
+  - {fileID: 11400000, guid: b2fa0e7cfe3434b478f166a6b4225577, type: 2}
+  - {fileID: 11400000, guid: 75e450635539b83459b3dfe363803a1b, type: 2}
+  capacityPerResource: 20
