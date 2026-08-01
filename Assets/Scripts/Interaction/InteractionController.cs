@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-
-namespace MasterPotion
+/*
+namespace MasterHouse
 {
     /// <summary>
     /// 世界内的鼠标交互（统一用 Physics2D 点选，优先级：端口 > 卡片 > 链接）：
@@ -29,13 +29,6 @@ namespace MasterPotion
 
         private void Update()
         {
-            if (PlacementController.Instance != null &&
-                (PlacementController.Instance.IsPlacing ||
-                 PlacementController.JustPlacedFrame == Time.frameCount))
-            {
-                CancelDrags();
-                return;
-            }
 
             Vector2 world = cam.ScreenToWorldPoint(Input.mousePosition);
 
@@ -143,3 +136,4 @@ namespace MasterPotion
             EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
     }
 }
+*/

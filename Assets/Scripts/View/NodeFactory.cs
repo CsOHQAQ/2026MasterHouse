@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-
+/*
 namespace MasterPotion
 {
     /// <summary>根据 NodeDef 程序化构建节点卡片（背景、标题、信息文字、端口、进度条）。</summary>
@@ -168,3 +168,4 @@ namespace MasterPotion
         private static Color Darken(Color c, float f) => new Color(c.r * f, c.g * f, c.b * f, c.a);
     }
 }
+*/

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>每完成一次运送，沿链接飞行一个小方块作为反馈。</summary>
     public class TransferPulse : MonoBehaviour

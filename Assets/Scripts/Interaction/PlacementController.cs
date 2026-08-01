@@ -1,5 +1,5 @@
 using UnityEngine;
-
+/*
 namespace MasterPotion
 {
     /// <summary>放置模式：半透明幽灵跟随鼠标（0.5 网格吸附），左键放置，右键/Esc 取消。</summary>
@@ -69,3 +69,4 @@ namespace MasterPotion
         }
     }
 }
+*/

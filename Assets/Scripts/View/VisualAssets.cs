@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>渲染排序统一定义。</summary>
     public static class SortingOrders

@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Data
+namespace MasterHouse
 {
     public enum ENodeType
     {
@@ -10,7 +10,7 @@ namespace Data
         Collector,
     }
 
-    // Pure DataStruct
+    
     public class NodeDef : ScriptableObject
     {
         public readonly ENodeType NodeType = ENodeType.None;

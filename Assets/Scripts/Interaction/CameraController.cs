@@ -1,6 +1,6 @@
 using UnityEngine;
-
-namespace MasterPotion
+/*
+namespace MasterHouse
 {
     /// <summary>右键/中键拖动平移，滚轮以鼠标位置为锚点缩放。</summary>
     [RequireComponent(typeof(Camera))]
@@ -48,3 +48,4 @@ namespace MasterPotion
         }
     }
 }
+*/
