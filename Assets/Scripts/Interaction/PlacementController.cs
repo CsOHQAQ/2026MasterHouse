@@ -2,7 +2,11 @@ using UnityEngine;
 
 namespace MasterPotion
 {
-    /// <summary>放置模式：半透明幽灵跟随鼠标（0.5 网格吸附），左键放置，右键/Esc 取消。</summary>
+    /// <summary>
+    /// 放置模式：半透明幽灵按画布单元格吸附跟随鼠标，
+    /// 必须完整落在画布内且不与其他节点重叠才能放置（非法时幽灵变红）。
+    /// 左键放置，右键/Esc 取消。
+    /// </summary>
     public class PlacementController : MonoBehaviour
     {
         public static PlacementController Instance { get; private set; }
@@ -14,6 +18,7 @@ namespace MasterPotion
 
         private NodeDef currentDef;
         private Transform ghost;
+        private SpriteRenderer ghostSprite;
         private Camera cam;
 
         private void Awake()
@@ -25,15 +30,15 @@ namespace MasterPotion
         public void BeginPlacement(NodeDef def)
         {
             CancelPlacement();
+            if (BoardEditController.Instance != null) BoardEditController.Instance.SetEditing(false);
             currentDef = def;
 
             var go = new GameObject("PlacementGhost");
-            var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = VisualAssets.WhiteSprite;
-            sr.sharedMaterial = VisualAssets.UnlitMaterial;
-            sr.color = new Color(def.cardColor.r, def.cardColor.g, def.cardColor.b, 0.4f);
-            sr.sortingOrder = SortingOrders.DragLine;
-            go.transform.localScale = new Vector3(def.size.x, def.size.y, 1f);
+            ghostSprite = go.AddComponent<SpriteRenderer>();
+            ghostSprite.sprite = VisualAssets.WhiteSprite;
+            ghostSprite.sharedMaterial = VisualAssets.UnlitMaterial;
+            ghostSprite.sortingOrder = SortingOrders.DragLine;
+            go.transform.localScale = new Vector3(def.WorldSize.x, def.WorldSize.y, 1f);
             ghost = go.transform;
         }
 
@@ -42,10 +47,15 @@ namespace MasterPotion
             if (!IsPlacing) return;
 
             Vector3 world = cam.ScreenToWorldPoint(Input.mousePosition);
-            world.z = 0f;
-            world.x = Mathf.Round(world.x * 2f) * 0.5f;
-            world.y = Mathf.Round(world.y * 2f) * 0.5f;
-            ghost.position = world;
+            var origin = BoardGrid.SnapOrigin(world, currentDef.gridSize);
+            ghost.position = BoardGrid.AreaCenter(origin, currentDef.gridSize);
+
+            bool valid = BoardGrid.Instance != null &&
+                         BoardGrid.Instance.CanPlace(origin, currentDef.gridSize);
+            var c = currentDef.cardColor;
+            ghostSprite.color = valid
+                ? new Color(c.r, c.g, c.b, 0.4f)
+                : new Color(0.9f, 0.25f, 0.25f, 0.4f);
 
             if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1))
             {
@@ -53,9 +63,9 @@ namespace MasterPotion
                 return;
             }
 
-            if (Input.GetMouseButtonDown(0) && !InteractionController.IsPointerOverUI())
+            if (Input.GetMouseButtonDown(0) && !InteractionController.IsPointerOverUI() && valid)
             {
-                NodeFactory.CreateNode(currentDef, world);
+                NodeFactory.CreateNodeAt(currentDef, origin);
                 JustPlacedFrame = Time.frameCount;
                 CancelPlacement();
             }
@@ -66,6 +76,7 @@ namespace MasterPotion
             currentDef = null;
             if (ghost != null) Destroy(ghost.gameObject);
             ghost = null;
+            ghostSprite = null;
         }
     }
 }

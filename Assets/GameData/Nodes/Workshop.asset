@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Workshop
   m_EditorClassIdentifier: 
   displayName: "\u52A0\u5DE5\u574A"
-  size: {x: 2.8, y: 3.2}
+  gridSize: {x: 3, y: 4}
   cardColor: {r: 0.4, g: 0.3, b: 0.2, a: 1}
   recipes:
   - {fileID: 11400000, guid: 35fdb8b63901e3346bf139f14772f0ed, type: 2}

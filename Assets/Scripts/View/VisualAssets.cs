@@ -5,6 +5,7 @@ namespace MasterPotion
     /// <summary>渲染排序统一定义。</summary>
     public static class SortingOrders
     {
+        public const int Cell = 0;
         public const int Link = 5;
         public const int Pulse = 6;
         public const int Card = 10;
@@ -12,6 +13,7 @@ namespace MasterPotion
         public const int Pin = 13;
         public const int Text = 15;
         public const int DragLine = 20;
+        public const int CellCursor = 21;
     }
 
     /// <summary>运行时生成并缓存的共享视觉资源（无需任何美术素材）。</summary>

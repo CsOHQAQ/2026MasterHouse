@@ -10,10 +10,10 @@ namespace MasterPotion
         private const float PortStartOffset = 0.9f;  // 端口列距卡片顶部的距离
         private const float PortSpacing = 0.45f;
 
-        public static NodeBase CreateNode(NodeDef def, Vector3 position)
+        /// <summary>在画布指定格子原点（占用区域左下角）创建节点。不校验合法性，调用方需先用 BoardGrid.CanPlace 检查。</summary>
+        public static NodeBase CreateNodeAt(NodeDef def, Vector2Int gridOrigin)
         {
             var go = new GameObject($"Node_{def.displayName}");
-            go.transform.position = new Vector3(position.x, position.y, 0f);
 
             NodeBase node = def switch
             {
@@ -30,10 +30,11 @@ namespace MasterPotion
             }
 
             var col = go.AddComponent<BoxCollider2D>();
-            col.size = def.size;
+            col.size = def.WorldSize;
             col.isTrigger = true;
 
             node.Init(def);
+            node.SetGridPlacement(gridOrigin);
             BuildVisuals(node, def);
             BuildPorts(node, def);
             node.OnConnectionsChanged();
@@ -43,24 +44,25 @@ namespace MasterPotion
         private static void BuildVisuals(NodeBase node, NodeDef def)
         {
             var t = node.transform;
+            var size = def.WorldSize;
             NewSprite(t, "BG", Vector3.zero,
-                new Vector3(def.size.x, def.size.y, 1f), def.cardColor, SortingOrders.Card);
+                new Vector3(size.x, size.y, 1f), def.cardColor, SortingOrders.Card);
 
-            float headerY = def.size.y * 0.5f - HeaderHeight * 0.5f;
+            float headerY = size.y * 0.5f - HeaderHeight * 0.5f;
             NewSprite(t, "Header", new Vector3(0f, headerY, 0f),
-                new Vector3(def.size.x, HeaderHeight, 1f), Darken(def.cardColor, 0.65f), SortingOrders.CardDecor);
+                new Vector3(size.x, HeaderHeight, 1f), Darken(def.cardColor, 0.65f), SortingOrders.CardDecor);
             VisualAssets.CreateWorldText(t, "Title", new Vector3(0f, headerY, 0f),
                 def.displayName, 0.3f, TextAnchor.MiddleCenter, Color.white, SortingOrders.Text);
 
             var info = VisualAssets.CreateWorldText(t, "Info",
-                new Vector3(0f, -def.size.y * 0.5f + 0.1f, 0f),
+                new Vector3(0f, -size.y * 0.5f + 0.1f, 0f),
                 "", 0.2f, TextAnchor.LowerCenter, new Color(0.92f, 0.92f, 0.92f), SortingOrders.Text);
             node.SetInfoText(info);
 
             if (node is ProcessorNode proc)
             {
-                float barW = def.size.x - 0.7f;
-                float barY = def.size.y * 0.5f - HeaderHeight - 0.18f;
+                float barW = size.x - 0.7f;
+                float barY = size.y * 0.5f - HeaderHeight - 0.18f;
                 var barRoot = new GameObject("ProgressBar");
                 barRoot.transform.SetParent(t, false);
                 barRoot.transform.localPosition = new Vector3(0f, barY, 0f);
@@ -102,8 +104,8 @@ namespace MasterPotion
                     break;
             }
 
-            CreatePortColumn(node, inputs, PortDirection.Input, -def.size.x * 0.5f, def.size.y);
-            CreatePortColumn(node, outputs, PortDirection.Output, def.size.x * 0.5f, def.size.y);
+            CreatePortColumn(node, inputs, PortDirection.Input, -def.WorldSize.x * 0.5f, def.WorldSize.y);
+            CreatePortColumn(node, outputs, PortDirection.Output, def.WorldSize.x * 0.5f, def.WorldSize.y);
         }
 
         private static void CreatePortColumn(NodeBase node, List<ResourceDef> resources,

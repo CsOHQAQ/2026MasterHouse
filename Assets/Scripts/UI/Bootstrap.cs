@@ -16,7 +16,7 @@ namespace MasterPotion
         }
 
         public GameConfig config;
-        [Tooltip("场景启动时生成的固定节点（如资源产出点）")]
+        [Tooltip("场景启动时生成的固定节点（如资源产出点），位置会吸附到画布单元格")]
         public List<PresetNode> presetNodes = new();
 
         private void Start()
@@ -27,6 +27,10 @@ namespace MasterPotion
                 es.AddComponent<EventSystem>();
                 es.AddComponent<StandaloneInputModule>();
             }
+
+            // 旧场景兜底：保证画布与画布编辑器存在
+            if (BoardGrid.Instance == null) gameObject.AddComponent<BoardGrid>();
+            if (BoardEditController.Instance == null) gameObject.AddComponent<BoardEditController>();
 
             if (config != null)
             {
@@ -41,7 +45,12 @@ namespace MasterPotion
 
             foreach (var p in presetNodes)
             {
-                if (p.def != null) NodeFactory.CreateNode(p.def, p.position);
+                if (p.def == null) continue;
+                var origin = BoardGrid.SnapOrigin(p.position, p.def.gridSize);
+                if (BoardGrid.Instance.CanPlace(origin, p.def.gridSize))
+                    NodeFactory.CreateNodeAt(p.def, origin);
+                else
+                    Debug.LogWarning($"预置节点「{p.def.displayName}」在 {origin} 处无法完整落在画布内，已跳过。");
             }
         }
     }

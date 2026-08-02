@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Sawmill
   m_EditorClassIdentifier: 
   displayName: "\u4F10\u6728\u573A"
-  size: {x: 2.2, y: 2.2}
+  gridSize: {x: 3, y: 3}
   cardColor: {r: 0.2, g: 0.32, b: 0.2, a: 1}
   productions:
   - resource: {fileID: 11400000, guid: f6f907173d8bda14e8c55ab14489907a, type: 2}

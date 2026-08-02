@@ -14,7 +14,19 @@ namespace MasterPotion
         protected readonly ResourceBuffer outputBuffer = new();
         private TextMesh infoText;
 
+        /// <summary>节点在画布上占用区域的左下角单元格。</summary>
+        public Vector2Int GridOrigin { get; private set; }
+
         public virtual void Init(NodeDef def) => Def = def;
+
+        /// <summary>把节点放到指定格子原点：更新世界坐标并在画布上登记占用（重复调用即为移动）。</summary>
+        public void SetGridPlacement(Vector2Int origin)
+        {
+            GridOrigin = origin;
+            transform.position = BoardGrid.AreaCenter(origin, Def.gridSize);
+            if (BoardGrid.Instance != null)
+                BoardGrid.Instance.OccupyArea(this, origin, Def.gridSize);
+        }
 
         public void SetInfoText(TextMesh text) => infoText = text;
 
@@ -47,6 +59,11 @@ namespace MasterPotion
         }
 
         protected virtual void OnEnable() => SimulationManager.Nodes.Add(this);
-        protected virtual void OnDisable() => SimulationManager.Nodes.Remove(this);
+
+        protected virtual void OnDisable()
+        {
+            SimulationManager.Nodes.Remove(this);
+            if (BoardGrid.Instance != null) BoardGrid.Instance.ReleaseArea(this);
+        }
     }
 }

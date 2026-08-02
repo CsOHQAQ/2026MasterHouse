@@ -6,7 +6,7 @@ namespace MasterPotion
     /// <summary>
     /// 世界内的鼠标交互（统一用 Physics2D 点选，优先级：端口 > 卡片 > 链接）：
     /// - 左键从端口拖出：创建链接（拖到相反方向、同资源的端口上松开）
-    /// - 左键拖拽卡片：移动节点
+    /// - 左键拖拽卡片：按画布单元格吸附移动节点（只落在合法位置）
     /// - 双击链接：删除
     /// </summary>
     public class InteractionController : MonoBehaviour
@@ -32,6 +32,12 @@ namespace MasterPotion
             if (PlacementController.Instance != null &&
                 (PlacementController.Instance.IsPlacing ||
                  PlacementController.JustPlacedFrame == Time.frameCount))
+            {
+                CancelDrags();
+                return;
+            }
+
+            if (BoardEditController.Instance != null && BoardEditController.Instance.IsEditing)
             {
                 CancelDrags();
                 return;
@@ -88,8 +94,15 @@ namespace MasterPotion
             }
             else if (dragNode != null)
             {
-                var p = (Vector3)world + dragNodeOffset;
-                dragNode.transform.position = new Vector3(p.x, p.y, 0f);
+                // 按格吸附移动：仅当目标区域完整在画布内且不与其他节点重叠时才落位
+                var desiredCenter = (Vector3)world + dragNodeOffset;
+                var origin = BoardGrid.SnapOrigin(desiredCenter, dragNode.Def.gridSize);
+                if (origin != dragNode.GridOrigin &&
+                    BoardGrid.Instance != null &&
+                    BoardGrid.Instance.CanPlace(origin, dragNode.Def.gridSize, ignore: dragNode))
+                {
+                    dragNode.SetGridPlacement(origin);
+                }
             }
         }
 

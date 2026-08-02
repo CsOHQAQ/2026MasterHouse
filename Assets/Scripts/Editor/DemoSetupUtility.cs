@@ -34,7 +34,7 @@ namespace MasterPotion.EditorTools
             // 固定资源产出节点
             var sawmill = CreateAsset<ResourceNodeDef>(Root + "/Nodes/Sawmill.asset");
             sawmill.displayName = "伐木场";
-            sawmill.size = new Vector2(2.2f, 2.2f);
+            sawmill.gridSize = new Vector2Int(3, 3);
             sawmill.cardColor = new Color(0.2f, 0.32f, 0.2f);
             sawmill.productions = new List<ProductionEntry>
             {
@@ -44,7 +44,7 @@ namespace MasterPotion.EditorTools
 
             var quarry = CreateAsset<ResourceNodeDef>(Root + "/Nodes/Quarry.asset");
             quarry.displayName = "采石场";
-            quarry.size = new Vector2(2.2f, 2.2f);
+            quarry.gridSize = new Vector2Int(3, 3);
             quarry.cardColor = new Color(0.3f, 0.3f, 0.34f);
             quarry.productions = new List<ProductionEntry>
             {
@@ -55,17 +55,16 @@ namespace MasterPotion.EditorTools
             // 可放置节点：加工坊（两个配方，演示配方精确匹配）+ 仓库
             var workshop = CreateAsset<ProcessorNodeDef>(Root + "/Nodes/Workshop.asset");
             workshop.displayName = "加工坊";
-            workshop.size = new Vector2(2.8f, 3.2f);
+            workshop.gridSize = new Vector2Int(3, 4);
             workshop.cardColor = new Color(0.4f, 0.3f, 0.2f);
             workshop.recipes = new List<RecipeDef> { plankRecipe, toolRecipe };
             EditorUtility.SetDirty(workshop);
 
             var warehouse = CreateAsset<StorageNodeDef>(Root + "/Nodes/Warehouse.asset");
             warehouse.displayName = "仓库";
-            warehouse.size = new Vector2(2.6f, 3.4f);
+            warehouse.gridSize = new Vector2Int(3, 4);
             warehouse.cardColor = new Color(0.24f, 0.28f, 0.4f);
             warehouse.resources = new List<ResourceDef> { wood, stone, plank, tool };
-            warehouse.capacityPerResource = 20;
             EditorUtility.SetDirty(warehouse);
 
             // 全局配置
@@ -117,13 +116,18 @@ namespace MasterPotion.EditorTools
             GetOrAdd<LinkManager>(root);
             GetOrAdd<InteractionController>(root);
             GetOrAdd<PlacementController>(root);
+            GetOrAdd<BoardEditController>(root);
+
+            var board = GetOrAdd<BoardGrid>(root);
+            board.initialWidth = 26;
+            board.initialHeight = 14;
 
             var bootstrap = GetOrAdd<Bootstrap>(root);
             bootstrap.config = config;
             bootstrap.presetNodes = new List<Bootstrap.PresetNode>
             {
-                new Bootstrap.PresetNode { def = LoadNode("Sawmill"), position = new Vector2(-7f, 2.5f) },
-                new Bootstrap.PresetNode { def = LoadNode("Quarry"), position = new Vector2(-7f, -2.5f) },
+                new Bootstrap.PresetNode { def = LoadNode("Sawmill"), position = new Vector2(-9.5f, 2.5f) },
+                new Bootstrap.PresetNode { def = LoadNode("Quarry"), position = new Vector2(-9.5f, -2.5f) },
             };
             EditorUtility.SetDirty(bootstrap);
 

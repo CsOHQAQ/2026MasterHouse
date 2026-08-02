@@ -31,6 +31,7 @@ namespace MasterPotion
             if (from.Node == to.Node) return false;          // 不允许自连
             if (from.Resource != to.Resource) return false;  // 端口资源类型必须一致
             if (SimulationManager.Links.Any(l => l.From == from && l.To == to)) return false; // 去重
+            if (LinkRouter.Route(from, to) == null) return false; // 画布单元格内必须存在可行走线
             return true;
         }
 
@@ -72,7 +73,7 @@ namespace MasterPotion
             foreach (var l in SimulationManager.Links)
             {
                 if (l.From == null || l.To == null) continue;
-                float d = DistanceToSegment(point, l.From.transform.position, l.To.transform.position);
+                float d = l.DistanceTo(point);
                 if (d < bestDist)
                 {
                     bestDist = d;
@@ -90,15 +91,6 @@ namespace MasterPotion
             line.endWidth = width;
             line.useWorldSpace = true;
             line.sortingOrder = sortingOrder;
-        }
-
-        private static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
-        {
-            var ab = b - a;
-            float len2 = ab.sqrMagnitude;
-            if (len2 < 1e-6f) return Vector2.Distance(p, a);
-            float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / len2);
-            return Vector2.Distance(p, a + ab * t);
         }
     }
 }

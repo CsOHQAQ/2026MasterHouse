@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Quarry
   m_EditorClassIdentifier: 
   displayName: "\u91C7\u77F3\u573A"
-  size: {x: 2.2, y: 2.2}
+  gridSize: {x: 3, y: 3}
   cardColor: {r: 0.3, g: 0.3, b: 0.34, a: 1}
   productions:
   - resource: {fileID: 11400000, guid: 295901bc6a81965428ae425d6ab99b0a, type: 2}

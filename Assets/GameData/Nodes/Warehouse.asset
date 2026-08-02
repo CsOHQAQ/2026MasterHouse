@@ -13,11 +13,10 @@ MonoBehaviour:
   m_Name: Warehouse
   m_EditorClassIdentifier: 
   displayName: "\u4ED3\u5E93"
-  size: {x: 2.6, y: 3.4}
+  gridSize: {x: 3, y: 4}
   cardColor: {r: 0.24, g: 0.28, b: 0.4, a: 1}
   resources:
   - {fileID: 11400000, guid: f6f907173d8bda14e8c55ab14489907a, type: 2}
   - {fileID: 11400000, guid: 295901bc6a81965428ae425d6ab99b0a, type: 2}
   - {fileID: 11400000, guid: b2fa0e7cfe3434b478f166a6b4225577, type: 2}
   - {fileID: 11400000, guid: 75e450635539b83459b3dfe363803a1b, type: 2}
-  capacityPerResource: 20
