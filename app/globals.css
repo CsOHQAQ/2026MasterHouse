@@ -448,9 +448,14 @@ button { color: inherit; }
 .scene-art { transform-origin:50% 50%; transition:filter .9s ease,transform 1.05s cubic-bezier(.2,.78,.2,1),object-position 1.05s cubic-bezier(.2,.78,.2,1); }
 .room-living .scene-art { transform:scale(1); transform-origin:50% 52%; }
 .room-kitchen .scene-art { transform:scale(1.72); transform-origin:62% 43%; }
-.room-study .scene-art { transform:scale(1.2) translateX(15%); transform-origin:34% 48%; }
+.room-study .scene-art { object-fit:cover; object-position:center; transform-origin:left center; animation:studyQuarterTurn 1.05s cubic-bezier(.2,.76,.18,1) both; }
 .room-bedroom .scene-art { object-fit:contain; object-position:center; transform:scale(1.04); transform-origin:center; filter:brightness(.92) saturate(1.05); }
 .room-bedroom .house-stage { background:radial-gradient(circle at 50% 45%,rgba(100,91,154,.2),transparent 48%),#090b13; }
+@keyframes studyQuarterTurn {
+  0% { opacity:.16; transform:perspective(1500px) translateX(38%) rotateY(88deg) scale(1.08); filter:brightness(.48) saturate(.72); }
+  52% { opacity:.86; transform:perspective(1500px) translateX(5%) rotateY(18deg) scale(1.035); }
+  100% { opacity:1; transform:perspective(1500px) translateX(0) rotateY(0) scale(1); }
+}
 .quest-peek { left:25px; bottom:24px; border:0; color:#312a2f; background:#c9d0c2; clip-path:polygon(2% 8%,96% 0,100% 88%,92% 100%,0 94%); transform:rotate(.7deg); }
 .quest-peek>span { color:#f2d8c6; background:#a8324d; }
 .quest-peek small { color:#8c3c4c; }.quest-peek b { color:#322b30; }.quest-peek i { background:rgba(48,42,47,.2); }.quest-peek u { background:#b83b57; }.quest-peek button { color:#81404c; }
