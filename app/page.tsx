@@ -151,7 +151,7 @@ function GuestPortrait({ guest, size = "" }: { guest: (typeof guests)[number]; s
   return <span className={`portrait ${size} ${guest.color}`}><img src={guest.portrait} alt="" /><i /></span>;
 }
 
-type EntryScreen = "cover" | "opening" | "menu" | "game";
+type EntryScreen = "menu" | "game";
 type MenuPanel = "saves" | "gallery" | "settings" | "exit" | null;
 type SaveMode = "new" | "load";
 type SaveSummary = { slot: number; occupied: boolean; savedAt: string; progress: string };
@@ -160,7 +160,7 @@ const SAVE_PREFIX = "guesthouse-of-meros-save-slot-";
 const LEGACY_SAVE_KEY = "sweet-house-demo-save";
 
 export default function Home() {
-  const [entryScreen, setEntryScreen] = useState<EntryScreen>("cover");
+  const [entryScreen, setEntryScreen] = useState<EntryScreen>("menu");
   const [menuPanel, setMenuPanel] = useState<MenuPanel>(null);
   const [saveMode, setSaveMode] = useState<SaveMode>("new");
   const [galleryView, setGalleryView] = useState<"log" | "achievement">("log");
@@ -240,19 +240,9 @@ export default function Home() {
     setPanel(null);
   };
 
-  const openGuesthouse = () => {
-    if (entryScreen !== "cover") return;
-    setEntryScreen("opening");
-    window.setTimeout(() => setEntryScreen("menu"), 1550);
-  };
-
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (entryScreen !== "game") {
-        if (entryScreen === "cover" && (event.key === "Enter" || event.key === " ")) {
-          event.preventDefault();
-          openGuesthouse();
-        }
         if (event.key === "Escape") setMenuPanel(null);
         return;
       }
@@ -453,22 +443,11 @@ export default function Home() {
 
   if (entryScreen !== "game") {
     return (
-      <main className={`title-screen ${entryScreen === "opening" ? "is-opening" : ""}`}>
+      <main className="title-screen">
         <div className="title-grain" />
-        {entryScreen === "cover" ? <button className="cover-entry" onClick={openGuesthouse} aria-label="进入 The Guesthouse of Meros">
-          <img className="title-cover" src="/og-meros.png" alt="The Guesthouse of Meros 封面，四位动物访客站在暮色旅店中" draggable="false" />
-          <div className="title-vignette cover-vignette" />
-          <span className="cover-entry-prompt"><small>KNOCK TO ENTER</small><strong>点击进入旅店</strong><i /></span>
-        </button> : entryScreen === "opening" ? <>
-          <div className="entry-home-reveal"><img src="/house-hub-v2.png" alt="Meros 旅店温暖的室内" /><div><small>THE DOOR IS OPEN</small><strong>欢迎回家</strong></div></div>
-          <div className="cover-door cover-door-left"><img src="/og-meros.png" alt="" /></div>
-          <div className="cover-door cover-door-right"><img src="/og-meros.png" alt="" /></div>
-          <span className="door-light" />
-        </> : <>
-          <img className="title-cover menu-home-cover" src="/house-hub-v2.png" alt="Meros 旅店温暖的室内" draggable="false" />
-          <div className="title-vignette menu-vignette" />
-          <div className="menu-brand"><small>THE GUESTHOUSE OF MEROS</small><strong>WELCOME HOME</strong></div>
-          <section className="main-menu centered-menu" aria-label="主菜单">
+        <img className="title-cover" src="/og-meros.png" alt="The Guesthouse of Meros 封面，四位动物访客站在暮色旅店中" draggable="false" />
+        <div className="title-vignette" />
+        {!menuPanel && <section className="main-menu centered-menu" aria-label="主菜单">
             <header><small>THE GUESTHOUSE OF MEROS</small><strong>主菜单</strong><span>{hasSave ? "检测到本地存档" : "等待第一位住客"}</span></header>
             <div className="start-actions">
               <button className="menu-action menu-primary" onClick={() => { setSaveMode("new"); setMenuPanel("saves"); setMenuNotice(""); }}><span>新游戏</span><small>NEW STORY</small></button>
@@ -481,26 +460,32 @@ export default function Home() {
               <button onClick={() => setMenuPanel("exit")}><b>退出游戏</b><small>QUIT</small></button>
             </nav>
             <footer><span>ENTER 选择</span><span>ESC 返回</span></footer>
-          </section>
+        </section>}
 
-          {menuPanel && <div className="menu-modal-scrim" onClick={() => setMenuPanel(null)} />}
-          {menuPanel === "saves" && <aside className="menu-modal save-select" aria-label="选择存档">
-            <header><div><small>{saveMode === "new" ? "START A NEW STORY" : "LOAD YOUR STORY"}</small><h2>{saveMode === "new" ? "选择新游戏存档" : "读取存档"}</h2></div><button onClick={() => setMenuPanel(null)}>关闭 ×</button></header>
+          {menuPanel === "saves" && <aside className="menu-page save-select" aria-label="选择存档"><div className="menu-page-inner">
+            <header><div><small>{saveMode === "new" ? "START A NEW STORY" : "LOAD YOUR STORY"}</small><h2>{saveMode === "new" ? "选择新游戏存档" : "读取存档"}</h2></div><button onClick={() => setMenuPanel(null)}>← 返回主菜单</button></header>
             <p>{saveMode === "new" ? "选择存档位后开始新的旅店故事。已有存档只有在你下一次保存时才会被覆盖。" : "选择一段已保存的旅店记忆。"}</p>
             <div className="save-slot-list">{saveSlots.map((item) => <button key={item.slot} className={item.occupied ? "occupied" : "empty"} disabled={saveMode === "load" && !item.occupied} onClick={() => enterHouse(item.slot, saveMode === "load")}><span>0{item.slot}</span><div><small>SAVE SLOT</small><strong>{item.occupied ? item.progress : "空存档"}</strong><em>{item.occupied ? item.savedAt : saveMode === "new" ? "从这里开始" : "NO DATA"}</em></div><b>{saveMode === "new" ? item.occupied ? "选择 · 将覆盖" : "选择" : item.occupied ? "读取" : "—"}</b></button>)}</div>
             {menuNotice && <div className="menu-notice">{menuNotice}</div>}
-          </aside>}
+          </div></aside>}
 
-          {menuPanel === "gallery" && <aside className="menu-modal gallery-modal" aria-label="画廊">
-            <header><div><small>MEMORIES OF THE GUESTHOUSE</small><h2>画廊</h2></div><button onClick={() => setMenuPanel(null)}>关闭 ×</button></header>
+          {menuPanel === "gallery" && <aside className="menu-page gallery-page" aria-label="画廊"><div className="menu-page-inner">
+            <header><div><small>MEMORIES OF THE GUESTHOUSE</small><h2>画廊</h2></div><button onClick={() => setMenuPanel(null)}>← 返回主菜单</button></header>
             <div className="gallery-tabs"><button className={galleryView === "log" ? "selected" : ""} onClick={() => setGalleryView("log")}>游戏日志</button><button className={galleryView === "achievement" ? "selected" : ""} onClick={() => setGalleryView("achievement")}>成就系统</button></div>
             {galleryView === "log" ? <div className="title-log-grid"><article><small>WEEK 01 · 06/17</small><h3>窗户唱回来的那句话</h3><p>赫墨说“今天糟透了”。琴弦回答：“但你还是走到了这里。”</p></article><article><small>WEEK 01 · 06/16</small><h3>风铃下的纸条</h3><p>米娅没有说再见，只留下了一张画着胡萝卜的小纸条。</p></article></div> : <div className="title-achievement-grid">{[["初次相识","记录第一位访客",true],["夜的主人","在深夜完成服务",true],["家的轮廓","解锁全部房间",false],["无人知晓","发现特殊访客的秘密",false]].map(([name,desc,done],index)=><article className={done ? "done" : ""} key={String(name)}><span>{done ? "✓" : `0${index+1}`}</span><div><h3>{name}</h3><p>{desc}</p></div><small>{done ? "已完成" : "未解锁"}</small></article>)}</div>}
-          </aside>}
+          </div></aside>}
 
-          {menuPanel === "settings" && <aside className="menu-modal compact-modal"><header><div><small>NEXT DETAIL PASS</small><h2>设置</h2></div><button onClick={() => setMenuPanel(null)}>关闭 ×</button></header><p>主界面入口已经接好。界面切换、存读档、游戏性、图形与音乐音效会在下一轮单独细化。</p><button className="paper-confirm" onClick={() => setMenuPanel(null)}>知道了</button></aside>}
-          {menuPanel === "exit" && <aside className="menu-modal compact-modal"><header><div><small>LEAVE THE GUESTHOUSE?</small><h2>退出游戏</h2></div><button onClick={() => setMenuPanel(null)}>关闭 ×</button></header><p>网页 Demo 无法直接关闭浏览器。确认后会返回封面，你可以安全关闭这个标签页。</p><button className="paper-confirm" onClick={() => { setMenuPanel(null); setMenuNotice(""); setEntryScreen("cover"); }}>返回封面</button></aside>}
+          {menuPanel === "settings" && <aside className="menu-page settings-page"><div className="menu-page-inner">
+            <header><div><small>HOUSE PREFERENCES</small><h2>设置</h2></div><button onClick={() => setMenuPanel(null)}>← 返回主菜单</button></header>
+            <div className="title-settings-grid">
+              <section><small>INTERFACE & DATA</small><h3>界面与存档</h3><label>界面切换<select defaultValue="沉浸式"><option>沉浸式</option><option>简洁模式</option></select></label><div className="setting-actions"><button onClick={() => { saveGame(); setMenuNotice(`已保存到 Slot 0${activeSlot}`); }}>保存</button><button onClick={() => { setSaveMode("load"); setMenuPanel("saves"); setMenuNotice(""); }}>读取存档</button></div></section>
+              <section><small>GAMEPLAY</small><h3>游戏性</h3><label className="setting-toggle">对话自动播放<input type="checkbox" /></label><label className="setting-toggle">显示交互提示<input type="checkbox" defaultChecked /></label><label className="setting-toggle">镜头轻微晃动<input type="checkbox" defaultChecked /></label></section>
+              <section><small>GRAPHICS</small><h3>图形</h3><label>视窗模式<select value={windowMode} onChange={(event) => setWindowMode(event.target.value)}><option>全屏</option><option>窗口</option><option>无边框</option></select></label><label>分辨率<select defaultValue="1920 × 1080"><option>2560 × 1440</option><option>1920 × 1080</option><option>1600 × 900</option></select></label></section>
+              <section><small>AUDIO</small><h3>音乐音效</h3><label>BGM <b>{bgm}</b><input type="range" min="0" max="100" value={bgm} onChange={(event) => setBgm(Number(event.target.value))} /></label><label>SFX <b>{sfx}</b><input type="range" min="0" max="100" value={sfx} onChange={(event) => setSfx(Number(event.target.value))} /></label></section>
+            </div>
+          </div></aside>}
+          {menuPanel === "exit" && <aside className="menu-page compact-page"><div className="menu-page-inner"><header><div><small>LEAVE THE GUESTHOUSE?</small><h2>退出游戏</h2></div><button onClick={() => setMenuPanel(null)}>← 返回主菜单</button></header><p>网页 Demo 无法直接关闭浏览器。你可以安全关闭这个标签页，或返回主菜单继续体验。</p><button className="paper-confirm" onClick={() => setMenuPanel(null)}>返回主菜单</button></div></aside>}
           {menuNotice && menuPanel !== "saves" && <div className="title-toast">{menuNotice}</div>}
-        </>}
       </main>
     );
   }
