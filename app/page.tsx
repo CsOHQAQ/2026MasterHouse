@@ -151,7 +151,22 @@ function GuestPortrait({ guest, size = "" }: { guest: (typeof guests)[number]; s
   return <span className={`portrait ${size} ${guest.color}`}><img src={guest.portrait} alt="" /><i /></span>;
 }
 
+type EntryScreen = "menu" | "opening" | "game";
+type MenuPanel = "saves" | "gallery" | "settings" | "exit" | null;
+type SaveMode = "new" | "load";
+type SaveSummary = { slot: number; occupied: boolean; savedAt: string; progress: string };
+
+const SAVE_PREFIX = "guesthouse-of-meros-save-slot-";
+const LEGACY_SAVE_KEY = "sweet-house-demo-save";
+
 export default function Home() {
+  const [entryScreen, setEntryScreen] = useState<EntryScreen>("menu");
+  const [menuPanel, setMenuPanel] = useState<MenuPanel>(null);
+  const [saveMode, setSaveMode] = useState<SaveMode>("new");
+  const [galleryView, setGalleryView] = useState<"log" | "achievement">("log");
+  const [activeSlot, setActiveSlot] = useState(1);
+  const [saveSlots, setSaveSlots] = useState<SaveSummary[]>([1, 2, 3].map((slot) => ({ slot, occupied: false, savedAt: "", progress: "" })));
+  const [menuNotice, setMenuNotice] = useState("");
   const [panel, setPanel] = useState<PanelKey | null>(null);
   const [history, setHistory] = useState<PanelKey[]>([]);
   const [room, setRoom] = useState("living");
@@ -172,6 +187,33 @@ export default function Home() {
   const guest = guests.find((item) => item.id === guestId) ?? guests[0];
   const currentRoom = rooms.find((item) => item.id === room) ?? rooms[0];
   const currentDevices = devicesByRoom[room];
+  const hasSave = saveSlots.some((item) => item.occupied);
+
+  const readSaveRaw = (slot: number) => localStorage.getItem(`${SAVE_PREFIX}${slot}`) ?? (slot === 1 ? localStorage.getItem(LEGACY_SAVE_KEY) : null);
+
+  const refreshSaveSlots = () => {
+    const summaries = [1, 2, 3].map((slot) => {
+      const raw = readSaveRaw(slot);
+      if (!raw) return { slot, occupied: false, savedAt: "", progress: "" };
+      try {
+        const data = JSON.parse(raw) as { savedAt?: string; served?: string[]; room?: string };
+        const date = data.savedAt ? new Date(data.savedAt) : null;
+        return {
+          slot,
+          occupied: true,
+          savedAt: date && !Number.isNaN(date.getTime()) ? date.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "旧存档",
+          progress: `WEEK 01 · ${data.served?.length ?? 0}/4 委托 · ${rooms.find((item) => item.id === data.room)?.name ?? "起居室"}`,
+        };
+      } catch {
+        return { slot, occupied: true, savedAt: "旧存档", progress: "存档信息待恢复" };
+      }
+    });
+    setSaveSlots(summaries);
+  };
+
+  useEffect(() => {
+    refreshSaveSlots();
+  }, []);
 
   const notify = (message: string) => {
     setToast(message);
@@ -200,6 +242,10 @@ export default function Home() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (entryScreen !== "game") {
+        if (event.key === "Escape") setMenuPanel(null);
+        return;
+      }
       if (event.key === "Escape") goBack();
       if (!panel && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
         setRoom((current) => {
@@ -211,7 +257,7 @@ export default function Home() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [panel, dialogue, history]);
+  }, [panel, dialogue, history, entryScreen]);
 
   const selectRoom = (id: string) => {
     setRoom(id);
@@ -226,20 +272,7 @@ export default function Home() {
     notify(`${guest.name} 的委托已推进，亲密度 +6`);
   };
 
-  const saveGame = () => {
-    localStorage.setItem(
-      "sweet-house-demo-save",
-      JSON.stringify({ room, phase, served, bgm, sfx, windowMode, savedAt: new Date().toISOString() }),
-    );
-    notify("进度已保存到本机 · Slot 01");
-  };
-
-  const loadGame = () => {
-    const raw = localStorage.getItem("sweet-house-demo-save");
-    if (!raw) {
-      notify("还没有存档，先在 House 里探索一下吧");
-      return;
-    }
+  const applySave = (raw: string) => {
     const data = JSON.parse(raw) as {
       room?: string;
       phase?: number;
@@ -254,7 +287,56 @@ export default function Home() {
     if (typeof data.bgm === "number") setBgm(data.bgm);
     if (typeof data.sfx === "number") setSfx(data.sfx);
     if (data.windowMode) setWindowMode(data.windowMode);
-    notify("Slot 01 已读取 · 欢迎回来");
+  };
+
+  const enterHouse = (slot: number, loadExisting: boolean) => {
+    const raw = readSaveRaw(slot);
+    if (loadExisting && !raw) {
+      setMenuNotice(`Slot 0${slot} 还没有存档`);
+      return;
+    }
+    setActiveSlot(slot);
+    if (loadExisting && raw) applySave(raw);
+    if (!loadExisting) {
+      setRoom("living");
+      setGuestId("lorn");
+      setPhase(2);
+      setServed([]);
+      setPanel(null);
+      setDialogue(false);
+    }
+    setMenuPanel(null);
+    setMenuNotice("");
+    setEntryScreen("opening");
+    window.setTimeout(() => {
+      setEntryScreen("game");
+      setToast(loadExisting ? `Slot 0${slot} 已读取 · 欢迎回来` : `Slot 0${slot} · 新的一周开始了`);
+    }, 1550);
+  };
+
+  const continueGame = () => {
+    const latest = [...saveSlots].filter((item) => item.occupied).sort((a, b) => b.savedAt.localeCompare(a.savedAt))[0];
+    if (!latest) {
+      setMenuNotice("还没有存档，请先开始新游戏");
+      return;
+    }
+    enterHouse(latest.slot, true);
+  };
+
+  const saveGame = () => {
+    localStorage.setItem(`${SAVE_PREFIX}${activeSlot}`, JSON.stringify({ room, phase, served, bgm, sfx, windowMode, savedAt: new Date().toISOString() }));
+    refreshSaveSlots();
+    notify(`进度已保存到本机 · Slot 0${activeSlot}`);
+  };
+
+  const loadGame = () => {
+    const raw = readSaveRaw(activeSlot);
+    if (!raw) {
+      notify(`Slot 0${activeSlot} 还没有存档`);
+      return;
+    }
+    applySave(raw);
+    notify(`Slot 0${activeSlot} 已读取 · 欢迎回来`);
   };
 
   const renderPanel = () => {
@@ -351,7 +433,7 @@ export default function Home() {
     if (panel === "settings") {
       return (
         <div className="panel-content settings-layout">
-          <section><small>SAVE DATA</small><h3>Slot 01</h3><p>House LV.03 · WEEK 01 · {served.length}/4 委托推进</p><div className="button-pair"><button className="primary-button" onClick={saveGame}>保存进度</button><button className="ghost-button" onClick={loadGame}>读取存档</button></div></section>
+          <section><small>SAVE DATA</small><h3>Slot 0{activeSlot}</h3><p>House LV.03 · WEEK 01 · {served.length}/4 委托推进</p><div className="button-pair"><button className="primary-button" onClick={saveGame}>保存进度</button><button className="ghost-button" onClick={loadGame}>读取存档</button></div></section>
           <section><small>DISPLAY</small><label>视窗模式<select value={windowMode} onChange={(event) => setWindowMode(event.target.value)}><option>无边框</option><option>全屏</option><option>窗口</option></select></label><label>分辨率<select defaultValue="2560 × 1440"><option>2560 × 1440</option><option>1920 × 1080</option><option>1600 × 900</option></select></label></section>
           <section><small>AUDIO</small><label>BGM <b>{bgm}</b><input type="range" min="0" max="100" value={bgm} onChange={(event) => setBgm(Number(event.target.value))} /></label><label>SFX <b>{sfx}</b><input type="range" min="0" max="100" value={sfx} onChange={(event) => setSfx(Number(event.target.value))} /></label></section>
           <footer><span>ESC 返回上一级</span><button onClick={() => notify("设置已应用")}>应用设置</button></footer>
@@ -362,13 +444,62 @@ export default function Home() {
     return null;
   };
 
+  if (entryScreen !== "game") {
+    return (
+      <main className={`title-screen ${entryScreen === "opening" ? "is-opening" : ""}`}>
+        <div className="title-grain" />
+        {entryScreen === "opening" ? <>
+          <div className="entry-home-reveal"><img src="/house-hub-v2.png" alt="Meros 旅店温暖的室内" /><div><small>THE DOOR IS OPEN</small><strong>欢迎回家</strong></div></div>
+          <div className="cover-door cover-door-left"><img src="/og-meros.png" alt="" /></div>
+          <div className="cover-door cover-door-right"><img src="/og-meros.png" alt="" /></div>
+          <span className="door-light" />
+        </> : <>
+          <img className="title-cover" src="/og-meros.png" alt="The Guesthouse of Meros 封面，四位动物访客站在暮色旅店中" draggable="false" />
+          <div className="title-vignette" />
+          <section className="main-menu" aria-label="主菜单">
+            <header><small>THE GUESTHOUSE OF MEROS</small><strong>主菜单</strong><span>{hasSave ? "检测到本地存档" : "等待第一位住客"}</span></header>
+            <div className="start-actions">
+              <button className="menu-action menu-primary" onClick={() => { setSaveMode("new"); setMenuPanel("saves"); setMenuNotice(""); }}><span>新游戏</span><small>NEW STORY</small></button>
+              <button className="menu-action" disabled={!hasSave} onClick={continueGame}><span>继续游戏</span><small>{hasSave ? "CONTINUE" : "NO SAVE DATA"}</small></button>
+            </div>
+            <nav>
+              <button onClick={() => { setSaveMode("load"); setMenuPanel("saves"); setMenuNotice(""); }}><b>读取存档</b><small>LOAD</small></button>
+              <button onClick={() => { setMenuPanel("gallery"); setGalleryView("log"); }}><b>画廊</b><small>LOG / ACHIEVEMENT</small></button>
+              <button onClick={() => setMenuPanel("settings")}><b>设置</b><small>OPTIONS</small></button>
+              <button onClick={() => setMenuPanel("exit")}><b>退出游戏</b><small>QUIT</small></button>
+            </nav>
+            <footer><span>ENTER 选择</span><span>ESC 返回</span></footer>
+          </section>
+
+          {menuPanel && <div className="menu-modal-scrim" onClick={() => setMenuPanel(null)} />}
+          {menuPanel === "saves" && <aside className="menu-modal save-select" aria-label="选择存档">
+            <header><div><small>{saveMode === "new" ? "START A NEW STORY" : "LOAD YOUR STORY"}</small><h2>{saveMode === "new" ? "选择新游戏存档" : "读取存档"}</h2></div><button onClick={() => setMenuPanel(null)}>关闭 ×</button></header>
+            <p>{saveMode === "new" ? "选择存档位后推门进入。已有存档只有在你下一次保存时才会被覆盖。" : "选择一段已保存的旅店记忆。"}</p>
+            <div className="save-slot-list">{saveSlots.map((item) => <button key={item.slot} className={item.occupied ? "occupied" : "empty"} disabled={saveMode === "load" && !item.occupied} onClick={() => enterHouse(item.slot, saveMode === "load")}><span>0{item.slot}</span><div><small>SAVE SLOT</small><strong>{item.occupied ? item.progress : "空存档"}</strong><em>{item.occupied ? item.savedAt : saveMode === "new" ? "从这里开始" : "NO DATA"}</em></div><b>{saveMode === "new" ? item.occupied ? "选择 · 将覆盖" : "选择" : item.occupied ? "读取" : "—"}</b></button>)}</div>
+            {menuNotice && <div className="menu-notice">{menuNotice}</div>}
+          </aside>}
+
+          {menuPanel === "gallery" && <aside className="menu-modal gallery-modal" aria-label="画廊">
+            <header><div><small>MEMORIES OF THE GUESTHOUSE</small><h2>画廊</h2></div><button onClick={() => setMenuPanel(null)}>关闭 ×</button></header>
+            <div className="gallery-tabs"><button className={galleryView === "log" ? "selected" : ""} onClick={() => setGalleryView("log")}>游戏日志</button><button className={galleryView === "achievement" ? "selected" : ""} onClick={() => setGalleryView("achievement")}>成就系统</button></div>
+            {galleryView === "log" ? <div className="title-log-grid"><article><small>WEEK 01 · 06/17</small><h3>窗户唱回来的那句话</h3><p>赫墨说“今天糟透了”。琴弦回答：“但你还是走到了这里。”</p></article><article><small>WEEK 01 · 06/16</small><h3>风铃下的纸条</h3><p>米娅没有说再见，只留下了一张画着胡萝卜的小纸条。</p></article></div> : <div className="title-achievement-grid">{[["初次相识","记录第一位访客",true],["夜的主人","在深夜完成服务",true],["家的轮廓","解锁全部房间",false],["无人知晓","发现特殊访客的秘密",false]].map(([name,desc,done],index)=><article className={done ? "done" : ""} key={String(name)}><span>{done ? "✓" : `0${index+1}`}</span><div><h3>{name}</h3><p>{desc}</p></div><small>{done ? "已完成" : "未解锁"}</small></article>)}</div>}
+          </aside>}
+
+          {menuPanel === "settings" && <aside className="menu-modal compact-modal"><header><div><small>NEXT DETAIL PASS</small><h2>设置</h2></div><button onClick={() => setMenuPanel(null)}>关闭 ×</button></header><p>主界面入口已经接好。界面切换、存读档、游戏性、图形与音乐音效会在下一轮单独细化。</p><button className="paper-confirm" onClick={() => setMenuPanel(null)}>知道了</button></aside>}
+          {menuPanel === "exit" && <aside className="menu-modal compact-modal"><header><div><small>LEAVE THE GUESTHOUSE?</small><h2>退出游戏</h2></div><button onClick={() => setMenuPanel(null)}>关闭 ×</button></header><p>网页 Demo 无法直接关闭浏览器。确认后会停留在封面，你可以安全关闭这个标签页。</p><button className="paper-confirm" onClick={() => { setMenuPanel(null); setMenuNotice("旅店会在这里等你回来。"); }}>返回封面</button></aside>}
+          {menuNotice && menuPanel !== "saves" && <div className="title-toast">{menuNotice}</div>}
+        </>}
+      </main>
+    );
+  }
+
   return (
     <main className={`game-shell phase-${phases[phase].code} room-${room}`}>
       <div className="noise" />
       <div className="ambient-orb orb-one" /><div className="ambient-orb orb-two" />
 
       <header className="top-hud">
-        <button className="brand-lockup" onClick={() => { setPanel(null); notify("已回到 Guesthouse 主界面"); }}><span>Guesthouse<br />of Meros</span><div><b>NEW CHAPTER</b><small>MEMORY LODGE / 2086</small></div></button>
+        <button className="brand-lockup" onClick={() => { setPanel(null); setDialogue(false); setEntryScreen("menu"); }}><span>The Guesthouse<br />of Meros</span><div><b>NEW CHAPTER</b><small>MEMORY LODGE / 2086</small></div></button>
         <button className="time-card" onClick={() => openPanel("calendar")}><span className="live-dot" /><div><small>WELCOME HOME.</small><strong>本周将有 <mark>4</mark> 位访客来访</strong></div><em>{phases[phase].name} · {phases[phase].time}</em></button>
         <div className="phase-switch" aria-label="切换时间氛围">{phases.map((item, index) => <button aria-label={item.name} className={phase === index ? "selected" : ""} key={item.code} onClick={() => { setPhase(index); notify(`时间氛围切换为${item.name}`); }}><span /></button>)}</div>
         <button className="currency" onClick={() => openPanel("market")}><small>HOUSE CREDIT</small><strong>◈ 2,480</strong><span>＋</span></button>
@@ -382,7 +513,7 @@ export default function Home() {
       </aside>
 
       <section className="house-stage" aria-label="House 场景">
-        <img className="scene-art" src="/house-hub-v2.png" alt="手绘风格的 Guesthouse of Meros 暮色室内，访客在书架、厨房与沙发旁活动" draggable="false" />
+        <img className="scene-art" src="/house-hub-v2.png" alt="手绘风格的 The Guesthouse of Meros 暮色室内，访客在书架、厨房与沙发旁活动" draggable="false" />
         <div className="scene-wash" />
         <span className="art-sticker">NEW<br />HOME</span>
         <button className="stage-hotspot hotspot-device" onClick={() => openPanel("device")}><span>＋</span><div><b>{room === "kitchen" ? "手冲咖啡台" : room === "study" ? "旧书检索机" : "黑胶唱机"}</b><small>查看设备</small></div></button>
@@ -407,7 +538,7 @@ export default function Home() {
       </aside>
 
       {dialogue && <div className="dialogue-layer has-visitor-scene">
-        <img className="visitor-scene" src="/house-hub-v2.png" alt={`${guest.name}到访 Guesthouse of Meros`} draggable="false" />
+        <img className="visitor-scene" src="/house-hub-v2.png" alt={`${guest.name}到访 The Guesthouse of Meros`} draggable="false" />
         <div className="visitor-scene-vignette" />
         <button className="dialogue-close" onClick={() => setDialogue(false)}>ESC · 结束交谈</button>
         <div className={`visitor-character-card ${guest.color}`}><img src={guest.art} alt={`${guest.name}角色概念图`} /><span>VISITOR / {guest.weekday}</span></div>
