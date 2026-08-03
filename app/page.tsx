@@ -534,9 +534,11 @@ export default function Home() {
 
       <header className="top-hud">
         <button className="time-system-card" onClick={() => openPanel("calendar")} aria-label="打开时间与日历"><div className="time-date"><small>WEEK 01 · 2086</small><strong>06 / 17</strong><em>WEDNESDAY</em></div><div className="time-current"><small>{phases[phase].service ? "● 可服务时间" : "○ 休息时间"}</small><span><strong>{phases[phase].name}</strong><time>{phases[phase].time}</time></span><em>{phases[phase].range}</em></div><div className="time-stage-track">{phases.map((item,index)=><i className={phase === index ? "selected" : ""} key={item.code} />)}</div></button>
-        <button className="brand-lockup" onClick={() => { setPanel(null); setDialogue(false); setEntryScreen("menu"); }}><span>The Guesthouse<br />of Meros</span><div><b>NEW CHAPTER</b><small>MEMORY LODGE / 2086</small></div></button>
-        <button className="time-card" onClick={() => openPanel("calendar")}><span className="live-dot" /><div><small>WELCOME HOME.</small><strong>本周将有 <mark>4</mark> 位访客来访</strong></div></button>
         <button className="currency" onClick={() => openPanel("market")}><small>HOUSE CREDIT</small><strong>◈ 2,480</strong><span>＋</span></button>
+        <div className="top-story-lockup">
+          <button className="brand-lockup" onClick={() => { setPanel(null); setDialogue(false); setEntryScreen("menu"); }}><span>The Guesthouse<br />of Meros</span><div><b>NEW CHAPTER</b><small>MEMORY LODGE / 2086</small></div></button>
+          <button className="time-card" onClick={() => openPanel("calendar")}><span className="live-dot" /><div><small>WELCOME HOME.</small><strong>本周将有 <mark>4</mark> 位访客来访</strong></div></button>
+        </div>
       </header>
 
       <button className="visitor-task-card" onClick={() => openPanel("tasks")} aria-label={`查看${guest.name}的任务详情`}>

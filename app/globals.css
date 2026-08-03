@@ -191,6 +191,7 @@ button { color: inherit; }
 .time-card strong { margin-top: 5px; color: #c3b8b2; font: 500 12px var(--font-ui); letter-spacing: .08em; }
 .time-card mark { padding: 0 3px; background: none; color: var(--pink); }
 .time-card em { color: #8f8187; font: 9px var(--font-mono); letter-spacing: .1em; }
+.top-story-lockup { display:flex; align-items:center; gap:26px; flex:0 0 auto; }
 .phase-switch { gap: 5px; align-items: center; }
 .phase-switch button { width: 15px; height: 22px; }
 .phase-switch span { height: 7px; border: 1px solid rgba(255,255,255,.12); }
@@ -1133,7 +1134,7 @@ button { color: inherit; }
 @media (max-width:760px) {
   .top-hud .time-card,.top-hud .currency { display:none; }
   .time-system-card { width:210px; height:64px; margin-left:0; padding:8px 10px 10px; grid-template-columns:65px 1fr; }
-  .top-hud .brand-lockup { margin-left:auto; }
+  .top-story-lockup { margin-left:auto; }.top-hud .brand-lockup { margin-left:0; }
   .time-system-card::before { left:74px; top:8px; bottom:13px; }
   .time-date strong { font-size:15px; }.time-current strong { font-size:13px; }.time-current time { font-size:11px; }
   .time-stage-track { left:10px; right:10px; bottom:5px; }
