@@ -509,19 +509,22 @@ export default function Home() {
         </> : <>
         <img className="title-cover" src="/og-meros.png" alt="The Guesthouse of Meros 封面，四位动物访客站在暮色旅店中" draggable="false" />
         <div className="title-vignette" />
-        {!menuPanel && <section className="main-menu corner-menu" aria-label="游戏菜单">
-            <div className="menu-save-state"><i /><span>{hasSave ? "检测到本地存档" : "等待第一位住客"}</span></div>
-            <div className="start-actions">
-              <button className="menu-action menu-primary" onClick={() => { setSaveMode("new"); setMenuPanel("saves"); setMenuNotice(""); }}><span>新游戏</span><small>NEW STORY</small></button>
-              <button className="menu-action" disabled={!hasSave} onClick={continueGame}><span>继续游戏</span><small>{hasSave ? "CONTINUE" : "NO SAVE DATA"}</small></button>
-            </div>
-            <nav>
-              <button onClick={() => { setSaveMode("load"); setMenuPanel("saves"); setMenuNotice(""); }}><b>读取存档</b><small>LOAD</small></button>
-              <button onClick={() => { setMenuPanel("gallery"); setGalleryView("log"); }}><b>画廊</b><small>LOG / ACHIEVEMENT</small></button>
+        {!menuPanel && <section className="main-menu centered-title-menu" aria-label="游戏菜单">
+            <header className="title-menu-lockup">
+              <small>MEMORY LODGE · 2086</small>
+              <h1><span>The Guesthouse</span><em>of Meros</em></h1>
+              <i aria-hidden="true" />
+            </header>
+            <div className="menu-save-state"><i /><span>{hasSave ? "一段旅店记忆正在等待你" : "等待第一位住客"}</span></div>
+            <nav className="title-menu-list">
+              <button className="menu-primary" disabled={!hasSave} onClick={continueGame}><b>继续游戏</b><small>{hasSave ? "CONTINUE" : "暂无存档"}</small></button>
+              <button onClick={() => { setSaveMode("new"); setMenuPanel("saves"); setMenuNotice(""); }}><b>新游戏</b><small>NEW STORY</small></button>
+              <button onClick={() => { setSaveMode("load"); setMenuPanel("saves"); setMenuNotice(""); }}><b>读取存档</b><small>LOAD GAME</small></button>
+              <button onClick={() => { setMenuPanel("gallery"); setGalleryView("log"); }}><b>画廊</b><small>LOG & ACHIEVEMENT</small></button>
               <button onClick={() => setMenuPanel("settings")}><b>设置</b><small>OPTIONS</small></button>
               <button onClick={() => setMenuPanel("exit")}><b>退出游戏</b><small>QUIT</small></button>
             </nav>
-            <footer><span>ENTER 选择</span><span>ESC 返回</span></footer>
+            <footer><span>↑ ↓ 选择</span><span>ENTER 确认</span></footer>
         </section>}
 
           {menuPanel === "saves" && <aside className="menu-page save-select" aria-label="选择存档"><div className="menu-page-inner">
