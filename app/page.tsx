@@ -182,6 +182,7 @@ export default function Home() {
   const [selectedDevice, setSelectedDevice] = useState(0);
   const [archiveTab, setArchiveTab] = useState<"furniture" | "world">("furniture");
   const [selectedArchiveId, setSelectedArchiveId] = useState("whale");
+  const [fogRadius, setFogRadius] = useState(5);
   const [placedFurniture, setPlacedFurniture] = useState("whale");
 
   const guest = guests.find((item) => item.id === guestId) ?? guests[0];
@@ -391,7 +392,7 @@ export default function Home() {
       return <div className="panel-content archive-layout">
         <div className="archive-tabs"><button className={archiveTab === "furniture" ? "selected" : ""} onClick={() => { setArchiveTab("furniture"); setSelectedArchiveId("whale"); }}>叙事家具</button><button className={archiveTab === "world" ? "selected" : ""} onClick={() => { setArchiveTab("world"); setSelectedArchiveId("house"); }}>世界与角色</button></div>
         <div className="archive-grid">{items.map((item, index) => <button key={item.id} className={selected.id === item.id ? "selected" : ""} onClick={() => setSelectedArchiveId(item.id)}><span><img src={item.image} alt={item.name} /></span><small>0{index + 1} / {item.kind}</small><strong>{item.name}</strong><em>{item.forGuest}</em></button>)}</div>
-        <aside className="archive-detail"><div className="archive-preview"><img src={selected.image} alt={selected.name} /></div><small>{selected.kind} · {selected.forGuest}</small><h3>{selected.name}</h3><p>{selected.note}</p>{archiveTab === "furniture" ? <><dl><div><dt>触发</dt><dd>访客提出需要后解锁制造</dd></div><div><dt>余韵</dt><dd>客人离开后留下物品与新的生活习惯</dd></div></dl><button className="primary-button" onClick={() => { setPlacedFurniture(selected.id); notify(`${selected.name} 已加入访客房间快捷栏`); }}>放入房间</button></> : <button className="ghost-button" onClick={() => notify(`${selected.name} 已设为追踪资料`)}>追踪这份资料</button>}</aside>
+        <aside className="archive-detail"><div className={`archive-preview ${selected.id === "map" ? "fog-map-preview" : ""}`}><img src={selected.image} alt={selected.name} />{selected.id === "map" && <><span className="fog-layer" style={{ WebkitMaskImage: `radial-gradient(circle ${42 + fogRadius * 5}px at 52% 56%, transparent 0, transparent 74%, #000 100%)`, maskImage: `radial-gradient(circle ${42 + fogRadius * 5}px at 52% 56%, transparent 0, transparent 74%, #000 100%)` }} /><span className="map-player-dot"><i /><b>{fogRadius}m</b></span></>}</div><small>{selected.kind} · {selected.forGuest}</small><h3>{selected.name}</h3><p>{selected.id === "map" ? `角色移动时，以当前位置为中心永久揭开迷雾。当前探索半径 ${fogRadius} 米。` : selected.note}</p>{archiveTab === "furniture" ? <><dl><div><dt>触发</dt><dd>访客提出需要后解锁制造</dd></div><div><dt>余韵</dt><dd>客人离开后留下物品与新的生活习惯</dd></div></dl><button className="primary-button" onClick={() => { setPlacedFurniture(selected.id); notify(`${selected.name} 已加入访客房间快捷栏`); }}>放入房间</button></> : selected.id === "map" ? <div className="fog-radius-control"><small>REVEAL RADIUS / 开图半径</small><div>{[5,10,15,20].map((radius) => <button className={fogRadius === radius ? "selected" : ""} key={radius} onClick={() => setFogRadius(radius)}>{radius}m</button>)}</div><em>基础 5m · 最大 20m</em></div> : <button className="ghost-button" onClick={() => notify(`${selected.name} 已设为追踪资料`)}>追踪这份资料</button>}</aside>
       </div>;
     }
 

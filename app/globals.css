@@ -576,6 +576,18 @@ button { color: inherit; }
 .archive-detail dt { color:#786e74; font:7px var(--font-mono); }
 .archive-detail dd { margin:3px 0 0; color:#c8bbb4; font-size:9px; line-height:1.6; }
 .archive-detail button { width:100%; }
+.fog-map-preview { position:relative; isolation:isolate; background:#11131a; }
+.fog-map-preview img { position:relative; z-index:1; object-fit:cover; }
+.fog-layer { position:absolute; z-index:2; inset:0; background:rgba(4,5,9,.94); backdrop-filter:blur(3px); transition:mask-image .45s ease,-webkit-mask-image .45s ease; }
+.map-player-dot { position:absolute; z-index:3; left:52%; top:56%; width:13px; height:13px; transform:translate(-50%,-50%); border:2px solid #ffe1a8; border-radius:50%; background:#a93c52; box-shadow:0 0 0 6px rgba(255,215,150,.16),0 0 20px rgba(255,202,122,.9); }
+.map-player-dot i { position:absolute; inset:-4px; border:1px solid rgba(255,225,168,.72); border-radius:50%; animation:fogPing 1.7s ease-out infinite; }
+.map-player-dot b { position:absolute; left:18px; top:-7px; padding:3px 5px; color:#2d2022; background:#e4cdb0; font:800 8px var(--font-mono); white-space:nowrap; }
+@keyframes fogPing { to{inset:-16px;opacity:0} }
+.fog-radius-control { margin-top:14px; padding-top:13px; border-top:1px solid var(--line); }
+.fog-radius-control>small,.fog-radius-control>em { display:block; color:#81757b; font:7px var(--font-mono); letter-spacing:.11em; font-style:normal; }
+.fog-radius-control>div { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:9px 0; }
+.archive-detail .fog-radius-control button { width:auto; padding:8px 4px; border:1px solid rgba(225,207,189,.18); color:#b7a9a8; background:rgba(255,255,255,.03); font:800 9px var(--font-mono); cursor:pointer; }
+.archive-detail .fog-radius-control button.selected { color:#fff0dc; border-color:#d35a72; background:rgba(169,60,82,.38); box-shadow:0 0 14px rgba(211,90,114,.16); }
 
 .visitor-character-card {
   position:absolute;
