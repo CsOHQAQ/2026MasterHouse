@@ -1046,7 +1046,8 @@ button { color: inherit; }
 
 @media (max-width:760px) {
   .top-hud .time-card,.top-hud .currency { display:none; }
-  .time-system-card { width:210px; height:64px; margin-left:auto; padding:8px 10px 10px; grid-template-columns:65px 1fr; }
+  .time-system-card { width:210px; height:64px; margin-left:0; padding:8px 10px 10px; grid-template-columns:65px 1fr; }
+  .top-hud .brand-lockup { margin-left:auto; }
   .time-system-card::before { left:74px; top:8px; bottom:13px; }
   .time-date strong { font-size:15px; }.time-current strong { font-size:13px; }.time-current time { font-size:11px; }
   .time-stage-track { left:10px; right:10px; bottom:5px; }
