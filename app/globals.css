@@ -442,6 +442,14 @@ button { color: inherit; }
 .rail-label small { font-size:11px; }.rail-label strong { font-size:20px; }
 .guest-rail button>div small { font-size:10px; }.guest-rail button>div b { margin:3px 0; font-size:17px; }.guest-rail button>div em { font-size:13px; }
 .guest-rail>button:not(.profile-chip) { padding:10px 12px; }.guest-rail .portrait { width:58px; height:58px; }
+.guest-rail::before { content:""; position:absolute; z-index:-1; left:39px; top:46px; bottom:72px; border-left:1px dashed rgba(229,91,126,.3); }
+.guest-rail>button:not(.profile-chip) { z-index:1; }
+.guest-rail .queue-waiting { border-left-color:rgba(238,92,129,.16); transition:margin .28s ease,width .28s ease,transform .25s ease,border-color .25s ease,background .25s ease; }
+.guest-rail .queue-pos-2 { width:calc(100% - 10px); margin-left:10px; }.guest-rail .queue-pos-3 { width:calc(100% - 20px); margin-left:20px; }.guest-rail .queue-pos-4 { width:calc(100% - 30px); margin-left:30px; }
+.guest-rail .queue-active { border-color:rgba(241,91,133,.55); box-shadow:0 8px 24px rgba(0,0,0,.28),0 0 18px rgba(228,70,115,.12); }
+.queue-position { display:grid; flex:0 0 auto; place-items:center; min-width:31px; height:27px; margin-left:auto; padding:0 6px; border:1px solid rgba(238,96,132,.24); color:#b98791; background:rgba(59,25,43,.62); font:8px var(--font-mono); }
+.queue-active .queue-position { color:#ffe0d3; border-color:#e4597d; background:#91304e; }
+.guest-rail button.served .queue-position { color:#81777c; border-color:rgba(255,255,255,.08); background:rgba(255,255,255,.03); }
 .profile-chip { padding:12px; }.profile-chip>span { width:48px; height:48px; font-size:17px; }.profile-chip div small { font-size:10px; }.profile-chip div b { font-size:14px; }
 
 .right-dock::before { font-size:9px; }.right-dock button { width:132px; min-height:58px; padding:9px 11px; }.right-dock button span:not(.tiny-icon) { font-size:14px; }.tiny-icon { width:36px; height:36px; font-size:14px; }
@@ -463,6 +471,16 @@ button { color: inherit; }
   52% { opacity:.86; transform:perspective(1500px) translateX(5%) rotateY(18deg) scale(1.035); }
   100% { opacity:1; transform:perspective(1500px) translateX(0) rotateY(0) scale(1); }
 }
+.study-turn-plane { position:absolute; z-index:24; inset:0; overflow:hidden; perspective:1500px; transform-style:preserve-3d; pointer-events:none; animation:studyPlaneFade 1.12s both; }
+.study-turn-plane::before { content:""; position:absolute; inset:0; background:url("/house-hub-v2.png") center/cover no-repeat; transform-origin:right center; backface-visibility:hidden; box-shadow:inset -35px 0 60px rgba(0,0,0,.7); animation:studyOldRoomTurn 1.04s cubic-bezier(.45,.02,.2,1) both; }
+.study-turn-plane i { position:absolute; z-index:2; top:0; bottom:0; width:18%; opacity:.7; background:linear-gradient(90deg,#0c0b12,#2d1b2b 48%,#120e17); transform-origin:center; }
+.study-turn-plane i:first-child { left:0; animation:studyLeftDepth 1s ease both; }.study-turn-plane i:nth-child(2) { right:0; animation:studyRightDepth 1s ease both; }
+.study-turn-plane span { position:absolute; z-index:3; top:0; bottom:0; left:50%; width:4px; background:#ffc785; box-shadow:0 0 26px 9px rgba(255,177,98,.62); animation:studySeam 1s ease both; }
+@keyframes studyOldRoomTurn { 0%{transform:translateX(0) rotateY(0);opacity:1} 58%{transform:translateX(-28%) rotateY(-62deg);opacity:.88} 100%{transform:translateX(-53%) rotateY(-89deg);opacity:0} }
+@keyframes studyLeftDepth { 0%{transform:translateX(-100%) skewY(0)} 48%{transform:translateX(0) skewY(-8deg)} 100%{transform:translateX(-105%) skewY(-12deg);opacity:0} }
+@keyframes studyRightDepth { 0%{transform:translateX(100%) skewY(0)} 48%{transform:translateX(0) skewY(8deg)} 100%{transform:translateX(105%) skewY(12deg);opacity:0} }
+@keyframes studySeam { 0%{opacity:0;transform:scaleY(.2)} 45%{opacity:1;transform:scaleY(1)} 100%{opacity:0;width:22vw;transform:translateX(-50%)} }
+@keyframes studyPlaneFade { 0%,72%{opacity:1} 100%{opacity:0} }
 .quest-peek { left:25px; bottom:24px; border:0; color:#312a2f; background:#c9d0c2; clip-path:polygon(2% 8%,96% 0,100% 88%,92% 100%,0 94%); transform:rotate(.7deg); }
 .quest-peek>span { color:#f2d8c6; background:#a8324d; }
 .quest-peek small { color:#8c3c4c; }.quest-peek b { color:#322b30; }.quest-peek i { background:rgba(48,42,47,.2); }.quest-peek u { background:#b83b57; }.quest-peek button { color:#81404c; }

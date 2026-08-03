@@ -189,6 +189,8 @@ export default function Home() {
   const [placedFurniture, setPlacedFurniture] = useState("whale");
 
   const guest = guests.find((item) => item.id === guestId) ?? guests[0];
+  const waitingGuests = guests.filter((item) => !served.includes(item.id));
+  const activeQueueGuest = waitingGuests[0] ?? null;
   const currentRoom = rooms.find((item) => item.id === room) ?? rooms[0];
   const currentDevices = devicesByRoom[room];
   const hasSave = saveSlots.some((item) => item.occupied);
@@ -294,9 +296,33 @@ export default function Home() {
   };
 
   const serveGuest = () => {
+    if (activeQueueGuest && guest.id !== activeQueueGuest.id) {
+      notify(`${activeQueueGuest.name} 还在柜台前，请按顺序接待`);
+      return;
+    }
+    const nextGuest = guests.find((item) => item.id !== guest.id && !served.includes(item.id));
     setServed((items) => (items.includes(guest.id) ? items : [...items, guest.id]));
     setDialogue(false);
-    notify(`${guest.name} 的委托已推进，亲密度 +6`);
+    if (nextGuest) {
+      setGuestId(nextGuest.id);
+      notify(`${guest.name} 已完成接待 · 下一位 ${nextGuest.name} 上前`);
+    } else {
+      notify(`${guest.name} 已完成接待 · 今日队列已清空`);
+    }
+  };
+
+  const selectQueuedGuest = (item: (typeof guests)[number]) => {
+    if (served.includes(item.id)) {
+      notify(`${item.name} 已完成接待并离开旅店`);
+      return;
+    }
+    const queueIndex = waitingGuests.findIndex((queued) => queued.id === item.id);
+    if (activeQueueGuest?.id !== item.id) {
+      notify(`${item.name} 正在排队 · 前方还有 ${queueIndex} 位客人`);
+      return;
+    }
+    setGuestId(item.id);
+    setDialogue(true);
   };
 
   const applySave = (raw: string) => {
@@ -551,14 +577,15 @@ export default function Home() {
       </button>
 
       <aside className="guest-rail" aria-label="访客列表">
-        <div className="rail-label"><small>THIS WEEK / 来访</small><strong>04</strong></div>
-        {guests.map((item, index) => <button key={item.id} className={`${guestId === item.id ? "selected" : ""} ${served.includes(item.id) ? "served" : ""}`} onClick={() => { setGuestId(item.id); setDialogue(true); }}><GuestPortrait guest={item} /><div><small>0{index + 1}</small><b>{item.name}</b><em>{served.includes(item.id) ? "已推进" : item.status}</em></div></button>)}
+        <div className="rail-label"><small>WAITING LINE / 接待队列</small><strong>{String(waitingGuests.length).padStart(2,"0")}</strong></div>
+        {guests.map((item, index) => { const queueIndex = waitingGuests.findIndex((queued) => queued.id === item.id); const isActive = activeQueueGuest?.id === item.id; const isServed = served.includes(item.id); return <button key={item.id} className={`${isActive ? "selected queue-active" : ""} ${isServed ? "served" : `queue-waiting queue-pos-${Math.max(queueIndex + 1,1)}`}`} onClick={() => selectQueuedGuest(item)}><GuestPortrait guest={item} /><div><small>{isActive ? "NOW SERVING" : `0${index + 1}`}</small><b>{item.name}</b><em>{isServed ? "已离开" : isActive ? "正在接待" : `排队中 · 前方 ${queueIndex} 位`}</em></div><span className="queue-position">{isServed ? "✓" : isActive ? "柜台" : queueIndex + 1}</span></button>; })}
         <button className="profile-chip" onClick={() => openPanel("profile")}><span>弈</span><div><small>HOUSE KEEPER</small><b>状态稳定 · 82%</b></div></button>
       </aside>
 
       <section className="house-stage" aria-label="House 场景">
         <img className="scene-art" src={room === "bedroom" ? "/feishu-assets/dream-house.png" : room === "study" ? "/study-room-clean.png" : "/house-hub-v2.png"} alt={room === "bedroom" ? "The Guesthouse of Meros 独立卧室空间" : room === "study" ? "The Guesthouse of Meros 旋转视角后的独立书房场景" : "手绘风格的 The Guesthouse of Meros 暮色室内，访客在书架、厨房与沙发旁活动"} draggable="false" />
         <div className="scene-wash" />
+        {room === "study" && <div className="study-turn-plane" aria-hidden="true"><i /><i /><span /></div>}
         {roomTransition !== "idle" && <div className={`room-door-transition ${roomTransition}`} aria-hidden="true"><div className="room-door room-door-left"><i /><i /></div><div className="room-door room-door-right"><i /><i /></div><span className="room-door-light" /></div>}
         <span className="art-sticker">NEW<br />HOME</span>
         <button className="stage-hotspot hotspot-device" onClick={() => openPanel("device")}><span>＋</span><div><b>{room === "kitchen" ? "手冲咖啡台" : room === "study" ? "旧书检索机" : "黑胶唱机"}</b><small>查看设备</small></div></button>
