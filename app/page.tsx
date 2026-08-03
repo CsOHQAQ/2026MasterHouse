@@ -270,6 +270,13 @@ export default function Home() {
       return;
     }
     if (roomTransition !== "idle") return;
+    const usesDoor = id === "bedroom" || room === "bedroom";
+    if (!usesDoor) {
+      setRoom(id);
+      setSelectedDevice(0);
+      notify(id === "kitchen" ? "镜头聚焦至厨房料理台" : id === "study" ? "镜头平移至书房阅读区" : `已回到${next?.name ?? "起居室"}`);
+      return;
+    }
     setRoomTransition("closing");
     window.setTimeout(() => {
       setRoom(id);
@@ -547,7 +554,7 @@ export default function Home() {
       </aside>
 
       <section className="house-stage" aria-label="House 场景">
-        <img className="scene-art" src="/house-hub-v2.png" alt="手绘风格的 The Guesthouse of Meros 暮色室内，访客在书架、厨房与沙发旁活动" draggable="false" />
+        <img className="scene-art" src={room === "bedroom" ? "/feishu-assets/dream-house.png" : "/house-hub-v2.png"} alt={room === "bedroom" ? "The Guesthouse of Meros 独立卧室空间" : "手绘风格的 The Guesthouse of Meros 暮色室内，访客在书架、厨房与沙发旁活动"} draggable="false" />
         <div className="scene-wash" />
         {roomTransition !== "idle" && <div className={`room-door-transition ${roomTransition}`} aria-hidden="true"><div className="room-door room-door-left"><i /><i /></div><div className="room-door room-door-right"><i /><i /></div><span className="room-door-light" /></div>}
         <span className="art-sticker">NEW<br />HOME</span>
