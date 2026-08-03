@@ -191,7 +191,13 @@ button { color: inherit; }
 .time-card strong { margin-top: 5px; color: #c3b8b2; font: 500 12px var(--font-ui); letter-spacing: .08em; }
 .time-card mark { padding: 0 3px; background: none; color: var(--pink); }
 .time-card em { color: #8f8187; font: 9px var(--font-mono); letter-spacing: .1em; }
-.top-story-lockup { display:flex; align-items:center; gap:26px; flex:0 0 auto; }
+.top-story-lockup { display:flex; align-items:center; justify-content:flex-end; gap:26px; flex:0 0 auto; }
+.top-story-lockup .time-card { min-width:0; width:auto; padding-right:0; border-right:0; }
+.top-story-lockup .time-card strong { white-space:nowrap; }
+.top-settings-button { display:flex; flex:0 0 auto; align-items:center; gap:9px; width:88px; height:84px; padding:10px; border:1px solid rgba(239,61,123,.35); color:#efded2; background:linear-gradient(145deg,rgba(132,32,69,.72),rgba(35,14,30,.9)); box-shadow:0 12px 32px rgba(0,0,0,.35); cursor:pointer; text-align:left; clip-path:polygon(3% 2%,97% 0,100% 90%,88% 100%,0 96%); }
+.top-settings-button>span { display:grid; flex:0 0 auto; place-items:center; width:32px; height:38px; border:1px solid rgba(244,114,148,.42); color:#ffd6cc; font:700 17px var(--font-hand); }
+.top-settings-button small,.top-settings-button strong { display:block; }.top-settings-button small { color:#b8687c; font:6px var(--font-mono); }.top-settings-button strong { margin-top:4px; font:700 12px var(--font-ui); }
+.top-settings-button:hover { transform:translateY(-3px) rotate(.5deg); border-color:#e65c83; background:linear-gradient(145deg,rgba(161,39,80,.88),rgba(48,17,39,.94)); }
 .phase-switch { gap: 5px; align-items: center; }
 .phase-switch button { width: 15px; height: 22px; }
 .phase-switch span { height: 7px; border: 1px solid rgba(255,255,255,.12); }
@@ -1135,6 +1141,7 @@ button { color: inherit; }
   .top-hud .time-card,.top-hud .currency { display:none; }
   .time-system-card { width:210px; height:64px; margin-left:0; padding:8px 10px 10px; grid-template-columns:65px 1fr; }
   .top-story-lockup { margin-left:auto; }.top-hud .brand-lockup { margin-left:0; }
+  .top-story-lockup { display:none; }.top-settings-button { width:54px; height:54px; margin-left:auto; padding:7px; }.top-settings-button>div { display:none; }.top-settings-button>span { width:38px; height:38px; }
   .time-system-card::before { left:74px; top:8px; bottom:13px; }
   .time-date strong { font-size:15px; }.time-current strong { font-size:13px; }.time-current time { font-size:11px; }
   .time-stage-track { left:10px; right:10px; bottom:5px; }

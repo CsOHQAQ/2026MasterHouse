@@ -539,6 +539,7 @@ export default function Home() {
           <button className="brand-lockup" onClick={() => { setPanel(null); setDialogue(false); setEntryScreen("menu"); }}><span>The Guesthouse<br />of Meros</span><div><b>NEW CHAPTER</b><small>MEMORY LODGE / 2086</small></div></button>
           <button className="time-card" onClick={() => openPanel("calendar")}><span className="live-dot" /><div><small>WELCOME HOME.</small><strong>本周将有 <mark>4</mark> 位访客来访</strong></div></button>
         </div>
+        <button className="top-settings-button" onClick={() => openPanel("settings")} aria-label="打开设置"><span>设</span><div><small>OPTIONS</small><strong>设置</strong></div></button>
       </header>
 
       <button className="visitor-task-card" onClick={() => openPanel("tasks")} aria-label={`查看${guest.name}的任务详情`}>
