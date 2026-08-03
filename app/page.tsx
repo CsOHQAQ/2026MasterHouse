@@ -22,6 +22,19 @@ const rooms = [
 
 const guests = [
   {
+    id: "lorn",
+    name: "洛恩",
+    tag: "特殊访客",
+    status: "初次来访",
+    hint: "总能从旧物中认出不属于这个时代的细节。",
+    color: "fox",
+    affinity: 12,
+    need: "一杯温热的赤茶，以及关于这栋房子的答案",
+    day: "DAY 1",
+    weekday: "MON",
+    scene: "/visitor-arrival-v1.png",
+  },
+  {
     id: "lin",
     name: "林默",
     tag: "普通访客",
@@ -30,6 +43,8 @@ const guests = [
     color: "cyan",
     affinity: 68,
     need: "一杯不过甜的热咖啡",
+    day: "DAY 3",
+    weekday: "WED",
   },
   {
     id: "yue",
@@ -40,6 +55,8 @@ const guests = [
     color: "violet",
     affinity: 42,
     need: "找到唱片《无人知晓的春天》",
+    day: "DAY 5",
+    weekday: "FRI",
   },
   {
     id: "momo",
@@ -50,6 +67,8 @@ const guests = [
     color: "amber",
     affinity: 81,
     need: "一本关于远行的旧书",
+    day: "DAY 7",
+    weekday: "SUN",
   },
 ];
 
@@ -100,11 +119,11 @@ export default function Home() {
   const [panel, setPanel] = useState<PanelKey | null>(null);
   const [history, setHistory] = useState<PanelKey[]>([]);
   const [room, setRoom] = useState("living");
-  const [guestId, setGuestId] = useState("lin");
+  const [guestId, setGuestId] = useState("lorn");
   const [phase, setPhase] = useState(2);
   const [dialogue, setDialogue] = useState(false);
   const [served, setServed] = useState<string[]>([]);
-  const [toast, setToast] = useState("欢迎回家。今晚有 3 位访客。 ");
+  const [toast, setToast] = useState("欢迎回家。本周有 4 位访客。 ");
   const [bgm, setBgm] = useState(64);
   const [sfx, setSfx] = useState(78);
   const [windowMode, setWindowMode] = useState("无边框");
@@ -207,7 +226,7 @@ export default function Home() {
         <div className="panel-content task-list">
           <div className="focus-card">
             <span className="status-pip active" />
-            <div><small>MAIN / 可服务时间</small><h3>为林默准备一杯热咖啡</h3><p>前往厨房，使用手冲咖啡台。甜度不要超过 30%。</p></div>
+            <div><small>MAIN / 特殊访客</small><h3>回应洛恩的初次来访</h3><p>先听完他的判断，再决定是否让他检查客厅里的旧物。</p></div>
             <b>01</b>
           </div>
           {["寻找月白提到的旧唱片", "整理书房中被打乱的书", "检查明日访客预告"].map((item, index) => (
@@ -283,7 +302,7 @@ export default function Home() {
     if (panel === "settings") {
       return (
         <div className="panel-content settings-layout">
-          <section><small>SAVE DATA</small><h3>Slot 01</h3><p>House LV.03 · WEEK 01 · {served.length}/3 委托推进</p><div className="button-pair"><button className="primary-button" onClick={saveGame}>保存进度</button><button className="ghost-button" onClick={loadGame}>读取存档</button></div></section>
+          <section><small>SAVE DATA</small><h3>Slot 01</h3><p>House LV.03 · WEEK 01 · {served.length}/4 委托推进</p><div className="button-pair"><button className="primary-button" onClick={saveGame}>保存进度</button><button className="ghost-button" onClick={loadGame}>读取存档</button></div></section>
           <section><small>DISPLAY</small><label>视窗模式<select value={windowMode} onChange={(event) => setWindowMode(event.target.value)}><option>无边框</option><option>全屏</option><option>窗口</option></select></label><label>分辨率<select defaultValue="2560 × 1440"><option>2560 × 1440</option><option>1920 × 1080</option><option>1600 × 900</option></select></label></section>
           <section><small>AUDIO</small><label>BGM <b>{bgm}</b><input type="range" min="0" max="100" value={bgm} onChange={(event) => setBgm(Number(event.target.value))} /></label><label>SFX <b>{sfx}</b><input type="range" min="0" max="100" value={sfx} onChange={(event) => setSfx(Number(event.target.value))} /></label></section>
           <footer><span>ESC 返回上一级</span><button onClick={() => notify("设置已应用")}>应用设置</button></footer>
@@ -301,14 +320,14 @@ export default function Home() {
 
       <header className="top-hud">
         <button className="brand-lockup" onClick={() => { setPanel(null); notify("已回到 House 主界面"); }}><span>Sweet<br />House</span><div><b>NEW CHAPTER</b><small>MEMORY LODGE / 2086</small></div></button>
-        <button className="time-card" onClick={() => openPanel("calendar")}><span className="live-dot" /><div><small>WELCOME HOME.</small><strong>本周将有 <mark>3</mark> 位访客来访</strong></div><em>{phases[phase].name} · {phases[phase].time}</em></button>
+        <button className="time-card" onClick={() => openPanel("calendar")}><span className="live-dot" /><div><small>WELCOME HOME.</small><strong>本周将有 <mark>4</mark> 位访客来访</strong></div><em>{phases[phase].name} · {phases[phase].time}</em></button>
         <div className="phase-switch" aria-label="切换时间氛围">{phases.map((item, index) => <button aria-label={item.name} className={phase === index ? "selected" : ""} key={item.code} onClick={() => { setPhase(index); notify(`时间氛围切换为${item.name}`); }}><span /></button>)}</div>
         <button className="currency" onClick={() => openPanel("market")}><small>HOUSE CREDIT</small><strong>◈ 2,480</strong><span>＋</span></button>
         <button className="week-note" onClick={() => openPanel("calendar")}><small>WEEK 01</small><strong>WEDNESDAY</strong><em>JUN 17</em></button>
       </header>
 
       <aside className="guest-rail" aria-label="访客列表">
-        <div className="rail-label"><small>THIS WEEK / 来访</small><strong>03</strong></div>
+        <div className="rail-label"><small>THIS WEEK / 来访</small><strong>04</strong></div>
         {guests.map((item, index) => <button key={item.id} className={`${guestId === item.id ? "selected" : ""} ${served.includes(item.id) ? "served" : ""}`} onClick={() => { setGuestId(item.id); setDialogue(true); }}><span className={`portrait ${item.color}`}>{item.name.slice(0, 1)}<i /></span><div><small>0{index + 1}</small><b>{item.name}</b><em>{served.includes(item.id) ? "已推进" : item.status}</em></div></button>)}
         <button className="profile-chip" onClick={() => openPanel("profile")}><span>弈</span><div><small>HOUSE KEEPER</small><b>状态稳定 · 82%</b></div></button>
       </aside>
@@ -318,7 +337,7 @@ export default function Home() {
         <div className="scene-wash" />
         <span className="art-sticker">NEW<br />HOME</span>
         <button className="stage-hotspot hotspot-device" onClick={() => openPanel("device")}><span>＋</span><div><b>{room === "kitchen" ? "手冲咖啡台" : room === "study" ? "旧书检索机" : "黑胶唱机"}</b><small>查看设备</small></div></button>
-        <div className="stage-caption"><small>CURRENT ROOM / 03</small><strong>{currentRoom.name}</strong><span>{currentRoom.note}</span></div>
+        <div className="stage-caption"><small>CURRENT ROOM / 04</small><strong>{currentRoom.name}</strong><span>{currentRoom.note}</span></div>
       </section>
 
       <aside className="right-dock" aria-label="功能菜单">
@@ -331,17 +350,24 @@ export default function Home() {
         <button className="locked-room" onClick={() => notify("仓库房间将在 House LV.04 解锁")}><small>LOCKED</small><span className="room-icon"><i /></span><strong>地下仓库</strong></button>
       </nav>
 
-      <div className="quest-peek"><span>01</span><div><small>TRACKING</small><b>为林默准备热咖啡</b><i><u style={{ width: served.includes("lin") ? "100%" : "35%" }} /></i></div><button onClick={() => openPanel("tasks")}>查看</button></div>
+      <div className="quest-peek"><span>01</span><div><small>TRACKING</small><b>回应洛恩的初次来访</b><i><u style={{ width: served.includes("lorn") ? "100%" : "35%" }} /></i></div><button onClick={() => openPanel("tasks")}>查看</button></div>
 
       {panel && <div className="panel-scrim" onClick={goBack} />}
       <aside className={`system-panel ${panel ? "open" : ""}`} aria-hidden={!panel}>
         {panel && <><header><button className="back-button" onClick={goBack} aria-label="返回">←<small>ESC</small></button><div><small>{panelMeta[panel].eyebrow}</small><h2>{panelMeta[panel].title}</h2></div><span className="panel-mark">{panelMeta[panel].mark}</span></header>{renderPanel()}</>}
       </aside>
 
-      {dialogue && <div className="dialogue-layer">
+      {dialogue && <div className={`dialogue-layer ${guest.scene ? "has-visitor-scene" : ""}`}>
+        <img className="visitor-scene" src={guest.scene ?? "/house-hub-v2.png"} alt={`${guest.name}到访 Sweet House`} draggable="false" />
+        <div className="visitor-scene-vignette" />
         <button className="dialogue-close" onClick={() => setDialogue(false)}>ESC · 结束交谈</button>
-        <div className={`dialogue-portrait ${guest.color}`}><span>{guest.name.slice(0, 1)}</span><i /></div>
-        <div className="dialogue-box"><header><small>{guest.tag}</small><strong>{guest.name}</strong><em>信赖 {guest.affinity}%</em></header><p>{served.includes(guest.id) ? "谢谢。这里好像比刚才更暖了一点……也许我会再想起些什么。" : guest.id === "lin" ? "可以麻烦你吗？今天想喝一点暖的东西。不要太甜——我想记住它原本的味道。" : guest.id === "yue" ? "唱机下面有一道很浅的划痕。你真的不记得，是谁留下的吗？" : "我在书架上留了一个空位。等你找到那本书，就放在那里吧。"}</p><div className="dialogue-actions"><button onClick={() => notify("已记录新的访客线索")}>追问线索</button><button className="primary-button" disabled={served.includes(guest.id)} onClick={serveGuest}>{served.includes(guest.id) ? "委托已推进" : "回应委托"}</button></div></div>
+        {!guest.scene && <div className={`dialogue-portrait ${guest.color}`}><span>{guest.name.slice(0, 1)}</span><i /></div>}
+        <aside className="visitor-week-panel" aria-label="本周访客">
+          <header><small>WEEK 01</small><strong>VISITOR THIS WEEK</strong></header>
+          {guests.map((item) => <button className={guest.id === item.id ? "selected" : ""} key={item.id} onClick={() => setGuestId(item.id)}><span className={`portrait mini ${item.color}`}>{item.name.slice(0, 1)}</span><div><b>{item.name}</b><small>{item.day} · {item.weekday}</small></div>{item.id === "lorn" && <em>NEW</em>}</button>)}
+        </aside>
+        <div className="dialogue-box"><header><small>{guest.tag}</small><strong>{guest.name}</strong><em>信赖 {guest.affinity}%</em></header><p>{served.includes(guest.id) ? "很好。看来这栋房子确实愿意回应你——那么，我们可以谈谈下一件事了。" : guest.id === "lorn" ? "看来你已经开始安顿下来了。需要我帮你认一认，这间屋子里不属于你的东西吗？" : guest.id === "lin" ? "可以麻烦你吗？今天想喝一点暖的东西。不要太甜——我想记住它原本的味道。" : guest.id === "yue" ? "唱机下面有一道很浅的划痕。你真的不记得，是谁留下的吗？" : "我在书架上留了一个空位。等你找到那本书，就放在那里吧。"}</p><div className="dialogue-actions"><button onClick={() => notify("已记录新的访客线索")}>追问线索</button><button className="primary-button" disabled={served.includes(guest.id)} onClick={serveGuest}>{served.includes(guest.id) ? "委托已推进" : "回应委托"}</button></div></div>
+        <nav className="visitor-tools" aria-label="家具快捷栏"><div><small>DECORATE YOUR ROOM</small><span>选择物件进行摆放</span></div>{["沙发","边桌","座椅","盆栽","书柜","落地灯"].map((item, index) => <button key={item} onClick={() => notify(`已选择家具：${item}`)}><i className={`furniture-shape shape-${index}`} /><small>{item}</small></button>)}<button className="end-week" onClick={() => { setDialogue(false); notify("本周结算将在正式版本开放"); }}>结束本周 →</button></nav>
       </div>}
 
       {toast && <div className="toast"><span />{toast}</div>}
