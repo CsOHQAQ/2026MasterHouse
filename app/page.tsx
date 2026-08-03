@@ -172,6 +172,7 @@ export default function Home() {
   const [panel, setPanel] = useState<PanelKey | null>(null);
   const [history, setHistory] = useState<PanelKey[]>([]);
   const [room, setRoom] = useState("living");
+  const [roomTransition, setRoomTransition] = useState<"idle" | "closing" | "opening">("idle");
   const [guestId, setGuestId] = useState("lorn");
   const [phase, setPhase] = useState(2);
   const [dialogue, setDialogue] = useState(false);
@@ -263,10 +264,20 @@ export default function Home() {
   }, [panel, dialogue, history, entryScreen]);
 
   const selectRoom = (id: string) => {
-    setRoom(id);
-    setSelectedDevice(0);
     const next = rooms.find((item) => item.id === id);
-    notify(`已移动到${next?.name ?? "房间"} · ${next?.note ?? ""}`);
+    if (id === room) {
+      notify(`当前位于${next?.name ?? "房间"} · ${next?.note ?? ""}`);
+      return;
+    }
+    if (roomTransition !== "idle") return;
+    setRoomTransition("closing");
+    window.setTimeout(() => {
+      setRoom(id);
+      setSelectedDevice(0);
+      setRoomTransition("opening");
+      notify(`已进入${next?.name ?? "房间"} · ${next?.note ?? ""}`);
+      window.setTimeout(() => setRoomTransition("idle"), 780);
+    }, 430);
   };
 
   const advancePhase = () => {
@@ -538,6 +549,7 @@ export default function Home() {
       <section className="house-stage" aria-label="House 场景">
         <img className="scene-art" src="/house-hub-v2.png" alt="手绘风格的 The Guesthouse of Meros 暮色室内，访客在书架、厨房与沙发旁活动" draggable="false" />
         <div className="scene-wash" />
+        {roomTransition !== "idle" && <div className={`room-door-transition ${roomTransition}`} aria-hidden="true"><div className="room-door room-door-left"><i /><i /></div><div className="room-door room-door-right"><i /><i /></div><span className="room-door-light" /></div>}
         <span className="art-sticker">NEW<br />HOME</span>
         <button className="stage-hotspot hotspot-device" onClick={() => openPanel("device")}><span>＋</span><div><b>{room === "kitchen" ? "手冲咖啡台" : room === "study" ? "旧书检索机" : "黑胶唱机"}</b><small>查看设备</small></div></button>
         <div className="stage-caption"><small>CURRENT ROOM / 04</small><strong>{currentRoom.name}</strong><span>{currentRoom.note}</span></div>
