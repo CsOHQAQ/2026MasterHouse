@@ -17,6 +17,18 @@ const mono = Space_Mono({
 export const metadata: Metadata = {
   title: "Sweet House · 局外系统 Demo",
   description: "访客经营叙事游戏的 House 局外 UI/UX 交互原型。",
+  metadataBase: new URL("https://sweet-house-meta-demo.fanncai888.chatgpt.site"),
+  openGraph: {
+    title: "Sweet House · New Life, New Home",
+    description: "手绘叙事经营游戏的 House 局外 UI/UX 交互原型。",
+    images: [{ url: "/og.png", width: 1680, height: 945, alt: "Sweet House 暮色室内与手绘标题" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sweet House · New Life, New Home",
+    description: "手绘叙事经营游戏的 House 局外 UI/UX 交互原型。",
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

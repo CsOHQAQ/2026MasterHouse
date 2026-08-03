@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type PanelKey =
   | "tasks"
@@ -114,19 +114,6 @@ export default function Home() {
   const guest = guests.find((item) => item.id === guestId) ?? guests[0];
   const currentRoom = rooms.find((item) => item.id === room) ?? rooms[0];
   const currentDevices = devicesByRoom[room];
-
-  const week = useMemo(
-    () => [
-      { day: "MON", state: "done", face: "林" },
-      { day: "TUE", state: "done", face: "墨" },
-      { day: "WED", state: "now", face: "月" },
-      { day: "THU", state: "future", face: "?" },
-      { day: "FRI", state: "future", face: "?" },
-      { day: "SAT", state: "locked", face: "·" },
-      { day: "SUN", state: "locked", face: "·" },
-    ],
-    [],
-  );
 
   const notify = (message: string) => {
     setToast(message);
@@ -313,32 +300,25 @@ export default function Home() {
       <div className="ambient-orb orb-one" /><div className="ambient-orb orb-two" />
 
       <header className="top-hud">
-        <button className="brand-lockup" onClick={() => { setPanel(null); notify("已回到 House 主界面"); }}><span>SH</span><div><b>SWEET<br />HOUSE</b><small>MEMORY LODGE / 2086</small></div></button>
-        <button className="time-card" onClick={() => openPanel("calendar")}><span className="live-dot" /><div><small>WED · JUN 17</small><strong>{phases[phase].time}</strong></div><em>{phases[phase].name} · 可服务时间</em></button>
+        <button className="brand-lockup" onClick={() => { setPanel(null); notify("已回到 House 主界面"); }}><span>Sweet<br />House</span><div><b>NEW CHAPTER</b><small>MEMORY LODGE / 2086</small></div></button>
+        <button className="time-card" onClick={() => openPanel("calendar")}><span className="live-dot" /><div><small>WELCOME HOME.</small><strong>本周将有 <mark>3</mark> 位访客来访</strong></div><em>{phases[phase].name} · {phases[phase].time}</em></button>
         <div className="phase-switch" aria-label="切换时间氛围">{phases.map((item, index) => <button aria-label={item.name} className={phase === index ? "selected" : ""} key={item.code} onClick={() => { setPhase(index); notify(`时间氛围切换为${item.name}`); }}><span /></button>)}</div>
         <button className="currency" onClick={() => openPanel("market")}><small>HOUSE CREDIT</small><strong>◈ 2,480</strong><span>＋</span></button>
+        <button className="week-note" onClick={() => openPanel("calendar")}><small>WEEK 01</small><strong>WEDNESDAY</strong><em>JUN 17</em></button>
       </header>
 
       <aside className="guest-rail" aria-label="访客列表">
-        <div className="rail-label"><small>VISITORS</small><strong>03</strong></div>
+        <div className="rail-label"><small>THIS WEEK / 来访</small><strong>03</strong></div>
         {guests.map((item, index) => <button key={item.id} className={`${guestId === item.id ? "selected" : ""} ${served.includes(item.id) ? "served" : ""}`} onClick={() => { setGuestId(item.id); setDialogue(true); }}><span className={`portrait ${item.color}`}>{item.name.slice(0, 1)}<i /></span><div><small>0{index + 1}</small><b>{item.name}</b><em>{served.includes(item.id) ? "已推进" : item.status}</em></div></button>)}
         <button className="profile-chip" onClick={() => openPanel("profile")}><span>弈</span><div><small>HOUSE KEEPER</small><b>状态稳定 · 82%</b></div></button>
       </aside>
 
       <section className="house-stage" aria-label="House 场景">
-        <div className="window"><span className="city c1" /><span className="city c2" /><span className="city c3" /><i className="moon" /><i className="rain rain-a" /><i className="rain rain-b" /></div>
-        <div className="wall-art art-one"><span>NOCTURNE</span></div><div className="wall-art art-two" />
-        <div className="lamp"><i /><span /></div>
-        <div className="bookcase">{Array.from({ length: 18 }, (_, i) => <i key={i} />)}</div>
-        <div className="plant"><i /><i /><i /><i /><span /></div>
-        <div className="sofa"><i /><i /><span /></div>
-        <div className="rug" />
-        <div className="table"><i /><span /><b /></div>
-        <div className="character char-left"><span className="head" /><span className="body" /><small>墨墨</small></div>
-        <div className="character char-center"><span className="head" /><span className="body" /><small>弈</small></div>
-        <div className="character char-right"><span className="head" /><span className="body" /><small>林默</small></div>
+        <img className="scene-art" src="/house-hub-v2.png" alt="手绘风格的 Sweet House 暮色室内，访客在书架、厨房与沙发旁活动" draggable="false" />
+        <div className="scene-wash" />
+        <span className="art-sticker">NEW<br />HOME</span>
         <button className="stage-hotspot hotspot-device" onClick={() => openPanel("device")}><span>＋</span><div><b>{room === "kitchen" ? "手冲咖啡台" : room === "study" ? "旧书检索机" : "黑胶唱机"}</b><small>查看设备</small></div></button>
-        <div className="stage-caption"><small>NOW VIEWING</small><strong>{currentRoom.name}</strong><span>{currentRoom.note}</span></div>
+        <div className="stage-caption"><small>CURRENT ROOM / 03</small><strong>{currentRoom.name}</strong><span>{currentRoom.note}</span></div>
       </section>
 
       <aside className="right-dock" aria-label="功能菜单">
@@ -346,7 +326,7 @@ export default function Home() {
       </aside>
 
       <nav className="room-nav" aria-label="房间切换">
-        <div className="nav-title"><small>HOUSE MAP</small><span>← → 快速切换</span></div>
+        <div className="nav-title"><small>MAKE IT HOME</small><span>← → 快速切换</span></div>
         {rooms.map((item) => <button className={room === item.id ? "selected" : ""} key={item.id} onClick={() => selectRoom(item.id)}><small>{item.short}</small><span className={`room-icon icon-${item.id}`}><i /><i /></span><strong>{item.name}</strong></button>)}
         <button className="locked-room" onClick={() => notify("仓库房间将在 House LV.04 解锁")}><small>LOCKED</small><span className="room-icon"><i /></span><strong>地下仓库</strong></button>
       </nav>
@@ -365,7 +345,7 @@ export default function Home() {
       </div>}
 
       {toast && <div className="toast"><span />{toast}</div>}
-      <footer className="footer-note"><span>DEMO BUILD · UI/UX CONCEPT</span><span>ESC 返回 · ← → 切换房间</span></footer>
+      <footer className="footer-note"><span>NEW LIFE, NEW HOME · UI/UX CONCEPT</span><span>ESC 返回 · ← → 切换房间</span></footer>
     </main>
   );
 }
