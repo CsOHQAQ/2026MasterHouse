@@ -151,7 +151,7 @@ function GuestPortrait({ guest, size = "" }: { guest: (typeof guests)[number]; s
   return <span className={`portrait ${size} ${guest.color}`}><img src={guest.portrait} alt="" /><i /></span>;
 }
 
-type EntryScreen = "menu" | "opening" | "game";
+type EntryScreen = "cover" | "opening" | "menu" | "game";
 type MenuPanel = "saves" | "gallery" | "settings" | "exit" | null;
 type SaveMode = "new" | "load";
 type SaveSummary = { slot: number; occupied: boolean; savedAt: string; progress: string };
@@ -160,7 +160,7 @@ const SAVE_PREFIX = "guesthouse-of-meros-save-slot-";
 const LEGACY_SAVE_KEY = "sweet-house-demo-save";
 
 export default function Home() {
-  const [entryScreen, setEntryScreen] = useState<EntryScreen>("menu");
+  const [entryScreen, setEntryScreen] = useState<EntryScreen>("cover");
   const [menuPanel, setMenuPanel] = useState<MenuPanel>(null);
   const [saveMode, setSaveMode] = useState<SaveMode>("new");
   const [galleryView, setGalleryView] = useState<"log" | "achievement">("log");
@@ -240,9 +240,19 @@ export default function Home() {
     setPanel(null);
   };
 
+  const openGuesthouse = () => {
+    if (entryScreen !== "cover") return;
+    setEntryScreen("opening");
+    window.setTimeout(() => setEntryScreen("menu"), 1550);
+  };
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (entryScreen !== "game") {
+        if (entryScreen === "cover" && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          openGuesthouse();
+        }
         if (event.key === "Escape") setMenuPanel(null);
         return;
       }
@@ -307,11 +317,8 @@ export default function Home() {
     }
     setMenuPanel(null);
     setMenuNotice("");
-    setEntryScreen("opening");
-    window.setTimeout(() => {
-      setEntryScreen("game");
-      setToast(loadExisting ? `Slot 0${slot} 已读取 · 欢迎回来` : `Slot 0${slot} · 新的一周开始了`);
-    }, 1550);
+    setEntryScreen("game");
+    setToast(loadExisting ? `Slot 0${slot} 已读取 · 欢迎回来` : `Slot 0${slot} · 新的一周开始了`);
   };
 
   const continueGame = () => {
@@ -448,15 +455,20 @@ export default function Home() {
     return (
       <main className={`title-screen ${entryScreen === "opening" ? "is-opening" : ""}`}>
         <div className="title-grain" />
-        {entryScreen === "opening" ? <>
+        {entryScreen === "cover" ? <button className="cover-entry" onClick={openGuesthouse} aria-label="进入 The Guesthouse of Meros">
+          <img className="title-cover" src="/og-meros.png" alt="The Guesthouse of Meros 封面，四位动物访客站在暮色旅店中" draggable="false" />
+          <div className="title-vignette cover-vignette" />
+          <span className="cover-entry-prompt"><small>KNOCK TO ENTER</small><strong>点击进入旅店</strong><i /></span>
+        </button> : entryScreen === "opening" ? <>
           <div className="entry-home-reveal"><img src="/house-hub-v2.png" alt="Meros 旅店温暖的室内" /><div><small>THE DOOR IS OPEN</small><strong>欢迎回家</strong></div></div>
           <div className="cover-door cover-door-left"><img src="/og-meros.png" alt="" /></div>
           <div className="cover-door cover-door-right"><img src="/og-meros.png" alt="" /></div>
           <span className="door-light" />
         </> : <>
-          <img className="title-cover" src="/og-meros.png" alt="The Guesthouse of Meros 封面，四位动物访客站在暮色旅店中" draggable="false" />
-          <div className="title-vignette" />
-          <section className="main-menu" aria-label="主菜单">
+          <img className="title-cover menu-home-cover" src="/house-hub-v2.png" alt="Meros 旅店温暖的室内" draggable="false" />
+          <div className="title-vignette menu-vignette" />
+          <div className="menu-brand"><small>THE GUESTHOUSE OF MEROS</small><strong>WELCOME HOME</strong></div>
+          <section className="main-menu centered-menu" aria-label="主菜单">
             <header><small>THE GUESTHOUSE OF MEROS</small><strong>主菜单</strong><span>{hasSave ? "检测到本地存档" : "等待第一位住客"}</span></header>
             <div className="start-actions">
               <button className="menu-action menu-primary" onClick={() => { setSaveMode("new"); setMenuPanel("saves"); setMenuNotice(""); }}><span>新游戏</span><small>NEW STORY</small></button>
@@ -474,7 +486,7 @@ export default function Home() {
           {menuPanel && <div className="menu-modal-scrim" onClick={() => setMenuPanel(null)} />}
           {menuPanel === "saves" && <aside className="menu-modal save-select" aria-label="选择存档">
             <header><div><small>{saveMode === "new" ? "START A NEW STORY" : "LOAD YOUR STORY"}</small><h2>{saveMode === "new" ? "选择新游戏存档" : "读取存档"}</h2></div><button onClick={() => setMenuPanel(null)}>关闭 ×</button></header>
-            <p>{saveMode === "new" ? "选择存档位后推门进入。已有存档只有在你下一次保存时才会被覆盖。" : "选择一段已保存的旅店记忆。"}</p>
+            <p>{saveMode === "new" ? "选择存档位后开始新的旅店故事。已有存档只有在你下一次保存时才会被覆盖。" : "选择一段已保存的旅店记忆。"}</p>
             <div className="save-slot-list">{saveSlots.map((item) => <button key={item.slot} className={item.occupied ? "occupied" : "empty"} disabled={saveMode === "load" && !item.occupied} onClick={() => enterHouse(item.slot, saveMode === "load")}><span>0{item.slot}</span><div><small>SAVE SLOT</small><strong>{item.occupied ? item.progress : "空存档"}</strong><em>{item.occupied ? item.savedAt : saveMode === "new" ? "从这里开始" : "NO DATA"}</em></div><b>{saveMode === "new" ? item.occupied ? "选择 · 将覆盖" : "选择" : item.occupied ? "读取" : "—"}</b></button>)}</div>
             {menuNotice && <div className="menu-notice">{menuNotice}</div>}
           </aside>}
@@ -486,7 +498,7 @@ export default function Home() {
           </aside>}
 
           {menuPanel === "settings" && <aside className="menu-modal compact-modal"><header><div><small>NEXT DETAIL PASS</small><h2>设置</h2></div><button onClick={() => setMenuPanel(null)}>关闭 ×</button></header><p>主界面入口已经接好。界面切换、存读档、游戏性、图形与音乐音效会在下一轮单独细化。</p><button className="paper-confirm" onClick={() => setMenuPanel(null)}>知道了</button></aside>}
-          {menuPanel === "exit" && <aside className="menu-modal compact-modal"><header><div><small>LEAVE THE GUESTHOUSE?</small><h2>退出游戏</h2></div><button onClick={() => setMenuPanel(null)}>关闭 ×</button></header><p>网页 Demo 无法直接关闭浏览器。确认后会停留在封面，你可以安全关闭这个标签页。</p><button className="paper-confirm" onClick={() => { setMenuPanel(null); setMenuNotice("旅店会在这里等你回来。"); }}>返回封面</button></aside>}
+          {menuPanel === "exit" && <aside className="menu-modal compact-modal"><header><div><small>LEAVE THE GUESTHOUSE?</small><h2>退出游戏</h2></div><button onClick={() => setMenuPanel(null)}>关闭 ×</button></header><p>网页 Demo 无法直接关闭浏览器。确认后会返回封面，你可以安全关闭这个标签页。</p><button className="paper-confirm" onClick={() => { setMenuPanel(null); setMenuNotice(""); setEntryScreen("cover"); }}>返回封面</button></aside>}
           {menuNotice && menuPanel !== "saves" && <div className="title-toast">{menuNotice}</div>}
         </>}
       </main>
