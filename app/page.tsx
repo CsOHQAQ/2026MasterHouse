@@ -511,8 +511,7 @@ export default function Home() {
         <div className="title-vignette" />
         {!menuPanel && <section className="main-menu centered-title-menu" aria-label="游戏菜单">
             <header className="title-menu-lockup">
-              <small>MEMORY LODGE · 2086</small>
-              <h1><span>The Guesthouse</span><em>of Meros</em></h1>
+              <h1>The Guesthouse of Meros</h1>
               <i aria-hidden="true" />
             </header>
             <div className="menu-save-state"><i /><span>{hasSave ? "一段旅店记忆正在等待你" : "等待第一位住客"}</span></div>
