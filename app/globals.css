@@ -391,9 +391,9 @@ button { color: inherit; }
 .portrait i { background:var(--pink); }
 .profile-chip { border-color:rgba(239,61,123,.26); background:linear-gradient(95deg,rgba(145,37,68,.66),rgba(17,14,22,.76)); clip-path:polygon(1% 6%,98% 0,100% 91%,93% 100%,0 95%); }
 
-.right-dock { right: 23px; top: 142px; bottom: 141px; gap: 5px; }
+.right-dock { right: 23px; top: 25%; bottom: 25%; gap: 8px; }
 .right-dock::before { content:"HOUSE / MENU"; display:block; padding:0 8px 5px; color:#d4486f; font:7px var(--font-mono); letter-spacing:.17em; text-align:right; }
-.right-dock button { width:107px; min-height:48px; border:0; border-bottom:1px solid rgba(225,207,189,.12); background:rgba(7,7,12,.7); backdrop-filter:blur(7px); }
+.right-dock button { width:128px; min-height:58px; border:0; border-bottom:1px solid rgba(225,207,189,.12); background:rgba(7,7,12,.78); backdrop-filter:blur(7px); }
 .right-dock button:hover,.right-dock button.selected { transform:translateX(-7px) rotate(.5deg); border-color:transparent; background:linear-gradient(90deg,rgba(155,37,71,.92),rgba(39,17,32,.82)); }
 .tiny-icon { border-color:rgba(239,61,123,.38); color:#e7c6ba; }
 .right-dock button.selected .tiny-icon { color:#ffd9cb; border-color:#f0668f; }

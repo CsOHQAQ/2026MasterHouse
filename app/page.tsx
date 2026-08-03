@@ -557,7 +557,7 @@ export default function Home() {
       </aside>
 
       <section className="house-stage" aria-label="House 场景">
-        <img className="scene-art" src={room === "bedroom" ? "/feishu-assets/dream-house.png" : room === "study" ? "/study-room.png" : "/house-hub-v2.png"} alt={room === "bedroom" ? "The Guesthouse of Meros 独立卧室空间" : room === "study" ? "The Guesthouse of Meros 旋转视角后的独立书房场景" : "手绘风格的 The Guesthouse of Meros 暮色室内，访客在书架、厨房与沙发旁活动"} draggable="false" />
+        <img className="scene-art" src={room === "bedroom" ? "/feishu-assets/dream-house.png" : room === "study" ? "/study-room-clean.png" : "/house-hub-v2.png"} alt={room === "bedroom" ? "The Guesthouse of Meros 独立卧室空间" : room === "study" ? "The Guesthouse of Meros 旋转视角后的独立书房场景" : "手绘风格的 The Guesthouse of Meros 暮色室内，访客在书架、厨房与沙发旁活动"} draggable="false" />
         <div className="scene-wash" />
         {roomTransition !== "idle" && <div className={`room-door-transition ${roomTransition}`} aria-hidden="true"><div className="room-door room-door-left"><i /><i /></div><div className="room-door room-door-right"><i /><i /></div><span className="room-door-light" /></div>}
         <span className="art-sticker">NEW<br />HOME</span>
@@ -566,7 +566,7 @@ export default function Home() {
       </section>
 
       <aside className="right-dock" aria-label="功能菜单">
-        {(["tasks","device","journal","contacts","archive","calendar","inventory","settings"] as PanelKey[]).map((key) => <button key={key} className={panel === key ? "selected" : ""} onClick={() => openPanel(key)}><TinyIcon>{panelMeta[key].mark}</TinyIcon><span>{panelMeta[key].title.replace("与成就", "").replace("访客", "").replace("叙事资源", "")}</span>{key === "tasks" && <em>3</em>}{key === "contacts" && <i />}</button>)}
+        {(["device","journal","contacts","archive"] as PanelKey[]).map((key) => <button key={key} className={panel === key ? "selected" : ""} onClick={() => openPanel(key)}><TinyIcon>{panelMeta[key].mark}</TinyIcon><span>{panelMeta[key].title.replace("与成就", "").replace("访客", "").replace("叙事资源", "")}</span>{key === "contacts" && <i />}</button>)}
       </aside>
 
       <nav className="room-nav" aria-label="房间切换">
