@@ -368,7 +368,7 @@ export default function Home() {
       <div className="ambient-orb orb-one" /><div className="ambient-orb orb-two" />
 
       <header className="top-hud">
-        <button className="brand-lockup" onClick={() => { setPanel(null); notify("已回到 House 主界面"); }}><span>Sweet<br />House</span><div><b>NEW CHAPTER</b><small>MEMORY LODGE / 2086</small></div></button>
+        <button className="brand-lockup" onClick={() => { setPanel(null); notify("已回到 Guesthouse 主界面"); }}><span>Guesthouse<br />of Meros</span><div><b>NEW CHAPTER</b><small>MEMORY LODGE / 2086</small></div></button>
         <button className="time-card" onClick={() => openPanel("calendar")}><span className="live-dot" /><div><small>WELCOME HOME.</small><strong>本周将有 <mark>4</mark> 位访客来访</strong></div><em>{phases[phase].name} · {phases[phase].time}</em></button>
         <div className="phase-switch" aria-label="切换时间氛围">{phases.map((item, index) => <button aria-label={item.name} className={phase === index ? "selected" : ""} key={item.code} onClick={() => { setPhase(index); notify(`时间氛围切换为${item.name}`); }}><span /></button>)}</div>
         <button className="currency" onClick={() => openPanel("market")}><small>HOUSE CREDIT</small><strong>◈ 2,480</strong><span>＋</span></button>
@@ -382,7 +382,7 @@ export default function Home() {
       </aside>
 
       <section className="house-stage" aria-label="House 场景">
-        <img className="scene-art" src="/house-hub-v2.png" alt="手绘风格的 Sweet House 暮色室内，访客在书架、厨房与沙发旁活动" draggable="false" />
+        <img className="scene-art" src="/house-hub-v2.png" alt="手绘风格的 Guesthouse of Meros 暮色室内，访客在书架、厨房与沙发旁活动" draggable="false" />
         <div className="scene-wash" />
         <span className="art-sticker">NEW<br />HOME</span>
         <button className="stage-hotspot hotspot-device" onClick={() => openPanel("device")}><span>＋</span><div><b>{room === "kitchen" ? "手冲咖啡台" : room === "study" ? "旧书检索机" : "黑胶唱机"}</b><small>查看设备</small></div></button>
@@ -407,7 +407,7 @@ export default function Home() {
       </aside>
 
       {dialogue && <div className="dialogue-layer has-visitor-scene">
-        <img className="visitor-scene" src="/house-hub-v2.png" alt={`${guest.name}到访 Sweet House`} draggable="false" />
+        <img className="visitor-scene" src="/house-hub-v2.png" alt={`${guest.name}到访 Guesthouse of Meros`} draggable="false" />
         <div className="visitor-scene-vignette" />
         <button className="dialogue-close" onClick={() => setDialogue(false)}>ESC · 结束交谈</button>
         <div className={`visitor-character-card ${guest.color}`}><img src={guest.art} alt={`${guest.name}角色概念图`} /><span>VISITOR / {guest.weekday}</span></div>

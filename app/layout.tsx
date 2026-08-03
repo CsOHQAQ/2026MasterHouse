@@ -15,19 +15,19 @@ const mono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sweet House · 局外系统 Demo",
-  description: "访客经营叙事游戏的 House 局外 UI/UX 交互原型。",
+  title: "Guesthouse of Meros · 局外系统 Demo",
+  description: "访客经营叙事游戏 Guesthouse of Meros 的局外 UI/UX 交互原型。",
   metadataBase: new URL("https://sweet-house-meta-demo.fanncai888.chatgpt.site"),
   openGraph: {
-    title: "Sweet House · New Life, New Home",
-    description: "手绘叙事经营游戏的访客到访与 House 局外 UI/UX 原型。",
-    images: [{ url: "/og-v2.png", width: 1680, height: 945, alt: "四位动物访客抵达 Sweet House" }],
+    title: "Guesthouse of Meros · New Life, New Home",
+    description: "手绘叙事经营游戏的访客到访与 Guesthouse 局外 UI/UX 原型。",
+    images: [{ url: "/og-meros.png", width: 1680, height: 945, alt: "四位动物访客抵达 Guesthouse of Meros" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sweet House · New Life, New Home",
-    description: "手绘叙事经营游戏的访客到访与 House 局外 UI/UX 原型。",
-    images: ["/og-v2.png"],
+    title: "Guesthouse of Meros · New Life, New Home",
+    description: "手绘叙事经营游戏的访客到访与 Guesthouse 局外 UI/UX 原型。",
+    images: ["/og-meros.png"],
   },
 };
 
