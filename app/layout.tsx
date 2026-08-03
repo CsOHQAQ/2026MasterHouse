@@ -21,13 +21,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Sweet House · New Life, New Home",
     description: "手绘叙事经营游戏的访客到访与 House 局外 UI/UX 原型。",
-    images: [{ url: "/og.png", width: 1680, height: 945, alt: "红狐访客抵达 Sweet House" }],
+    images: [{ url: "/og-v2.png", width: 1680, height: 945, alt: "四位动物访客抵达 Sweet House" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Sweet House · New Life, New Home",
     description: "手绘叙事经营游戏的访客到访与 House 局外 UI/UX 原型。",
-    images: ["/og.png"],
+    images: ["/og-v2.png"],
   },
 };
 

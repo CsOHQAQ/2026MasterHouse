@@ -9,6 +9,7 @@ type PanelKey =
   | "contacts"
   | "calendar"
   | "inventory"
+  | "archive"
   | "settings"
   | "profile"
   | "market";
@@ -32,44 +33,74 @@ const guests = [
     need: "一杯温热的赤茶，以及关于这栋房子的答案",
     day: "DAY 1",
     weekday: "MON",
-    scene: "/visitor-arrival-v1.png",
+    portrait: "/feishu-assets/fox.png",
+    art: "/feishu-assets/fox.png",
+    solution: "鲸声电话亭",
+    gift: "一枚停在 08:20 的怀表",
   },
   {
-    id: "lin",
-    name: "林默",
-    tag: "普通访客",
-    status: "等待咖啡",
-    hint: "他总在下雨前来到这里。",
-    color: "cyan",
-    affinity: 68,
-    need: "一杯不过甜的热咖啡",
+    id: "crow",
+    name: "赫墨",
+    tag: "星夜访客",
+    status: "等待回应",
+    hint: "总把最糟糕的句子，改写成可以继续走下去的话。",
+    color: "violet",
+    affinity: 46,
+    need: "一扇能唱回来的窗户",
     day: "DAY 3",
     weekday: "WED",
+    portrait: "/feishu-assets/crow.png",
+    art: "/feishu-assets/crow.png",
+    solution: "琴弦窗户",
+    gift: "一根沾着星尘的黑羽毛",
   },
   {
-    id: "yue",
-    name: "月白",
-    tag: "特殊访客",
-    status: "可交谈",
-    hint: "似乎记得这栋房子从前的样子。",
-    color: "violet",
-    affinity: 42,
-    need: "找到唱片《无人知晓的春天》",
+    id: "rabbit",
+    name: "米娅",
+    tag: "普通访客",
+    status: "悄悄观察",
+    hint: "她不太会开口请求，却会把想说的话写在风铃下面。",
+    color: "rose",
+    affinity: 31,
+    need: "一串能替她说话的回声风铃",
     day: "DAY 5",
     weekday: "FRI",
+    portrait: "/feishu-assets/rabbit.png",
+    art: "/feishu-assets/rabbit.png",
+    solution: "兔耳回声风铃",
+    gift: "一张画着胡萝卜的小纸条",
   },
   {
-    id: "momo",
-    name: "墨墨",
+    id: "hedgehog",
+    name: "霍奇",
     tag: "普通访客",
-    status: "阅读中",
-    hint: "会把看过的书重新按颜色排列。",
+    status: "坐在门边",
+    hint: "他的刺总比话先竖起来，但会替屋里坏掉的东西包扎。",
     color: "amber",
-    affinity: 81,
-    need: "一本关于远行的旧书",
+    affinity: 58,
+    need: "一盏不会逼人开口的暖灯",
     day: "DAY 7",
     weekday: "SUN",
+    portrait: "/feishu-assets/hedgehog.png",
+    art: "/feishu-assets/hedgehog.png",
+    solution: "蒲公英吊灯",
+    gift: "一卷重新缠好的绷带",
   },
+];
+
+const storyFurniture = [
+  { id: "whale", name: "鲸声电话亭", image: "/feishu-assets/whale-call.png", forGuest: "洛恩", kind: "回应家具", note: "没有号码，也没有接线员。拿起话筒，只会听见很远的鲸鸣。" },
+  { id: "strings", name: "琴弦窗户", image: "/feishu-assets/string-window.png", forGuest: "赫墨", kind: "回应家具", note: "白天收下屋里的话，夜晚用另一种情绪唱回来。" },
+  { id: "chimes", name: "兔耳回声风铃", image: "/feishu-assets/wind-chimes.png", forGuest: "米娅", kind: "纪念家具", note: "每一张垂纸都能留下一句没来得及说出口的话。" },
+  { id: "lamp", name: "蒲公英吊灯", image: "/feishu-assets/dandelion-lamp.png", forGuest: "霍奇", kind: "照明家具", note: "灯亮起时会有种子般的微光飘开，让沉默也有安全的位置。" },
+  { id: "planter", name: "月牙植物台", image: "/feishu-assets/moon-planter.png", forGuest: "所有访客", kind: "纪念家具", note: "客人留下的植物与小物会逐周长进这弯月亮里。" },
+];
+
+const worldResources = [
+  { id: "house", name: "雨夜之家", image: "/feishu-assets/dream-house.png", forGuest: "HOME NODE", kind: "场景概念", note: "一栋刚有人住进来的老房子：什么都有，却还不像一个家。" },
+  { id: "map", name: "模糊宇宙路线", image: "/feishu-assets/universe-map.png", forGuest: "WORLD MAP", kind: "世界观", note: "旅馆、星光酒廊与孤独加油站组成的远行路线。" },
+  { id: "fox-sheet", name: "狐狸访客设定", image: "/feishu-assets/fox-sheet.png", forGuest: "CHARACTER 01", kind: "角色设定", note: "精致、克制、习惯计算，也相信所有关系都能够交换。" },
+  { id: "owl", name: "猫头鹰访客", image: "/feishu-assets/owl.png", forGuest: "FUTURE GUEST", kind: "角色候选", note: "抱着一本不愿让人翻开的旧书，似乎知道房子的历史。" },
 ];
 
 const phases = [
@@ -104,6 +135,7 @@ const panelMeta: Record<PanelKey, { eyebrow: string; title: string; mark: string
   device: { eyebrow: "HOUSE INDEX", title: "设备图鉴", mark: "器" },
   journal: { eyebrow: "MEMORY LOG", title: "日记与成就", mark: "记" },
   contacts: { eyebrow: "VISITOR FILE", title: "访客通讯录", mark: "录" },
+  archive: { eyebrow: "HOUSE ARCHIVE", title: "叙事资源档案", mark: "集" },
   calendar: { eyebrow: "WEEK 01", title: "日程与时间", mark: "历" },
   inventory: { eyebrow: "STORAGE / 12", title: "House 仓库", mark: "仓" },
   settings: { eyebrow: "SYSTEM", title: "设置与存档", mark: "设" },
@@ -113,6 +145,10 @@ const panelMeta: Record<PanelKey, { eyebrow: string; title: string; mark: string
 
 function TinyIcon({ children }: { children: React.ReactNode }) {
   return <span className="tiny-icon" aria-hidden="true">{children}</span>;
+}
+
+function GuestPortrait({ guest, size = "" }: { guest: (typeof guests)[number]; size?: string }) {
+  return <span className={`portrait ${size} ${guest.color}`}><img src={guest.portrait} alt="" /><i /></span>;
 }
 
 export default function Home() {
@@ -129,6 +165,9 @@ export default function Home() {
   const [windowMode, setWindowMode] = useState("无边框");
   const [journalTab, setJournalTab] = useState<"log" | "achievement">("log");
   const [selectedDevice, setSelectedDevice] = useState(0);
+  const [archiveTab, setArchiveTab] = useState<"furniture" | "world">("furniture");
+  const [selectedArchiveId, setSelectedArchiveId] = useState("whale");
+  const [placedFurniture, setPlacedFurniture] = useState("whale");
 
   const guest = guests.find((item) => item.id === guestId) ?? guests[0];
   const currentRoom = rooms.find((item) => item.id === room) ?? rooms[0];
@@ -229,7 +268,7 @@ export default function Home() {
             <div><small>MAIN / 特殊访客</small><h3>回应洛恩的初次来访</h3><p>先听完他的判断，再决定是否让他检查客厅里的旧物。</p></div>
             <b>01</b>
           </div>
-          {["寻找月白提到的旧唱片", "整理书房中被打乱的书", "检查明日访客预告"].map((item, index) => (
+          {["为赫墨制造琴弦窗户", "把米娅的纸条挂上风铃", "检查明日访客预告"].map((item, index) => (
             <button className="list-row" key={item} onClick={() => notify(`已追踪：${item}`)}>
               <span className="row-number">0{index + 2}</span><span>{item}</span><em>{index === 2 ? "未解锁" : "进行中"}</em>
             </button>
@@ -261,10 +300,20 @@ export default function Home() {
     if (panel === "contacts") {
       return (
         <div className="panel-content contact-layout">
-          <div className="contact-list">{guests.map((item) => <button key={item.id} className={guestId === item.id ? "selected" : ""} onClick={() => setGuestId(item.id)}><span className={`portrait mini ${item.color}`}>{item.name.slice(0, 1)}</span><div><b>{item.name}</b><small>{item.tag}</small></div><em>{item.affinity}%</em></button>)}</div>
-          <div className="contact-profile"><span className={`portrait large ${guest.color}`}>{guest.name.slice(0, 1)}<i /></span><div><small>{guest.tag} / No. 0{guests.findIndex((item) => item.id === guest.id) + 1}</small><h3>{guest.name}</h3><p>“{guest.hint}”</p><div className="affinity"><span>信赖</span><i><u style={{ width: `${guest.affinity}%` }} /></i><b>{guest.affinity}</b></div><dl><div><dt>当前需求</dt><dd>{guest.need}</dd></div><div><dt>最近来访</dt><dd>2086.06.17 · 夜晚</dd></div></dl><button className="primary-button" onClick={() => { setPanel(null); setDialogue(true); }}>与 TA 交谈</button></div></div>
+          <div className="contact-list">{guests.map((item) => <button key={item.id} className={guestId === item.id ? "selected" : ""} onClick={() => setGuestId(item.id)}><GuestPortrait guest={item} size="mini" /><div><b>{item.name}</b><small>{item.tag}</small></div><em>{item.affinity}%</em></button>)}</div>
+          <div className="contact-profile"><GuestPortrait guest={guest} size="large" /><div><small>{guest.tag} / No. 0{guests.findIndex((item) => item.id === guest.id) + 1}</small><h3>{guest.name}</h3><p>“{guest.hint}”</p><div className="affinity"><span>信赖</span><i><u style={{ width: `${guest.affinity}%` }} /></i><b>{guest.affinity}</b></div><dl><div><dt>当前需求</dt><dd>{guest.need}</dd></div><div><dt>适配家具</dt><dd>{guest.solution}</dd></div><div><dt>可能留下</dt><dd>{guest.gift}</dd></div></dl><button className="primary-button" onClick={() => { setPanel(null); setDialogue(true); }}>与 TA 交谈</button></div></div>
         </div>
       );
+    }
+
+    if (panel === "archive") {
+      const items = archiveTab === "furniture" ? storyFurniture : worldResources;
+      const selected = items.find((item) => item.id === selectedArchiveId) ?? items[0];
+      return <div className="panel-content archive-layout">
+        <div className="archive-tabs"><button className={archiveTab === "furniture" ? "selected" : ""} onClick={() => { setArchiveTab("furniture"); setSelectedArchiveId("whale"); }}>叙事家具</button><button className={archiveTab === "world" ? "selected" : ""} onClick={() => { setArchiveTab("world"); setSelectedArchiveId("house"); }}>世界与角色</button></div>
+        <div className="archive-grid">{items.map((item, index) => <button key={item.id} className={selected.id === item.id ? "selected" : ""} onClick={() => setSelectedArchiveId(item.id)}><span><img src={item.image} alt={item.name} /></span><small>0{index + 1} / {item.kind}</small><strong>{item.name}</strong><em>{item.forGuest}</em></button>)}</div>
+        <aside className="archive-detail"><div className="archive-preview"><img src={selected.image} alt={selected.name} /></div><small>{selected.kind} · {selected.forGuest}</small><h3>{selected.name}</h3><p>{selected.note}</p>{archiveTab === "furniture" ? <><dl><div><dt>触发</dt><dd>访客提出需要后解锁制造</dd></div><div><dt>余韵</dt><dd>客人离开后留下物品与新的生活习惯</dd></div></dl><button className="primary-button" onClick={() => { setPlacedFurniture(selected.id); notify(`${selected.name} 已加入访客房间快捷栏`); }}>放入房间</button></> : <button className="ghost-button" onClick={() => notify(`${selected.name} 已设为追踪资料`)}>追踪这份资料</button>}</aside>
+      </div>;
     }
 
     if (panel === "calendar") {
@@ -272,7 +321,7 @@ export default function Home() {
         <div className="panel-content calendar-layout">
           <div className="big-date"><small>2086 / JUNE</small><strong>17</strong><span>WEDNESDAY · {phases[phase].name}</span></div>
           <div className="calendar-grid">{Array.from({ length: 28 }, (_, index) => <button className={index === 16 ? "today" : index === 18 ? "event" : ""} key={index}><small>{["M","T","W","T","F","S","S"][index % 7]}</small>{index + 1}{index === 18 && <i />}</button>)}</div>
-          <div className="schedule"><h3>今日安排</h3><div><time>15:00</time><span>墨墨来访 <small>普通事件</small></span></div><div className="special"><time>20:00</time><span>月白 · 未知请求 <small>特殊事件</small></span></div><button className="ghost-button" onClick={() => notify("明日：有 2 位普通访客，天气晴")}>查看明日预告</button></div>
+          <div className="schedule"><h3>今日安排</h3><div><time>15:00</time><span>米娅来访 <small>风铃事件</small></span></div><div className="special"><time>20:00</time><span>赫墨 · 琴弦窗户 <small>特殊事件</small></span></div><button className="ghost-button" onClick={() => notify("明日：有 2 位普通访客，天气晴")}>查看明日预告</button></div>
         </div>
       );
     }
@@ -286,7 +335,7 @@ export default function Home() {
       return (
         <div className="panel-content journal-layout">
           <div className="segmented"><button className={journalTab === "log" ? "selected" : ""} onClick={() => setJournalTab("log")}>日记</button><button className={journalTab === "achievement" ? "selected" : ""} onClick={() => setJournalTab("achievement")}>成就</button></div>
-          {journalTab === "log" ? <div className="log-pages"><article><small>06 / 17 · 雨转晴</small><h3>他们在灯亮起前到来</h3><p>林默说这间屋子闻起来像很久以前的夏天。月白没有回答，只是看着那台唱机。</p><span>关键词：旧唱片 / 第一次重逢</span></article><article><small>06 / 16 · 阴</small><h3>书架上的空位</h3><p>墨墨坚持那里原本放着一本蓝色封面的书。</p></article></div> : <div className="achievement-grid">{[["夜的主人","在深夜完成一次服务",true],["初次相识","录入 3 位访客",true],["家的轮廓","解锁全部房间",false],["无人知晓","发现特殊访客的秘密",false]].map(([title, desc, done], index) => <div className={done ? "done" : ""} key={String(title)}><span>{done ? "✓" : index + 1}</span><strong>{title}</strong><small>{desc}</small></div>)}</div>}
+          {journalTab === "log" ? <div className="log-pages"><article><small>06 / 17 · 雨转晴</small><h3>窗户唱回来的那句话</h3><p>赫墨说“今天糟透了”。琴弦轻轻响了一下，唱回：“但你还是走到了这里。”</p><span>关键词：琴弦窗户 / 反向情绪</span></article><article><small>06 / 16 · 阴</small><h3>风铃下的纸条</h3><p>米娅没有说再见，只留下一张画着胡萝卜的小纸条。</p></article></div> : <div className="achievement-grid">{[["夜的主人","在深夜完成一次服务",true],["初次相识","录入 3 位访客",true],["家的轮廓","解锁全部房间",false],["无人知晓","发现特殊访客的秘密",false]].map(([title, desc, done], index) => <div className={done ? "done" : ""} key={String(title)}><span>{done ? "✓" : index + 1}</span><strong>{title}</strong><small>{desc}</small></div>)}</div>}
         </div>
       );
     }
@@ -328,7 +377,7 @@ export default function Home() {
 
       <aside className="guest-rail" aria-label="访客列表">
         <div className="rail-label"><small>THIS WEEK / 来访</small><strong>04</strong></div>
-        {guests.map((item, index) => <button key={item.id} className={`${guestId === item.id ? "selected" : ""} ${served.includes(item.id) ? "served" : ""}`} onClick={() => { setGuestId(item.id); setDialogue(true); }}><span className={`portrait ${item.color}`}>{item.name.slice(0, 1)}<i /></span><div><small>0{index + 1}</small><b>{item.name}</b><em>{served.includes(item.id) ? "已推进" : item.status}</em></div></button>)}
+        {guests.map((item, index) => <button key={item.id} className={`${guestId === item.id ? "selected" : ""} ${served.includes(item.id) ? "served" : ""}`} onClick={() => { setGuestId(item.id); setDialogue(true); }}><GuestPortrait guest={item} /><div><small>0{index + 1}</small><b>{item.name}</b><em>{served.includes(item.id) ? "已推进" : item.status}</em></div></button>)}
         <button className="profile-chip" onClick={() => openPanel("profile")}><span>弈</span><div><small>HOUSE KEEPER</small><b>状态稳定 · 82%</b></div></button>
       </aside>
 
@@ -341,7 +390,7 @@ export default function Home() {
       </section>
 
       <aside className="right-dock" aria-label="功能菜单">
-        {(["tasks","device","journal","contacts","calendar","inventory","settings"] as PanelKey[]).map((key) => <button key={key} className={panel === key ? "selected" : ""} onClick={() => openPanel(key)}><TinyIcon>{panelMeta[key].mark}</TinyIcon><span>{panelMeta[key].title.replace("与成就", "").replace("访客", "")}</span>{key === "tasks" && <em>3</em>}{key === "contacts" && <i />}</button>)}
+        {(["tasks","device","journal","contacts","archive","calendar","inventory","settings"] as PanelKey[]).map((key) => <button key={key} className={panel === key ? "selected" : ""} onClick={() => openPanel(key)}><TinyIcon>{panelMeta[key].mark}</TinyIcon><span>{panelMeta[key].title.replace("与成就", "").replace("访客", "").replace("叙事资源", "")}</span>{key === "tasks" && <em>3</em>}{key === "contacts" && <i />}</button>)}
       </aside>
 
       <nav className="room-nav" aria-label="房间切换">
@@ -357,17 +406,18 @@ export default function Home() {
         {panel && <><header><button className="back-button" onClick={goBack} aria-label="返回">←<small>ESC</small></button><div><small>{panelMeta[panel].eyebrow}</small><h2>{panelMeta[panel].title}</h2></div><span className="panel-mark">{panelMeta[panel].mark}</span></header>{renderPanel()}</>}
       </aside>
 
-      {dialogue && <div className={`dialogue-layer ${guest.scene ? "has-visitor-scene" : ""}`}>
-        <img className="visitor-scene" src={guest.scene ?? "/house-hub-v2.png"} alt={`${guest.name}到访 Sweet House`} draggable="false" />
+      {dialogue && <div className="dialogue-layer has-visitor-scene">
+        <img className="visitor-scene" src="/house-hub-v2.png" alt={`${guest.name}到访 Sweet House`} draggable="false" />
         <div className="visitor-scene-vignette" />
         <button className="dialogue-close" onClick={() => setDialogue(false)}>ESC · 结束交谈</button>
-        {!guest.scene && <div className={`dialogue-portrait ${guest.color}`}><span>{guest.name.slice(0, 1)}</span><i /></div>}
+        <div className={`visitor-character-card ${guest.color}`}><img src={guest.art} alt={`${guest.name}角色概念图`} /><span>VISITOR / {guest.weekday}</span></div>
+        {placedFurniture && <button className="placed-story-item" onClick={() => openPanel("archive")}><img src={storyFurniture.find((item) => item.id === placedFurniture)?.image} alt="" /><span><small>ROOM RESPONSE</small><b>{storyFurniture.find((item) => item.id === placedFurniture)?.name}</b></span></button>}
         <aside className="visitor-week-panel" aria-label="本周访客">
           <header><small>WEEK 01</small><strong>VISITOR THIS WEEK</strong></header>
-          {guests.map((item) => <button className={guest.id === item.id ? "selected" : ""} key={item.id} onClick={() => setGuestId(item.id)}><span className={`portrait mini ${item.color}`}>{item.name.slice(0, 1)}</span><div><b>{item.name}</b><small>{item.day} · {item.weekday}</small></div>{item.id === "lorn" && <em>NEW</em>}</button>)}
+          {guests.map((item) => <button className={guest.id === item.id ? "selected" : ""} key={item.id} onClick={() => setGuestId(item.id)}><GuestPortrait guest={item} size="mini" /><div><b>{item.name}</b><small>{item.day} · {item.weekday}</small></div>{item.id === "lorn" && <em>NEW</em>}</button>)}
         </aside>
-        <div className="dialogue-box"><header><small>{guest.tag}</small><strong>{guest.name}</strong><em>信赖 {guest.affinity}%</em></header><p>{served.includes(guest.id) ? "很好。看来这栋房子确实愿意回应你——那么，我们可以谈谈下一件事了。" : guest.id === "lorn" ? "看来你已经开始安顿下来了。需要我帮你认一认，这间屋子里不属于你的东西吗？" : guest.id === "lin" ? "可以麻烦你吗？今天想喝一点暖的东西。不要太甜——我想记住它原本的味道。" : guest.id === "yue" ? "唱机下面有一道很浅的划痕。你真的不记得，是谁留下的吗？" : "我在书架上留了一个空位。等你找到那本书，就放在那里吧。"}</p><div className="dialogue-actions"><button onClick={() => notify("已记录新的访客线索")}>追问线索</button><button className="primary-button" disabled={served.includes(guest.id)} onClick={serveGuest}>{served.includes(guest.id) ? "委托已推进" : "回应委托"}</button></div></div>
-        <nav className="visitor-tools" aria-label="家具快捷栏"><div><small>DECORATE YOUR ROOM</small><span>选择物件进行摆放</span></div>{["沙发","边桌","座椅","盆栽","书柜","落地灯"].map((item, index) => <button key={item} onClick={() => notify(`已选择家具：${item}`)}><i className={`furniture-shape shape-${index}`} /><small>{item}</small></button>)}<button className="end-week" onClick={() => { setDialogue(false); notify("本周结算将在正式版本开放"); }}>结束本周 →</button></nav>
+        <div className="dialogue-box"><header><small>{guest.tag}</small><strong>{guest.name}</strong><em>信赖 {guest.affinity}%</em></header><p>{served.includes(guest.id) ? `谢谢。等我离开后，也许会把「${guest.gift}」留在这里。` : guest.id === "lorn" ? "看来你已经开始安顿下来了。这里有没有一台电话，能让人听见很远的声音？" : guest.id === "crow" ? "如果我说『今天糟透了』，那扇窗能不能唱回一句不一样的话？" : guest.id === "rabbit" ? "我写了一句话，可是还不想自己念出来……可以把它挂在风铃下面吗？" : "不用问我发生了什么。给我一盏安静的灯，我会自己坐一会儿。"}</p><div className="dialogue-actions"><button onClick={() => { openPanel("archive"); setArchiveTab("furniture"); }}>查看需求家具</button><button className="primary-button" disabled={served.includes(guest.id)} onClick={serveGuest}>{served.includes(guest.id) ? "委托已推进" : "回应委托"}</button></div></div>
+        <nav className="visitor-tools" aria-label="家具快捷栏"><div><small>MAKE FOR VISITOR</small><span>根据来客需求制造并摆放</span></div>{storyFurniture.map((item) => <button className={placedFurniture === item.id ? "selected" : ""} key={item.id} onClick={() => { setPlacedFurniture(item.id); notify(`已摆放：${item.name}`); }}><img src={item.image} alt="" /><small>{item.name}</small></button>)}<button className="end-week" onClick={() => { setDialogue(false); notify("本周结算将在正式版本开放"); }}>结束本周 →</button></nav>
       </div>}
 
       {toast && <div className="toast"><span />{toast}</div>}
