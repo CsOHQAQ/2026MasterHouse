@@ -356,7 +356,7 @@ export default function Home() {
         <div className="panel-content task-list">
           <div className="focus-card">
             <span className="status-pip active" />
-            <div><small>MAIN / 特殊访客</small><h3>回应洛恩的初次来访</h3><p>先听完他的判断，再决定是否让他检查客厅里的旧物。</p></div>
+            <div><small>MAIN / {guest.tag}</small><h3>{guest.name} · {guest.need}</h3><p>{guest.hint} 推荐使用「{guest.solution}」，完成后可能留下「{guest.gift}」。</p></div>
             <b>01</b>
           </div>
           {["为赫墨制造琴弦窗户", "把米娅的纸条挂上风铃", "检查明日访客预告"].map((item, index) => (
@@ -521,6 +521,14 @@ export default function Home() {
         <button className="currency" onClick={() => openPanel("market")}><small>HOUSE CREDIT</small><strong>◈ 2,480</strong><span>＋</span></button>
       </header>
 
+      <button className="visitor-task-card" onClick={() => openPanel("tasks")} aria-label={`查看${guest.name}的任务详情`}>
+        <header><small>CURRENT VISITOR TASK</small><span>{served.includes(guest.id) ? "已完成" : "进行中"}</span></header>
+        <strong>{guest.name} · {guest.need}</strong>
+        <p>{guest.hint}</p>
+        <div className="visitor-task-progress"><i><u style={{ width: served.includes(guest.id) ? "100%" : guest.id === "lorn" ? "35%" : "20%" }} /></i><b>{served.includes(guest.id) ? "100" : guest.id === "lorn" ? "35" : "20"}%</b></div>
+        <footer>点击查看任务详情 <span>→</span></footer>
+      </button>
+
       <aside className="guest-rail" aria-label="访客列表">
         <div className="rail-label"><small>THIS WEEK / 来访</small><strong>04</strong></div>
         {guests.map((item, index) => <button key={item.id} className={`${guestId === item.id ? "selected" : ""} ${served.includes(item.id) ? "served" : ""}`} onClick={() => { setGuestId(item.id); setDialogue(true); }}><GuestPortrait guest={item} /><div><small>0{index + 1}</small><b>{item.name}</b><em>{served.includes(item.id) ? "已推进" : item.status}</em></div></button>)}
@@ -544,8 +552,6 @@ export default function Home() {
         {rooms.map((item) => <button className={room === item.id ? "selected" : ""} key={item.id} onClick={() => selectRoom(item.id)}><small>{item.short}</small><span className={`room-icon icon-${item.id}`}><i /><i /></span><strong>{item.name}</strong></button>)}
         <button className="locked-room" onClick={() => notify("仓库房间将在 House LV.04 解锁")}><small>LOCKED</small><span className="room-icon"><i /></span><strong>地下仓库</strong></button>
       </nav>
-
-      <div className="quest-peek"><span>01</span><div><small>TRACKING</small><b>回应洛恩的初次来访</b><i><u style={{ width: served.includes("lorn") ? "100%" : "35%" }} /></i></div><button onClick={() => openPanel("tasks")}>查看</button></div>
 
       {panel && <div className="panel-scrim" onClick={goBack} />}
       <aside className={`system-panel ${panel ? "open" : ""}`} aria-hidden={!panel}>
