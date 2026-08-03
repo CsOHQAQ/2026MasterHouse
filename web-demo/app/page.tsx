@@ -25,7 +25,8 @@ const guests = [
   {
     id: "lorn",
     name: "洛恩",
-    tag: "特殊访客",
+    tag: "特殊客人",
+    kind: "special",
     status: "初次来访",
     hint: "总能从旧物中认出不属于这个时代的细节。",
     color: "fox",
@@ -41,7 +42,8 @@ const guests = [
   {
     id: "crow",
     name: "赫墨",
-    tag: "星夜访客",
+    tag: "一般客人",
+    kind: "regular",
     status: "等待回应",
     hint: "总把最糟糕的句子，改写成可以继续走下去的话。",
     color: "violet",
@@ -57,7 +59,8 @@ const guests = [
   {
     id: "rabbit",
     name: "米娅",
-    tag: "普通访客",
+    tag: "一般客人",
+    kind: "regular",
     status: "悄悄观察",
     hint: "她不太会开口请求，却会把想说的话写在风铃下面。",
     color: "rose",
@@ -73,7 +76,8 @@ const guests = [
   {
     id: "hedgehog",
     name: "霍奇",
-    tag: "普通访客",
+    tag: "一般客人",
+    kind: "regular",
     status: "坐在门边",
     hint: "他的刺总比话先竖起来，但会替屋里坏掉的东西包扎。",
     color: "amber",
@@ -112,6 +116,21 @@ const phases = [
   { name: "深夜", time: "23:30", range: "22:00–07:00", code: "midnight", service: false },
 ];
 
+const getRealPhaseIndex = (date: Date) => {
+  const hour = date.getHours() + date.getMinutes() / 60;
+  if (hour >= 7 && hour < 9) return 0;
+  if (hour >= 9 && hour < 12) return 1;
+  if (hour >= 12 && hour < 14) return 2;
+  if (hour >= 14 && hour < 18) return 3;
+  if (hour >= 18 && hour < 22) return 4;
+  return 5;
+};
+
+const getWeekNumber = (date: Date) => {
+  const firstDay = new Date(date.getFullYear(), 0, 1);
+  return Math.ceil((((date.getTime() - firstDay.getTime()) / 86400000) + firstDay.getDay() + 1) / 7);
+};
+
 const devicesByRoom: Record<string, { name: string; level: number; output: string; ready: boolean }[]> = {
   living: [
     { name: "黑胶唱机", level: 2, output: "舒缓情绪", ready: true },
@@ -138,7 +157,7 @@ const panelMeta: Record<PanelKey, { eyebrow: string; title: string; mark: string
   journal: { eyebrow: "MEMORY LOG", title: "日记与成就", mark: "记" },
   contacts: { eyebrow: "VISITOR FILE", title: "访客通讯录", mark: "录" },
   archive: { eyebrow: "HOUSE ARCHIVE", title: "叙事资源档案", mark: "集" },
-  calendar: { eyebrow: "WEEK 01", title: "日程与时间", mark: "历" },
+  calendar: { eyebrow: "REAL TIME", title: "日程与时间", mark: "历" },
   inventory: { eyebrow: "STORAGE / 12", title: "House 仓库", mark: "仓" },
   settings: { eyebrow: "SYSTEM", title: "设置与存档", mark: "设" },
   profile: { eyebrow: "RESIDENT 001", title: "主角信息", mark: "我" },
@@ -174,7 +193,8 @@ export default function Home() {
   const [room, setRoom] = useState("living");
   const [roomTransition, setRoomTransition] = useState<"idle" | "closing" | "opening">("idle");
   const [guestId, setGuestId] = useState("lorn");
-  const [phase, setPhase] = useState(2);
+  const [now, setNow] = useState(() => new Date());
+  const [phase, setPhase] = useState(() => getRealPhaseIndex(new Date()));
   const [dialogue, setDialogue] = useState(false);
   const [served, setServed] = useState<string[]>([]);
   const [toast, setToast] = useState("欢迎回家。本周有 4 位访客。 ");
@@ -190,10 +210,20 @@ export default function Home() {
 
   const guest = guests.find((item) => item.id === guestId) ?? guests[0];
   const waitingGuests = guests.filter((item) => !served.includes(item.id));
-  const activeQueueGuest = waitingGuests[0] ?? null;
   const currentRoom = rooms.find((item) => item.id === room) ?? rooms[0];
   const currentDevices = devicesByRoom[room];
   const hasSave = saveSlots.some((item) => item.occupied);
+  const realYear = now.getFullYear();
+  const realMonth = now.getMonth();
+  const realDay = now.getDate();
+  const realWeek = getWeekNumber(now);
+  const realWeekday = now.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
+  const realMonthName = now.toLocaleDateString("en-US", { month: "long" }).toUpperCase();
+  const realClock = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const daysInRealMonth = new Date(realYear, realMonth + 1, 0).getDate();
+  const firstWeekdayOffset = (new Date(realYear, realMonth, 1).getDay() + 6) % 7;
+  const calendarCells: (number | null)[] = [...Array(firstWeekdayOffset).fill(null), ...Array.from({ length: daysInRealMonth }, (_, index) => index + 1)];
+  const eventDay = Math.min(daysInRealMonth, realDay + 2);
 
   const readSaveRaw = (slot: number) => localStorage.getItem(`${SAVE_PREFIX}${slot}`) ?? (slot === 1 ? localStorage.getItem(LEGACY_SAVE_KEY) : null);
 
@@ -219,6 +249,17 @@ export default function Home() {
 
   useEffect(() => {
     refreshSaveSlots();
+  }, []);
+
+  useEffect(() => {
+    const syncClock = () => {
+      const current = new Date();
+      setNow(current);
+      setPhase(getRealPhaseIndex(current));
+    };
+    syncClock();
+    const timer = window.setInterval(syncClock, 30000);
+    return () => window.clearInterval(timer);
   }, []);
 
   const notify = (message: string) => {
@@ -289,53 +330,39 @@ export default function Home() {
     }, 430);
   };
 
-  const advancePhase = () => {
-    const nextIndex = (phase + 1) % phases.length;
-    setPhase(nextIndex);
-    notify(nextIndex === 0 ? "新的一天开始了 · 早晨 08:00" : `时间推进至${phases[nextIndex].name} · ${phases[nextIndex].time}`);
-  };
-
   const serveGuest = () => {
-    if (activeQueueGuest && guest.id !== activeQueueGuest.id) {
-      notify(`${activeQueueGuest.name} 还在柜台前，请按顺序接待`);
+    if (!phases[phase].service && guest.kind !== "special") {
+      notify("当前是休息时间 · 一般客人将在可服务时间出现");
       return;
     }
-    const nextGuest = guests.find((item) => item.id !== guest.id && !served.includes(item.id));
     setServed((items) => (items.includes(guest.id) ? items : [...items, guest.id]));
     setDialogue(false);
-    if (nextGuest) {
-      setGuestId(nextGuest.id);
-      notify(`${guest.name} 已完成接待 · 下一位 ${nextGuest.name} 上前`);
-    } else {
-      notify(`${guest.name} 已完成接待 · 今日队列已清空`);
-    }
+    notify(`${guest.name} 的访客事件已完成 · 其他客人仍可自由选择`);
   };
 
-  const selectQueuedGuest = (item: (typeof guests)[number]) => {
+  const selectGuestEvent = (item: (typeof guests)[number]) => {
     if (served.includes(item.id)) {
       notify(`${item.name} 已完成接待并离开旅店`);
       return;
     }
-    const queueIndex = waitingGuests.findIndex((queued) => queued.id === item.id);
-    if (activeQueueGuest?.id !== item.id) {
-      notify(`${item.name} 正在排队 · 前方还有 ${queueIndex} 位客人`);
+    if (!phases[phase].service && item.kind !== "special") {
+      notify(`${item.name} 是一般客人 · 仅在可服务时间开放事件`);
       return;
     }
     setGuestId(item.id);
     setDialogue(true);
+    if (item.kind === "special") notify(`${item.name} · 特殊客人事件可打断当前流程`);
   };
 
   const applySave = (raw: string) => {
     const data = JSON.parse(raw) as {
       room?: string;
-      phase?: number;
       served?: string[];
       bgm?: number;
       sfx?: number;
       windowMode?: string;
     };
     if (data.room) setRoom(data.room);
-    if (typeof data.phase === "number") setPhase(data.phase);
     if (data.served) setServed(data.served);
     if (typeof data.bgm === "number") setBgm(data.bgm);
     if (typeof data.sfx === "number") setSfx(data.sfx);
@@ -353,7 +380,9 @@ export default function Home() {
     if (!loadExisting) {
       setRoom("living");
       setGuestId("lorn");
-      setPhase(2);
+      const current = new Date();
+      setNow(current);
+      setPhase(getRealPhaseIndex(current));
       setServed([]);
       setPanel(null);
       setDialogue(false);
@@ -377,7 +406,7 @@ export default function Home() {
   };
 
   const saveGame = () => {
-    localStorage.setItem(`${SAVE_PREFIX}${activeSlot}`, JSON.stringify({ room, phase, served, bgm, sfx, windowMode, savedAt: new Date().toISOString() }));
+    localStorage.setItem(`${SAVE_PREFIX}${activeSlot}`, JSON.stringify({ room, served, bgm, sfx, windowMode, savedAt: new Date().toISOString() }));
     refreshSaveSlots();
     notify(`进度已保存到本机 · Slot 0${activeSlot}`);
   };
@@ -454,9 +483,9 @@ export default function Home() {
     if (panel === "calendar") {
       return (
         <div className="panel-content calendar-layout">
-          <div className="big-date"><small>2086 / JUNE</small><strong>17</strong><span>WEDNESDAY · {phases[phase].name}</span></div>
-          <div className="calendar-grid">{Array.from({ length: 28 }, (_, index) => <button className={index === 16 ? "today" : index === 18 ? "event" : ""} key={index}><small>{["M","T","W","T","F","S","S"][index % 7]}</small>{index + 1}{index === 18 && <i />}</button>)}</div>
-          <div className="schedule"><h3>时间阶段</h3><div className="time-phase-list">{phases.map((item,index)=><button className={phase === index ? "selected" : ""} key={item.code} onClick={() => setPhase(index)}><span>{item.name}<small>{item.range}</small></span><em>{item.service ? "可服务" : "睡觉"}</em></button>)}</div><button className="primary-button advance-time" onClick={advancePhase}>推进至下一阶段 →</button><button className="ghost-button" onClick={() => notify("明日：有 2 位普通访客，天气晴")}>查看明日预告</button></div>
+          <div className="big-date"><small>{realYear} / {realMonthName}</small><strong>{realDay}</strong><span>{realWeekday} · {phases[phase].name}</span><time>{realClock}</time></div>
+          <div className="calendar-grid">{calendarCells.map((day,index) => day === null ? <span className="empty-day" key={`empty-${index}`} /> : <button className={day === realDay ? "today" : day === eventDay ? "event" : ""} key={day}><small>{["M","T","W","T","F","S","S"][index % 7]}</small>{day}{day === eventDay && day !== realDay && <i />}</button>)}</div>
+          <div className="schedule"><h3>现实时间阶段</h3><div className="time-phase-list">{phases.map((item,index)=><button className={phase === index ? "selected" : ""} key={item.code} disabled><span>{item.name}<small>{item.range}</small></span><em>{item.service ? "可服务" : "休息"}</em></button>)}</div><button className="primary-button advance-time" onClick={() => { const current = new Date(); setNow(current); setPhase(getRealPhaseIndex(current)); notify(`已同步现实时间 · ${current.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}`); }}>同步现实时间</button><button className="ghost-button" onClick={() => notify("明日访客事件将在现实日期变化后刷新")}>查看明日预告</button></div>
         </div>
       );
     }
@@ -557,7 +586,7 @@ export default function Home() {
       <div className="ambient-orb orb-one" /><div className="ambient-orb orb-two" />
 
       <header className="top-hud">
-        <button className="time-system-card" onClick={() => openPanel("calendar")} aria-label="打开时间与日历"><div className="time-date"><small>WEEK 01 · 2086</small><strong>06 / 17</strong><em>WEDNESDAY</em></div><div className="time-current"><small>{phases[phase].service ? "● 可服务时间" : "○ 休息时间"}</small><span><strong>{phases[phase].name}</strong><time>{phases[phase].time}</time></span><em>{phases[phase].range}</em></div><div className="time-stage-track">{phases.map((item,index)=><i className={phase === index ? "selected" : ""} key={item.code} />)}</div></button>
+        <button className="time-system-card" onClick={() => openPanel("calendar")} aria-label="打开时间与日历"><div className="time-date"><small>WEEK {String(realWeek).padStart(2,"0")} · {realYear}</small><strong>{String(realMonth + 1).padStart(2,"0")} / {String(realDay).padStart(2,"0")}</strong><em>{realWeekday}</em></div><div className="time-current"><small>{phases[phase].service ? "● 可服务时间" : "○ 休息时间"}</small><span><strong>{phases[phase].name}</strong><time>{realClock}</time></span><em>{phases[phase].range}</em></div><div className="time-stage-track">{phases.map((item,index)=><i className={phase === index ? "selected" : ""} key={item.code} />)}</div></button>
         <button className="currency" onClick={() => openPanel("market")}><small>HOUSE CREDIT</small><strong>◈ 2,480</strong><span>＋</span></button>
         <div className="top-story-lockup">
           <button className="brand-lockup" onClick={() => { setPanel(null); setDialogue(false); setEntryScreen("menu"); }}><span>The Guesthouse<br />of Meros</span><div><b>NEW CHAPTER</b><small>MEMORY LODGE / 2086</small></div></button>
@@ -574,9 +603,9 @@ export default function Home() {
         <footer>点击查看任务详情 <span>→</span></footer>
       </button>
 
-      <aside className="guest-rail" aria-label="访客列表">
-        <div className="rail-label"><small>WAITING LINE / 接待队列</small><strong>{String(waitingGuests.length).padStart(2,"0")}</strong></div>
-        {guests.map((item, index) => { const queueIndex = waitingGuests.findIndex((queued) => queued.id === item.id); const isActive = activeQueueGuest?.id === item.id; const isServed = served.includes(item.id); return <button key={item.id} className={`${isActive ? "selected queue-active" : ""} ${isServed ? "served" : `queue-waiting queue-pos-${Math.max(queueIndex + 1,1)}`}`} onClick={() => selectQueuedGuest(item)}><GuestPortrait guest={item} /><div><small>{isActive ? "NOW SERVING" : `0${index + 1}`}</small><b>{item.name}</b><em>{isServed ? "已离开" : isActive ? "正在接待" : `排队中 · 前方 ${queueIndex} 位`}</em></div><span className="queue-position">{isServed ? "✓" : isActive ? "柜台" : queueIndex + 1}</span></button>; })}
+      <aside className="guest-rail visitor-event-rail" aria-label="访客事件">
+        <div className="rail-label"><small>VISITOR EVENTS / 访客事件</small><strong>{String(waitingGuests.length).padStart(2,"0")}</strong></div>
+        {guests.map((item, index) => { const isSelected = guest.id === item.id && dialogue; const isServed = served.includes(item.id); const isAvailable = phases[phase].service || item.kind === "special"; return <button key={item.id} className={`${isSelected ? "selected event-active" : ""} ${isServed ? "served" : "event-available"} ${item.kind === "special" ? "special-event" : "regular-event"} ${!isAvailable ? "event-closed" : ""}`} onClick={() => selectGuestEvent(item)}><GuestPortrait guest={item} /><div><small>{item.kind === "special" ? "SPECIAL EVENT" : `EVENT 0${index + 1}`}</small><b>{item.name}</b><em>{isServed ? "事件已完成" : !isAvailable ? "等待可服务时间" : item.kind === "special" ? "特殊客人 · 可打断" : "一般客人 · 可接待"}</em></div><span className="queue-position">{isServed ? "✓" : item.kind === "special" ? "特" : "普"}</span></button>; })}
         <button className="profile-chip" onClick={() => openPanel("profile")}><span>弈</span><div><small>HOUSE KEEPER</small><b>状态稳定 · 82%</b></div></button>
       </aside>
 
@@ -613,9 +642,9 @@ export default function Home() {
         {placedFurniture && <button className="placed-story-item" onClick={() => openPanel("archive")}><img src={storyFurniture.find((item) => item.id === placedFurniture)?.image} alt="" /><span><small>ROOM RESPONSE</small><b>{storyFurniture.find((item) => item.id === placedFurniture)?.name}</b></span></button>}
         <aside className="visitor-week-panel" aria-label="本周访客">
           <header><small>WEEK 01</small><strong>VISITOR THIS WEEK</strong></header>
-          {guests.map((item) => <button className={guest.id === item.id ? "selected" : ""} key={item.id} onClick={() => setGuestId(item.id)}><GuestPortrait guest={item} size="mini" /><div><b>{item.name}</b><small>{item.day} · {item.weekday}</small></div>{item.id === "lorn" && <em>NEW</em>}</button>)}
+          {guests.map((item) => <button className={guest.id === item.id ? "selected" : ""} key={item.id} onClick={() => selectGuestEvent(item)}><GuestPortrait guest={item} size="mini" /><div><b>{item.name}</b><small>{item.kind === "special" ? "特殊事件 · 可打断" : "一般事件 · 无先后"}</small></div>{item.kind === "special" && <em>SPECIAL</em>}</button>)}
         </aside>
-        <div className="dialogue-box"><header><small>{guest.tag}</small><strong>{guest.name}</strong><em>信赖 {guest.affinity}%</em></header><p>{served.includes(guest.id) ? `谢谢。等我离开后，也许会把「${guest.gift}」留在这里。` : guest.id === "lorn" ? "看来你已经开始安顿下来了。这里有没有一台电话，能让人听见很远的声音？" : guest.id === "crow" ? "如果我说『今天糟透了』，那扇窗能不能唱回一句不一样的话？" : guest.id === "rabbit" ? "我写了一句话，可是还不想自己念出来……可以把它挂在风铃下面吗？" : "不用问我发生了什么。给我一盏安静的灯，我会自己坐一会儿。"}</p><div className="dialogue-actions"><button onClick={() => { openPanel("archive"); setArchiveTab("furniture"); }}>查看需求家具</button><button className="primary-button" disabled={served.includes(guest.id)} onClick={serveGuest}>{served.includes(guest.id) ? "委托已推进" : "回应委托"}</button></div></div>
+        <div className="dialogue-box"><header><small>{guest.tag}{guest.kind === "special" ? " · 硬植入事件" : " · 无接待顺序"}</small><strong>{guest.name}</strong><em>信赖 {guest.affinity}%</em></header><p>{served.includes(guest.id) ? `谢谢。等我离开后，也许会把「${guest.gift}」留在这里。` : guest.id === "lorn" ? "看来你已经开始安顿下来了。这里有没有一台电话，能让人听见很远的声音？" : guest.id === "crow" ? "如果我说『今天糟透了』，那扇窗能不能唱回一句不一样的话？" : guest.id === "rabbit" ? "我写了一句话，可是还不想自己念出来……可以把它挂在风铃下面吗？" : "不用问我发生了什么。给我一盏安静的灯，我会自己坐一会儿。"}</p><div className="dialogue-actions"><button onClick={() => { openPanel("archive"); setArchiveTab("furniture"); }}>查看需求家具</button><button className="primary-button" disabled={served.includes(guest.id) || (!phases[phase].service && guest.kind !== "special")} onClick={serveGuest}>{served.includes(guest.id) ? "事件已完成" : !phases[phase].service && guest.kind !== "special" ? "等待可服务时间" : "回应访客事件"}</button></div></div>
         <nav className="visitor-tools" aria-label="家具快捷栏"><div><small>MAKE FOR VISITOR</small><span>根据来客需求制造并摆放</span></div>{storyFurniture.map((item) => <button className={placedFurniture === item.id ? "selected" : ""} key={item.id} onClick={() => { setPlacedFurniture(item.id); notify(`已摆放：${item.name}`); }}><img src={item.image} alt="" /><small>{item.name}</small></button>)}<button className="end-week" onClick={() => { setDialogue(false); notify("本周结算将在正式版本开放"); }}>结束本周 →</button></nav>
       </div>}
 
