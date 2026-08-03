@@ -151,7 +151,7 @@ function GuestPortrait({ guest, size = "" }: { guest: (typeof guests)[number]; s
   return <span className={`portrait ${size} ${guest.color}`}><img src={guest.portrait} alt="" /><i /></span>;
 }
 
-type EntryScreen = "menu" | "game";
+type EntryScreen = "menu" | "opening" | "game";
 type MenuPanel = "saves" | "gallery" | "settings" | "exit" | null;
 type SaveMode = "new" | "load";
 type SaveSummary = { slot: number; occupied: boolean; savedAt: string; progress: string };
@@ -308,8 +308,11 @@ export default function Home() {
     }
     setMenuPanel(null);
     setMenuNotice("");
-    setEntryScreen("game");
-    setToast(loadExisting ? `Slot 0${slot} 已读取 · 欢迎回来` : `Slot 0${slot} · 新的一周开始了`);
+    setEntryScreen("opening");
+    window.setTimeout(() => {
+      setEntryScreen("game");
+      setToast(loadExisting ? `Slot 0${slot} 已读取 · 欢迎回来` : `Slot 0${slot} · 新的一周开始了`);
+    }, 1550);
   };
 
   const continueGame = () => {
@@ -444,8 +447,14 @@ export default function Home() {
 
   if (entryScreen !== "game") {
     return (
-      <main className="title-screen">
+      <main className={`title-screen ${entryScreen === "opening" ? "is-opening" : ""}`}>
         <div className="title-grain" />
+        {entryScreen === "opening" ? <>
+          <div className="entry-home-reveal"><img src="/house-hub-v2.png" alt="Meros 旅店温暖的室内" /><div><small>THE DOOR IS OPEN</small><strong>欢迎回家</strong></div></div>
+          <div className="cover-door cover-door-left"><img src="/og-meros.png" alt="" /></div>
+          <div className="cover-door cover-door-right"><img src="/og-meros.png" alt="" /></div>
+          <span className="door-light" />
+        </> : <>
         <img className="title-cover" src="/og-meros.png" alt="The Guesthouse of Meros 封面，四位动物访客站在暮色旅店中" draggable="false" />
         <div className="title-vignette" />
         {!menuPanel && <section className="main-menu corner-menu" aria-label="游戏菜单">
@@ -487,6 +496,7 @@ export default function Home() {
           </div></aside>}
           {menuPanel === "exit" && <aside className="menu-page compact-page"><div className="menu-page-inner"><header><div><small>LEAVE THE GUESTHOUSE?</small><h2>退出游戏</h2></div><button onClick={() => setMenuPanel(null)}>← 返回主菜单</button></header><p>网页 Demo 无法直接关闭浏览器。你可以安全关闭这个标签页，或返回主菜单继续体验。</p><button className="paper-confirm" onClick={() => setMenuPanel(null)}>返回主菜单</button></div></aside>}
           {menuNotice && menuPanel !== "saves" && <div className="title-toast">{menuNotice}</div>}
+        </>}
       </main>
     );
   }
