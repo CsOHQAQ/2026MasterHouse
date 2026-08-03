@@ -104,10 +104,12 @@ const worldResources = [
 ];
 
 const phases = [
-  { name: "早晨", time: "08:20", code: "morning" },
-  { name: "午后", time: "15:40", code: "afternoon" },
-  { name: "夜晚", time: "20:15", code: "evening" },
-  { name: "深夜", time: "23:48", code: "midnight" },
+  { name: "早晨", time: "08:00", range: "07:00–09:00", code: "morning", service: true },
+  { name: "上午", time: "10:30", range: "09:00–12:00", code: "forenoon", service: true },
+  { name: "中午", time: "13:00", range: "12:00–14:00", code: "noon", service: true },
+  { name: "下午", time: "16:00", range: "14:00–18:00", code: "afternoon", service: true },
+  { name: "晚上", time: "20:00", range: "18:00–22:00", code: "evening", service: true },
+  { name: "深夜", time: "23:30", range: "22:00–07:00", code: "midnight", service: false },
 ];
 
 const devicesByRoom: Record<string, { name: string; level: number; output: string; ready: boolean }[]> = {
@@ -267,6 +269,12 @@ export default function Home() {
     notify(`已移动到${next?.name ?? "房间"} · ${next?.note ?? ""}`);
   };
 
+  const advancePhase = () => {
+    const nextIndex = (phase + 1) % phases.length;
+    setPhase(nextIndex);
+    notify(nextIndex === 0 ? "新的一天开始了 · 早晨 08:00" : `时间推进至${phases[nextIndex].name} · ${phases[nextIndex].time}`);
+  };
+
   const serveGuest = () => {
     setServed((items) => (items.includes(guest.id) ? items : [...items, guest.id]));
     setDialogue(false);
@@ -404,7 +412,7 @@ export default function Home() {
         <div className="panel-content calendar-layout">
           <div className="big-date"><small>2086 / JUNE</small><strong>17</strong><span>WEDNESDAY · {phases[phase].name}</span></div>
           <div className="calendar-grid">{Array.from({ length: 28 }, (_, index) => <button className={index === 16 ? "today" : index === 18 ? "event" : ""} key={index}><small>{["M","T","W","T","F","S","S"][index % 7]}</small>{index + 1}{index === 18 && <i />}</button>)}</div>
-          <div className="schedule"><h3>今日安排</h3><div><time>15:00</time><span>米娅来访 <small>风铃事件</small></span></div><div className="special"><time>20:00</time><span>赫墨 · 琴弦窗户 <small>特殊事件</small></span></div><button className="ghost-button" onClick={() => notify("明日：有 2 位普通访客，天气晴")}>查看明日预告</button></div>
+          <div className="schedule"><h3>时间阶段</h3><div className="time-phase-list">{phases.map((item,index)=><button className={phase === index ? "selected" : ""} key={item.code} onClick={() => setPhase(index)}><span>{item.name}<small>{item.range}</small></span><em>{item.service ? "可服务" : "睡觉"}</em></button>)}</div><button className="primary-button advance-time" onClick={advancePhase}>推进至下一阶段 →</button><button className="ghost-button" onClick={() => notify("明日：有 2 位普通访客，天气晴")}>查看明日预告</button></div>
         </div>
       );
     }
@@ -508,10 +516,9 @@ export default function Home() {
 
       <header className="top-hud">
         <button className="brand-lockup" onClick={() => { setPanel(null); setDialogue(false); setEntryScreen("menu"); }}><span>The Guesthouse<br />of Meros</span><div><b>NEW CHAPTER</b><small>MEMORY LODGE / 2086</small></div></button>
-        <button className="time-card" onClick={() => openPanel("calendar")}><span className="live-dot" /><div><small>WELCOME HOME.</small><strong>本周将有 <mark>4</mark> 位访客来访</strong></div><em>{phases[phase].name} · {phases[phase].time}</em></button>
-        <div className="phase-switch" aria-label="切换时间氛围">{phases.map((item, index) => <button aria-label={item.name} className={phase === index ? "selected" : ""} key={item.code} onClick={() => { setPhase(index); notify(`时间氛围切换为${item.name}`); }}><span /></button>)}</div>
+        <button className="time-card" onClick={() => openPanel("calendar")}><span className="live-dot" /><div><small>WELCOME HOME.</small><strong>本周将有 <mark>4</mark> 位访客来访</strong></div></button>
         <button className="currency" onClick={() => openPanel("market")}><small>HOUSE CREDIT</small><strong>◈ 2,480</strong><span>＋</span></button>
-        <button className="week-note" onClick={() => openPanel("calendar")}><small>WEEK 01</small><strong>WEDNESDAY</strong><em>JUN 17</em></button>
+        <button className="time-system-card" onClick={() => openPanel("calendar")} aria-label="打开时间与日历"><div className="time-date"><small>WEEK 01 · 2086</small><strong>06 / 17</strong><em>WEDNESDAY</em></div><div className="time-current"><small>{phases[phase].service ? "● 可服务时间" : "○ 休息时间"}</small><span><strong>{phases[phase].name}</strong><time>{phases[phase].time}</time></span><em>{phases[phase].range}</em></div><div className="time-stage-track">{phases.map((item,index)=><i className={phase === index ? "selected" : ""} key={item.code} />)}</div></button>
       </header>
 
       <aside className="guest-rail" aria-label="访客列表">
