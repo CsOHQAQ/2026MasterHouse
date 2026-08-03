@@ -782,15 +782,24 @@ button { color: inherit; }
 .centered-menu>footer { justify-content:center; }
 .corner-menu {
   top:auto;
-  left:4.6%;
-  bottom:5.2%;
-  width:min(390px,32vw);
-  padding:19px 21px 15px;
+  left:3.8%;
+  bottom:4.2%;
+  width:min(520px,39vw);
+  padding:25px 27px 19px;
   animation:cornerMenuIn .7s .16s both;
 }
 @keyframes cornerMenuIn { from{opacity:0;transform:translateY(22px) rotate(.4deg)} }
-.menu-save-state { display:flex; align-items:center; gap:9px; margin:0 2px 12px; color:#c8b7ab; font:800 12px var(--title-serif); letter-spacing:.06em; }
-.menu-save-state i { width:7px; height:7px; border-radius:50%; background:#dd725a; box-shadow:0 0 12px rgba(221,114,90,.85); }
+.menu-save-state { display:flex; align-items:center; gap:11px; margin:0 2px 16px; color:#c8b7ab; font:800 15px var(--title-serif); letter-spacing:.06em; }
+.menu-save-state i { width:9px; height:9px; border-radius:50%; background:#dd725a; box-shadow:0 0 14px rgba(221,114,90,.85); }
+.corner-menu .start-actions { gap:11px; margin:17px 0 12px; }
+.corner-menu .menu-action { min-height:90px; padding:16px 18px; }
+.corner-menu .menu-action span { font-size:24px; }
+.corner-menu .menu-action small { margin-top:6px; font-size:10px; }
+.corner-menu nav { gap:9px; }
+.corner-menu nav button { min-height:62px; padding:11px 16px; }
+.corner-menu nav b { font-size:20px; }
+.corner-menu nav small { margin-top:4px; font-size:9px; }
+.corner-menu>footer { gap:22px; margin-top:17px; font-size:10px; }
 .main-menu>header { padding:0 2px 14px; border-bottom:1px solid rgba(231,190,162,.2); }
 .main-menu>header small,.main-menu>header strong,.main-menu>header span { display:block; }
 .main-menu>header small { color:#e98768; font:800 12px/1.2 var(--title-serif); letter-spacing:.14em; }
@@ -957,7 +966,7 @@ button { color: inherit; }
   .title-cover { object-position:62% center; }
   .main-menu { left:3%; bottom:3%; width:440px; max-width:62vw; }
   .centered-menu { top:50%; left:50%; bottom:auto; width:min(500px,82vw); max-width:none; }
-  .corner-menu { top:auto; left:3%; bottom:3%; width:min(390px,42vw); max-width:none; }
+  .corner-menu { top:auto; left:3%; bottom:3%; width:min(470px,54vw); max-width:none; padding:21px 23px 17px; }
   .menu-home-cover { object-position:center; }
   .menu-modal { width:82vw; max-height:88vh; }
   .menu-page-inner { width:min(760px,calc(100% - 48px)); }
@@ -970,6 +979,9 @@ button { color: inherit; }
   .main-menu { position:absolute; left:4%; right:4%; bottom:20px; width:auto; max-width:none; padding:17px; }
   .centered-menu { top:50%; left:50%; right:auto; bottom:auto; width:calc(100% - 32px); transform:translate(-50%,-50%); }
   .corner-menu { top:auto; left:16px; right:16px; bottom:18px; width:auto; transform:none; }
+  .corner-menu .menu-action { min-height:76px; padding:13px 14px; }.corner-menu .menu-action span { font-size:20px; }
+  .corner-menu nav button { min-height:54px; padding:9px 11px; }.corner-menu nav b { font-size:17px; }
+  .corner-menu>footer { margin-top:13px; font-size:8px; }
   .main-menu>header small { font-size:10px; }.main-menu>header strong { font-size:24px; }
   .menu-action span { font-size:17px; }.main-menu nav b { font-size:15px; }
   .menu-modal { position:absolute; top:50%; left:50%; right:auto; width:calc(100% - 32px); max-height:calc(100% - 48px); padding:20px; }
