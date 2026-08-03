@@ -958,18 +958,18 @@ button { color: inherit; }
 .corner-menu nav small { margin-top:5px; font-size:10px; }
 .corner-menu>footer { gap:24px; margin-top:19px; font-size:11px; }
 .centered-title-menu {
-  top:50%;
-  left:50%;
-  bottom:auto;
-  width:min(470px,42vw);
-  padding:34px 52px 24px;
-  transform:translate(-50%,-50%);
+  top:auto;
+  left:3.8%;
+  bottom:4.2%;
+  width:min(440px,34vw);
+  padding:30px 46px 22px;
+  transform:none;
   border:0;
   background:linear-gradient(90deg,transparent,rgba(3,6,11,.82) 17%,rgba(3,6,11,.9) 50%,rgba(3,6,11,.82) 83%,transparent);
   box-shadow:none;
   clip-path:none;
   backdrop-filter:blur(4px);
-  animation:centerTitleMenuIn .78s .14s both;
+  animation:leftTitleMenuIn .78s .14s both;
 }
 .centered-title-menu::before,.centered-title-menu::after {
   content:"";
@@ -982,7 +982,7 @@ button { color: inherit; }
 }
 .centered-title-menu::before { top:20px; }
 .centered-title-menu::after { bottom:15px; }
-@keyframes centerTitleMenuIn { from{opacity:0;transform:translate(-50%,calc(-50% + 22px)) scale(.98)} to{opacity:1;transform:translate(-50%,-50%) scale(1)} }
+@keyframes leftTitleMenuIn { from{opacity:0;filter:blur(6px)} to{opacity:1;filter:blur(0)} }
 .title-menu-lockup { padding:0 0 13px!important; border:0!important; text-align:center; }
 .title-menu-lockup h1 { margin:0; color:#e98a6c; font:900 36px/1 var(--title-serif); letter-spacing:-.025em; white-space:nowrap; text-shadow:0 4px 20px #000; }
 .title-menu-lockup>i { display:block; width:96px; height:10px; margin:16px auto 0; border-top:1px solid rgba(235,177,146,.55); }
@@ -1176,7 +1176,7 @@ button { color: inherit; }
   .main-menu { left:3%; bottom:3%; width:440px; max-width:62vw; }
   .centered-menu { top:50%; left:50%; bottom:auto; width:min(500px,82vw); max-width:none; }
   .corner-menu { top:auto; left:3%; bottom:3%; width:min(540px,62vw); max-width:none; padding:23px 25px 18px; }
-  .centered-title-menu { top:50%; left:50%; bottom:auto; width:min(440px,54vw); max-width:none; padding:29px 40px 22px; }
+  .centered-title-menu { top:auto; left:3%; bottom:3%; width:min(410px,48vw); max-width:none; padding:27px 36px 20px; }
   .title-menu-lockup h1 { font-size:31px; }
   .menu-home-cover { object-position:center; }
   .menu-modal { width:82vw; max-height:88vh; }
