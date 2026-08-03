@@ -447,8 +447,8 @@ export default function Home() {
         <div className="title-grain" />
         <img className="title-cover" src="/og-meros.png" alt="The Guesthouse of Meros 封面，四位动物访客站在暮色旅店中" draggable="false" />
         <div className="title-vignette" />
-        {!menuPanel && <section className="main-menu centered-menu" aria-label="主菜单">
-            <header><small>THE GUESTHOUSE OF MEROS</small><strong>主菜单</strong><span>{hasSave ? "检测到本地存档" : "等待第一位住客"}</span></header>
+        {!menuPanel && <section className="main-menu corner-menu" aria-label="游戏菜单">
+            <div className="menu-save-state"><i /><span>{hasSave ? "检测到本地存档" : "等待第一位住客"}</span></div>
             <div className="start-actions">
               <button className="menu-action menu-primary" onClick={() => { setSaveMode("new"); setMenuPanel("saves"); setMenuNotice(""); }}><span>新游戏</span><small>NEW STORY</small></button>
               <button className="menu-action" disabled={!hasSave} onClick={continueGame}><span>继续游戏</span><small>{hasSave ? "CONTINUE" : "NO SAVE DATA"}</small></button>
