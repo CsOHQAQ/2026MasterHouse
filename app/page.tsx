@@ -510,10 +510,6 @@ export default function Home() {
         <img className="title-cover" src="/og-meros.png" alt="The Guesthouse of Meros 封面，四位动物访客站在暮色旅店中" draggable="false" />
         <div className="title-vignette" />
         {!menuPanel && <section className="main-menu centered-title-menu" aria-label="游戏菜单">
-            <header className="title-menu-lockup">
-              <h1>The Guesthouse of Meros</h1>
-              <i aria-hidden="true" />
-            </header>
             <div className="menu-save-state"><i /><span>{hasSave ? "一段旅店记忆正在等待你" : "等待第一位住客"}</span></div>
             <nav className="title-menu-list">
               <button className="menu-primary" disabled={!hasSave} onClick={continueGame}><b>继续游戏</b><small>{hasSave ? "CONTINUE" : "暂无存档"}</small></button>
