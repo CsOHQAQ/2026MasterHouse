@@ -9,7 +9,7 @@ namespace MasterHouse
         private Transform gridParent=null;
 
 
-        public void UpdateGridGO()
+        public void UpdateGridGO(GridGroup gridGroup)
         {
             if (gridParent == null)
             {
@@ -22,9 +22,9 @@ namespace MasterHouse
                 }
                 
                 int childCount = gridParent.childCount;
-                for (int i = 0; i < childCount; i++)
+                if (gridGroup.grids.Count > childCount)
                 {
-                    gridParent.GetChild(i).gameObject.SetActive(true);
+                    
                 }
             }
         }
