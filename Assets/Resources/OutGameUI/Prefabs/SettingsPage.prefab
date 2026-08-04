@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 247661878922914023}
   - component: {fileID: 7883233192344714901}
   - component: {fileID: 4768574064346641514}
+  - component: {fileID: 6508155287411200085}
   m_Layer: 5
   m_Name: Save
   m_TagString: Untagged
@@ -121,6 +122,20 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6508155287411200085
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 293244014293341597}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd7da0e8c8d29f4492087dcedd11501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hoverScale: 1.025
+  hoverGraphic: {fileID: 0}
 --- !u!1 &1433816129843043584
 GameObject:
   m_ObjectHideFlags: 0
@@ -784,7 +799,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 490, y: -505}
+  m_AnchoredPosition: {x: 430, y: -445}
   m_SizeDelta: {x: 720, y: 420}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5543407989541605599
@@ -1294,7 +1309,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1270, y: -505}
+  m_AnchoredPosition: {x: 1235, y: -445}
   m_SizeDelta: {x: 720, y: 420}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3499653173765949562
@@ -1426,6 +1441,7 @@ GameObject:
   - component: {fileID: 6278020909783917764}
   - component: {fileID: 1576538352379067030}
   - component: {fileID: 230893968921086833}
+  - component: {fileID: 931658230262391926}
   m_Layer: 5
   m_Name: Back
   m_TagString: Untagged
@@ -1535,6 +1551,20 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &931658230262391926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6135293967111596755}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd7da0e8c8d29f4492087dcedd11501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hoverScale: 1.025
+  hoverGraphic: {fileID: 0}
 --- !u!1 &7031172937892108767
 GameObject:
   m_ObjectHideFlags: 0
@@ -1547,6 +1577,7 @@ GameObject:
   - component: {fileID: 6956610612618566993}
   - component: {fileID: 3223254671085297556}
   - component: {fileID: 925253979745751113}
+  - component: {fileID: 8279336203466812951}
   m_Layer: 5
   m_Name: Load
   m_TagString: Untagged
@@ -1656,6 +1687,20 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &8279336203466812951
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7031172937892108767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd7da0e8c8d29f4492087dcedd11501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hoverScale: 1.025
+  hoverGraphic: {fileID: 0}
 --- !u!1 &7260904682076484526
 GameObject:
   m_ObjectHideFlags: 0
@@ -1765,7 +1810,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -90, y: -260}
+  m_AnchoredPosition: {x: -939, y: -140}
   m_SizeDelta: {x: 1500, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &9074540545532229258

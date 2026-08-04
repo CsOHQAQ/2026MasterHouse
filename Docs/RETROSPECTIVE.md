@@ -198,6 +198,30 @@ if (component == null) component = go.AddComponent<CanvasGroup>();
 - 最小检测：关闭代码编辑器，只打开目标页面 Prefab，应能选中并移动页面内所有静态按钮、标题、卡片与容器
 - 关联文件：`Assets/Resources/OutGameUI/Prefabs/`、`Docs/PREFAB_UI_GUIDE.md`
 
+### RETRO-014 · 完整页面 Prefab 仍需要可复用的组件级 Prefab
+
+- 标签：`Unity` `Nested Prefab` `HUD` `可维护性`
+- 触发场景：House 首页虽然已有 `HouseHubPage.prefab`，但顶部栏、访客卡、菜单按钮和房间导航仍由控制器逐节点创建
+- 现象：可以移动页面级槽位，却无法单独编辑或复用访客条目、房间按钮等重复组件；状态刷新还会销毁并重建整块 UI
+- 根因：只完成页面级资源化，没有继续识别稳定区域与重复项的组件边界
+- 误导信号：页面根 Prefab 已存在，容易把“能实例化页面”误判为“页面内部也可视化维护”
+- 修复：稳定区域拆为 HUD 组件 Prefab，重复项继续拆为子 Prefab，再以 Nested Prefab 组合进 `HouseHubPage`；状态变化只改字段和颜色
+- 防复发规则：页面验收时同时检查“整页能否编辑”和“重复组件能否单独编辑复用”；运行时不得为已有组件重新写布局坐标
+- 最小检测：只修改 `HubGuestCard.prefab` 的头像尺寸，重新 Play 后四个访客条目应同步变化，点击逻辑保持有效
+- 关联文件：`Assets/Resources/OutGameUI/Prefabs/Hub*.prefab`、`Assets/Scripts/UI/OutGameHub*View.cs`
+
+### RETRO-015 · Prefab 迁移必须同时保留视觉、交互与动效行为
+
+- 标签：`Unity` `Prefab` `DOTween` `回归`
+- 触发场景：把运行时代码生成的 HUD 控件迁移成组件 Prefab，仅复制 Image、Text、Button 和布局引用
+- 现象：所有按钮仍能点击，页面布局也正确，但鼠标 Hover、按下和松开不再有缩放反馈，看起来像 DOTween 整体失效
+- 根因：旧 `OutGameUIFactory.Button()` 会自动挂载 `OutGameTweenButton`；新 Prefab 生成器只创建了 Unity `Button`，遗漏了承载动效的行为组件
+- 误导信号：按钮事件能触发、DOTween DLL 存在、页面入场动画还在运行，容易误判为输入或插件配置问题
+- 修复：生成新按钮时统一挂载 `OutGameTweenButton`；对现有 Prefab 做只增组件的无损迁移；运行时绑定按钮时再兜底检查一次
+- 防复发规则：控件 Prefab 化验收必须包含布局、数据、点击、Hover、Press、键盘选中五项，不能只验证 `Button.onClick`
+- 最小检测：扫描所有可点击叶子 Prefab，`Button` 所在对象必须同时存在 `OutGameTweenButton`；Play 中鼠标移入缩放至 1.025、按下缩放至 0.97、移出恢复原比例
+- 关联文件：`Assets/Editor/OutGameUIPrefabGenerator.cs`、`Assets/Scripts/UI/OutGameUI.cs`、`Assets/Scripts/UI/OutGameTweenButton.cs`
+
 ## 4. 开发前快速检查表
 
 - [ ] Unity 窗口版本与 `ProjectVersion.txt` 完全一致

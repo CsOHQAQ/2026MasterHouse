@@ -170,6 +170,7 @@ GameObject:
   - component: {fileID: 1352124694208499121}
   - component: {fileID: 5463333847445772614}
   - component: {fileID: 4441300704793444405}
+  - component: {fileID: 5553606279913484530}
   m_Layer: 5
   m_Name: AchievementTab
   m_TagString: Untagged
@@ -279,6 +280,20 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &5553606279913484530
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 607327742419844705}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd7da0e8c8d29f4492087dcedd11501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hoverScale: 1.025
+  hoverGraphic: {fileID: 0}
 --- !u!1 &637032052481792052
 GameObject:
   m_ObjectHideFlags: 0
@@ -314,7 +329,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 460, y: -475}
+  m_AnchoredPosition: {x: 496, y: -525}
   m_SizeDelta: {x: 700, y: 320}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2638161964779202635
@@ -447,6 +462,7 @@ GameObject:
   - component: {fileID: 218186367290360471}
   - component: {fileID: 7918075312548359076}
   - component: {fileID: 4592512442817356966}
+  - component: {fileID: 392384313730343678}
   m_Layer: 5
   m_Name: LogTab
   m_TagString: Untagged
@@ -556,6 +572,20 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &392384313730343678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1905512818799030439}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd7da0e8c8d29f4492087dcedd11501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hoverScale: 1.025
+  hoverGraphic: {fileID: 0}
 --- !u!1 &2390616734047166984
 GameObject:
   m_ObjectHideFlags: 0
@@ -872,7 +902,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &3777452607838702474
 RectTransform:
   m_ObjectHideFlags: 0
@@ -908,6 +938,7 @@ GameObject:
   - component: {fileID: 2142094781334131972}
   - component: {fileID: 8568540735000057083}
   - component: {fileID: 5560872323668478206}
+  - component: {fileID: 204215148494091928}
   m_Layer: 5
   m_Name: Achievement2
   m_TagString: Untagged
@@ -1017,6 +1048,20 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &204215148494091928
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4262523885427067360}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd7da0e8c8d29f4492087dcedd11501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hoverScale: 1.025
+  hoverGraphic: {fileID: 0}
 --- !u!1 &4324083751856249490
 GameObject:
   m_ObjectHideFlags: 0
@@ -1109,6 +1154,7 @@ GameObject:
   - component: {fileID: 637856046337815538}
   - component: {fileID: 94696230855417093}
   - component: {fileID: 4162214549352882109}
+  - component: {fileID: 8128187581279807937}
   m_Layer: 5
   m_Name: Achievement1
   m_TagString: Untagged
@@ -1218,6 +1264,20 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &8128187581279807937
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4627025963560139241}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd7da0e8c8d29f4492087dcedd11501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hoverScale: 1.025
+  hoverGraphic: {fileID: 0}
 --- !u!1 &5580348611737782194
 GameObject:
   m_ObjectHideFlags: 0
@@ -1352,7 +1412,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &4675018154604403139
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1530,6 +1590,7 @@ GameObject:
   - component: {fileID: 5453980034901192646}
   - component: {fileID: 8425795286624063754}
   - component: {fileID: 2987134678840692830}
+  - component: {fileID: 7399166549026813514}
   m_Layer: 5
   m_Name: Back
   m_TagString: Untagged
@@ -1639,6 +1700,20 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &7399166549026813514
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6872596078415913769}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd7da0e8c8d29f4492087dcedd11501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hoverScale: 1.025
+  hoverGraphic: {fileID: 0}
 --- !u!1 &6875126295169327200
 GameObject:
   m_ObjectHideFlags: 0
@@ -1651,6 +1726,7 @@ GameObject:
   - component: {fileID: 376387554622526043}
   - component: {fileID: 6339512192937240079}
   - component: {fileID: 1814480094156716284}
+  - component: {fileID: 6143972237666639030}
   m_Layer: 5
   m_Name: Achievement0
   m_TagString: Untagged
@@ -1760,6 +1836,20 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6143972237666639030
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6875126295169327200}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd7da0e8c8d29f4492087dcedd11501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hoverScale: 1.025
+  hoverGraphic: {fileID: 0}
 --- !u!1 &7715649210012792870
 GameObject:
   m_ObjectHideFlags: 0
@@ -1932,6 +2022,7 @@ GameObject:
   - component: {fileID: 9095759349657598103}
   - component: {fileID: 2585708427781754700}
   - component: {fileID: 2394994912339852382}
+  - component: {fileID: 8040902988033230904}
   m_Layer: 5
   m_Name: Achievement3
   m_TagString: Untagged
@@ -2041,6 +2132,20 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &8040902988033230904
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8039099986324347405}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bd7da0e8c8d29f4492087dcedd11501, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hoverScale: 1.025
+  hoverGraphic: {fileID: 0}
 --- !u!1 &8314922323588443563
 GameObject:
   m_ObjectHideFlags: 0
@@ -2313,7 +2418,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 1250, y: -475}
+  m_AnchoredPosition: {x: 1248, y: -525}
   m_SizeDelta: {x: 700, y: 320}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1996736679761594535
