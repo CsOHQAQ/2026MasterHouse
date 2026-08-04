@@ -10,9 +10,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Code comments, UI strings, and commit messages are in **Simplified Chinese** — keep that convention.
 - No test assemblies, build scripts, or CI exist. All development/compilation happens through the Unity Editor.
 
+## Development Documentation Discipline
+
+Before changing code, resources, scenes, packages, or ProjectSettings, read and update `Docs/DEVELOPMENT.md`. Update its active work item whenever scope, implementation approach, validation status, or blockers change.
+
+When a task exposes a reusable failure mode or repeated source of delay, add a structured entry to `Docs/RETROSPECTIVE.md` before marking the task complete. Static compilation must never be reported as Unity runtime verification.
+
 ## Running the Game
 
-There is no prefab or art pipeline — everything is generated at runtime/editor-time:
+节点玩法仍主要由运行时代码生成；局外 UI 已采用 Prefab 视图 + 代码控制器：
+
+- 可编辑局外 UI Prefab：`Assets/Resources/OutGameUI/Prefabs/`
+- Prefab 引用组件：`Assets/Scripts/UI/OutGameTitleView.cs`、`OutGamePaperView.cs`、`OutGameSaveSlotView.cs`、`OutGameHubView.cs`、`OutGameSystemPanelView.cs`
+- 页面逻辑控制器：`Assets/Scripts/UI/OutGameUI.cs`
+- 首次缺失资产生成器：`Assets/Editor/OutGameUIPrefabGenerator.cs`
+
+调整局外 UI 布局时只修改 Prefab，禁止把坐标重新写回控制器。生成器只自动补齐缺失资产，不覆盖手调 Prefab；菜单中的“Rebuild Default Prefabs”会覆盖布局，必须明确确认后才能使用。详见 `Docs/PREFAB_UI_GUIDE.md`。
+
+Prefab 粒度以“一个完整界面一个 Prefab”为准：存档、画廊、设置、退出各自独立；共同纸张风格只通过 View 基类和生成器默认值复用，不能让多个正式界面共用一个运行时空壳再由代码生成内部布局。
+
+所有需要挂载到 GameObject/Prefab 的 `MonoBehaviour` 与 `BaseMeshEffect` 必须独占一个与类名完全一致的 `.cs` 文件；禁止把多个可序列化组件塞进同一个脚本文件，否则 Unity 域重载后会产生 Missing Script。
+
+节点玩法启动流程：
 
 1. Editor menu **MasterPotion → 1. 创建示例数据**: generates all ScriptableObject assets into `Assets/GameData/` (resources, recipes, node defs, `GameConfig`). Implemented in `Assets/Scripts/Editor/DemoSetupUtility.cs`.
 2. Editor menu **MasterPotion → 2. 搭建演示场景**: wires the scene (camera + a `GameRoot` object holding `SimulationManager`, `LinkManager`, `InteractionController`, `PlacementController`, `BoardEditController`, `BoardGrid`, `Bootstrap` with preset nodes).

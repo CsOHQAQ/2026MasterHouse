@@ -52,6 +52,9 @@ namespace MasterPotion
                 else
                     Debug.LogWarning($"预置节点「{p.def.displayName}」在 {origin} 处无法完整落在画布内，已跳过。");
             }
+
+            // web-demo 局外界面：最后创建，确保覆盖节点玩法的运行时工具栏。
+            OutGameUI.Build();
         }
     }
 }
