@@ -21,6 +21,15 @@ public static class OutGameUIPrefabGenerator
     private const string ExitPagePath = Folder + "/ExitPage.prefab";
     private const string SaveSlotPath = Folder + "/SaveSlot.prefab";
     private const string HubPath = Folder + "/HouseHubPage.prefab";
+    private const string HubTopBarPath = Folder + "/HubTopBar.prefab";
+    private const string HubTaskCardPath = Folder + "/HubTaskCard.prefab";
+    private const string HubGuestRailPath = Folder + "/HubGuestRail.prefab";
+    private const string HubGuestCardPath = Folder + "/HubGuestCard.prefab";
+    private const string HubRightDockPath = Folder + "/HubRightDock.prefab";
+    private const string HubDockButtonPath = Folder + "/HubDockButton.prefab";
+    private const string HubRoomNavigationPath = Folder + "/HubRoomNavigation.prefab";
+    private const string HubRoomButtonPath = Folder + "/HubRoomButton.prefab";
+    private const string HubSceneOverlayPath = Folder + "/HubSceneOverlay.prefab";
     private const string PanelPath = Folder + "/SystemPanel.prefab";
 
     static OutGameUIPrefabGenerator()
@@ -62,6 +71,15 @@ public static class OutGameUIPrefabGenerator
         BuildGalleryPage(GalleryPagePath);
         BuildSettingsPage(SettingsPagePath);
         BuildExitPage(ExitPagePath);
+        BuildHubGuestCard(HubGuestCardPath);
+        BuildHubDockButton(HubDockButtonPath);
+        BuildHubRoomButton(HubRoomButtonPath);
+        BuildHubTopBar(HubTopBarPath);
+        BuildHubTaskCard(HubTaskCardPath);
+        BuildHubGuestRail(HubGuestRailPath);
+        BuildHubRightDock(HubRightDockPath);
+        BuildHubRoomNavigation(HubRoomNavigationPath);
+        BuildHubSceneOverlay(HubSceneOverlayPath);
         BuildHub(HubPath);
         BuildSystemPanel(PanelPath);
         AssetDatabase.SaveAssets();
@@ -82,9 +100,19 @@ public static class OutGameUIPrefabGenerator
         if (!File.Exists(GalleryPagePath)) { BuildGalleryPage(GalleryPagePath); changed = true; }
         if (!File.Exists(SettingsPagePath)) { BuildSettingsPage(SettingsPagePath); changed = true; }
         if (!File.Exists(ExitPagePath)) { BuildExitPage(ExitPagePath); changed = true; }
+        if (!File.Exists(HubGuestCardPath)) { BuildHubGuestCard(HubGuestCardPath); changed = true; }
+        if (!File.Exists(HubDockButtonPath)) { BuildHubDockButton(HubDockButtonPath); changed = true; }
+        if (!File.Exists(HubRoomButtonPath)) { BuildHubRoomButton(HubRoomButtonPath); changed = true; }
+        if (!File.Exists(HubTopBarPath)) { BuildHubTopBar(HubTopBarPath); changed = true; }
+        if (!File.Exists(HubTaskCardPath)) { BuildHubTaskCard(HubTaskCardPath); changed = true; }
+        if (!File.Exists(HubGuestRailPath)) { BuildHubGuestRail(HubGuestRailPath); changed = true; }
+        if (!File.Exists(HubRightDockPath)) { BuildHubRightDock(HubRightDockPath); changed = true; }
+        if (!File.Exists(HubRoomNavigationPath)) { BuildHubRoomNavigation(HubRoomNavigationPath); changed = true; }
+        if (!File.Exists(HubSceneOverlayPath)) { BuildHubSceneOverlay(HubSceneOverlayPath); changed = true; }
         if (!File.Exists(HubPath)) { BuildHub(HubPath); changed = true; }
         if (!File.Exists(PanelPath)) { BuildSystemPanel(PanelPath); changed = true; }
         changed |= RepairExistingPrefabs();
+        changed |= RepairButtonFeedback();
         if (!changed) return;
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -105,19 +133,72 @@ public static class OutGameUIPrefabGenerator
         repaired |= RepairPrefab<OutGameSettingsPageView>(SettingsPagePath, RepairSettingsPage);
         repaired |= RepairPrefab<OutGameExitPageView>(ExitPagePath, RepairExitPage);
         repaired |= RepairPrefab<OutGameSaveSlotView>(SaveSlotPath, RepairSaveSlot);
-        repaired |= RepairPrefab<OutGameHubView>(HubPath, RepairHub);
+        repaired |= RepairPrefab<OutGameHubView>(HubPath, RepairHub, view => view.topBar == null ||
+            view.taskCard == null || view.guestRail == null || view.rightDock == null ||
+            view.roomNavigation == null || view.sceneOverlay == null);
         repaired |= RepairPrefab<OutGameSystemPanelView>(PanelPath, RepairSystemPanel);
         return repaired;
     }
 
-    private static bool RepairPrefab<T>(string path, System.Action<GameObject, T> bind)
+    /// <summary>
+    /// 给旧版 Prefab 无损补回 DOTween 按钮反馈。只增加行为组件，不修改布局、颜色或层级；
+    /// 嵌套 Prefab 的按钮由其源 Prefab 自己迁移，避免在父资源上制造多余 Override。
+    /// </summary>
+    private static bool RepairButtonFeedback()
+    {
+        var repaired = false;
+        var paths = new[]
+        {
+            TitlePath, PaperPath, SaveSlotPath, SavePagePath, GalleryPagePath, SettingsPagePath, ExitPagePath,
+            HubTopBarPath, HubTaskCardPath, HubGuestCardPath, HubGuestRailPath, HubDockButtonPath,
+            HubRightDockPath, HubRoomButtonPath, HubRoomNavigationPath, HubSceneOverlayPath, HubPath,
+        };
+        foreach (var path in paths)
+            repaired |= RepairButtonFeedback(path);
+        return repaired;
+    }
+
+    private static bool RepairButtonFeedback(string path)
+    {
+        if (!File.Exists(path)) return false;
+        var root = PrefabUtility.LoadPrefabContents(path);
+        try
+        {
+            var changed = false;
+            foreach (var button in root.GetComponentsInChildren<Button>(true))
+            {
+                if (PrefabUtility.IsPartOfPrefabInstance(button.gameObject)) continue;
+                if (button.GetComponent<OutGameTweenButton>() != null) continue;
+                AddTweenFeedback(button);
+                changed = true;
+            }
+            if (!changed) return false;
+
+            EditorUtility.SetDirty(root);
+            bool saveSucceeded;
+            PrefabUtility.SaveAsPrefabAsset(root, path, out saveSucceeded);
+            if (!saveSucceeded)
+                throw new System.InvalidOperationException("Prefab DOTween 迁移后保存失败：" + path);
+            Debug.Log("[OutGameUI] 已补回 Prefab 按钮 DOTween 反馈，并保留布局：" + path);
+            return true;
+        }
+        finally
+        {
+            PrefabUtility.UnloadPrefabContents(root);
+        }
+    }
+
+    private static bool RepairPrefab<T>(string path, System.Action<GameObject, T> bind,
+        System.Func<T, bool> requiresMigration = null)
         where T : MonoBehaviour
     {
         if (!File.Exists(path)) return false;
         var root = PrefabUtility.LoadPrefabContents(path);
         try
         {
-            var needsRepair = HasMissingScripts(root) || root.GetComponent<T>() == null;
+            var existing = root.GetComponent<T>();
+            var needsRepair = HasMissingScripts(root) || existing == null ||
+                              (requiresMigration != null && existing != null && requiresMigration(existing));
             if (!needsRepair) return false;
 
             RemoveMissingScripts(root);
@@ -260,6 +341,7 @@ public static class OutGameUIPrefabGenerator
         view.chromeRoot = RequiredTransform(root.transform, "ChromeRoot") as RectTransform;
         view.modalRoot = RequiredTransform(root.transform, "ModalRoot") as RectTransform;
         view.footer = Required<Text>(view.chromeRoot, "Footer");
+        EmbedHubComponents(view);
     }
 
     private static void RepairSystemPanel(GameObject root, OutGameSystemPanelView view)
@@ -550,6 +632,160 @@ public static class OutGameUIPrefabGenerator
         Save(root, path);
     }
 
+    private static void BuildHubTopBar(string path)
+    {
+        var root = ComponentRoot("HubTopBar", new Vector2(1920, 124));
+        ImageOn((RectTransform)root.transform, new Color(.025f, .025f, .045f, .77f));
+        var refs = root.AddComponent<OutGameHubTopBarView>();
+        refs.timeButton = PageButton(root.transform, "Time", "WEEK 32 · 2026\n08 / 04    晚上",
+            new Vector2(230, 0), new Vector2(410, 100), new Color(.17f, .06f, .12f, .74f), Hex("F3E8DD"), 23,
+            TextAnchor.MiddleLeft, new Vector2(0, .5f));
+        refs.weekDatePhase = refs.timeButton.GetComponentInChildren<Text>();
+        refs.phaseRange = Label(refs.timeButton.transform, "PhaseRange", "18:00–22:00", 12, new Color(1, 1, 1, .58f),
+            new Vector2(1, 0), new Vector2(1, 0), new Vector2(-78, 14), new Vector2(150, 24), TextAnchor.MiddleRight, FontStyle.Normal);
+        refs.clock = Label(refs.timeButton.transform, "Clock", "18:46", 24, Hex("F3E8DD"),
+            new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-62, -7), new Vector2(110, 42), TextAnchor.MiddleRight, FontStyle.Bold);
+        refs.creditButton = PageButton(root.transform, "Credit", "HOUSE CREDIT\n◈ 2,480     ＋", new Vector2(625, 0),
+            new Vector2(270, 82), new Color(.06f, .025f, .06f, .7f), Hex("F3E8DD"), 21, TextAnchor.MiddleLeft, new Vector2(0, .5f));
+        refs.creditLabel = refs.creditButton.GetComponentInChildren<Text>();
+        refs.brandButton = PageButton(root.transform, "Brand", "<i>The Guesthouse\nof Meros</i>     <size=14>N E W  C H A P T E R</size>",
+            new Vector2(120, 0), new Vector2(600, 90), Color.clear, Hex("E22D76"), 29, TextAnchor.MiddleCenter, new Vector2(.5f, .5f));
+        refs.brandLabel = refs.brandButton.GetComponentInChildren<Text>();
+        refs.welcomeLabel = Label(root.transform, "Welcome", "WELCOME HOME.\n本周将有 <color=#E22D76>4</color> 位访客来访", 19, Hex("F3E8DD"),
+            new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-370, 0), new Vector2(330, 78), TextAnchor.MiddleCenter, FontStyle.Normal);
+        refs.optionsButton = PageButton(root.transform, "Options", "设\n<size=15>OPTIONS · 设置</size>", new Vector2(-70, 0),
+            new Vector2(112, 104), new Color(.32f, .06f, .18f, .86f), Hex("F3E8DD"), 27, TextAnchor.MiddleCenter, new Vector2(1, .5f));
+        refs.optionsLabel = refs.optionsButton.GetComponentInChildren<Text>();
+        Save(root, path);
+    }
+
+    private static void BuildHubTaskCard(string path)
+    {
+        var root = ComponentRoot("HubTaskCard", new Vector2(390, 255));
+        var image = ImageOn((RectTransform)root.transform, new Color(.13f, .045f, .11f, .84f));
+        var refs = root.AddComponent<OutGameHubTaskCardView>();
+        refs.button = root.AddComponent<Button>();
+        refs.button.targetGraphic = image;
+        AddTweenFeedback(refs.button);
+        refs.header = Label(root.transform, "Header", "CURRENT VISITOR TASK                         进行中", 13, Hex("F3E8DD"),
+            new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -22), new Vector2(350, 28), TextAnchor.MiddleLeft, FontStyle.Bold);
+        refs.guestTitle = Label(root.transform, "GuestTitle", "洛恩 · 一杯温热的赤茶", 22, Hex("F3E8DD"),
+            new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -78), new Vector2(350, 44), TextAnchor.MiddleLeft, FontStyle.Bold);
+        refs.hint = Label(root.transform, "Hint", "需要关于这栋房子的答案", 16, Hex("F3E8DD"),
+            new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -125), new Vector2(350, 48), TextAnchor.UpperLeft, FontStyle.Normal);
+        refs.progress = Label(root.transform, "Progress", "━━━━━━  35%     点击查看任务详情  →", 14, Hex("F3E8DD"),
+            new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 30), new Vector2(350, 32), TextAnchor.MiddleLeft, FontStyle.Normal);
+        Save(root, path);
+    }
+
+    private static void BuildHubGuestCard(string path)
+    {
+        var root = ComponentRoot("HubGuestCard", new Vector2(390, 100));
+        var refs = root.AddComponent<OutGameHubGuestCardView>();
+        refs.background = ImageOn((RectTransform)root.transform, new Color(.025f, .025f, .045f, .83f));
+        refs.button = root.AddComponent<Button>();
+        refs.button.targetGraphic = refs.background;
+        AddTweenFeedback(refs.button);
+        refs.portrait = Raw(root.transform, "Portrait", new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(55, 0), new Vector2(76, 76));
+        var portraitOutline = refs.portrait.gameObject.AddComponent<Outline>();
+        portraitOutline.effectColor = new Color(.8f, .15f, .45f, .8f);
+        portraitOutline.effectDistance = new Vector2(4, -4);
+        refs.eventLabel = Label(root.transform, "Event", "SPECIAL EVENT", 12, Hex("F3E8DD"),
+            new Vector2(0, 1), new Vector2(0, 1), new Vector2(185, -22), new Vector2(220, 24), TextAnchor.MiddleLeft, FontStyle.Bold);
+        refs.guestName = Label(root.transform, "Name", "洛恩", 21, Hex("F3E8DD"),
+            new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(185, 2), new Vector2(220, 32), TextAnchor.MiddleLeft, FontStyle.Bold);
+        refs.status = Label(root.transform, "Status", "特殊客人 · 可打断", 15, Hex("F3E8DD"),
+            new Vector2(0, 0), new Vector2(0, 0), new Vector2(185, 18), new Vector2(220, 24), TextAnchor.MiddleLeft, FontStyle.Normal);
+        refs.typeLabel = Label(root.transform, "Type", "特", 17, Hex("F3E8DD"),
+            new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-28, 0), new Vector2(46, 46), TextAnchor.MiddleCenter, FontStyle.Bold);
+        Save(root, path);
+    }
+
+    private static void BuildHubGuestRail(string path)
+    {
+        var root = ComponentRoot("HubGuestRail", new Vector2(390, 535));
+        var refs = root.AddComponent<OutGameHubGuestRailView>();
+        refs.title = Label(root.transform, "Title", "VISITOR EVENTS / 访客事件", 16, Hex("E22D76"),
+            new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(-35, -20), new Vector2(320, 36), TextAnchor.MiddleLeft, FontStyle.Bold);
+        refs.remaining = Label(root.transform, "Remaining", "04", 16, Hex("E22D76"),
+            new Vector2(1, 1), new Vector2(1, 1), new Vector2(-22, -20), new Vector2(50, 36), TextAnchor.MiddleRight, FontStyle.Bold);
+        refs.cards = new OutGameHubGuestCardView[4];
+        for (var i = 0; i < refs.cards.Length; i++)
+            refs.cards[i] = InstantiateNested<OutGameHubGuestCardView>(HubGuestCardPath, root.transform, "GuestCard0" + (i + 1),
+                new Vector2(.5f, 1), new Vector2(0, -90 - i * 112), new Vector2(390, 100));
+        Save(root, path);
+    }
+
+    private static void BuildHubDockButton(string path)
+    {
+        var root = ComponentRoot("HubDockButton", new Vector2(205, 78));
+        var refs = root.AddComponent<OutGameHubDockButtonView>();
+        refs.background = ImageOn((RectTransform)root.transform, new Color(.025f, .025f, .04f, .75f));
+        refs.button = root.AddComponent<Button>();
+        refs.button.targetGraphic = refs.background;
+        AddTweenFeedback(refs.button);
+        refs.icon = Label(root.transform, "Icon", "器", 20, Hex("F3E8DD"), new Vector2(0, 0), new Vector2(.32f, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter, FontStyle.Bold);
+        refs.label = Label(root.transform, "Label", "设备图鉴", 20, Hex("F3E8DD"), new Vector2(.28f, 0), new Vector2(1, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleLeft, FontStyle.Bold);
+        Save(root, path);
+    }
+
+    private static void BuildHubRightDock(string path)
+    {
+        var root = ComponentRoot("HubRightDock", new Vector2(205, 470));
+        var refs = root.AddComponent<OutGameHubRightDockView>();
+        refs.title = Label(root.transform, "Title", "HOUSE / MENU", 13, Hex("E22D76"), new Vector2(.5f, 1), new Vector2(.5f, 1),
+            new Vector2(0, -20), new Vector2(200, 30), TextAnchor.MiddleCenter, FontStyle.Normal);
+        refs.entries = new OutGameHubDockButtonView[4];
+        for (var i = 0; i < refs.entries.Length; i++)
+            refs.entries[i] = InstantiateNested<OutGameHubDockButtonView>(HubDockButtonPath, root.transform, "DockButton0" + (i + 1),
+                new Vector2(.5f, 1), new Vector2(0, -82 - i * 92), new Vector2(205, 78));
+        Save(root, path);
+    }
+
+    private static void BuildHubRoomButton(string path)
+    {
+        var root = ComponentRoot("HubRoomButton", new Vector2(170, 150));
+        var refs = root.AddComponent<OutGameHubRoomButtonView>();
+        refs.background = ImageOn((RectTransform)root.transform, new Color(1, 1, 1, .015f));
+        refs.button = root.AddComponent<Button>();
+        refs.button.targetGraphic = refs.background;
+        AddTweenFeedback(refs.button);
+        refs.code = Label(root.transform, "Code", "HOME", 12, new Color(1, 1, 1, .72f), new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -22), new Vector2(150, 24), TextAnchor.MiddleCenter, FontStyle.Bold);
+        refs.icon = Label(root.transform, "Icon", "⌂", 20, new Color(1, 1, 1, .72f), new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 10), new Vector2(150, 30), TextAnchor.MiddleCenter, FontStyle.Normal);
+        refs.roomName = Label(root.transform, "Name", "起居室", 20, new Color(1, 1, 1, .72f), new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 42), new Vector2(150, 30), TextAnchor.MiddleCenter, FontStyle.Bold);
+        refs.state = Label(root.transform, "State", "CURRENT", 11, Hex("F3E8DD"), new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 17), new Vector2(150, 20), TextAnchor.MiddleCenter, FontStyle.Bold);
+        Save(root, path);
+    }
+
+    private static void BuildHubRoomNavigation(string path)
+    {
+        var root = ComponentRoot("HubRoomNavigation", new Vector2(1030, 150));
+        var refs = root.AddComponent<OutGameHubRoomNavigationView>();
+        refs.background = ImageOn((RectTransform)root.transform, new Color(.02f, .022f, .04f, .82f));
+        refs.title = Label(root.transform, "Title", "MAKE IT HOME", 18, Hex("E22D76"), new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(112, 15), new Vector2(210, 40), TextAnchor.MiddleCenter, FontStyle.Bold);
+        refs.hint = Label(root.transform, "Hint", "← → 快速切换", 13, Hex("F3E8DD"), new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(112, -18), new Vector2(210, 30), TextAnchor.MiddleCenter, FontStyle.Normal);
+        refs.rooms = new OutGameHubRoomButtonView[4];
+        for (var i = 0; i < refs.rooms.Length; i++)
+            refs.rooms[i] = InstantiateNested<OutGameHubRoomButtonView>(HubRoomButtonPath, root.transform, "RoomButton0" + (i + 1),
+                new Vector2(0, .5f), new Vector2(305 + i * 175, 0), new Vector2(170, 150));
+        refs.lockedRoom = InstantiateNested<OutGameHubRoomButtonView>(HubRoomButtonPath, root.transform, "LockedRoom",
+            new Vector2(1, .5f), new Vector2(-80, 0), new Vector2(160, 150));
+        Save(root, path);
+    }
+
+    private static void BuildHubSceneOverlay(string path)
+    {
+        var root = Root("HubSceneOverlay");
+        var refs = root.AddComponent<OutGameHubSceneOverlayView>();
+        refs.captionBackground = Image(root.transform, "SceneCaption", new Vector2(0, 0), new Vector2(0, 0), new Vector2(390, 135), new Vector2(310, 84), new Color(.8f, .75f, .67f, .92f));
+        refs.captionHeader = Label(refs.captionBackground.transform, "Header", "CURRENT ROOM / 04", 12, Hex("3B2D31"), new Vector2(0, .5f), new Vector2(1, 1), new Vector2(0, -4), new Vector2(-20, -10), TextAnchor.MiddleCenter, FontStyle.Bold);
+        refs.roomName = Label(refs.captionBackground.transform, "RoomName", "起居室", 23, Hex("3B2D31"), new Vector2(0, 0), new Vector2(.48f, .68f), Vector2.zero, new Vector2(-10, -5), TextAnchor.MiddleRight, FontStyle.Bold);
+        refs.roomNote = Label(refs.captionBackground.transform, "RoomNote", "家人会在这里等待服务", 14, Hex("3B2D31"), new Vector2(.48f, 0), new Vector2(1, .68f), Vector2.zero, new Vector2(-10, -5), TextAnchor.MiddleLeft, FontStyle.Normal);
+        refs.hotspotButton = PageButton(root.transform, "Hotspot", "＋  黑胶唱机\n<size=13>查看设备</size>", new Vector2(0, 30), new Vector2(220, 76), new Color(.2f, .03f, .15f, .75f), Hex("F3E8DD"), 19, TextAnchor.MiddleCenter, new Vector2(.72f, .5f));
+        refs.hotspotTitle = refs.hotspotButton.GetComponentInChildren<Text>();
+        Save(root, path);
+    }
+
     private static void BuildHub(string path)
     {
         var root = Root("HouseHubPage");
@@ -559,6 +795,7 @@ public static class OutGameUIPrefabGenerator
         refs.modalRoot = Rect(root.transform, "ModalRoot", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         refs.footer = Label(refs.chromeRoot, "Footer", "NEW LIFE, NEW HOME · UI/UX CONCEPT", 12, new Color(1, 1, 1, .45f),
             new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 12), new Vector2(1800, 26), TextAnchor.MiddleCenter, FontStyle.Normal);
+        EmbedHubComponents(refs);
         Save(root, path);
     }
 
@@ -583,11 +820,20 @@ public static class OutGameUIPrefabGenerator
         var image = Image(parent, name, point, point, position, size, background);
         var button = image.gameObject.AddComponent<Button>();
         button.targetGraphic = image;
+        AddTweenFeedback(button);
         var label = Label(image.transform, "Label", caption, fontSize, foreground, TextAnchor.MiddleCenter, FontStyle.Bold);
         label.alignment = alignment;
         label.rectTransform.offsetMin = new Vector2(14, 8);
         label.rectTransform.offsetMax = new Vector2(-14, -8);
         return button;
+    }
+
+    private static OutGameTweenButton AddTweenFeedback(Button button, float hoverScale = 1.025f)
+    {
+        var feedback = button.GetComponent<OutGameTweenButton>();
+        if (feedback == null) feedback = button.gameObject.AddComponent<OutGameTweenButton>();
+        feedback.hoverScale = hoverScale;
+        return feedback;
     }
 
     private static Transform PaperSectionEditor(Transform parent, string name, Vector2 position, Vector2 size,
@@ -625,6 +871,69 @@ public static class OutGameUIPrefabGenerator
         Label(row, "Label", caption, 23, Hex("514142"), new Vector2(0, 0), new Vector2(1, 1),
             new Vector2(45, 0), new Vector2(-90, 0), TextAnchor.MiddleLeft, FontStyle.Normal);
         return toggle;
+    }
+
+    private static GameObject ComponentRoot(string name, Vector2 size)
+    {
+        var root = new GameObject(name, typeof(RectTransform));
+        root.layer = 5;
+        var rect = (RectTransform)root.transform;
+        rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
+        rect.pivot = new Vector2(.5f, .5f);
+        rect.sizeDelta = size;
+        return root;
+    }
+
+    private static T InstantiateNested<T>(string path, Transform parent, string name, Vector2 anchor,
+        Vector2 position, Vector2 size) where T : Component
+    {
+        var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        if (asset == null) throw new MissingReferenceException("生成父 Prefab 前缺少子 Prefab：" + path);
+        var instance = (GameObject)PrefabUtility.InstantiatePrefab(asset, parent);
+        instance.name = name;
+        var rect = instance.transform as RectTransform;
+        rect.anchorMin = rect.anchorMax = anchor;
+        rect.pivot = new Vector2(.5f, .5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+        rect.localScale = Vector3.one;
+        var view = instance.GetComponent<T>();
+        if (view == null) throw new MissingReferenceException(path + " 缺少 " + typeof(T).Name);
+        return view;
+    }
+
+    private static T EnsureHubNested<T>(Transform parent, string path, string name, Vector2 anchor,
+        Vector2 position, Vector2 size) where T : Component
+    {
+        var existing = parent.Find(name);
+        if (existing != null)
+        {
+            var component = existing.GetComponent<T>();
+            if (component != null) return component;
+            Object.DestroyImmediate(existing.gameObject);
+        }
+        return InstantiateNested<T>(path, parent, name, anchor, position, size);
+    }
+
+    private static void EmbedHubComponents(OutGameHubView view)
+    {
+        view.topBar = EnsureHubNested<OutGameHubTopBarView>(view.chromeRoot, HubTopBarPath, "TopHUD",
+            new Vector2(.5f, 1), new Vector2(0, -62), new Vector2(1920, 124));
+        view.taskCard = EnsureHubNested<OutGameHubTaskCardView>(view.chromeRoot, HubTaskCardPath, "VisitorTask",
+            new Vector2(0, 1), new Vector2(228, -250), new Vector2(390, 255));
+        view.guestRail = EnsureHubNested<OutGameHubGuestRailView>(view.chromeRoot, HubGuestRailPath, "GuestRail",
+            new Vector2(0, 1), new Vector2(228, -650), new Vector2(390, 535));
+        view.rightDock = EnsureHubNested<OutGameHubRightDockView>(view.chromeRoot, HubRightDockPath, "RightDock",
+            new Vector2(1, .5f), new Vector2(-120, 10), new Vector2(205, 470));
+        view.roomNavigation = EnsureHubNested<OutGameHubRoomNavigationView>(view.chromeRoot, HubRoomNavigationPath, "RoomNav",
+            new Vector2(.5f, 0), new Vector2(90, 90), new Vector2(1030, 150));
+        view.sceneOverlay = EnsureHubNested<OutGameHubSceneOverlayView>(view.chromeRoot, HubSceneOverlayPath, "SceneOverlay",
+            new Vector2(.5f, .5f), Vector2.zero, Vector2.zero);
+        var sceneOverlayRect = view.sceneOverlay.transform as RectTransform;
+        sceneOverlayRect.anchorMin = Vector2.zero;
+        sceneOverlayRect.anchorMax = Vector2.one;
+        sceneOverlayRect.offsetMin = sceneOverlayRect.offsetMax = Vector2.zero;
+        if (view.footer != null) view.footer.transform.SetAsLastSibling();
     }
 
     private static GameObject Root(string name)

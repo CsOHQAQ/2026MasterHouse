@@ -11,6 +11,15 @@ namespace MasterPotion
         public const string ExitPage = "OutGameUI/Prefabs/ExitPage";
         public const string SaveSlot = "OutGameUI/Prefabs/SaveSlot";
         public const string Hub = "OutGameUI/Prefabs/HouseHubPage";
+        public const string HubTopBar = "OutGameUI/Prefabs/HubTopBar";
+        public const string HubTaskCard = "OutGameUI/Prefabs/HubTaskCard";
+        public const string HubGuestRail = "OutGameUI/Prefabs/HubGuestRail";
+        public const string HubGuestCard = "OutGameUI/Prefabs/HubGuestCard";
+        public const string HubRightDock = "OutGameUI/Prefabs/HubRightDock";
+        public const string HubDockButton = "OutGameUI/Prefabs/HubDockButton";
+        public const string HubRoomNavigation = "OutGameUI/Prefabs/HubRoomNavigation";
+        public const string HubRoomButton = "OutGameUI/Prefabs/HubRoomButton";
+        public const string HubSceneOverlay = "OutGameUI/Prefabs/HubSceneOverlay";
         public const string SystemPanel = "OutGameUI/Prefabs/SystemPanel";
     }
 }

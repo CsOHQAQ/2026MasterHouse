@@ -149,6 +149,7 @@ namespace MasterPotion
             DOTween.Kill(this);
             if (viewRoot != null)
             {
+                KillViewTweens(viewRoot);
                 viewRoot.gameObject.SetActive(false);
                 Destroy(viewRoot.gameObject);
             }
@@ -184,6 +185,17 @@ namespace MasterPotion
             openedPanel = SystemPanel.None;
             dialogueOpen = false;
             return viewRoot;
+        }
+
+        private static void KillViewTweens(Transform root)
+        {
+            if (root == null) return;
+            foreach (var target in root.GetComponentsInChildren<Transform>(true))
+                DOTween.Kill(target);
+            foreach (var target in root.GetComponentsInChildren<CanvasGroup>(true))
+                DOTween.Kill(target);
+            foreach (var target in root.GetComponentsInChildren<Graphic>(true))
+                DOTween.Kill(target);
         }
 
         #region 标题与存档
@@ -833,12 +845,24 @@ namespace MasterPotion
             sceneArt = F.StretchTexture(sceneRoot, "SceneArt", OutGameUIData.Rooms[roomIndex].art);
             F.StretchPanel(sceneRoot, "SceneWash", new Color(.015f, .02f, .04f, .22f));
             var chrome = HubChromeRoot;
-            BuildTopHud(chrome);
-            BuildTaskCard(chrome);
-            BuildGuestRail(chrome);
-            BuildRightDock(chrome);
-            BuildRoomNavigation(chrome);
-            BuildSceneCaption(chrome);
+            if (HasPrefabHubComponents())
+            {
+                BindTopHud(activeHubView.topBar);
+                BindTaskCard(activeHubView.taskCard);
+                BindGuestRail(activeHubView.guestRail);
+                BindRightDock(activeHubView.rightDock);
+                BindRoomNavigation(activeHubView.roomNavigation);
+                BindSceneOverlay(activeHubView.sceneOverlay);
+            }
+            else
+            {
+                BuildTopHud(chrome);
+                BuildTaskCard(chrome);
+                BuildGuestRail(chrome);
+                BuildRightDock(chrome);
+                BuildRoomNavigation(chrome);
+                BuildSceneCaption(chrome);
+            }
             if (activeHubView != null && activeHubView.footer != null)
                 activeHubView.footer.text = "NEW LIFE, NEW HOME · UI/UX CONCEPT                                      ESC 返回 · ← → 切换房间 · I 仓库";
             else
@@ -856,6 +880,124 @@ namespace MasterPotion
         private Transform HubOverlayRoot => activeHubView != null && activeHubView.modalRoot != null
             ? activeHubView.modalRoot
             : viewRoot;
+
+        private bool HasPrefabHubComponents()
+        {
+            return activeHubView != null && activeHubView.topBar != null && activeHubView.taskCard != null &&
+                   activeHubView.guestRail != null && activeHubView.rightDock != null &&
+                   activeHubView.roomNavigation != null && activeHubView.sceneOverlay != null;
+        }
+
+        private void BindTopHud(OutGameHubTopBarView hud)
+        {
+            var now = DateTime.Now;
+            var week = CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(now, CalendarWeekRule.FirstDay, DayOfWeek.Sunday);
+            var phase = OutGameUIData.CurrentPhase;
+            hud.weekDatePhase.text = $"<size=14>WEEK {week:00} · {now:yyyy}</size>\n<size=31>{now:MM / dd}</size>    {OutGameUIData.PhaseNames[phase]}";
+            hud.phaseRange.text = OutGameUIData.PhaseRanges[phase];
+            hud.clock.text = now.ToString("HH:mm");
+            clockLabel = hud.clock;
+            hud.creditLabel.text = "<size=13>HOUSE CREDIT</size>\n◈ 2,480     ＋";
+            hud.welcomeLabel.text = "WELCOME HOME.\n本周将有 <color=#E22D76>" + RemainingGuests() + "</color> 位访客来访";
+            BindButton(hud.timeButton, () => OpenPanel(SystemPanel.Calendar));
+            BindButton(hud.creditButton, () => OpenPanel(SystemPanel.Market));
+            BindButton(hud.brandButton, ShowTitle);
+            BindButton(hud.optionsButton, () => OpenPanel(SystemPanel.Settings));
+        }
+
+        private void BindTaskCard(OutGameHubTaskCardView card)
+        {
+            var guest = OutGameUIData.Guests[guestIndex];
+            card.header.text = "CURRENT VISITOR TASK                         进行中";
+            card.guestTitle.text = guest.name + " · " + guest.need;
+            card.hint.text = guest.hint;
+            card.progress.text = $"━━━━━━  {ProgressForGuest(guestIndex)}%     点击查看任务详情  →";
+            BindButton(card.button, () => OpenPanel(SystemPanel.Tasks));
+        }
+
+        private void BindGuestRail(OutGameHubGuestRailView rail)
+        {
+            rail.title.text = "VISITOR EVENTS / 访客事件";
+            rail.remaining.text = RemainingGuests().ToString("00");
+            for (var i = 0; i < rail.cards.Length && i < OutGameUIData.Guests.Length; i++)
+            {
+                var index = i;
+                var guest = OutGameUIData.Guests[i];
+                var done = served[i];
+                var card = rail.cards[i];
+                card.portrait.texture = Resources.Load<Texture2D>(guest.portrait);
+                card.eventLabel.text = guest.special ? "SPECIAL EVENT" : "EVENT 0" + (i + 1);
+                card.guestName.text = guest.name;
+                card.status.text = done ? "事件已完成" : guest.special ? "特殊客人 · 可打断" : "一般客人 · 可接待";
+                card.typeLabel.text = done ? "✓" : guest.special ? "特" : "普";
+                card.background.color = done ? new Color(.03f, .03f, .045f, .55f) : new Color(.025f, .025f, .045f, .83f);
+                var textColor = done ? new Color(1, 1, 1, .45f) : F.White;
+                card.eventLabel.color = card.guestName.color = card.status.color = textColor;
+                BindButton(card.button, () => SelectGuest(index));
+            }
+        }
+
+        private void BindRightDock(OutGameHubRightDockView dock)
+        {
+            var icons = new[] { "器", "记", "录", "集" };
+            var labels = new[] { "设备图鉴", "日记", "通讯录", "档案" };
+            var panels = new[] { SystemPanel.Device, SystemPanel.Journal, SystemPanel.Contacts, SystemPanel.Archive };
+            for (var i = 0; i < dock.entries.Length && i < labels.Length; i++)
+            {
+                var panel = panels[i];
+                dock.entries[i].icon.text = icons[i];
+                dock.entries[i].label.text = labels[i];
+                BindButton(dock.entries[i].button, () => OpenPanel(panel));
+            }
+        }
+
+        private void BindRoomNavigation(OutGameHubRoomNavigationView navigation)
+        {
+            for (var i = 0; i < navigation.rooms.Length && i < OutGameUIData.Rooms.Length; i++)
+            {
+                var index = i;
+                var room = OutGameUIData.Rooms[i];
+                var selected = roomIndex == i;
+                var item = navigation.rooms[i];
+                item.code.text = room.code;
+                item.icon.text = RoomIcon(i);
+                item.roomName.text = room.name;
+                item.state.text = selected ? "CURRENT" : string.Empty;
+                item.background.color = selected ? new Color(.45f, .08f, .3f, .77f) : new Color(1, 1, 1, .015f);
+                var color = selected ? F.White : new Color(1, 1, 1, .72f);
+                item.code.color = item.icon.color = item.roomName.color = color;
+                BindButton(item.button, () => SelectRoom(index));
+            }
+            var locked = navigation.lockedRoom;
+            locked.code.text = "LOCKED";
+            locked.icon.text = "▣";
+            locked.roomName.text = "地下仓库";
+            locked.state.text = string.Empty;
+            locked.background.color = Color.clear;
+            locked.code.color = locked.icon.color = locked.roomName.color = new Color(1, 1, 1, .3f);
+            BindButton(locked.button, () => ShowToast("仓库房间将在 House LV.04 解锁"));
+        }
+
+        private void BindSceneOverlay(OutGameHubSceneOverlayView overlay)
+        {
+            var room = OutGameUIData.Rooms[roomIndex];
+            overlay.captionHeader.text = "CURRENT ROOM / 04";
+            overlay.roomName.text = room.name;
+            overlay.roomNote.text = room.note;
+            var hotspotLabel = roomIndex == 2 ? "手冲咖啡台" : roomIndex == 3 ? "旧书检索机" : "黑胶唱机";
+            overlay.hotspotTitle.text = "＋  " + hotspotLabel + "\n<size=13>查看设备</size>";
+            BindButton(overlay.hotspotButton, () => OpenPanel(SystemPanel.Device));
+        }
+
+        private static void BindButton(Button button, UnityEngine.Events.UnityAction action)
+        {
+            if (button == null) return;
+            var feedback = button.GetComponent<OutGameTweenButton>();
+            if (feedback == null) feedback = button.gameObject.AddComponent<OutGameTweenButton>();
+            feedback.hoverScale = 1.025f;
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(action);
+        }
 
         private void BuildTopHud(Transform root)
         {
@@ -1046,6 +1188,12 @@ namespace MasterPotion
         private void RebuildHubChrome()
         {
             if (view != View.Hub) return;
+            if (HasPrefabHubComponents())
+            {
+                BindRoomNavigation(activeHubView.roomNavigation);
+                BindSceneOverlay(activeHubView.sceneOverlay);
+                return;
+            }
             var chrome = HubChromeRoot;
             var names = new[] { "RoomNav", "SceneCaption", "Hotspot" };
             foreach (var name in names)
@@ -1162,6 +1310,13 @@ namespace MasterPotion
 
         private void RebuildGuestChrome()
         {
+            if (HasPrefabHubComponents())
+            {
+                BindTaskCard(activeHubView.taskCard);
+                BindGuestRail(activeHubView.guestRail);
+                BindTopHud(activeHubView.topBar);
+                return;
+            }
             var chrome = HubChromeRoot;
             var task = chrome.Find("VisitorTask");
             var rail = chrome.Find("GuestRail");

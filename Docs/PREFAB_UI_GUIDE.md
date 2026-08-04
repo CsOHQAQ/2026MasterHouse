@@ -20,6 +20,22 @@
 | `HouseHubPage.prefab` | House 主界面外壳 | Scene、Chrome、Modal 三层及页脚 |
 | `SystemPanel.prefab` | 右侧功能面板外壳 | 遮罩、面板宽度、Header 与 Content 区域 |
 
+## House HUD 组件 Prefab
+
+`HouseHubPage.prefab` 会嵌套以下组件，既可以单独打开组件 Prefab 调整，也可以在页面 Prefab 中调整实例位置：
+
+| Prefab | 对应区域 |
+| --- | --- |
+| `HubTopBar.prefab` | 顶部日期、信用点、品牌、欢迎语和设置入口 |
+| `HubTaskCard.prefab` | 左上当前访客任务 |
+| `HubGuestRail.prefab` | 左侧访客事件列表容器 |
+| `HubGuestCard.prefab` | 单个可复用访客事件条目 |
+| `HubRightDock.prefab` | 右侧 House 菜单容器 |
+| `HubDockButton.prefab` | 单个右侧菜单按钮 |
+| `HubRoomNavigation.prefab` | 底部房间导航容器 |
+| `HubRoomButton.prefab` | 单个房间按钮及锁定房间按钮 |
+| `HubSceneOverlay.prefab` | 当前房间说明和场景设备热点 |
+
 ## 日常调整流程
 
 1. 退出 Play Mode。
@@ -35,6 +51,8 @@
 - 删除已被引用的按钮、文本或容器后，必须在根组件 Inspector 中重新赋值。
 - 挂在 Prefab 上的每个自定义组件都必须保留其同名独立脚本文件；不要把多个 `MonoBehaviour` 合并进一个 `.cs` 文件。
 - 首页的 `OutGameLetterSpacing` 负责网页字距，`OutGameTweenButton` 负责 DOTween Hover/Press；调整布局时不要删除它们。
+- 所有可点击的 `HubTopBar`、任务卡、访客卡、菜单按钮、房间按钮和热点都必须保留 `OutGameTweenButton`。删除该组件不会影响点击事件，但会让 Hover/Press 动效静默消失。
+- `HouseHubPage.prefab` 中的 HUD 是嵌套 Prefab 实例：调整整个区域位置应修改页面实例的 RectTransform；调整组件内部排版应打开对应 `Hub*.prefab`。
 - `Tools/MasterPotion/OutGame UI/Rebuild Default Prefabs...` 会覆盖手动布局，只用于明确恢复默认值；普通脚本刷新不会覆盖 Prefab。
 
 ## 当前动态内容边界

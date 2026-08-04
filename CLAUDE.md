@@ -29,6 +29,10 @@ When a task exposes a reusable failure mode or repeated source of delay, add a s
 
 Prefab 粒度以“一个完整界面一个 Prefab”为准：存档、画廊、设置、退出各自独立；共同纸张风格只通过 View 基类和生成器默认值复用，不能让多个正式界面共用一个运行时空壳再由代码生成内部布局。
 
+复杂页面内部的稳定区域和重复项继续使用 Nested Prefab：House HUD 的 `Hub*.prefab` 是组件真值，`HouseHubPage.prefab` 只负责组合位置；运行时代码只更新数据、状态和事件，不销毁重建已有 HUD 布局。
+
+任何从 `OutGameUIFactory.Button()` 迁移到 Prefab 的按钮，都必须同时保留 `OutGameTweenButton`；Prefab 验收除了点击逻辑，还必须验证 Hover、Press 和键盘选中反馈。迁移器只能补行为组件，不得为了恢复动效重建或覆盖手调布局。
+
 所有需要挂载到 GameObject/Prefab 的 `MonoBehaviour` 与 `BaseMeshEffect` 必须独占一个与类名完全一致的 `.cs` 文件；禁止把多个可序列化组件塞进同一个脚本文件，否则 Unity 域重载后会产生 Missing Script。
 
 节点玩法启动流程：

@@ -171,6 +171,12 @@
 - 已新增 `SavePage`、`GalleryPage`、`SettingsPage`、`ExitPage` 四个完整页面 View：静态视觉节点全部进入各自 Prefab，控制器只更新存档数据、页签状态、Toggle 状态和按钮事件。
 - `SavePage` 内含三个嵌套 `SaveSlot` 实例；新游戏与读取存档共用同一个可编辑布局，不再运行时创建存档条目。
 - 新运行时与 Editor 生成器源码已使用 Unity Roslyn 响应文件分别编译通过；退出旧 Play 会话后，Unity 已由非覆盖式生成器落盘四个新 Prefab 并完成实际程序集重编译。
+- House HUD 继续拆分为 9 个组件 Prefab：顶部栏、任务卡、访客列表/条目、右侧菜单/按钮、房间导航/按钮和场景提示；这些组件作为嵌套 Prefab 进入 `HouseHubPage`。
+- `OutGameUI` 已改为绑定并刷新现有 HUD 组件；完成访客、切换房间时不再销毁 UI 后用代码重建。
+- 9 个组件 View 与生成器已使用 Unity Roslyn runtime/editor 参数编译通过；当前 Play 会话尚未结束，组件 Prefab 等待域重载后落盘。
+- 已定位 HUD Prefab 化后的 DOTween 回归：新组件保留了 `Button`，但生成器遗漏 `OutGameTweenButton`，因此点击逻辑正常而 Hover/Press 反馈消失。
+- 已为现有页面和 HUD Prefab 增加无损动效迁移，只补行为组件、不修改 RectTransform/颜色/层级；运行时 `BindButton` 同时提供兜底。
+- 页面切换现在会在销毁旧层级前清理其 Transform、CanvasGroup、Graphic Tween，避免 DOTween 在下一帧访问已销毁对象。
 
 #### 修改清单
 
@@ -204,6 +210,12 @@
 - [x] 四个完整页面 View 与控制器逻辑通过 Unity Roslyn runtime/editor 编译
 - [x] 退出旧 Play 会话并生成 `SavePage/GalleryPage/SettingsPage/ExitPage.prefab`
 - [ ] 分别打开四个完整页面 Prefab，确认无需修改 C# 即可移动内部控件
+- [x] House HUD 组件 View、嵌套生成器与运行时绑定通过 Unity Roslyn 编译
+- [x] 退出旧 Play 会话，生成 9 个 `Hub*.prefab` 并迁移 `HouseHubPage.prefab`
+- [x] 检查所有 HUD 子 Prefab无 Missing Script，且页面中保留嵌套连接
+- [x] DOTween 修复源码使用 Unity runtime/editor Roslyn 参数编译通过
+- [x] Unity 域重载后确认现有 HUD 叶子 Prefab 已补入 `OutGameTweenButton`
+- [x] 迁移后 Editor 日志未再出现 DOTween destroyed-target 警告
 - [x] 退出首轮旧 Play 会话后重新编译，Bee C# 与 IL 后处理返回码为 0
 - [ ] 退出当前 Play 会话，让最后一批 Tween/键盘补丁完成 Unity 域重载
 - [ ] 在 1920×1080 与超宽 Game View 验证标题页完整显示
@@ -221,4 +233,4 @@
 
 #### 复盘
 
-- 新增：`RETRO-001` 至 `RETRO-013`
+- 新增：`RETRO-001` 至 `RETRO-014`

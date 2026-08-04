@@ -10,5 +10,11 @@ namespace MasterPotion
         public RectTransform chromeRoot;
         public RectTransform modalRoot;
         public Text footer;
+        public OutGameHubTopBarView topBar;
+        public OutGameHubTaskCardView taskCard;
+        public OutGameHubGuestRailView guestRail;
+        public OutGameHubRightDockView rightDock;
+        public OutGameHubRoomNavigationView roomNavigation;
+        public OutGameHubSceneOverlayView sceneOverlay;
     }
 }
