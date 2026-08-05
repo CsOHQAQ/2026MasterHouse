@@ -10,5 +10,6 @@ namespace MasterPotion
         public float linkTransferInterval = 1f;
         [Tooltip("底部工具栏中可供玩家放置的节点")]
         public List<NodeDef> buildableNodes = new();
+        //这里是我做的更改
     }
 }
