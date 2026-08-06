@@ -115,7 +115,7 @@ namespace MasterPotion
     {
         public static readonly OutGameRoom[] Rooms =
         {
-            new("living", "起居室", "HOME", "客人会在这里等待服务", "OutGameUI/house-hub-v2"),
+            new("living", "起居室", "HOME", "客人会在这里等待服务", "OutGameUI/house-hub-v3"),
             new("bedroom", "卧室", "REST", "恢复状态并推进至下一天", "OutGameUI/dream-house"),
             new("kitchen", "厨房", "MAKE", "使用设备制作访客需要的物品", "OutGameUI/house-hub-v2"),
             new("study", "书房", "READ", "解锁配方与客人线索", "OutGameUI/study-room-clean"),

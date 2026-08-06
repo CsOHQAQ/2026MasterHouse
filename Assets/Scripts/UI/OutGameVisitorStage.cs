@@ -15,26 +15,27 @@ namespace MasterPotion
     /// </summary>
     internal sealed class OutGameVisitorStage : MonoBehaviour
     {
-        // 起居室的入口大门与门前地面（场景归一化坐标，左下为原点）
-        private static readonly Vector2 DoorPoint = new Vector2(.115f, .32f);
-        private static readonly Vector2 EntrancePoint = new Vector2(.16f, .235f);
+        // 起居室入口（house-hub-v3 空房子剖面图：右侧通往露台的开放门；场景归一化坐标，左下为原点）
+        private static readonly Vector2 DoorPoint = new Vector2(.752f, .262f);
+        private static readonly Vector2 EntrancePoint = new Vector2(.70f, .205f);
         // 邻居在门口的排队点（同时最多 MaxAmbient 只，队伍前移时依次补位）
         private static readonly Vector2[] QueuePoints =
         {
-            new Vector2(.185f, .225f),
-            new Vector2(.13f, .175f),
-            new Vector2(.235f, .19f),
+            new Vector2(.665f, .19f),
+            new Vector2(.73f, .155f),
+            new Vector2(.60f, .135f),
         };
-        // 手摆的可行走落点：避开沙发、茶几、书架与背景人物
+        // 手摆的可行走落点：空房大地板全域可走，避开左侧楼梯投影区
         private static readonly Vector2[] WanderPoints =
         {
-            new Vector2(.30f, .22f),
-            new Vector2(.25f, .12f),
-            new Vector2(.42f, .10f),
-            new Vector2(.58f, .07f),
-            new Vector2(.66f, .05f),
-            new Vector2(.78f, .15f),
-            new Vector2(.36f, .27f),
+            new Vector2(.28f, .10f),
+            new Vector2(.42f, .17f),
+            new Vector2(.55f, .08f),
+            new Vector2(.22f, .185f),
+            new Vector2(.47f, .24f),
+            new Vector2(.63f, .215f),
+            new Vector2(.14f, .12f),
+            new Vector2(.80f, .11f),
         };
         private const int MaxAmbient = 3;
 
