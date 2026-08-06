@@ -21,5 +21,17 @@ namespace MasterPotion
         public const string HubRoomButton = "OutGameUI/Prefabs/HubRoomButton";
         public const string HubSceneOverlay = "OutGameUI/Prefabs/HubSceneOverlay";
         public const string SystemPanel = "OutGameUI/Prefabs/SystemPanel";
+        public const string HubImmersiveToggle = "OutGameUI/Prefabs/HubImmersiveToggle";
+        public const string CalendarPanel = "OutGameUI/Prefabs/CalendarPanel";
+        public const string TasksPanel = "OutGameUI/Prefabs/TasksPanel";
+        public const string DevicePanel = "OutGameUI/Prefabs/DevicePanel";
+        public const string JournalPanel = "OutGameUI/Prefabs/JournalPanel";
+        public const string ArchivePanel = "OutGameUI/Prefabs/ArchivePanel";
+        public const string DialogueView = "OutGameUI/Prefabs/DialogueView";
+        public const string CalendarPage = "OutGameUI/Prefabs/CalendarPage";
+        public const string TasksPage = "OutGameUI/Prefabs/TasksPage";
+        public const string DevicePage = "OutGameUI/Prefabs/DevicePage";
+        public const string JournalPage = "OutGameUI/Prefabs/JournalPage";
+        public const string ArchivePage = "OutGameUI/Prefabs/ArchivePage";
     }
 }
