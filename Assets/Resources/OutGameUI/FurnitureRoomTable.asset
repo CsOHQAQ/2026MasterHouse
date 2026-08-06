@@ -1,0 +1,170 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 659e7a323bcf6384a84c36157fb09eca, type: 3}
+  m_Name: FurnitureRoomTable
+  m_EditorClassIdentifier: 
+  rooms:
+  - id: living
+    displayName: "\u8D77\u5C45\u5BA4"
+    sceneWidth: 1672
+    sceneHeight: 941
+    background: {fileID: 21300000, guid: 6a72d20445b1ec2478f5cc6c7c0e6cbd, type: 3}
+    depthBlurOverlay: {fileID: 21300000, guid: 227c9f04e766d8f40bd8d0a61cbbb382, type: 3}
+    focusBlurOverlay: {fileID: 21300000, guid: a624fffe906b8904ebdd27c388b3efca, type: 3}
+    startCredit: 2480
+    grids:
+    - id: floor
+      surface: 0
+      cols: 14
+      rows: 4
+      cellWidth: 60
+      cellHeight: 45
+      x: 400
+      y: 610
+    - id: wallL
+      surface: 2
+      cols: 6
+      rows: 3
+      cellWidth: 60
+      cellHeight: 60
+      x: 90
+      y: 290
+    - id: wallR
+      surface: 2
+      cols: 4
+      rows: 3
+      cellWidth: 60
+      cellHeight: 60
+      x: 1290
+      y: 260
+    blockedCells:
+    - gridId: floor
+      col: 8
+      row: 0
+    - gridId: floor
+      col: 8
+      row: 1
+    - gridId: floor
+      col: 8
+      row: 2
+    - gridId: floor
+      col: 8
+      row: 3
+    - gridId: floor
+      col: 9
+      row: 0
+    - gridId: floor
+      col: 9
+      row: 1
+    - gridId: floor
+      col: 9
+      row: 2
+    - gridId: floor
+      col: 9
+      row: 3
+    - gridId: floor
+      col: 10
+      row: 0
+    - gridId: floor
+      col: 10
+      row: 1
+    - gridId: floor
+      col: 10
+      row: 2
+    - gridId: floor
+      col: 10
+      row: 3
+    - gridId: floor
+      col: 11
+      row: 0
+    - gridId: floor
+      col: 11
+      row: 1
+    - gridId: floor
+      col: 11
+      row: 2
+    - gridId: floor
+      col: 11
+      row: 3
+    - gridId: floor
+      col: 12
+      row: 0
+    - gridId: floor
+      col: 12
+      row: 1
+    - gridId: floor
+      col: 12
+      row: 2
+    - gridId: floor
+      col: 12
+      row: 3
+    - gridId: floor
+      col: 13
+      row: 0
+    - gridId: floor
+      col: 13
+      row: 1
+    - gridId: floor
+      col: 13
+      row: 2
+    - gridId: floor
+      col: 13
+      row: 3
+    - gridId: floor
+      col: 0
+      row: 0
+    - gridId: floor
+      col: 1
+      row: 0
+    - gridId: floor
+      col: 0
+      row: 1
+    - gridId: floor
+      col: 1
+      row: 1
+    - gridId: floor
+      col: 3
+      row: 0
+    - gridId: floor
+      col: 4
+      row: 0
+    initialPlacements:
+    - furnitureId: table
+      gridId: floor
+      hostFurnitureId: 
+      col: 4
+      row: 2
+    - furnitureId: pouf
+      gridId: floor
+      hostFurnitureId: 
+      col: 1
+      row: 2
+    - furnitureId: picture
+      gridId: wallL
+      hostFurnitureId: 
+      col: 4
+      row: 0
+    - furnitureId: hangplant
+      gridId: wallR
+      hostFurnitureId: 
+      col: 1
+      row: 0
+    - furnitureId: vase
+      gridId: 
+      hostFurnitureId: table
+      col: 1
+      row: 0
+    - furnitureId: cups
+      gridId: 
+      hostFurnitureId: table
+      col: 2
+      row: 0
