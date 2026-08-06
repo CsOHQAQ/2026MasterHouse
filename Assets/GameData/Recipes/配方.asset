@@ -9,10 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9d7aa7da2543f214d865b1414798946f, type: 3}
-  m_Name: GameConfig
+  m_Script: {fileID: 11500000, guid: 14e8ed5e66334b59ac0e6272c7997867, type: 3}
+  m_Name: "\u914D\u65B9"
   m_EditorClassIdentifier: 
-  linkTransferInterval: 1
-  buildableNodes:
-  - {fileID: 11400000, guid: 23be8db4f06d25e4e8120ca3c2a76a93, type: 2}
-  - {fileID: 11400000, guid: c6176a778269a5d40afe8d76b4b26f29, type: 2}
+  Inputs: []
+  Outputs: []
+  WorkTicks: 10
