@@ -891,7 +891,7 @@ namespace MasterPotion
         {
             view = View.Opening;
             var root = NewView("OpeningView");
-            F.StretchTexture(root, "HomeReveal", "OutGameUI/house-hub-v3");
+            F.StretchTexture(root, "HomeReveal", "OutGameUI/house-hub-v2");
             F.StretchPanel(root, "RevealVignette", new Color(.02f, .02f, .035f, .28f));
             var welcome = F.Panel(root, "Welcome", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
                 Vector2.zero, new Vector2(370, 126), new Color(.83f, .77f, .67f, .94f));
@@ -1606,7 +1606,7 @@ namespace MasterPotion
             var guest = OutGameUIData.Guests[guestIndex];
             modalRoot = F.Stretch(HubOverlayRoot, "DialogueLayer");
             modalRoot.SetAsLastSibling();
-            F.StretchTexture(modalRoot, "VisitorScene", "OutGameUI/house-hub-v3", new Color(.72f, .72f, .78f, 1));
+            F.StretchTexture(modalRoot, "VisitorScene", "OutGameUI/house-hub-v2", new Color(.72f, .72f, .78f, 1));
             F.StretchPanel(modalRoot, "DialogueVignette", new Color(.01f, .01f, .025f, .48f));
             F.Button(modalRoot, "Close", "ESC · 结束交谈", CloseDialogue, new Vector2(1, 1), new Vector2(1, 1),
                 new Vector2(-145, -55), new Vector2(240, 54), new Color(.08f, .02f, .06f, .78f), F.White, 17);
@@ -1689,7 +1689,7 @@ namespace MasterPotion
             {
                 var baked = FurnitureSceneComposer.Current;
                 if (baked != null) view.sceneArt.texture = baked;
-                else view.sceneArt.texture = Resources.Load<Texture2D>("OutGameUI/house-hub-v3");
+                else view.sceneArt.texture = Resources.Load<Texture2D>("OutGameUI/house-hub-v2");
             }
             if (view.closeButton != null) BindButton(view.closeButton, CloseDialogue);
             if (view.portrait != null) view.portrait.texture = Resources.Load<Texture2D>(guest.portrait);
