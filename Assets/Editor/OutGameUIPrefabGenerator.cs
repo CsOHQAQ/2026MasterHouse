@@ -31,6 +31,18 @@ public static class OutGameUIPrefabGenerator
     private const string HubRoomButtonPath = Folder + "/HubRoomButton.prefab";
     private const string HubSceneOverlayPath = Folder + "/HubSceneOverlay.prefab";
     private const string PanelPath = Folder + "/SystemPanel.prefab";
+    private const string HubImmersiveTogglePath = Folder + "/HubImmersiveToggle.prefab";
+    private const string CalendarPanelPath = Folder + "/CalendarPanel.prefab";
+    private const string TasksPanelPath = Folder + "/TasksPanel.prefab";
+    private const string DevicePanelPath = Folder + "/DevicePanel.prefab";
+    private const string JournalPanelPath = Folder + "/JournalPanel.prefab";
+    private const string ArchivePanelPath = Folder + "/ArchivePanel.prefab";
+    private const string DialogueViewPath = Folder + "/DialogueView.prefab";
+    private const string CalendarPagePath = Folder + "/CalendarPage.prefab";
+    private const string TasksPagePath = Folder + "/TasksPage.prefab";
+    private const string DevicePagePath = Folder + "/DevicePage.prefab";
+    private const string JournalPagePath = Folder + "/JournalPage.prefab";
+    private const string ArchivePagePath = Folder + "/ArchivePage.prefab";
 
     static OutGameUIPrefabGenerator()
     {
@@ -82,6 +94,18 @@ public static class OutGameUIPrefabGenerator
         BuildHubSceneOverlay(HubSceneOverlayPath);
         BuildHub(HubPath);
         BuildSystemPanel(PanelPath);
+        BuildHubImmersiveToggle(HubImmersiveTogglePath);
+        BuildCalendarPanel(CalendarPanelPath);
+        BuildTasksPanel(TasksPanelPath);
+        BuildDevicePanelContent(DevicePanelPath);
+        BuildJournalPanelContent(JournalPanelPath);
+        BuildArchivePanelContent(ArchivePanelPath);
+        BuildDialogueView(DialogueViewPath);
+        BuildPanelPage(CalendarPagePath, "CalendarPage", "REAL TIME", "日程与时间", "历", CalendarPanelPath);
+        BuildPanelPage(TasksPagePath, "TasksPage", "TODAY / 03", "今日委托", "任", TasksPanelPath);
+        BuildPanelPage(DevicePagePath, "DevicePage", "HOUSE INDEX", "设备图鉴", "器", DevicePanelPath);
+        BuildPanelPage(JournalPagePath, "JournalPage", "MEMORY LOG", "日记与成就", "记", JournalPanelPath);
+        BuildPanelPage(ArchivePagePath, "ArchivePage", "HOUSE ARCHIVE", "叙事资源档案", "集", ArchivePanelPath);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log("[OutGameUI] 默认 Prefab 已显式重建。");
@@ -111,6 +135,18 @@ public static class OutGameUIPrefabGenerator
         if (!File.Exists(HubSceneOverlayPath)) { BuildHubSceneOverlay(HubSceneOverlayPath); changed = true; }
         if (!File.Exists(HubPath)) { BuildHub(HubPath); changed = true; }
         if (!File.Exists(PanelPath)) { BuildSystemPanel(PanelPath); changed = true; }
+        if (!File.Exists(HubImmersiveTogglePath)) { BuildHubImmersiveToggle(HubImmersiveTogglePath); changed = true; }
+        if (!File.Exists(CalendarPanelPath)) { BuildCalendarPanel(CalendarPanelPath); changed = true; }
+        if (!File.Exists(TasksPanelPath)) { BuildTasksPanel(TasksPanelPath); changed = true; }
+        if (!File.Exists(DevicePanelPath)) { BuildDevicePanelContent(DevicePanelPath); changed = true; }
+        if (!File.Exists(JournalPanelPath)) { BuildJournalPanelContent(JournalPanelPath); changed = true; }
+        if (!File.Exists(ArchivePanelPath)) { BuildArchivePanelContent(ArchivePanelPath); changed = true; }
+        if (!File.Exists(DialogueViewPath)) { BuildDialogueView(DialogueViewPath); changed = true; }
+        if (!File.Exists(CalendarPagePath)) { BuildPanelPage(CalendarPagePath, "CalendarPage", "REAL TIME", "日程与时间", "历", CalendarPanelPath); changed = true; }
+        if (!File.Exists(TasksPagePath)) { BuildPanelPage(TasksPagePath, "TasksPage", "TODAY / 03", "今日委托", "任", TasksPanelPath); changed = true; }
+        if (!File.Exists(DevicePagePath)) { BuildPanelPage(DevicePagePath, "DevicePage", "HOUSE INDEX", "设备图鉴", "器", DevicePanelPath); changed = true; }
+        if (!File.Exists(JournalPagePath)) { BuildPanelPage(JournalPagePath, "JournalPage", "MEMORY LOG", "日记与成就", "记", JournalPanelPath); changed = true; }
+        if (!File.Exists(ArchivePagePath)) { BuildPanelPage(ArchivePagePath, "ArchivePage", "HOUSE ARCHIVE", "叙事资源档案", "集", ArchivePanelPath); changed = true; }
         changed |= RepairExistingPrefabs();
         changed |= RepairButtonFeedback();
         if (!changed) return;
@@ -152,6 +188,9 @@ public static class OutGameUIPrefabGenerator
             TitlePath, PaperPath, SaveSlotPath, SavePagePath, GalleryPagePath, SettingsPagePath, ExitPagePath,
             HubTopBarPath, HubTaskCardPath, HubGuestCardPath, HubGuestRailPath, HubDockButtonPath,
             HubRightDockPath, HubRoomButtonPath, HubRoomNavigationPath, HubSceneOverlayPath, HubPath,
+            HubImmersiveTogglePath, CalendarPanelPath, TasksPanelPath, DialogueViewPath,
+            DevicePanelPath, JournalPanelPath, ArchivePanelPath,
+            CalendarPagePath, TasksPagePath, DevicePagePath, JournalPagePath, ArchivePagePath,
         };
         foreach (var path in paths)
             repaired |= RepairButtonFeedback(path);
@@ -871,6 +910,273 @@ public static class OutGameUIPrefabGenerator
         Label(row, "Label", caption, 23, Hex("514142"), new Vector2(0, 0), new Vector2(1, 1),
             new Vector2(45, 0), new Vector2(-90, 0), TextAnchor.MiddleLeft, FontStyle.Normal);
         return toggle;
+    }
+
+    /// <summary>Hub「收起界面」开关按钮。</summary>
+    private static void BuildHubImmersiveToggle(string path)
+    {
+        var root = ComponentRoot("HubImmersiveToggle", new Vector2(160, 58));
+        var view = root.AddComponent<OutGameHubImmersiveToggleView>();
+        var image = ImageOn((RectTransform)root.transform, new Color(.025f, .025f, .04f, .8f));
+        view.button = root.AddComponent<Button>();
+        view.button.targetGraphic = image;
+        AddTweenFeedback(view.button);
+        view.label = Label(root.transform, "Label", "收起界面", 17, Hex("F3E8DD"), TextAnchor.MiddleCenter, FontStyle.Bold);
+        view.label.rectTransform.offsetMin = new Vector2(8, 6);
+        view.label.rectTransform.offsetMax = new Vector2(-8, -6);
+        Save(root, path);
+    }
+
+    /// <summary>「日程与时间」面板内容。日期格子数量随月份变化，留 DayGrid 由运行时填充。</summary>
+    private static void BuildCalendarPanel(string path)
+    {
+        var root = ComponentRoot("CalendarPanel", new Vector2(1180, 830));
+        var view = root.AddComponent<OutGameCalendarPanelView>();
+        var date = Image(root.transform, "BigDate", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+            new Vector2(-385, 195), new Vector2(340, 330), new Color(.34f, .07f, .22f, .65f));
+        view.dateText = Label(date.transform, "DateText",
+            "2026 / 八月\n<size=100>06</size>\n星期四 · 晚上\n<size=28>18:00</size>",
+            20, Hex("F3E8DD"), TextAnchor.MiddleCenter, FontStyle.Bold);
+        view.dayGridRoot = Rect(root.transform, "DayGrid", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        // 6×7=42 个日期槽位烘焙进 Prefab，布局可手调；运行时只设置数字/显隐/今日高亮
+        view.dayCells = new Button[42];
+        view.dayCellBackgrounds = new Image[42];
+        view.dayCellLabels = new Text[42];
+        for (var i = 0; i < 42; i++)
+        {
+            var col = i % 7;
+            var row = i / 7;
+            var cell = PageButton(view.dayGridRoot, "DayCell" + i, (i % 31 + 1).ToString(),
+                new Vector2(-180 + col * 64, -90 - row * 64), new Vector2(58, 54),
+                new Color(1, 1, 1, .035f), Hex("F3E8DD"), 16, TextAnchor.MiddleCenter, new Vector2(.5f, 1));
+            view.dayCells[i] = cell;
+            view.dayCellBackgrounds[i] = cell.targetGraphic as Image;
+            view.dayCellLabels[i] = cell.GetComponentInChildren<Text>();
+        }
+        var schedule = Image(root.transform, "Schedule", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+            new Vector2(405, 20), new Vector2(330, 690), new Color(.08f, .04f, .075f, .86f));
+        view.scheduleTitle = Label(schedule.transform, "ScheduleTitle", "现实时间阶段", 24, Hex("F3E8DD"),
+            new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -40), new Vector2(270, 40),
+            TextAnchor.MiddleCenter, FontStyle.Bold);
+        view.phaseBackgrounds = new Image[6];
+        view.phaseLabels = new Text[6];
+        for (var i = 0; i < 6; i++)
+        {
+            var row = Image(schedule.transform, "Phase" + i, new Vector2(.5f, 1), new Vector2(.5f, 1),
+                new Vector2(0, -105 - i * 75), new Vector2(290, 62), new Color(1, 1, 1, .035f));
+            view.phaseBackgrounds[i] = row;
+            var label = Label(row.transform, "Label", string.Empty, 16, Hex("F3E8DD"), TextAnchor.MiddleLeft, FontStyle.Bold);
+            label.rectTransform.offsetMin = new Vector2(14, 6);
+            label.rectTransform.offsetMax = new Vector2(-14, -6);
+            view.phaseLabels[i] = label;
+        }
+        view.syncButton = PageButton(schedule.transform, "Sync", "同步现实时间", new Vector2(0, 68),
+            new Vector2(260, 56), Hex("6E243E"), Hex("F3E8DD"), 18, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
+        Save(root, path);
+    }
+
+    /// <summary>「今日委托」面板内容。</summary>
+    private static void BuildTasksPanel(string path)
+    {
+        var root = ComponentRoot("TasksPanel", new Vector2(1180, 830));
+        var view = root.AddComponent<OutGameTasksPanelView>();
+        var focus = Image(root.transform, "Focus", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+            new Vector2(0, 270), new Vector2(1120, 220), new Color(.3f, .06f, .2f, .45f));
+        view.focusText = Label(focus.transform, "Text", string.Empty, 20, Hex("F3E8DD"),
+            new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(-30, 0), new Vector2(970, 175),
+            TextAnchor.MiddleLeft, FontStyle.Normal);
+        view.taskButtons = new Button[3];
+        view.taskLabels = new Text[3];
+        for (var i = 0; i < 3; i++)
+        {
+            var button = PageButton(root.transform, "Task" + i, string.Empty, new Vector2(0, 75 - i * 100),
+                new Vector2(1120, 84), new Color(1, 1, 1, .035f), Hex("F3E8DD"), 20, TextAnchor.MiddleLeft, new Vector2(.5f, .5f));
+            view.taskButtons[i] = button;
+            view.taskLabels[i] = button.GetComponentInChildren<Text>();
+        }
+        var progress = Image(root.transform, "Progress", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+            new Vector2(0, -305), new Vector2(1120, 105), new Color(.12f, .06f, .1f, .8f));
+        view.progressText = Label(progress.transform, "Text",
+            "本周 House 进度                                      37%\n<color=#E22D76>━━━━━━━━━━━━━━━━━━━━</color>",
+            19, Hex("F3E8DD"), TextAnchor.MiddleCenter, FontStyle.Bold);
+        Save(root, path);
+    }
+
+    /// <summary>访客对话界面（整层）。</summary>
+    private static void BuildDialogueView(string path)
+    {
+        var root = Root("DialogueView");
+        var view = root.AddComponent<OutGameDialogueView>();
+        view.sceneArt = Raw(root.transform, "VisitorScene", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        view.sceneArt.color = new Color(.72f, .72f, .78f, 1);
+        Image(root.transform, "DialogueVignette", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+            new Color(.01f, .01f, .025f, .48f));
+        view.closeButton = PageButton(root.transform, "Close", "ESC · 结束交谈", new Vector2(-145, -55),
+            new Vector2(240, 54), new Color(.08f, .02f, .06f, .78f), Hex("F3E8DD"), 17, TextAnchor.MiddleCenter, new Vector2(1, 1));
+        view.characterCard = Rect(root.transform, "CharacterCard", new Vector2(0, .5f), new Vector2(0, .5f),
+            new Vector2(390, 40), new Vector2(500, 700));
+        ImageOn(view.characterCard, new Color(.16f, .05f, .12f, .82f));
+        view.portrait = Raw(view.characterCard, "Portrait", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+            Vector2.zero, new Vector2(460, 620));
+        view.portraitTag = Label(view.characterCard, "Tag", "VISITOR / WEEK 01", 15, Hex("E22D76"),
+            new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 25), new Vector2(420, 30),
+            TextAnchor.MiddleCenter, FontStyle.Bold);
+        var week = Image(root.transform, "WeekPanel", new Vector2(1, .5f), new Vector2(1, .5f),
+            new Vector2(-245, 90), new Vector2(410, 540), new Color(.02f, .025f, .045f, .85f));
+        view.weekTitle = Label(week.transform, "Title", "WEEK 01 / 本周访客", 16, Hex("E22D76"),
+            new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -35), new Vector2(350, 40),
+            TextAnchor.MiddleCenter, FontStyle.Bold);
+        view.weekGuestButtons = new Button[4];
+        view.weekGuestBackgrounds = new Image[4];
+        view.weekGuestLabels = new Text[4];
+        for (var i = 0; i < 4; i++)
+        {
+            var button = PageButton(week.transform, "WeekGuest" + i, string.Empty, new Vector2(0, -105 - i * 100),
+                new Vector2(355, 82), new Color(1, 1, 1, .035f), Hex("F3E8DD"), 19, TextAnchor.MiddleLeft, new Vector2(.5f, 1));
+            view.weekGuestButtons[i] = button;
+            view.weekGuestBackgrounds[i] = button.targetGraphic as Image;
+            view.weekGuestLabels[i] = button.GetComponentInChildren<Text>();
+        }
+        view.dialogueBox = Rect(root.transform, "DialogueBox", new Vector2(.5f, 0), new Vector2(.5f, 0),
+            new Vector2(80, 190), new Vector2(1120, 250));
+        ImageOn(view.dialogueBox, new Color(.035f, .025f, .045f, .94f));
+        view.dialogueText = Label(view.dialogueBox, "Dialogue", string.Empty, 22, Hex("F3E8DD"),
+            new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(-90, 10), new Vector2(850, 205),
+            TextAnchor.UpperLeft, FontStyle.Normal);
+        view.needButton = PageButton(view.dialogueBox, "Need", "查看需求家具", new Vector2(-170, 82),
+            new Vector2(250, 58), new Color(1, 1, 1, .05f), Hex("F3E8DD"), 18, TextAnchor.MiddleCenter, new Vector2(1, 0));
+        view.serveButton = PageButton(view.dialogueBox, "Serve", "回应访客事件", new Vector2(-170, 25),
+            new Vector2(250, 58), Hex("6E243E"), Hex("F3E8DD"), 18, TextAnchor.MiddleCenter, new Vector2(1, 0));
+        view.serveLabel = view.serveButton.GetComponentInChildren<Text>();
+        view.refuseButton = PageButton(view.dialogueBox, "Refuse", "拒绝接待", new Vector2(-425, 25),
+            new Vector2(230, 58), new Color(1, 1, 1, .05f), Hex("F3E8DD"), 17, TextAnchor.MiddleCenter, new Vector2(1, 0));
+        view.refuseLabel = view.refuseButton.GetComponentInChildren<Text>();
+        var dock = Image(root.transform, "FurnitureDock", new Vector2(.5f, 0), new Vector2(.5f, 0),
+            new Vector2(0, 45), new Vector2(1480, 90), new Color(.015f, .018f, .032f, .93f));
+        view.furnitureTitle = Label(dock.transform, "Title", "MAKE FOR VISITOR\n<size=11>根据来客需求制造并摆放</size>",
+            15, Hex("E22D76"), new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(130, 0), new Vector2(240, 62),
+            TextAnchor.MiddleCenter, FontStyle.Bold);
+        view.furnitureButtons = new Button[5];
+        view.furnitureBackgrounds = new Image[5];
+        view.furnitureLabels = new Text[5];
+        for (var i = 0; i < 5; i++)
+        {
+            var button = PageButton(dock.transform, "Furniture" + i, string.Empty, new Vector2(335 + i * 205, 0),
+                new Vector2(195, 70), new Color(1, 1, 1, .035f), Hex("F3E8DD"), 15, TextAnchor.MiddleCenter, new Vector2(0, .5f));
+            view.furnitureButtons[i] = button;
+            view.furnitureBackgrounds[i] = button.targetGraphic as Image;
+            view.furnitureLabels[i] = button.GetComponentInChildren<Text>();
+        }
+        view.endWeekButton = PageButton(dock.transform, "EndWeek", "结束本周 →", new Vector2(-100, 0),
+            new Vector2(180, 70), Hex("6E243E"), Hex("F3E8DD"), 17, TextAnchor.MiddleCenter, new Vector2(1, .5f));
+        Save(root, path);
+    }
+
+    /// <summary>「设备图鉴」面板内容。设备卡数量随房间变化，留 DeviceCards 由运行时填充。</summary>
+    private static void BuildDevicePanelContent(string path)
+    {
+        var root = ComponentRoot("DevicePanel", new Vector2(1180, 830));
+        var view = root.AddComponent<OutGameDevicePanelView>();
+        view.roomButtons = new Button[4];
+        view.roomBackgrounds = new Image[4];
+        view.roomLabels = new Text[4];
+        for (var i = 0; i < 4; i++)
+        {
+            var button = PageButton(root.transform, "DeviceRoom" + i, string.Empty, new Vector2(115, -70 - i * 98),
+                new Vector2(210, 82), new Color(1, 1, 1, .035f), Hex("F3E8DD"), 19, TextAnchor.MiddleCenter, new Vector2(0, 1));
+            view.roomButtons[i] = button;
+            view.roomBackgrounds[i] = button.targetGraphic as Image;
+            view.roomLabels[i] = button.GetComponentInChildren<Text>();
+        }
+        view.deviceCardsRoot = Rect(root.transform, "DeviceCards", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        var recipe = Image(root.transform, "Recipe", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+            new Vector2(230, -230), new Vector2(610, 270), new Color(.18f, .07f, .14f, .82f));
+        view.recipeText = Label(recipe.transform, "RecipeText", string.Empty, 20, Hex("F3E8DD"),
+            new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 35), new Vector2(540, 175),
+            TextAnchor.MiddleLeft, FontStyle.Normal);
+        view.makeButton = PageButton(recipe.transform, "Make", "开始制作", new Vector2(0, 35), new Vector2(280, 58),
+            Hex("6E243E"), Hex("F3E8DD"), 19, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
+        view.makeLabel = view.makeButton.GetComponentInChildren<Text>();
+        Save(root, path);
+    }
+
+    /// <summary>「日记与成就」面板内容。文章/成就列表随页签变化，留 Body 由运行时填充。</summary>
+    private static void BuildJournalPanelContent(string path)
+    {
+        var root = ComponentRoot("JournalPanel", new Vector2(1180, 830));
+        var view = root.AddComponent<OutGameJournalPanelView>();
+        view.tabButtons = new Button[2];
+        view.tabBackgrounds = new Image[2];
+        view.tabLabels = new Text[2];
+        var captions = new[] { "日记", "成就" };
+        for (var i = 0; i < 2; i++)
+        {
+            var button = PageButton(root.transform, i == 0 ? "LogTab" : "AchTab", captions[i],
+                new Vector2(140 + i * 240, -45), new Vector2(220, 58),
+                i == 0 ? Hex("6E243E") : new Color(1, 1, 1, .04f), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(0, 1));
+            view.tabButtons[i] = button;
+            view.tabBackgrounds[i] = button.targetGraphic as Image;
+            view.tabLabels[i] = button.GetComponentInChildren<Text>();
+        }
+        view.bodyRoot = Rect(root.transform, "Body", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        Save(root, path);
+    }
+
+    /// <summary>「叙事资源档案」面板内容。条目格子与底部操作区随页签/选中项变化，留挂点由运行时填充。</summary>
+    private static void BuildArchivePanelContent(string path)
+    {
+        var root = ComponentRoot("ArchivePanel", new Vector2(1180, 830));
+        var view = root.AddComponent<OutGameArchivePanelView>();
+        view.tabButtons = new Button[2];
+        view.tabBackgrounds = new Image[2];
+        view.tabLabels = new Text[2];
+        var captions = new[] { "叙事家具", "世界与角色" };
+        for (var i = 0; i < 2; i++)
+        {
+            var button = PageButton(root.transform, i == 0 ? "FurnitureTab" : "WorldTab", captions[i],
+                new Vector2(130 + i * 240, -45), new Vector2(220, 58),
+                i == 0 ? Hex("6E243E") : new Color(1, 1, 1, .04f), Hex("F3E8DD"), 19, TextAnchor.MiddleCenter, new Vector2(0, 1));
+            view.tabButtons[i] = button;
+            view.tabBackgrounds[i] = button.targetGraphic as Image;
+            view.tabLabels[i] = button.GetComponentInChildren<Text>();
+        }
+        view.gridRoot = Rect(root.transform, "Grid", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        var detail = Image(root.transform, "ArchiveDetail", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+            new Vector2(300, -20), new Vector2(650, 730), new Color(.09f, .04f, .075f, .9f));
+        view.detailPreview = Raw(detail.transform, "Preview", new Vector2(.5f, 1), new Vector2(.5f, 1),
+            new Vector2(0, -180), new Vector2(590, 300));
+        view.detailText = Label(detail.transform, "DetailText", string.Empty, 19, Hex("F3E8DD"),
+            new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -120), new Vector2(560, 230),
+            TextAnchor.UpperLeft, FontStyle.Normal);
+        view.actionRoot = Rect(detail.transform, "Actions", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        Save(root, path);
+    }
+
+    /// <summary>整页系统面板：公共外壳（遮罩/面板/头部）+ 嵌套内容 Prefab。</summary>
+    private static void BuildPanelPage(string path, string pageName, string eyebrow, string title, string mark,
+        string contentPrefabPath)
+    {
+        var root = Root(pageName);
+        var view = root.AddComponent<OutGamePanelPageView>();
+        view.scrim = Image(root.transform, "Scrim", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+            new Color(.005f, .008f, .02f, .62f));
+        view.scrimButton = view.scrim.gameObject.AddComponent<Button>();
+        view.scrimButton.targetGraphic = view.scrim;
+        view.panel = Image(root.transform, "Panel", new Vector2(1, .5f), new Vector2(1, .5f),
+            new Vector2(-640, 0), new Vector2(1280, 1080), new Color(.055f, .045f, .06f, .98f));
+        var header = Image(view.panel.transform, "Header", new Vector2(.5f, 1), new Vector2(.5f, 1),
+            new Vector2(0, -75), new Vector2(1280, 150), new Color(.1f, .045f, .085f, .95f));
+        view.backButton = PageButton(header.transform, "Back", "←\n<size=12>ESC</size>", new Vector2(58, 0),
+            new Vector2(86, 90), new Color(1, 1, 1, .04f), Hex("F3E8DD"), 25, TextAnchor.MiddleCenter, new Vector2(0, .5f));
+        view.headerTitle = Label(header.transform, "Title", $"<size=14>{eyebrow}</size>\n{title}", 34, Hex("F3E8DD"),
+            new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(330, 0), new Vector2(430, 95),
+            TextAnchor.MiddleLeft, FontStyle.Bold);
+        view.headerMark = Label(header.transform, "Mark", mark, 54, new Color(1, .35f, .62f, .55f),
+            new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-95, 0), new Vector2(100, 90),
+            TextAnchor.MiddleCenter, FontStyle.Bold);
+        view.contentRoot = InstantiateNested<RectTransform>(contentPrefabPath, view.panel.transform, "Content",
+            new Vector2(.5f, .5f), new Vector2(0, -75), new Vector2(1180, 830));
+        Save(root, path);
     }
 
     private static GameObject ComponentRoot(string name, Vector2 size)

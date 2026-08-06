@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MasterPotion
@@ -6,13 +7,26 @@ namespace MasterPotion
     [Serializable]
     internal sealed class OutGameSaveData
     {
+        /// <summary>存档版本。2 = 含流通数值、家具所有权与摆放布局；3 = 含游戏时钟与访客到访状态；
+        /// 旧档读入时新字段回落默认值。</summary>
+        public int version;
         public int slot;
         public string room = "living";
         public bool[] served = new bool[4];
+        public bool[] refused = new bool[4];
+        /// <summary>v3：访客是否已到访过（到访后常驻屋内，跨天也在，直到服务完成/被拒绝）。</summary>
+        public bool[] guestArrived = new bool[4];
+        /// <summary>v3：游戏时钟（加速时间，与现实时间无关）。</summary>
+        public int gameDay = 1;
+        public float gameMinute = 8 * 60f;
         public int bgm = 64;
         public int sfx = 78;
         public string windowMode = "无边框";
         public string savedAt = "";
+        public HouseEconomySaveData economy = new HouseEconomySaveData();
+        /// <summary>是否保存过家具布局（区分「摆空了」与「从未编辑过（用房间默认摆放）」）。</summary>
+        public bool hasFurnitureLayout;
+        public List<FurniturePlacementConfig> furniturePlacements = new List<FurniturePlacementConfig>();
     }
 
     internal sealed class OutGameRoom
@@ -46,9 +60,15 @@ namespace MasterPotion
         public string gift;
         public string portrait;
         public bool special;
+        /// <summary>拜访时间（游戏时钟小时，到点从大门进场；此后常驻屋内直到服务完成/被拒绝）。</summary>
+        public int visitHour;
+        /// <summary>可服务时间窗口（游戏时钟小时）。窗口外访客留在屋内但不开放服务；特殊客人不受限。</summary>
+        public int serviceStart;
+        public int serviceEnd;
 
         public OutGameGuest(string id, string name, string type, string status, string hint, int affinity,
-            string need, string solution, string gift, string portrait, bool special = false)
+            string need, string solution, string gift, string portrait, bool special = false,
+            int visitHour = 8, int serviceStart = 9, int serviceEnd = 22)
         {
             this.id = id;
             this.name = name;
@@ -61,7 +81,14 @@ namespace MasterPotion
             this.gift = gift;
             this.portrait = portrait;
             this.special = special;
+            this.visitHour = visitHour;
+            this.serviceStart = serviceStart;
+            this.serviceEnd = serviceEnd;
         }
+
+        public bool InServiceWindow(float hourF) => special || (hourF >= serviceStart && hourF < serviceEnd);
+
+        public string ServiceWindowText => special ? "全天（特殊客人）" : $"{serviceStart:00}:00–{serviceEnd:00}:00";
     }
 
     internal sealed class OutGameArchiveItem
@@ -90,20 +117,46 @@ namespace MasterPotion
         {
             new("living", "起居室", "HOME", "客人会在这里等待服务", "OutGameUI/house-hub-v2"),
             new("bedroom", "卧室", "REST", "恢复状态并推进至下一天", "OutGameUI/dream-house"),
-            new("kitchen", "厨房", "MAKE", "使用设备制作访客需要的物品", "OutGameUI/house-hub-v2"),
+            new("kitchen", "厨房", "MAKE", "使用设备制作访客需要的物品", "OutGameUI/house-hub-v3"),
             new("study", "书房", "READ", "解锁配方与客人线索", "OutGameUI/study-room-clean"),
         };
 
         public static readonly OutGameGuest[] Guests =
         {
             new("lorn", "洛恩", "特殊客人", "初次来访", "总能从旧物中认出不属于这个时代的细节。", 12,
-                "一杯温热的赤茶，以及关于这栋房子的答案", "鲸声电话亭", "一枚停在 08:20 的怀表", "OutGameUI/Guests/fox", true),
+                "一杯温热的赤茶，以及关于这栋房子的答案", "鲸声电话亭", "一枚停在 08:20 的怀表", "OutGameUI/Guests/fox", true,
+                8, 8, 24),
             new("crow", "赫墨", "一般客人", "等待回应", "总把最糟糕的句子，改写成可以继续走下去的话。", 46,
-                "一扇能唱回来的窗户", "琴弦窗户", "一根沾着星尘的黑羽毛", "OutGameUI/Guests/crow"),
+                "一扇能唱回来的窗户", "琴弦窗户", "一根沾着星尘的黑羽毛", "OutGameUI/Guests/crow", false,
+                9, 10, 18),
             new("rabbit", "米娅", "一般客人", "悄悄观察", "她不太会开口请求，却会把想说的话写在风铃下面。", 31,
-                "一串能替她说话的回声风铃", "兔耳回声风铃", "一张画着胡萝卜的小纸条", "OutGameUI/Guests/rabbit"),
+                "一串能替她说话的回声风铃", "兔耳回声风铃", "一张画着胡萝卜的小纸条", "OutGameUI/Guests/rabbit", false,
+                10, 12, 20),
             new("hedgehog", "霍奇", "一般客人", "坐在门边", "他的刺总比话先竖起来，但会替屋里坏掉的东西包扎。", 58,
-                "一盏不会逼人开口的暖灯", "蒲公英吊灯", "一卷重新缠好的绷带", "OutGameUI/Guests/hedgehog"),
+                "一盏不会逼人开口的暖灯", "蒲公英吊灯", "一卷重新缠好的绷带", "OutGameUI/Guests/hedgehog", false,
+                13, 14, 22),
+        };
+
+        /// <summary>访客场景 NPC 序列帧图集路径前缀（占位动物素材，来自 CatVsDog）。索引与 Guests 对齐；
+        /// 实际资源为 前缀 + "_await_sheet" / "_attack_sheet" 的 PNG+JSON 组合。</summary>
+        public static readonly string[] VisitorSheets =
+        {
+            "OutGameUI/Visitors/orange_cat",
+            "OutGameUI/Visitors/rottweiler",
+            "OutGameUI/Visitors/xueqiu",
+            "OutGameUI/Visitors/wangcai",
+        };
+
+        /// <summary>串门邻居名册（表现层氛围 NPC，与业务访客无关）。格式：图集路径前缀|显示名。
+        /// 会随机轮换进场，在门口排队等玩家决定「请进屋/请回吧」。</summary>
+        public static readonly string[] AmbientVisitors =
+        {
+            "OutGameUI/Visitors/laoda|老大",
+            "OutGameUI/Visitors/laomao|老猫",
+            "OutGameUI/Visitors/longhair_cat|长毛",
+            "OutGameUI/Visitors/panghu|胖虎",
+            "OutGameUI/Visitors/sangbiao|桑彪",
+            "OutGameUI/Visitors/tufu|土福",
         };
 
         public static readonly OutGameArchiveItem[] Furniture =
@@ -131,11 +184,12 @@ namespace MasterPotion
             new[] { "旧书检索机|LV.2|发现线索|1", "观星镜|LV.1|预测特殊访客|0" },
         };
 
+        /// <summary>当前时段按加速的游戏时钟计算（OutGameClock），不再读现实时间。</summary>
         public static int CurrentPhase
         {
             get
             {
-                var hour = DateTime.Now.Hour + DateTime.Now.Minute / 60f;
+                var hour = OutGameClock.HourF;
                 if (hour >= 7 && hour < 9) return 0;
                 if (hour >= 9 && hour < 12) return 1;
                 if (hour >= 12 && hour < 14) return 2;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import FurnitureEditor from "./furniture-editor";
 
 type PanelKey =
   | "tasks"
@@ -207,6 +208,7 @@ export default function Home() {
   const [selectedArchiveId, setSelectedArchiveId] = useState("whale");
   const [fogRadius, setFogRadius] = useState(5);
   const [placedFurniture, setPlacedFurniture] = useState("whale");
+  const [furnishing, setFurnishing] = useState(false);
 
   const guest = guests.find((item) => item.id === guestId) ?? guests[0];
   const waitingGuests = guests.filter((item) => !served.includes(item.id));
@@ -621,6 +623,7 @@ export default function Home() {
 
       <aside className="right-dock" aria-label="功能菜单">
         {(["device","journal","contacts","archive"] as PanelKey[]).map((key) => <button key={key} className={panel === key ? "selected" : ""} onClick={() => openPanel(key)}><TinyIcon>{panelMeta[key].mark}</TinyIcon><span>{panelMeta[key].title.replace("与成就", "").replace("访客", "").replace("叙事资源", "")}</span>{key === "contacts" && <i />}</button>)}
+        <button onClick={() => { setPanel(null); setDialogue(false); setFurnishing(true); }}><TinyIcon>家</TinyIcon><span>家具摆放</span></button>
       </aside>
 
       <nav className="room-nav" aria-label="房间切换">
@@ -650,6 +653,7 @@ export default function Home() {
 
       {toast && <div className="toast"><span />{toast}</div>}
       <footer className="footer-note"><span>NEW LIFE, NEW HOME · UI/UX CONCEPT</span><span>ESC 返回 · ← → 切换房间</span></footer>
+      {furnishing && <FurnitureEditor onExit={() => setFurnishing(false)} />}
     </main>
   );
 }

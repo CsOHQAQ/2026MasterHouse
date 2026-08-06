@@ -30,6 +30,8 @@ namespace MasterPotion
         private Tween toastTween;
         private RawImage sceneArt;
         private Text clockLabel;
+        private Text creditHudLabel;
+        private Text economyChipLabel;
         private Button[] titleMenuButtons;
         private int titleMenuIndex;
         private OutGamePaperView activePaperView;
@@ -61,7 +63,21 @@ namespace MasterPotion
         private bool cameraShake = true;
         private bool dialogueOpen;
         private bool roomTransitioning;
+        private bool furnitureModeOpen;
+        private bool hubImmersive;
+        private bool scenePanning;
+        private Vector3 lastPanPosition;
+        private Text immersiveLabel;
+        private readonly System.Collections.Generic.List<(RectTransform rect, Rect viewport)> furnitureHotspots =
+            new System.Collections.Generic.List<(RectTransform, Rect)>();
+        private OutGameVisitorStage visitorStage;
+        private readonly bool[] guestArrived = new bool[4];
+        private Text hudPhaseLabel;
+        private Text hudPhaseRangeLabel;
+        private int hudPhaseShown = -1;
+        private float autoSaveTimer;
         private readonly bool[] served = new bool[4];
+        private readonly bool[] refused = new bool[4];
 
         /// <summary>
         /// 局外 UI 不依赖当前打开的场景。即使从 Untitled、备份场景或其他玩法场景进入 Play，
@@ -97,6 +113,39 @@ namespace MasterPotion
         {
             canvas = GetComponent<Canvas>();
             canvasRect = (RectTransform)transform;
+            HouseEconomy.Changed += UpdateEconomyHud;
+            HouseGmConsole.FullResetRequested += OnGmFullReset;
+        }
+
+        private void OnDestroy()
+        {
+            HouseEconomy.Changed -= UpdateEconomyHud;
+            HouseGmConsole.FullResetRequested -= OnGmFullReset;
+        }
+
+        /// <summary>直接关游戏/退出 Play 也不丢时钟与访客进度。</summary>
+        private void OnApplicationQuit()
+        {
+            if (view == View.Hub) SaveCurrent(true);
+        }
+
+        /// <summary>GM「恢复初始态」：访客服务状态归零，背景重烘焙为默认布局，并把重置结果写入当前槽位。</summary>
+        private void OnGmFullReset()
+        {
+            for (var i = 0; i < served.Length; i++) served[i] = false;
+            for (var i = 0; i < refused.Length; i++) refused[i] = false;
+            for (var i = 0; i < guestArrived.Length; i++) guestArrived[i] = false;
+            guestIndex = 0;
+            OutGameClock.Reset();
+            FurnitureSceneComposer.RequestBake(_ => { ApplySceneArt(); BuildFurnitureHotspots(); });
+            UpdateEconomyHud();
+            if (view == View.Hub && !furnitureModeOpen)
+            {
+                RebuildGuestChrome();
+                BuildVisitorStage();
+                AutoSave();
+                ShowToast("GM · 已恢复所有状态到初始态");
+            }
         }
 
         private void Start()
@@ -115,8 +164,34 @@ namespace MasterPotion
 
         private void Update()
         {
+            // 加速的游戏时钟只在 Hub 内流动（标题/开门过场暂停）；家具模式期间访客仍在走动，时间同样继续
+            if (view == View.Hub) OutGameClock.Tick(Time.unscaledDeltaTime);
+
+            // 家具模式接管输入与画面，局外 UI 挂起等待回调恢复。
+            if (furnitureModeOpen) return;
+
             if (clockLabel != null)
-                clockLabel.text = DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture);
+                clockLabel.text = OutGameClock.TimeText;
+            RefreshHudPhase();
+
+            // 时钟是持续流动的状态，只靠事件节点写档会丢挂机进度：Hub 内每 60 秒（=1 游戏小时）静默补一次档
+            if (view == View.Hub)
+            {
+                autoSaveTimer += Time.unscaledDeltaTime;
+                if (autoSaveTimer >= 60f)
+                {
+                    autoSaveTimer = 0f;
+                    SaveCurrent(true);
+                }
+            }
+
+            // 收起界面（观景模式）：只响应 ESC 展开与背景平移缩放，屏蔽其余快捷键
+            if (view == View.Hub && hubImmersive)
+            {
+                if (Input.GetKeyDown(KeyCode.Escape)) { SetHubImmersive(false); return; }
+                HandleSceneBrowse();
+                return;
+            }
 
             if (Input.GetKeyDown(KeyCode.Escape))
             {
@@ -178,6 +253,13 @@ namespace MasterPotion
             modalRoot = null;
             toastRoot = null;
             clockLabel = null;
+            hudPhaseLabel = null;
+            hudPhaseRangeLabel = null;
+            creditHudLabel = null;
+            economyChipLabel = null;
+            hubImmersive = false;
+            scenePanning = false;
+            immersiveLabel = null;
             titleMenuButtons = null;
             activePaperView = null;
             activeHubView = null;
@@ -202,6 +284,8 @@ namespace MasterPotion
 
         private void ShowTitle()
         {
+            // 从 Hub 回标题前静默写档，保证游戏时钟与访客到访进度不丢
+            if (view == View.Hub) SaveCurrent(true);
             view = View.Title;
             var root = NewView("TitleView", OutGamePrefabResourcePaths.Title);
             var prefabView = root.GetComponent<OutGameTitleView>();
@@ -294,8 +378,8 @@ namespace MasterPotion
                 new Vector2(500, 18), TextAnchor.MiddleCenter, FontStyle.Bold);
             hints.gameObject.AddComponent<OutGameLetterSpacing>().spacing = .8f;
 
+            // 默认不选中任何菜单项：橙色 hover 渐变只在鼠标悬停或键盘导航后出现
             titleMenuIndex = HasAnySave() ? 0 : 1;
-            if (EventSystem.current != null) titleMenuButtons[titleMenuIndex].Select();
         }
 
         private void BindTitlePrefab(OutGameTitleView prefabView)
@@ -348,7 +432,12 @@ namespace MasterPotion
                     EnsureLetterSpacing(prefabView.menuSubtitles[i], 1.5f);
                 }
                 if (i < prefabView.menuHoverImages.Length && prefabView.menuHoverImages[i] != null)
+                {
                     prefabView.menuHoverImages[i].texture = titleHoverGradient;
+                    // Prefab 中的 hover 图可能保存为可见状态，绑定时强制归零，默认不显示
+                    var hoverColor = prefabView.menuHoverImages[i].color;
+                    prefabView.menuHoverImages[i].color = new Color(hoverColor.r, hoverColor.g, hoverColor.b, 0f);
+                }
                 var feedback = button.GetComponent<OutGameTweenButton>();
                 if (feedback == null) feedback = button.gameObject.AddComponent<OutGameTweenButton>();
                 feedback.hoverScale = 1.055f;
@@ -362,9 +451,8 @@ namespace MasterPotion
             EnsureLetterSpacing(prefabView.saveState, .65f);
             EnsureLetterSpacing(prefabView.hints, .8f);
             ApplyFallbackFont(prefabView.transform);
+            // 默认不选中任何菜单项：橙色 hover 渐变只在鼠标悬停或键盘导航后出现
             titleMenuIndex = hasSave ? 0 : 1;
-            if (EventSystem.current != null && titleMenuIndex < titleMenuButtons.Length)
-                titleMenuButtons[titleMenuIndex].Select();
         }
 
         private static void ApplyFallbackFont(Transform root)
@@ -843,7 +931,12 @@ namespace MasterPotion
                 ? activeHubView.sceneRoot
                 : F.Stretch(root, "Scene");
             sceneArt = F.StretchTexture(sceneRoot, "SceneArt", OutGameUIData.Rooms[roomIndex].art);
-            F.StretchPanel(sceneRoot, "SceneWash", new Color(.015f, .02f, .04f, .22f));
+            sceneArt.raycastTarget = false; // 场景图不拦截指针，观景模式拖拽与家具热点都依赖穿透
+            ApplySceneArt();
+            var sceneWash = F.StretchPanel(sceneRoot, "SceneWash", new Color(.015f, .02f, .04f, .22f));
+            sceneWash.raycastTarget = false;
+            BuildFurnitureHotspots();
+            BuildVisitorStage();
             var chrome = HubChromeRoot;
             if (HasPrefabHubComponents())
             {
@@ -863,6 +956,9 @@ namespace MasterPotion
                 BuildRoomNavigation(chrome);
                 BuildSceneCaption(chrome);
             }
+            BuildFurnitureEntry(chrome);
+            BuildEconomyChip(chrome);
+            BuildImmersiveToggle(chrome);
             if (activeHubView != null && activeHubView.footer != null)
                 activeHubView.footer.text = "NEW LIFE, NEW HOME · UI/UX CONCEPT                                      ESC 返回 · ← → 切换房间 · I 仓库";
             else
@@ -890,14 +986,16 @@ namespace MasterPotion
 
         private void BindTopHud(OutGameHubTopBarView hud)
         {
-            var now = DateTime.Now;
-            var week = CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(now, CalendarWeekRule.FirstDay, DayOfWeek.Sunday);
             var phase = OutGameUIData.CurrentPhase;
-            hud.weekDatePhase.text = $"<size=14>WEEK {week:00} · {now:yyyy}</size>\n<size=31>{now:MM / dd}</size>    {OutGameUIData.PhaseNames[phase]}";
+            hud.weekDatePhase.text = $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {OutGameClock.Day:00}</size>    {OutGameUIData.PhaseNames[phase]}";
             hud.phaseRange.text = OutGameUIData.PhaseRanges[phase];
-            hud.clock.text = now.ToString("HH:mm");
+            hud.clock.text = OutGameClock.TimeText;
             clockLabel = hud.clock;
-            hud.creditLabel.text = "<size=13>HOUSE CREDIT</size>\n◈ 2,480     ＋";
+            hudPhaseLabel = hud.weekDatePhase;
+            hudPhaseRangeLabel = hud.phaseRange;
+            hudPhaseShown = OutGameClock.Day * 10 + phase;
+            creditHudLabel = hud.creditLabel;
+            hud.creditLabel.text = $"<size=13>HOUSE CREDIT</size>\n◈ {HouseEconomy.Currency:N0}     ＋";
             hud.welcomeLabel.text = "WELCOME HOME.\n本周将有 <color=#E22D76>" + RemainingGuests() + "</color> 位访客来访";
             BindButton(hud.timeButton, () => OpenPanel(SystemPanel.Calendar));
             BindButton(hud.creditButton, () => OpenPanel(SystemPanel.Market));
@@ -980,13 +1078,283 @@ namespace MasterPotion
 
         private void BindSceneOverlay(OutGameHubSceneOverlayView overlay)
         {
+            // Prefab 字段可能因手动编辑而缺失；绑定必须逐项判空，
+            // 否则一次 NRE 会把 ShowHub 后续的运行时控件（数值条/家具摆放/收起按钮）全部截断。
+            if (overlay == null) return;
             var room = OutGameUIData.Rooms[roomIndex];
-            overlay.captionHeader.text = "CURRENT ROOM / 04";
-            overlay.roomName.text = room.name;
-            overlay.roomNote.text = room.note;
+            if (overlay.captionHeader != null) overlay.captionHeader.text = "CURRENT ROOM / 04";
+            if (overlay.roomName != null) overlay.roomName.text = room.name;
+            if (overlay.roomNote != null) overlay.roomNote.text = room.note;
             var hotspotLabel = roomIndex == 2 ? "手冲咖啡台" : roomIndex == 3 ? "旧书检索机" : "黑胶唱机";
-            overlay.hotspotTitle.text = "＋  " + hotspotLabel + "\n<size=13>查看设备</size>";
-            BindButton(overlay.hotspotButton, () => OpenPanel(SystemPanel.Device));
+            if (overlay.hotspotTitle != null) overlay.hotspotTitle.text = "＋  " + hotspotLabel + "\n<size=13>查看设备</size>";
+            if (overlay.hotspotButton != null) BindButton(overlay.hotspotButton, () => OpenPanel(SystemPanel.Device));
+        }
+
+        /// <summary>
+        /// 「家具摆放」入口：追加在右侧 dock 下方的运行时按钮（不改动 Hub Prefab 既有布局）。
+        /// 家具模式为世界空间独立舞台，打开期间禁用整个局外 Canvas，退出回调恢复。
+        /// </summary>
+        private void BuildFurnitureEntry(Transform root)
+        {
+            F.Button(root, "FurnitureMode", "家    家具摆放", OpenFurnitureMode,
+                new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-120, -262), new Vector2(205, 78),
+                new Color(.32f, .06f, .18f, .86f), F.White, 20, TextAnchor.MiddleLeft);
+        }
+
+        /// <summary>声望与装饰分展示条（流通数值三件套中，货币在顶栏 HOUSE CREDIT 显示）。</summary>
+        private void BuildEconomyChip(Transform root)
+        {
+            var chip = F.Panel(root, "EconomyChip", new Vector2(.5f, 1), new Vector2(.5f, 1),
+                new Vector2(-233, -160), new Vector2(400, 50), new Color(.025f, .025f, .045f, .77f));
+            economyChipLabel = F.Label(chip.transform, "Value", string.Empty, 18, F.White,
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            UpdateEconomyHud();
+        }
+
+        /// <summary>起居室优先使用家具布局合成图：摆放完成后布局直接成为背景图。</summary>
+        private void ApplySceneArt()
+        {
+            if (sceneArt == null || roomIndex != 0) return;
+            var baked = FurnitureSceneComposer.Current;
+            if (baked != null) sceneArt.texture = baked;
+        }
+
+        /// <summary>
+        /// 背景中的已摆放家具热点：悬停弹出「＋ 家具名 / 查看设备」提示卡（对齐黑胶唱机热点样式），
+        /// 点击暂接设备图鉴面板。热点区域按归一化锚点定位，与合成图像素对应。
+        /// </summary>
+        private void BuildFurnitureHotspots()
+        {
+            if (sceneRoot == null) return;
+            var existing = sceneRoot.Find("FurnitureHotspots");
+            if (existing != null) Destroy(existing.gameObject);
+            furnitureHotspots.Clear();
+            if (view != View.Hub || roomIndex != 0) return;
+            var root = F.Stretch(sceneRoot, "FurnitureHotspots");
+            foreach (var info in FurnitureSceneComposer.GetPlacedFurniture())
+            {
+                var viewport = info.ViewportRect;
+                var hotspot = F.Rect(root, "Hotspot_" + info.Entry.id,
+                    new Vector2(viewport.xMin, viewport.yMin), new Vector2(viewport.xMax, viewport.yMax),
+                    Vector2.zero, Vector2.zero);
+                furnitureHotspots.Add((hotspot, viewport));
+                var image = hotspot.gameObject.AddComponent<Image>();
+                image.sprite = F.WhiteSprite;
+                image.color = Color.clear;
+                var button = hotspot.gameObject.AddComponent<Button>();
+                button.transition = Selectable.Transition.None;
+                button.onClick.AddListener(() => OpenPanel(SystemPanel.Device));
+
+                var card = F.Panel(hotspot, "Card", new Vector2(.5f, 1), new Vector2(.5f, 1),
+                    new Vector2(0, 46), new Vector2(250, 76), new Color(.32f, .06f, .18f, .92f));
+                F.Outline(card.gameObject, new Color(.85f, .15f, .45f, .5f), new Vector2(1, -1));
+                F.Label(card.transform, "Text", $"＋  {info.Entry.displayName}\n<size=13>查看设备</size>",
+                    19, F.White, TextAnchor.MiddleCenter, FontStyle.Bold);
+                var cardGroup = F.Group(card.gameObject, 0f);
+                cardGroup.blocksRaycasts = false;
+                cardGroup.interactable = false;
+
+                var trigger = hotspot.gameObject.AddComponent<EventTrigger>();
+                var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+                enter.callback.AddListener(_ => { cardGroup.DOKill(); cardGroup.DOFade(1f, .16f).SetUpdate(true); });
+                trigger.triggers.Add(enter);
+                var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+                exit.callback.AddListener(_ => { cardGroup.DOKill(); cardGroup.DOFade(0f, .16f).SetUpdate(true); });
+                trigger.triggers.Add(exit);
+            }
+            UpdateFurnitureHotspotAnchors();
+        }
+
+        /// <summary>游戏时段变化时刷新顶栏的天数/时段文案（时钟文本每帧已单独更新）。</summary>
+        private void RefreshHudPhase()
+        {
+            if (view != View.Hub || hudPhaseLabel == null) return;
+            var phase = OutGameUIData.CurrentPhase;
+            var key = OutGameClock.Day * 10 + phase; // 跨天时 DAY 文案也要刷新
+            if (key == hudPhaseShown) return;
+            hudPhaseShown = key;
+            hudPhaseLabel.text = $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {OutGameClock.Day:00}</size>    {OutGameUIData.PhaseNames[phase]}";
+            if (hudPhaseRangeLabel != null) hudPhaseRangeLabel.text = OutGameUIData.PhaseRanges[phase];
+        }
+
+        /// <summary>重建场景访客 NPC 层（仅起居室）。演员自己跟随 uvRect 换算锚点，观景模式无需额外通知。</summary>
+        private void BuildVisitorStage()
+        {
+            visitorStage = null;
+            if (sceneRoot == null) return;
+            if (view != View.Hub || roomIndex != 0)
+            {
+                var existing = sceneRoot.Find("VisitorStage");
+                if (existing != null) Destroy(existing.gameObject);
+                return;
+            }
+            visitorStage = OutGameVisitorStage.Build(sceneRoot, sceneArt, served, guestArrived,
+                OnVisitorClicked, index => guestArrived[index] = true);
+        }
+
+        /// <summary>点击场景中的访客 NPC → 触发对话（观景模式下先展开界面）。</summary>
+        private void OnVisitorClicked(int index)
+        {
+            if (furnitureModeOpen || dialogueOpen || roomTransitioning) return;
+            if (hubImmersive) SetHubImmersive(false);
+            SelectGuest(index);
+        }
+
+        /// <summary>按当前画面平移缩放（uvRect）换算热点锚点，保证观景模式下热点始终贴住家具。</summary>
+        private void UpdateFurnitureHotspotAnchors()
+        {
+            if (sceneArt == null) return;
+            var uv = sceneArt.uvRect;
+            foreach (var (rect, viewport) in furnitureHotspots)
+            {
+                if (rect == null) continue;
+                rect.anchorMin = new Vector2((viewport.xMin - uv.x) / uv.width, (viewport.yMin - uv.y) / uv.height);
+                rect.anchorMax = new Vector2((viewport.xMax - uv.x) / uv.width, (viewport.yMax - uv.y) / uv.height);
+                rect.offsetMin = Vector2.zero;
+                rect.offsetMax = Vector2.zero;
+            }
+        }
+
+        /// <summary>「收起界面」开关按钮（收起时唯一保留的控件）。Prefab 优先，缺失时回退代码布局。</summary>
+        private void BuildImmersiveToggle(Transform root)
+        {
+            var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.HubImmersiveToggle);
+            if (prefab != null)
+            {
+                var instance = Instantiate(prefab, root, false);
+                instance.name = "ImmersiveToggle";
+                if (instance.transform is RectTransform rect)
+                {
+                    rect.anchorMin = rect.anchorMax = new Vector2(1, 0);
+                    rect.anchoredPosition = new Vector2(-110, 56);
+                    rect.localScale = Vector3.one;
+                }
+                var view = instance.GetComponent<OutGameHubImmersiveToggleView>();
+                if (view != null && view.button != null)
+                {
+                    BindButton(view.button, () => SetHubImmersive(!hubImmersive));
+                    immersiveLabel = view.label;
+                    ApplyFallbackFont(instance.transform);
+                    return;
+                }
+                Destroy(instance);
+            }
+            Debug.LogWarning("[OutGameUI] Prefab 缺失，暂时回退代码布局：" + OutGamePrefabResourcePaths.HubImmersiveToggle);
+            var button = F.Button(root, "ImmersiveToggle", "收起界面", () => SetHubImmersive(!hubImmersive),
+                new Vector2(1, 0), new Vector2(1, 0), new Vector2(-110, 56), new Vector2(160, 58),
+                new Color(.025f, .025f, .04f, .8f), F.White, 17);
+            immersiveLabel = button.GetComponentInChildren<Text>();
+        }
+
+        /// <summary>收起/展开四周 UI。收起后进入观景模式：拖拽平移背景、滚轮缩放。</summary>
+        private void SetHubImmersive(bool on)
+        {
+            if (view != View.Hub) return;
+            if (on)
+            {
+                if (openedPanel != SystemPanel.None) ClosePanel();
+                if (dialogueOpen) CloseDialogue();
+            }
+            hubImmersive = on;
+            scenePanning = false;
+            var root = HubChromeRoot;
+            foreach (Transform child in root)
+            {
+                if (child == sceneRoot || child.name == "ImmersiveToggle" || child.name == "Toast") continue;
+                var group = F.Group(child.gameObject);
+                group.DOKill();
+                group.DOFade(on ? 0f : 1f, .25f).SetUpdate(true);
+                group.blocksRaycasts = !on;
+                group.interactable = !on;
+            }
+            if (sceneRoot != null)
+            {
+                var wash = sceneRoot.Find("SceneWash");
+                if (wash != null)
+                {
+                    var washGroup = F.Group(wash.gameObject);
+                    washGroup.DOKill();
+                    washGroup.DOFade(on ? 0f : 1f, .25f).SetUpdate(true);
+                }
+            }
+            if (!on && sceneArt != null) sceneArt.uvRect = new Rect(0f, 0f, 1f, 1f);
+            UpdateFurnitureHotspotAnchors();
+            if (immersiveLabel != null)
+                immersiveLabel.text = on ? "展开界面\n<size=12>ESC</size>" : "收起界面";
+        }
+
+        /// <summary>观景模式：滚轮以鼠标为中心缩放（1~3.5 倍），按住左键拖拽平移，边界钳制在图内。</summary>
+        private void HandleSceneBrowse()
+        {
+            if (sceneArt == null) return;
+            var uv = sceneArt.uvRect;
+            var scroll = Input.mouseScrollDelta.y;
+            if (Mathf.Abs(scroll) > .01f && Screen.width > 0 && Screen.height > 0)
+            {
+                var zoom = Mathf.Clamp(1f / uv.width + scroll * .12f / uv.width, 1f, 3.5f);
+                var size = 1f / zoom;
+                var nx = Mathf.Clamp01(Input.mousePosition.x / Screen.width);
+                var ny = Mathf.Clamp01(Input.mousePosition.y / Screen.height);
+                var pivotX = uv.x + nx * uv.width;
+                var pivotY = uv.y + ny * uv.height;
+                uv = new Rect(pivotX - nx * size, pivotY - ny * size, size, size);
+            }
+            if (Input.GetMouseButtonDown(0))
+            {
+                scenePanning = true;
+                lastPanPosition = Input.mousePosition;
+            }
+            if (Input.GetMouseButtonUp(0)) scenePanning = false;
+            if (scenePanning && Screen.width > 0 && Screen.height > 0)
+            {
+                var delta = Input.mousePosition - lastPanPosition;
+                lastPanPosition = Input.mousePosition;
+                uv.x -= delta.x / Screen.width * uv.width;
+                uv.y -= delta.y / Screen.height * uv.height;
+            }
+            uv.x = Mathf.Clamp(uv.x, 0f, 1f - uv.width);
+            uv.y = Mathf.Clamp(uv.y, 0f, 1f - uv.height);
+            sceneArt.uvRect = uv;
+            // 热点跟随平移缩放，收起状态下家具依然可悬停/点击
+            UpdateFurnitureHotspotAnchors();
+        }
+
+        /// <summary>关键节点静默写档（家具摆放退出、服务/拒绝/周结算、商城购买），保证槽位始终是最新进度。</summary>
+        private void AutoSave()
+        {
+            if (view != View.Hub) return;
+            SaveCurrent(true);
+        }
+
+        /// <summary>流通数值变化后刷新顶栏货币与声望/装饰分展示。</summary>
+        private void UpdateEconomyHud()
+        {
+            if (creditHudLabel != null)
+                creditHudLabel.text = $"<size=13>HOUSE CREDIT</size>\n◈ {HouseEconomy.Currency:N0}     ＋";
+            if (economyChipLabel != null)
+                economyChipLabel.text =
+                    $"<color=#74D8D1>声望 {HouseEconomy.Reputation}</color>      <color=#E22D76>装饰分 {HouseEconomy.DecorationScore}</color>";
+        }
+
+        private void OpenFurnitureMode()
+        {
+            if (furnitureModeOpen) return;
+            furnitureModeOpen = true;
+            canvas.enabled = false;
+            var opened = FurnitureRoomController.Open(() =>
+            {
+                furnitureModeOpen = false;
+                canvas.enabled = true;
+                // 布局变化即时落档，并烘焙回起居室背景图
+                AutoSave();
+                FurnitureSceneComposer.RequestBake(_ => { ApplySceneArt(); BuildFurnitureHotspots(); });
+            });
+            if (!opened)
+            {
+                furnitureModeOpen = false;
+                canvas.enabled = true;
+                ShowToast("家具配置表缺失：请先执行菜单 MasterPotion → 家具系统 → 创建配置表");
+            }
         }
 
         private static void BindButton(Button button, UnityEngine.Events.UnityAction action)
@@ -1004,20 +1372,22 @@ namespace MasterPotion
             var top = F.Panel(root, "TopHUD", new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -62),
                 new Vector2(1920, 124), new Color(.025f, .025f, .045f, .77f));
 
-            var now = DateTime.Now;
-            var week = CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(now, CalendarWeekRule.FirstDay, DayOfWeek.Sunday);
             var phase = OutGameUIData.CurrentPhase;
-            var time = F.Button(top.transform, "Time", $"<size=14>WEEK {week:00} · {now:yyyy}</size>\n<size=31>{now:MM / dd}</size>    {OutGameUIData.PhaseNames[phase]}",
+            var time = F.Button(top.transform, "Time", $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {OutGameClock.Day:00}</size>    {OutGameUIData.PhaseNames[phase]}",
                 () => OpenPanel(SystemPanel.Calendar), new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(230, 0),
                 new Vector2(410, 100), new Color(.17f, .06f, .12f, .74f), F.White, 23, TextAnchor.MiddleLeft);
             F.Label(time.transform, "Phase", $"{OutGameUIData.PhaseRanges[phase]}", 12, new Color(1, 1, 1, .58f),
                 new Vector2(1, 0), new Vector2(1, 0), new Vector2(-78, 14), new Vector2(150, 24), TextAnchor.MiddleRight);
-            clockLabel = F.Label(time.transform, "Clock", now.ToString("HH:mm"), 24, F.White,
+            clockLabel = F.Label(time.transform, "Clock", OutGameClock.TimeText, 24, F.White,
                 new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-62, -7), new Vector2(110, 42), TextAnchor.MiddleRight, FontStyle.Bold);
+            hudPhaseLabel = time.GetComponentInChildren<Text>();
+            hudPhaseRangeLabel = time.transform.Find("Phase") != null ? time.transform.Find("Phase").GetComponent<Text>() : null;
+            hudPhaseShown = OutGameClock.Day * 10 + phase;
 
-            F.Button(top.transform, "Credit", "<size=13>HOUSE CREDIT</size>\n◈ 2,480     ＋", () => OpenPanel(SystemPanel.Market),
+            var creditButton = F.Button(top.transform, "Credit", $"<size=13>HOUSE CREDIT</size>\n◈ {HouseEconomy.Currency:N0}     ＋", () => OpenPanel(SystemPanel.Market),
                 new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(625, 0), new Vector2(270, 82),
                 new Color(.06f, .025f, .06f, .7f), F.White, 21, TextAnchor.MiddleLeft);
+            creditHudLabel = creditButton.GetComponentInChildren<Text>();
             var brand = F.Button(top.transform, "Brand", "<i>The Guesthouse\nof Meros</i>     <size=14>N E W  C H A P T E R</size>", ShowTitle,
                 new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(120, 0), new Vector2(600, 90),
                 Color.clear, F.Rose, 29, TextAnchor.MiddleCenter, false);
@@ -1177,11 +1547,15 @@ namespace MasterPotion
             {
                 var old = sceneArt;
                 var next = F.StretchTexture(sceneRoot, "SceneArtNext", OutGameUIData.Rooms[index].art, new Color(1, 1, 1, 0));
+                next.raycastTarget = false;
                 next.transform.SetAsFirstSibling();
                 next.DOFade(1, .5f).SetTarget(this).SetUpdate(true);
                 old.DOFade(0, .5f).SetTarget(this).SetUpdate(true).OnComplete(() => Destroy(old.gameObject));
                 sceneArt = next;
+                ApplySceneArt();
             }
+            BuildFurnitureHotspots();
+            BuildVisitorStage();
             RebuildHubChrome();
         }
 
@@ -1212,10 +1586,11 @@ namespace MasterPotion
                 ShowToast(OutGameUIData.Guests[index].name + " 已完成接待并离开旅店");
                 return;
             }
-            var phase = OutGameUIData.CurrentPhase;
-            if (phase == 5 && !OutGameUIData.Guests[index].special)
+            var guest = OutGameUIData.Guests[index];
+            // 服务时间窗口按加速的游戏时钟判定；窗口外访客仍留在屋内，只是暂不开放服务
+            if (!guest.InServiceWindow(OutGameClock.HourF))
             {
-                ShowToast(OutGameUIData.Guests[index].name + " 是一般客人 · 仅在可服务时间开放事件");
+                ShowToast($"{guest.name} 的可服务时间是 {guest.ServiceWindowText} · 现在 {OutGameClock.TimeText}，TA 先在屋里歇着");
                 return;
             }
             guestIndex = index;
@@ -1226,6 +1601,8 @@ namespace MasterPotion
         {
             ClosePanelImmediate();
             dialogueOpen = true;
+            if (ShowDialogueFromPrefab()) return;
+            Debug.LogWarning("[OutGameUI] Prefab 缺失，暂时回退代码布局：" + OutGamePrefabResourcePaths.DialogueView);
             var guest = OutGameUIData.Guests[guestIndex];
             modalRoot = F.Stretch(HubOverlayRoot, "DialogueLayer");
             modalRoot.SetAsLastSibling();
@@ -1264,6 +1641,9 @@ namespace MasterPotion
             var serve = F.Button(box.transform, "Serve", served[guestIndex] ? "事件已完成" : "回应访客事件", ServeGuest,
                 new Vector2(1, 0), new Vector2(1, 0), new Vector2(-170, 25), new Vector2(250, 58), F.Wine, F.White, 18);
             serve.interactable = !served[guestIndex];
+            var refuse = F.Button(box.transform, "Refuse", $"拒绝接待 <size=13>声望 -{HouseEconomy.RefuseReputationPenalty}</size>", RefuseGuest,
+                new Vector2(1, 0), new Vector2(1, 0), new Vector2(-425, 25), new Vector2(230, 58), new Color(1, 1, 1, .05f), F.White, 17);
+            refuse.interactable = !served[guestIndex];
 
             var furniture = F.Panel(modalRoot, "FurnitureDock", new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 45),
                 new Vector2(1480, 90), new Color(.015f, .018f, .032f, .93f));
@@ -1277,7 +1657,7 @@ namespace MasterPotion
                     new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(335 + i * 205, 0), new Vector2(195, 70),
                     placedFurniture == item.id ? new Color(.48f, .08f, .28f, .72f) : new Color(1, 1, 1, .035f), F.White, 15);
             }
-            F.Button(furniture.transform, "EndWeek", "结束本周 →", () => { CloseDialogue(); ShowToast("本周结算将在正式版本开放"); },
+            F.Button(furniture.transform, "EndWeek", "结束本周 →", EndWeek,
                 new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-100, 0), new Vector2(180, 70), F.Wine, F.White, 17);
 
             var group = F.Group(modalRoot.gameObject, 0);
@@ -1286,6 +1666,108 @@ namespace MasterPotion
             portrait.rectTransform.DOAnchorPosX(390, .55f).SetTarget(this).SetEase(Ease.OutCubic).SetUpdate(true);
             box.rectTransform.anchoredPosition += new Vector2(0, -80);
             box.rectTransform.DOAnchorPosY(190, .5f).SetTarget(this).SetEase(Ease.OutCubic).SetUpdate(true);
+        }
+
+        /// <summary>访客对话优先走 DialogueView Prefab；文本、选中态与事件运行时绑定。</summary>
+        private bool ShowDialogueFromPrefab()
+        {
+            var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.DialogueView);
+            if (prefab == null) return false;
+            var instance = Instantiate(prefab, HubOverlayRoot, false);
+            instance.name = "DialogueLayer";
+            var view = instance.GetComponent<OutGameDialogueView>();
+            if (view == null)
+            {
+                Destroy(instance);
+                return false;
+            }
+            modalRoot = instance.transform as RectTransform;
+            modalRoot.SetAsLastSibling();
+            var guest = OutGameUIData.Guests[guestIndex];
+
+            if (view.sceneArt != null)
+            {
+                var baked = FurnitureSceneComposer.Current;
+                if (baked != null) view.sceneArt.texture = baked;
+                else view.sceneArt.texture = Resources.Load<Texture2D>("OutGameUI/house-hub-v2");
+            }
+            if (view.closeButton != null) BindButton(view.closeButton, CloseDialogue);
+            if (view.portrait != null) view.portrait.texture = Resources.Load<Texture2D>(guest.portrait);
+            if (view.portraitTag != null)
+                view.portraitTag.text = "VISITOR / " + (guest.special ? "SPECIAL" : "WEEK 01");
+
+            for (var i = 0; i < 4; i++)
+            {
+                var index = i;
+                var item = OutGameUIData.Guests[i];
+                if (view.weekGuestLabels != null && i < view.weekGuestLabels.Length && view.weekGuestLabels[i] != null)
+                    view.weekGuestLabels[i].text = item.name + "\n<size=13>" + (item.special ? "特殊事件 · 可打断" : "一般事件 · 无先后") + "</size>";
+                if (view.weekGuestBackgrounds != null && i < view.weekGuestBackgrounds.Length && view.weekGuestBackgrounds[i] != null)
+                    view.weekGuestBackgrounds[i].color = i == guestIndex ? new Color(.45f, .08f, .28f, .75f) : new Color(1, 1, 1, .035f);
+                if (view.weekGuestButtons != null && i < view.weekGuestButtons.Length && view.weekGuestButtons[i] != null)
+                    BindButton(view.weekGuestButtons[i], () => { guestIndex = index; CloseDialogue(); ShowDialogue(); });
+            }
+
+            if (view.dialogueText != null)
+                view.dialogueText.text = $"<size=15>{guest.type}{(guest.special ? " · 硬植入事件" : " · 无接待顺序")}</size>\n<size=31>{guest.name}</size>     <size=15>信赖 {guest.affinity}%</size>\n\n{DialogueLine(guestIndex)}";
+            if (view.needButton != null)
+                BindButton(view.needButton, () => { CloseDialogue(); OpenPanel(SystemPanel.Archive); });
+            if (view.serveButton != null)
+            {
+                if (view.serveLabel != null) view.serveLabel.text = served[guestIndex] ? "事件已完成" : "回应访客事件";
+                BindButton(view.serveButton, ServeGuest);
+                view.serveButton.interactable = !served[guestIndex];
+            }
+            if (view.refuseButton != null)
+            {
+                if (view.refuseLabel != null)
+                    view.refuseLabel.text = $"拒绝接待 <size=13>声望 -{HouseEconomy.RefuseReputationPenalty}</size>";
+                BindButton(view.refuseButton, RefuseGuest);
+                view.refuseButton.interactable = !served[guestIndex];
+            }
+
+            for (var i = 0; i < OutGameUIData.Furniture.Length && i < 5; i++)
+            {
+                var item = OutGameUIData.Furniture[i];
+                if (view.furnitureLabels != null && i < view.furnitureLabels.Length && view.furnitureLabels[i] != null)
+                    view.furnitureLabels[i].text = item.name;
+                if (view.furnitureBackgrounds != null && i < view.furnitureBackgrounds.Length && view.furnitureBackgrounds[i] != null)
+                    view.furnitureBackgrounds[i].color = placedFurniture == item.id ? new Color(.48f, .08f, .28f, .72f) : new Color(1, 1, 1, .035f);
+                if (view.furnitureButtons != null && i < view.furnitureButtons.Length && view.furnitureButtons[i] != null)
+                {
+                    var itemId = item.id;
+                    var itemName = item.name;
+                    var backgrounds = view.furnitureBackgrounds;
+                    BindButton(view.furnitureButtons[i], () =>
+                    {
+                        placedFurniture = itemId;
+                        for (var j = 0; j < OutGameUIData.Furniture.Length && j < backgrounds.Length; j++)
+                            if (backgrounds[j] != null)
+                                backgrounds[j].color = OutGameUIData.Furniture[j].id == itemId
+                                    ? new Color(.48f, .08f, .28f, .72f)
+                                    : new Color(1, 1, 1, .035f);
+                        ShowToast("已摆放：" + itemName);
+                    });
+                }
+            }
+            if (view.endWeekButton != null) BindButton(view.endWeekButton, EndWeek);
+
+            ApplyFallbackFont(instance.transform);
+
+            // 入场动效与代码路径一致：整层淡入 + 立绘/对话框滑入
+            var group = F.Group(modalRoot.gameObject, 0);
+            group.DOFade(1, .28f).SetTarget(this).SetUpdate(true);
+            if (view.characterCard != null)
+            {
+                view.characterCard.anchoredPosition = new Vector2(330, 40);
+                view.characterCard.DOAnchorPosX(390, .55f).SetTarget(this).SetEase(Ease.OutCubic).SetUpdate(true);
+            }
+            if (view.dialogueBox != null)
+            {
+                view.dialogueBox.anchoredPosition = new Vector2(80, 110);
+                view.dialogueBox.DOAnchorPosY(190, .5f).SetTarget(this).SetEase(Ease.OutCubic).SetUpdate(true);
+            }
+            return true;
         }
 
         private void CloseDialogue()
@@ -1303,9 +1785,54 @@ namespace MasterPotion
             if (served[guestIndex]) return;
             served[guestIndex] = true;
             var name = OutGameUIData.Guests[guestIndex].name;
+            // 流通循环：完成客人服务 → 产出货币 + 积累声望
+            HouseEconomy.CompleteGuestService();
+            if (visitorStage != null) visitorStage.NotifyServed(guestIndex);
             CloseDialogue();
             RebuildGuestChrome();
-            ShowToast(name + " 的访客事件已完成 · 其他客人仍可自由选择");
+            UpdateEconomyHud();
+            AutoSave();
+            ShowToast($"{name} 的服务已完成 · ◈ +{HouseEconomy.ServiceCurrencyReward} · 声望 +{HouseEconomy.ServiceReputationReward}");
+        }
+
+        private void RefuseGuest()
+        {
+            if (served[guestIndex]) return;
+            served[guestIndex] = true;
+            refused[guestIndex] = true;
+            var name = OutGameUIData.Guests[guestIndex].name;
+            // 流通循环：拒绝服务客人 → 扣除声望
+            HouseEconomy.RefuseGuestService();
+            if (visitorStage != null) visitorStage.NotifyRefused(guestIndex);
+            CloseDialogue();
+            RebuildGuestChrome();
+            UpdateEconomyHud();
+            AutoSave();
+            ShowToast($"已婉拒 {name} 的委托 · 声望 -{HouseEconomy.RefuseReputationPenalty}");
+        }
+
+        private void EndWeek()
+        {
+            var missed = 0;
+            for (var i = 0; i < served.Length; i++)
+                if (!served[i]) missed++;
+            // 流通循环：周结算时未完成的客人服务 → 扣除声望
+            HouseEconomy.FailGuestServices(missed);
+            for (var i = 0; i < served.Length; i++)
+            {
+                served[i] = false;
+                refused[i] = false;
+                guestArrived[i] = false;
+            }
+            OutGameClock.NextDay(); // 周结算跳到下一天早晨，访客按各自拜访时间重新进场
+            CloseDialogue();
+            RebuildGuestChrome();
+            BuildVisitorStage(); // 新的一周 → 访客整体刷新，重新从大门进场
+            UpdateEconomyHud();
+            AutoSave();
+            ShowToast(missed > 0
+                ? $"本周结束 · {missed} 项服务未完成，声望 -{missed * HouseEconomy.FailReputationPenalty}"
+                : "本周结束 · 所有访客服务全部完成！新的一周开始了");
         }
 
         private void RebuildGuestChrome()
@@ -1336,6 +1863,7 @@ namespace MasterPotion
             CloseDialogue();
             ClosePanelImmediate();
             openedPanel = panel;
+            if (TryOpenPanelPage(panel)) return;
             var panelPrefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.SystemPanel);
             if (panelPrefab != null)
             {
@@ -1373,6 +1901,69 @@ namespace MasterPotion
             panelImage.rectTransform.DOAnchorPosX(-PanelWidth / 2, .42f).SetTarget(this).SetEase(Ease.OutCubic).SetUpdate(true);
             BuildPanelHeader(panelImage.transform, panel);
             BuildPanelContent(panelImage.transform, panel);
+        }
+
+        /// <summary>整页面板 Prefab 优先：外壳（遮罩/滑入/头部）来自 Prefab，内容按面板类型绑定。缺失时回退共享壳。</summary>
+        private bool TryOpenPanelPage(SystemPanel panel)
+        {
+            string path;
+            switch (panel)
+            {
+                case SystemPanel.Calendar: path = OutGamePrefabResourcePaths.CalendarPage; break;
+                case SystemPanel.Tasks: path = OutGamePrefabResourcePaths.TasksPage; break;
+                case SystemPanel.Device: path = OutGamePrefabResourcePaths.DevicePage; break;
+                case SystemPanel.Journal: path = OutGamePrefabResourcePaths.JournalPage; break;
+                case SystemPanel.Archive: path = OutGamePrefabResourcePaths.ArchivePage; break;
+                default: return false;
+            }
+            var prefab = Resources.Load<GameObject>(path);
+            if (prefab == null) return false;
+            var instance = Instantiate(prefab, HubOverlayRoot, false);
+            instance.name = "SystemPanelLayer";
+            var page = instance.GetComponent<OutGamePanelPageView>();
+            if (page == null)
+            {
+                Destroy(instance);
+                return false;
+            }
+            modalRoot = instance.transform as RectTransform;
+            modalRoot.SetAsLastSibling();
+            activeSystemPanel = null;
+
+            var meta = PanelMeta(panel);
+            if (page.headerTitle != null) page.headerTitle.text = $"<size=14>{meta.eyebrow}</size>\n{meta.title}";
+            if (page.headerMark != null) page.headerMark.text = meta.mark;
+            if (page.backButton != null) BindButton(page.backButton, ClosePanel);
+            if (page.scrimButton != null)
+            {
+                page.scrimButton.onClick.RemoveAllListeners();
+                page.scrimButton.onClick.AddListener(ClosePanel);
+            }
+            if (page.scrim != null)
+            {
+                page.scrim.color = new Color(.005f, .008f, .02f, 0);
+                page.scrim.DOFade(.62f, .25f).SetTarget(this).SetUpdate(true);
+            }
+            if (page.panel != null)
+            {
+                // 以 Prefab 作者摆放的位置为静止点，按面板实际宽度计算滑入距离——改 Prefab 尺寸后动画自动适配
+                var panelRect = page.panel.rectTransform;
+                var restingPosition = panelRect.anchoredPosition;
+                panelRect.anchoredPosition = new Vector2(restingPosition.x + panelRect.rect.width + 80, restingPosition.y);
+                panelRect.DOAnchorPosX(restingPosition.x, .42f).SetTarget(this)
+                    .SetEase(Ease.OutCubic).SetUpdate(true);
+            }
+
+            switch (panel)
+            {
+                case SystemPanel.Calendar: BindCalendarPanel(instance.GetComponentInChildren<OutGameCalendarPanelView>()); break;
+                case SystemPanel.Tasks: BindTasksPanel(instance.GetComponentInChildren<OutGameTasksPanelView>()); break;
+                case SystemPanel.Device: BindDevicePanel(instance.GetComponentInChildren<OutGameDevicePanelView>()); break;
+                case SystemPanel.Journal: BindJournalPanel(instance.GetComponentInChildren<OutGameJournalPanelView>()); break;
+                case SystemPanel.Archive: BindArchivePanel(instance.GetComponentInChildren<OutGameArchivePanelView>()); break;
+            }
+            ApplyFallbackFont(instance.transform);
+            return true;
         }
 
         private void ClosePanel()
@@ -1448,6 +2039,22 @@ namespace MasterPotion
 
         private void BuildTasksPanel(Transform content)
         {
+            var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.TasksPanel);
+            if (prefab != null)
+            {
+                var instance = Instantiate(prefab, content, false);
+                instance.name = "TasksContent";
+                CenterPanelContent(instance);
+                var view = instance.GetComponent<OutGameTasksPanelView>();
+                if (view != null)
+                {
+                    BindTasksPanel(view);
+                    ApplyFallbackFont(instance.transform);
+                    return;
+                }
+                Destroy(instance);
+            }
+            Debug.LogWarning("[OutGameUI] Prefab 缺失，暂时回退代码布局：" + OutGamePrefabResourcePaths.TasksPanel);
             var guest = OutGameUIData.Guests[guestIndex];
             var focus = DarkCard(content, "Focus", new Vector2(0, 270), new Vector2(1120, 220), new Color(.3f, .06f, .2f, .45f));
             F.Label(focus, "Text", $"<color=#E22D76>●  MAIN / {guest.type}</color>\n<size=28>{guest.name} · {guest.need}</size>\n<size=17>{guest.hint} 推荐使用「{guest.solution}」，完成后可能留下「{guest.gift}」。</size>",
@@ -1463,6 +2070,34 @@ namespace MasterPotion
             var progress = DarkCard(content, "Progress", new Vector2(0, -305), new Vector2(1120, 105), new Color(.12f, .06f, .1f, .8f));
             F.Label(progress, "Text", "本周 House 进度                                      37%\n<color=#E22D76>━━━━━━━━━━━━━━━━━━━━</color>",
                 19, F.White, TextAnchor.MiddleCenter, FontStyle.Bold);
+        }
+
+        /// <summary>面板内容 Prefab 统一按内容区中心对齐。</summary>
+        private static void CenterPanelContent(GameObject instance)
+        {
+            if (instance.transform is RectTransform rect)
+            {
+                rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
+                rect.anchoredPosition = Vector2.zero;
+                rect.localScale = Vector3.one;
+            }
+        }
+
+        private void BindTasksPanel(OutGameTasksPanelView view)
+        {
+            if (view == null) return;
+            var guest = OutGameUIData.Guests[guestIndex];
+            if (view.focusText != null)
+                view.focusText.text = $"<color=#E22D76>●  MAIN / {guest.type}</color>\n<size=28>{guest.name} · {guest.need}</size>\n<size=17>{guest.hint} 推荐使用「{guest.solution}」，完成后可能留下「{guest.gift}」。</size>";
+            var tasks = new[] { "为赫墨制造琴弦窗户", "把米娅的纸条挂上风铃", "检查明日访客预告" };
+            for (var i = 0; i < tasks.Length; i++)
+            {
+                var task = tasks[i];
+                if (view.taskLabels != null && i < view.taskLabels.Length && view.taskLabels[i] != null)
+                    view.taskLabels[i].text = $"0{i + 2}     {task}                         {(i == 2 ? "未解锁" : "进行中")}";
+                if (view.taskButtons != null && i < view.taskButtons.Length && view.taskButtons[i] != null)
+                    BindButton(view.taskButtons[i], () => ShowToast("已追踪：" + task));
+            }
         }
 
         private void BuildDevicePanel(Transform content)
@@ -1590,8 +2225,154 @@ namespace MasterPotion
             }
         }
 
+        private void BindDevicePanel(OutGameDevicePanelView view)
+        {
+            if (view == null) return;
+            for (var i = 0; i < 4; i++)
+            {
+                var index = i;
+                var room = OutGameUIData.Rooms[i];
+                if (view.roomLabels != null && i < view.roomLabels.Length && view.roomLabels[i] != null)
+                    view.roomLabels[i].text = room.name + $"\n<size=12>{OutGameUIData.Devices[i].Length} DEVICES</size>";
+                if (view.roomBackgrounds != null && i < view.roomBackgrounds.Length && view.roomBackgrounds[i] != null)
+                    view.roomBackgrounds[i].color = roomIndex == i ? F.Wine : new Color(1, 1, 1, .035f);
+                if (view.roomButtons != null && i < view.roomButtons.Length && view.roomButtons[i] != null)
+                    BindButton(view.roomButtons[i], () => { roomIndex = index; selectedDevice = 0; OpenPanel(SystemPanel.Device); });
+            }
+            var devices = OutGameUIData.Devices[roomIndex];
+            if (view.deviceCardsRoot != null)
+            {
+                for (var i = 0; i < devices.Length; i++)
+                {
+                    var index = i;
+                    var parts = devices[i].Split('|');
+                    F.Button(view.deviceCardsRoot, "Device" + i,
+                        $"⚙\n<size=13>{parts[1]} · {(parts[3] == "1" ? "可使用" : "待修复")}</size>\n{parts[0]}\n<size=14>{parts[2]}</size>",
+                        () => { selectedDevice = index; OpenPanel(SystemPanel.Device); },
+                        new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(-120 + i * 270, -155), new Vector2(245, 270),
+                        selectedDevice == i ? new Color(.38f, .08f, .24f, .75f) : new Color(1, 1, 1, .045f), F.White, 21, TextAnchor.MiddleCenter);
+                }
+            }
+            var chosen = devices[Mathf.Clamp(selectedDevice, 0, devices.Length - 1)].Split('|');
+            if (view.recipeText != null)
+                view.recipeText.text = $"<size=13>当前设备</size>\n<size=30>{chosen[0]}</size>\n{chosen[2]}\n\n咖啡豆 ×2     温水 ×1";
+            var ready = chosen[3] == "1";
+            if (view.makeButton != null)
+            {
+                if (view.makeLabel != null) view.makeLabel.text = ready ? "开始制作" : "需要修复";
+                var background = view.makeButton.targetGraphic as Image;
+                if (background != null) background.color = ready ? F.Wine : F.Hex("49434A");
+                BindButton(view.makeButton, () => ShowToast(chosen[0] + " 已开始运作"));
+                view.makeButton.interactable = ready;
+            }
+        }
+
+        private void BindJournalPanel(OutGameJournalPanelView view)
+        {
+            if (view == null) return;
+            for (var i = 0; i < 2; i++)
+            {
+                var toAchievements = i == 1;
+                if (view.tabBackgrounds != null && i < view.tabBackgrounds.Length && view.tabBackgrounds[i] != null)
+                    view.tabBackgrounds[i].color = journalAchievements == toAchievements ? F.Wine : new Color(1, 1, 1, .04f);
+                if (view.tabButtons != null && i < view.tabButtons.Length && view.tabButtons[i] != null)
+                    BindButton(view.tabButtons[i], () => { journalAchievements = toAchievements; OpenPanel(SystemPanel.Journal); });
+            }
+            if (view.bodyRoot == null) return;
+            if (!journalAchievements)
+            {
+                DarkArticle(view.bodyRoot, new Vector2(-280, 90), "06 / 17 · 雨转晴", "窗户唱回来的那句话",
+                    "赫墨说“今天糟透了”。琴弦轻轻响了一下，唱回：“但你还是走到了这里。”\n\n关键词：琴弦窗户 / 反向情绪");
+                DarkArticle(view.bodyRoot, new Vector2(300, 90), "06 / 16 · 阴", "风铃下的纸条",
+                    "米娅没有说再见，只留下一张画着胡萝卜的小纸条。");
+            }
+            else
+            {
+                var names = new[] { "夜的主人", "初次相识", "家的轮廓", "无人知晓" };
+                var notes = new[] { "在深夜完成一次服务", "录入 3 位访客", "解锁全部房间", "发现特殊访客的秘密" };
+                for (var i = 0; i < 4; i++)
+                {
+                    var done = i < 2;
+                    F.Button(view.bodyRoot, "JournalAchievement" + i,
+                        $"{(done ? "✓" : (i + 1).ToString())}     {names[i]}\n<size=15>          {notes[i]}</size>", null,
+                        new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(i % 2 == 0 ? -280 : 300, 150 - i / 2 * 210),
+                        new Vector2(520, 170), done ? new Color(.4f, .08f, .25f, .6f) : new Color(1, 1, 1, .035f), F.White, 23, TextAnchor.MiddleLeft);
+                }
+            }
+        }
+
+        private void BindArchivePanel(OutGameArchivePanelView view)
+        {
+            if (view == null) return;
+            for (var i = 0; i < 2; i++)
+            {
+                var toWorld = i == 1;
+                if (view.tabBackgrounds != null && i < view.tabBackgrounds.Length && view.tabBackgrounds[i] != null)
+                    view.tabBackgrounds[i].color = archiveWorld == toWorld ? F.Wine : new Color(1, 1, 1, .04f);
+                if (view.tabButtons != null && i < view.tabButtons.Length && view.tabButtons[i] != null)
+                    BindButton(view.tabButtons[i], () => { archiveWorld = toWorld; selectedArchive = 0; OpenPanel(SystemPanel.Archive); });
+            }
+            var items = archiveWorld ? OutGameUIData.World : OutGameUIData.Furniture;
+            selectedArchive = Mathf.Clamp(selectedArchive, 0, items.Length - 1);
+            if (view.gridRoot != null)
+            {
+                for (var i = 0; i < items.Length; i++)
+                {
+                    var index = i;
+                    var item = items[i];
+                    var card = F.Button(view.gridRoot, "Archive" + i, $"0{i + 1} / {item.type}\n{item.name}\n<size=13>{item.owner}</size>",
+                        () => { selectedArchive = index; OpenPanel(SystemPanel.Archive); }, new Vector2(0, 1), new Vector2(0, 1),
+                        new Vector2(135 + i % 2 * 235, -165 - i / 2 * 235), new Vector2(215, 215),
+                        selectedArchive == i ? new Color(.42f, .08f, .28f, .72f) : new Color(1, 1, 1, .04f), F.White, 17, TextAnchor.LowerCenter);
+                    var art = F.Texture(card.transform, "Art", item.image, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -70), new Vector2(180, 110));
+                    art.raycastTarget = false;
+                }
+            }
+            var selected = items[selectedArchive];
+            if (view.detailPreview != null) view.detailPreview.texture = Resources.Load<Texture2D>(selected.image);
+            if (view.detailText != null)
+                view.detailText.text = $"<size=13>{selected.type} · {selected.owner}</size>\n<size=32>{selected.name}</size>\n{(selected.id == "map" ? $"角色移动时，以当前位置为中心永久揭开迷雾。当前探索半径 {fogRadius} 米。" : selected.note)}";
+            if (view.actionRoot == null) return;
+            if (!archiveWorld)
+            {
+                F.Button(view.actionRoot, "Place", "放入房间", () => { placedFurniture = selected.id; ShowToast(selected.name + " 已加入访客房间快捷栏"); },
+                    new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 45), new Vector2(300, 62), F.Wine, F.White, 20);
+            }
+            else if (selected.id == "map")
+            {
+                for (var i = 0; i < 4; i++)
+                {
+                    var radius = (i + 1) * 5;
+                    F.Button(view.actionRoot, "Radius" + radius, radius + "m", () => { fogRadius = radius; OpenPanel(SystemPanel.Archive); },
+                        new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(-180 + i * 120, 45), new Vector2(105, 55),
+                        fogRadius == radius ? F.Wine : new Color(1, 1, 1, .04f), F.White, 17);
+                }
+            }
+            else
+            {
+                F.Button(view.actionRoot, "Track", "追踪这份资料", () => ShowToast(selected.name + " 已设为追踪资料"),
+                    new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 45), new Vector2(300, 62), new Color(1, 1, 1, .04f), F.White, 19);
+            }
+        }
+
         private void BuildCalendarPanel(Transform content)
         {
+            var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.CalendarPanel);
+            if (prefab != null)
+            {
+                var instance = Instantiate(prefab, content, false);
+                instance.name = "CalendarContent";
+                CenterPanelContent(instance);
+                var view = instance.GetComponent<OutGameCalendarPanelView>();
+                if (view != null)
+                {
+                    BindCalendarPanel(view);
+                    ApplyFallbackFont(instance.transform);
+                    return;
+                }
+                Destroy(instance);
+            }
+            Debug.LogWarning("[OutGameUI] Prefab 缺失，暂时回退代码布局：" + OutGamePrefabResourcePaths.CalendarPanel);
             var now = DateTime.Now;
             var phase = OutGameUIData.CurrentPhase;
             var date = DarkCard(content, "BigDate", new Vector2(-385, 195), new Vector2(340, 330), new Color(.34f, .07f, .22f, .65f));
@@ -1606,7 +2387,7 @@ namespace MasterPotion
                 var col = cell % 7;
                 var row = cell / 7;
                 F.Button(content, "Day" + day, day.ToString(), null, new Vector2(.5f, 1), new Vector2(.5f, 1),
-                    new Vector2(-185 + col * 78, -90 - row * 64), new Vector2(68, 54), day == now.Day ? F.Wine : new Color(1, 1, 1, .035f), F.White, 16);
+                    new Vector2(-180 + col * 64, -90 - row * 64), new Vector2(58, 54), day == now.Day ? F.Wine : new Color(1, 1, 1, .035f), F.White, 16);
             }
             var schedule = DarkCard(content, "Schedule", new Vector2(405, 20), new Vector2(330, 690), new Color(.08f, .04f, .075f, .86f));
             F.Label(schedule, "ScheduleTitle", "现实时间阶段", 24, F.White, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -40), new Vector2(270, 40), TextAnchor.MiddleCenter, FontStyle.Bold);
@@ -1618,6 +2399,59 @@ namespace MasterPotion
             }
             F.Button(schedule, "Sync", "同步现实时间", () => { ShowToast("已同步现实时间 · " + DateTime.Now.ToString("HH:mm")); OpenPanel(SystemPanel.Calendar); },
                 new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 68), new Vector2(260, 56), F.Wine, F.White, 18);
+        }
+
+        private void BindCalendarPanel(OutGameCalendarPanelView view)
+        {
+            if (view == null) return;
+            var now = DateTime.Now;
+            var phase = OutGameUIData.CurrentPhase;
+            if (view.dateText != null)
+                view.dateText.text = $"{now:yyyy / MMMM}\n<size=100>{now:dd}</size>\n{now:dddd} · {OutGameUIData.PhaseNames[phase]}\n<size=28>{now:HH:mm}</size>";
+            var firstOfMonth = new DateTime(now.Year, now.Month, 1);
+            var weekOffset = ((int)firstOfMonth.DayOfWeek + 6) % 7;
+            var daysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
+            var hasBakedCells = view.dayCells != null && view.dayCells.Length > 0 && view.dayCells[0] != null;
+            if (hasBakedCells)
+            {
+                // Prefab 烘焙槽位：只设置数字、显隐与今日高亮
+                for (var i = 0; i < view.dayCells.Length; i++)
+                {
+                    if (view.dayCells[i] == null) continue;
+                    var day = i - weekOffset + 1;
+                    var visible = day >= 1 && day <= daysInMonth;
+                    view.dayCells[i].gameObject.SetActive(visible);
+                    if (!visible) continue;
+                    if (view.dayCellLabels != null && i < view.dayCellLabels.Length && view.dayCellLabels[i] != null)
+                        view.dayCellLabels[i].text = day.ToString();
+                    if (view.dayCellBackgrounds != null && i < view.dayCellBackgrounds.Length && view.dayCellBackgrounds[i] != null)
+                        view.dayCellBackgrounds[i].color = day == now.Day ? F.Wine : new Color(1, 1, 1, .035f);
+                }
+            }
+            else if (view.dayGridRoot != null)
+            {
+                // 旧版 Prefab 兜底：运行时生成
+                for (var day = 1; day <= daysInMonth; day++)
+                {
+                    var cell = weekOffset + day - 1;
+                    F.Button(view.dayGridRoot, "Day" + day, day.ToString(), null, new Vector2(.5f, 1), new Vector2(.5f, 1),
+                        new Vector2(-180 + cell % 7 * 64, -90 - cell / 7 * 64), new Vector2(58, 54),
+                        day == now.Day ? F.Wine : new Color(1, 1, 1, .035f), F.White, 16);
+                }
+            }
+            for (var i = 0; i < 6; i++)
+            {
+                if (view.phaseLabels != null && i < view.phaseLabels.Length && view.phaseLabels[i] != null)
+                    view.phaseLabels[i].text = $"{OutGameUIData.PhaseNames[i]}   <size=13>{OutGameUIData.PhaseRanges[i]}</size>       {(i == 5 ? "休息" : "可服务")}";
+                if (view.phaseBackgrounds != null && i < view.phaseBackgrounds.Length && view.phaseBackgrounds[i] != null)
+                    view.phaseBackgrounds[i].color = phase == i ? F.Wine : new Color(1, 1, 1, .035f);
+            }
+            if (view.syncButton != null)
+                BindButton(view.syncButton, () =>
+                {
+                    ShowToast("已同步现实时间 · " + DateTime.Now.ToString("HH:mm"));
+                    OpenPanel(SystemPanel.Calendar);
+                });
         }
 
         private void BuildInventoryPanel(Transform content)
@@ -1666,21 +2500,94 @@ namespace MasterPotion
 
         private void BuildMarketPanel(Transform content)
         {
-            var wallet = DarkCard(content, "Wallet", new Vector2(-390, 270), new Vector2(320, 180), new Color(.35f, .07f, .22f, .58f));
-            F.Label(wallet, "WalletText", "<size=13>HOUSE CREDIT</size>\n<size=45>2,480</size>\n本周收入 +680", 19, F.White, TextAnchor.MiddleCenter, FontStyle.Bold);
-            var names = new[] { "旧式咖啡磨", "窗边吊灯", "访客线索包", "记忆匣" };
-            var types = new[] { "设备", "装饰", "线索", "抽取 ×1" };
-            var prices = new[] { "680", "420", "180", "300" };
-            for (var i = 0; i < 4; i++)
+            var wallet = DarkCard(content, "Wallet", new Vector2(-370, 330), new Vector2(400, 130), new Color(.35f, .07f, .22f, .58f));
+            F.Label(wallet, "WalletText",
+                $"<size=13>流通数值</size>\n<size=28><color=#E3A869>◈ {HouseEconomy.Currency:N0}</color></size>\n<color=#74D8D1>声望 {HouseEconomy.Reputation}</color>    <color=#E22D76>装饰分 {HouseEconomy.DecorationScore}</color>",
+                18, F.White, TextAnchor.MiddleCenter, FontStyle.Bold);
+            F.Label(content, "MarketNote",
+                "商城 · 装饰品货架：声望解禁货架（未解禁呈「？」），货币购买；已购家具会出现在「家具摆放」的收纳栏。设备货架待投放方式确定后开放。",
+                16, new Color(1, 1, 1, .66f), new Vector2(.5f, 1), new Vector2(.5f, 1),
+                new Vector2(210, -60), new Vector2(700, 70), TextAnchor.MiddleLeft);
+
+            var table = Resources.Load<FurnitureTable>("OutGameUI/FurnitureTable");
+            if (table == null || table.entries.Count == 0)
             {
-                var index = i;
-                F.Button(content, "Market" + i, $"◇\n<size=13>{types[i]}</size>\n{names[i]}\n<color=#E3A869>◈ {prices[i]}</color>",
-                    () => ShowToast(index == 3 ? "演示抽取：获得「蓝色干花」" : names[index] + " 已加入愿望单"),
-                    new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(-390 + i * 270, 0), new Vector2(245, 330),
-                    new Color(.1f + i * .025f, .04f, .09f + i * .02f, .86f), F.White, 22);
+                F.Label(content, "Missing", "家具配置表缺失：请执行菜单 MasterPotion → 家具系统 → 创建配置表",
+                    20, F.White, TextAnchor.MiddleCenter);
+                return;
             }
-            F.Label(content, "Note", "Demo 经济循环：服务访客 → 获得信用点 → 购买设备与线索 → 解锁新的访客响应。", 18, new Color(1, 1, 1, .7f),
-                new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 80), new Vector2(1000, 50), TextAnchor.MiddleCenter);
+            for (var i = 0; i < table.entries.Count; i++)
+            {
+                var entry = table.entries[i];
+                if (entry == null) continue;
+                var position = new Vector2(-472 + i % 5 * 236, 130 - i / 5 * 235);
+                BuildMarketCard(content, entry, position);
+            }
+        }
+
+        private void BuildMarketCard(Transform content, FurnitureEntry entry, Vector2 position)
+        {
+            var owned = HouseEconomy.IsFurnitureOwned(entry.id);
+            var revealed = HouseEconomy.IsFurnitureRevealed(entry);
+            string caption;
+            Color background;
+            if (!revealed)
+            {
+                // 文档：未解禁 Item 在商城/图鉴中呈「？」状态
+                caption = $"<size=42>？</size>\n<size=14>声望 {entry.unlockReputation} 解禁</size>";
+                background = new Color(.06f, .05f, .08f, .85f);
+            }
+            else if (owned)
+            {
+                caption = $"\n\n\n<size=17>{entry.displayName}</size>\n<size=14><color=#9AE2B8>已拥有</color></size>";
+                background = new Color(.05f, .07f, .06f, .8f);
+            }
+            else
+            {
+                caption = $"\n\n\n<size=17>{entry.displayName}</size>\n<color=#E3A869>◈ {entry.price}</color>";
+                background = new Color(.1f, .04f, .09f, .86f);
+            }
+            var button = F.Button(content, "Market_" + entry.id, caption, () =>
+                {
+                    if (!HouseEconomy.IsFurnitureRevealed(entry))
+                    {
+                        ShowToast($"声望达到 {entry.unlockReputation} 后解禁（当前 {HouseEconomy.Reputation}）");
+                        return;
+                    }
+                    if (HouseEconomy.IsFurnitureOwned(entry.id))
+                    {
+                        ShowToast($"「{entry.displayName}」已拥有，可在「家具摆放」中使用");
+                        return;
+                    }
+                    if (HouseEconomy.TryPurchaseFurniture(entry) == FurniturePurchaseResult.Success)
+                    {
+                        AutoSave();
+                        ShowToast($"已购入「{entry.displayName}」 · ◈ -{entry.price}");
+                        RefreshMarketPanel(content);
+                    }
+                    else
+                    {
+                        ShowToast("货币不足：完成客人服务可以获得 ◈");
+                    }
+                },
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), position, new Vector2(220, 215), background, F.White, 18);
+            if (revealed && entry.sprite != null)
+            {
+                var thumb = F.Rect(button.transform, "Thumb", new Vector2(.5f, 1), new Vector2(.5f, 1),
+                    new Vector2(0, -60), new Vector2(130, 95));
+                var image = thumb.gameObject.AddComponent<Image>();
+                image.sprite = entry.sprite;
+                image.preserveAspect = true;
+                image.raycastTarget = false;
+                if (owned) image.color = new Color(1, 1, 1, .45f);
+            }
+        }
+
+        private void RefreshMarketPanel(Transform content)
+        {
+            for (var i = content.childCount - 1; i >= 0; i--)
+                Destroy(content.GetChild(i).gameObject);
+            BuildMarketPanel(content);
         }
 
         #endregion
@@ -1831,9 +2738,31 @@ namespace MasterPotion
             roomIndex = 0;
             for (var i = 0; i < OutGameUIData.Rooms.Length; i++) if (OutGameUIData.Rooms[i].id == data.room) roomIndex = i;
             for (var i = 0; i < served.Length; i++) served[i] = data.served != null && i < data.served.Length && data.served[i];
+            for (var i = 0; i < refused.Length; i++)
+                refused[i] = data.version >= 2 && data.refused != null && i < data.refused.Length && data.refused[i];
+            // v3 起存档包含游戏时钟与访客到访状态；旧档回落到第 1 天早晨、访客未到访
+            for (var i = 0; i < guestArrived.Length; i++)
+                guestArrived[i] = data.version >= 3 && data.guestArrived != null && i < data.guestArrived.Length && data.guestArrived[i];
+            if (data.version >= 3) OutGameClock.Restore(data.gameDay, data.gameMinute);
+            else OutGameClock.Reset();
             bgm = data.bgm;
             sfx = data.sfx;
             windowMode = string.IsNullOrEmpty(data.windowMode) ? "无边框" : data.windowMode;
+            // v2 起存档包含流通数值与家具布局；旧档回落到配置表默认值，避免带入上一局的会话状态
+            if (data.version >= 2)
+            {
+                HouseEconomy.Restore(data.economy);
+                FurnitureRoomController.RestoreSessionPlacements(data.hasFurnitureLayout ? data.furniturePlacements : null);
+                if (data.hasFurnitureLayout) FurnitureSceneComposer.RequestBake(_ => { ApplySceneArt(); BuildFurnitureHotspots(); });
+                else FurnitureSceneComposer.ClearBaked();
+            }
+            else
+            {
+                HouseEconomy.ResetToDefaults();
+                FurnitureRoomController.ResetSession();
+                FurnitureSceneComposer.ClearBaked();
+            }
+            UpdateEconomyHud();
         }
 
         private void ResetProgress()
@@ -1842,23 +2771,45 @@ namespace MasterPotion
             guestIndex = 0;
             selectedDevice = 0;
             for (var i = 0; i < served.Length; i++) served[i] = false;
+            for (var i = 0; i < refused.Length; i++) refused[i] = false;
+            for (var i = 0; i < guestArrived.Length; i++) guestArrived[i] = false;
+            OutGameClock.Reset();
+            // 新游戏必须重置会话级状态，避免上一局的货币/声望/家具污染新档
+            HouseEconomy.ResetToDefaults();
+            FurnitureRoomController.ResetSession();
+            FurnitureSceneComposer.ClearBaked();
+            UpdateEconomyHud();
         }
 
         private void SaveCurrent()
         {
+            SaveCurrent(false);
+        }
+
+        private void SaveCurrent(bool silent)
+        {
+            var placements = FurnitureRoomController.CaptureSessionPlacements();
             var data = new OutGameSaveData
             {
+                version = 3,
                 slot = activeSlot,
                 room = OutGameUIData.Rooms[roomIndex].id,
                 served = (bool[])served.Clone(),
+                refused = (bool[])refused.Clone(),
+                guestArrived = (bool[])guestArrived.Clone(),
+                gameDay = OutGameClock.Day,
+                gameMinute = OutGameClock.MinuteOfDay,
                 bgm = bgm,
                 sfx = sfx,
                 windowMode = windowMode,
-                savedAt = DateTime.Now.ToString("O", CultureInfo.InvariantCulture)
+                savedAt = DateTime.Now.ToString("O", CultureInfo.InvariantCulture),
+                economy = HouseEconomy.Capture(),
+                hasFurnitureLayout = placements != null,
+                furniturePlacements = placements ?? new System.Collections.Generic.List<FurniturePlacementConfig>(),
             };
             PlayerPrefs.SetString(SavePrefix + activeSlot, JsonUtility.ToJson(data));
             PlayerPrefs.Save();
-            ShowToast($"进度已保存到本机 · Slot 0{activeSlot}");
+            if (!silent) ShowToast($"进度已保存到本机 · Slot 0{activeSlot}");
         }
 
         private void LoadCurrent()
