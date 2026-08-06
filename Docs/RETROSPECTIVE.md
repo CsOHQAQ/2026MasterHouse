@@ -210,6 +210,30 @@ if (component == null) component = go.AddComponent<CanvasGroup>();
 - 最小检测：只修改 `HubGuestCard.prefab` 的头像尺寸，重新 Play 后四个访客条目应同步变化，点击逻辑保持有效
 - 关联文件：`Assets/Resources/OutGameUI/Prefabs/Hub*.prefab`、`Assets/Scripts/UI/OutGameHub*View.cs`
 
+### RETRO-017 · URP 运行时合成图不要用临时相机渲 RT
+
+- 标签：`Unity` `URP` `RenderTexture` `烘焙`
+- 触发场景：退出家具摆放模式时，把「背景+家具」合成为 RenderTexture 作为 Hub 场景背景
+- 现象：合成图整张透明，场景 RawImage 换上它之后背景「消失」，露出后面的节点玩法棋盘和画布工具栏
+- 根因：URP 下不能调用 `Camera.Render()`，改用「创建启用相机 + WaitForEndOfFrame 等待渲染」的方案，但临时相机在 SRP 渲染循环中的实际渲染时机不可控，相机销毁前 RT 从未被写入（未初始化内容为透明），而代码在等待后无条件置 `hasBake=true`
+- 误导信号：代码逻辑看似正确（相机参数、层级、坐标都对），离线编译通过；透明 RT 在 UI 上表现为「背景没了」而不是黑图，容易误判为 RawImage 或层级问题
+- 修复：放弃相机方案，用 `Graphics.SetRenderTarget + GL.LoadPixelMatrix + Graphics.DrawTexture` 按像素坐标同步绘制背景与精灵，当帧完成、结果确定；失败路径保持 `hasBake=false` 回落原图
+- 防复发规则：运行时 2D 合成一律优先同步 GPU 绘制（DrawTexture/Blit/CommandBuffer），不要依赖「临时相机存活 N 帧」的时序假设；任何烘焙成功标志必须在确认写入后再置位
+- 最小检测：烘焙后立即 `AsyncGPUReadback`/抽样读取 RT 任一像素 alpha > 0，或目视合成图非透明
+- 关联文件：`Assets/Scripts/Furniture/FurnitureSceneComposer.cs`
+
+### RETRO-016 · 离线 Roslyn 编译追加源文件前必须补末行换行
+
+- 标签：`编译` `离线验证` `rsp`
+- 触发场景：复用 `Library/Bee/artifacts/*/Assembly-CSharp.rsp` 做离线编译，往副本末尾追加新增 `.cs` 文件
+- 现象：新文件全部报 CS0246 找不到类型，且出现一条把 `.AdditionalFile.txt` 与第一个新文件路径拼接在一起的 CS2001
+- 根因：Unity 生成的 rsp 末行没有换行符，`cat >>` 追加的第一行与原末行拼成一条非法参数
+- 误导信号：CS0246 看起来像命名空间/引用配置错误，容易去排查 using 与程序集引用
+- 修复：追加前先 `printf '\n'` 补一个换行，再写入新文件列表
+- 防复发规则：任何“复制 rsp + 追加文件”的离线编译流程，第一步固定补末行换行；出现首个新增文件路径被拼接的 CS2001 时优先怀疑此问题
+- 最小检测：`tail -c 1` 检查 rsp 副本末字节是否为换行
+- 关联文件：`Library/Bee/artifacts/*/Assembly-CSharp*.rsp`（离线验证流程）
+
 ### RETRO-015 · Prefab 迁移必须同时保留视觉、交互与动效行为
 
 - 标签：`Unity` `Prefab` `DOTween` `回归`
