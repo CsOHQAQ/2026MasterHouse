@@ -109,7 +109,7 @@ namespace MasterHouse.EditorTools
 
             // 原点 (0,0) 标记——保存时形状归一化到这里
             var originRect = CellRect(rect, Vector2Int.zero);
-            DrawBorder(originRect, 2, kColOrigin);
+            CanvasDrawUtil.DrawBorder(originRect, 2, kColOrigin);
             GUI.Label(new Rect(originRect.x, originRect.yMax - 14, 30, 14), "0,0", _pinLabelStyle);
 
             // Pin 标记
@@ -124,77 +124,15 @@ namespace MasterHouse.EditorTools
                     : p.Pin.ItemType != null ? p.Pin.ItemType.DisplayColor : kColNoItemPin;
 
                 var r = CellRect(rect, p.LocalCell);
-                DrawPinMarker(r, p.Facing, p.Pin.Direction, col, i == SelectedPin);
+                CanvasDrawUtil.DrawPinMarker(r, p.Facing, p.Pin.Direction, col, i == SelectedPin);
 
-                var mid = EdgeMid(r, p.Facing);
+                var mid = CanvasDrawUtil.EdgeMid(r, p.Facing);
                 GUI.Label(new Rect(mid.x - 11, mid.y - 8, 22, 16), i.ToString(), _pinLabelStyle);
             }
 
             if (outOfView > 0)
                 GUI.Label(new Rect(rect.x + 4, rect.y + 2, rect.width - 8, 16),
                     $"⚠ 有 {outOfView} 个格子/Pin 在视野外（负坐标可点「保存（归一化）」拉回原点）", _hintStyle);
-        }
-
-        /// <summary>
-        /// 在格子朝向边上画 Pin 标记：输出=指向外的三角，输入=指向内的三角，
-        /// 同步（中转配对 Pin）=菱形；选中时加白色描边。
-        /// </summary>
-        void DrawPinMarker(Rect cellRect, EDirection4 facing, EPinDirection dir, Color color, bool selected)
-        {
-            Vector2 mid = EdgeMid(cellRect, facing);
-            Vector2 outward = EdgeOutward(facing);
-            Vector2 tangent = new Vector2(-outward.y, outward.x);
-            float s = CellSize * 0.26f;
-
-            Vector3[] pts;
-            if (dir == EPinDirection.Output)
-            {
-                pts = new Vector3[]
-                {
-                    mid + outward * s,
-                    mid - outward * s * 0.3f + tangent * s * 0.8f,
-                    mid - outward * s * 0.3f - tangent * s * 0.8f,
-                };
-            }
-            else if (dir == EPinDirection.Input)
-            {
-                pts = new Vector3[]
-                {
-                    mid - outward * s,
-                    mid + outward * s * 0.3f + tangent * s * 0.8f,
-                    mid + outward * s * 0.3f - tangent * s * 0.8f,
-                };
-            }
-            else
-            {
-                pts = new Vector3[]
-                {
-                    mid + outward * s * 0.8f,
-                    mid + tangent * s * 0.8f,
-                    mid - outward * s * 0.8f,
-                    mid - tangent * s * 0.8f,
-                };
-            }
-
-            Handles.color = color;
-            Handles.DrawAAConvexPolygon(pts);
-
-            if (selected)
-            {
-                var loop = new Vector3[pts.Length + 1];
-                pts.CopyTo(loop, 0);
-                loop[pts.Length] = pts[0];
-                Handles.color = Color.white;
-                Handles.DrawAAPolyLine(3f, loop);
-            }
-        }
-
-        static void DrawBorder(Rect r, float w, Color c)
-        {
-            EditorGUI.DrawRect(new Rect(r.x, r.y, r.width, w), c);
-            EditorGUI.DrawRect(new Rect(r.x, r.yMax - w, r.width, w), c);
-            EditorGUI.DrawRect(new Rect(r.x, r.y, w, r.height), c);
-            EditorGUI.DrawRect(new Rect(r.xMax - w, r.y, w, r.height), c);
         }
 
         // ==================== 交互 ====================
@@ -288,28 +226,5 @@ namespace MasterHouse.EditorTools
             return new Vector2Int(x, y);
         }
 
-        /// <summary>格子朝向边的中点（GUI 坐标；格 Up = GUI 上边即 yMin）。</summary>
-        static Vector2 EdgeMid(Rect r, EDirection4 facing)
-        {
-            switch (facing)
-            {
-                case EDirection4.Up: return new Vector2(r.center.x, r.yMin);
-                case EDirection4.Right: return new Vector2(r.xMax, r.center.y);
-                case EDirection4.Down: return new Vector2(r.center.x, r.yMax);
-                default: return new Vector2(r.xMin, r.center.y);
-            }
-        }
-
-        /// <summary>朝向的 GUI 空间外法线。</summary>
-        static Vector2 EdgeOutward(EDirection4 facing)
-        {
-            switch (facing)
-            {
-                case EDirection4.Up: return new Vector2(0, -1);
-                case EDirection4.Right: return new Vector2(1, 0);
-                case EDirection4.Down: return new Vector2(0, 1);
-                default: return new Vector2(-1, 0);
-            }
-        }
     }
 }

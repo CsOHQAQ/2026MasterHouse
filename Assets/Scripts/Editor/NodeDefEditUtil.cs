@@ -64,6 +64,19 @@ namespace MasterHouse.EditorTools
             EditorUtility.SetDirty(def);
         }
 
+        /// <summary>节点类型的中文短名（各编辑器的列表/标签共用）。</summary>
+        public static string TypeName(NodeDef def)
+        {
+            switch (def)
+            {
+                case ResourceNodeDef _: return "资源";
+                case ProcessorNodeDef _: return "加工";
+                case StorageNodeDef _: return "仓库";
+                case TransitNodeDef _: return "中转";
+                default: return "未知";
+            }
+        }
+
         // ==================== Pin 规则 ====================
 
         /// <summary>该类型是否允许自由增删 Pin（§7：仓库/资源可自由调整数量与物资种类）。</summary>

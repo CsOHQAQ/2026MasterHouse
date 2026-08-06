@@ -205,17 +205,7 @@ namespace MasterHouse.EditorTools
             SetTarget(def);
         }
 
-        static string TypeName(NodeDef def)
-        {
-            switch (def)
-            {
-                case ResourceNodeDef _: return "资源";
-                case ProcessorNodeDef _: return "加工";
-                case StorageNodeDef _: return "仓库";
-                case TransitNodeDef _: return "中转";
-                default: return "未知";
-            }
-        }
+        static string TypeName(NodeDef def) => NodeDefEditUtil.TypeName(def);
 
         // ==================== 中栏：网格画布 ====================
 
