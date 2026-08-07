@@ -1,13 +1,13 @@
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>
     /// 流通数值配置表：货币 / 玩家声望 / House 装饰分 三值循环的全部数值参数。
     /// 依据《大House》文档：货币来源=客人服务，去处=购买设备与装饰品；
     /// 声望来源=完成服务，去处=拒绝服务与未完成服务；装饰分无去处，来源=房间数量+装饰品+设备。
     /// </summary>
-    [CreateAssetMenu(menuName = "MasterPotion/流通数值配置", fileName = "HouseEconomyConfig")]
+    [CreateAssetMenu(menuName = "MasterHouse/流通数值配置", fileName = "HouseEconomyConfig")]
     public sealed class HouseEconomyConfig : ScriptableObject
     {
         [Header("初始值")]

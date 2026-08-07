@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>单个存档位模板；数据由控制器填充，排版留在 Prefab。</summary>
     public sealed class OutGameSaveSlotView : MonoBehaviour

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>标题页 Prefab 的序列化引用；逻辑只绑定数据与交互。</summary>
     public sealed class OutGameTitleView : MonoBehaviour

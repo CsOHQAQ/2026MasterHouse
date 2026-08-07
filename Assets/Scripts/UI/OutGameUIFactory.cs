@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>局外 UI 的运行时控件工厂。所有尺寸都以 1920×1080 为设计基准。</summary>
     public static class OutGameUIFactory

@@ -1,4 +1,4 @@
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>家具表面类型：决定家具允许吸附到哪一类网格。</summary>
     public enum FurnitureSurfaceType

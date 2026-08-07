@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>桌面格配置：地面家具（如茶几）可携带一条桌面网格，供桌面家具摆放。</summary>
     [Serializable]
@@ -37,7 +37,7 @@ namespace MasterPotion
     /// <summary>
     /// 家具配置表（一张表，一行一件家具）。新增家具 = 往 Furniture 目录放一张精灵图 + 在这里加一行。
     /// </summary>
-    [CreateAssetMenu(menuName = "MasterPotion/家具配置表", fileName = "FurnitureTable")]
+    [CreateAssetMenu(menuName = "MasterHouse/家具配置表", fileName = "FurnitureTable")]
     public sealed class FurnitureTable : ScriptableObject
     {
         public List<FurnitureEntry> entries = new List<FurnitureEntry>();

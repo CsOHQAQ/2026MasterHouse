@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>
     /// 访客序列帧图集描述（与 CatVsDog 导出的 *_sheet.json 字段一致，JsonUtility 解析）。

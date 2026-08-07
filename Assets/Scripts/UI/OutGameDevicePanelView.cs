@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>「设备图鉴」面板内容的 Prefab 引用。设备卡数量随房间变化，运行时生成到 deviceCardsRoot。</summary>
     public sealed class OutGameDevicePanelView : MonoBehaviour

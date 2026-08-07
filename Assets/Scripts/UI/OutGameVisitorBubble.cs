@@ -2,9 +2,9 @@ using System;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
-using F = MasterPotion.OutGameUIFactory;
+using F = MasterHouse.OutGameUIFactory;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>
     /// 访客头顶的小情绪气泡：随机间隔浮现一个符号（♪ ？ ！ … ♥ 等），上飘一小段后消失，循环播放。

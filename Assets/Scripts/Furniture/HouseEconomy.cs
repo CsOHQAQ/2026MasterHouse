@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>家具购买结果。</summary>
     public enum FurniturePurchaseResult
@@ -55,7 +55,7 @@ namespace MasterPotion
             if (config == null)
             {
                 config = ScriptableObject.CreateInstance<HouseEconomyConfig>();
-                Debug.LogWarning("[HouseEconomy] 流通数值配置缺失，使用内置默认值。请执行菜单 MasterPotion → 家具系统 → 创建配置表。");
+                Debug.LogWarning("[HouseEconomy] 流通数值配置缺失，使用内置默认值。请执行菜单 MasterHouse → 家具系统 → 创建配置表。");
             }
             currency = config.startCurrency;
             reputation = config.startReputation;

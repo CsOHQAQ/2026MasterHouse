@@ -4,9 +4,9 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using F = MasterPotion.OutGameUIFactory;
+using F = MasterHouse.OutGameUIFactory;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>
     /// web-demo 局外界面的 Unity 运行时复刻。完整静态页面由 Prefab 管理布局，
@@ -17,7 +17,7 @@ namespace MasterPotion
         private enum View { Title, Opening, Hub }
         private enum SystemPanel { None, Tasks, Device, Journal, Contacts, Archive, Calendar, Inventory, Settings, Profile, Market }
 
-        private const string SavePrefix = "MasterPotion.OutGame.Save.";
+        private const string SavePrefix = "MasterHouse.OutGame.Save.";
         private const float PanelWidth = 1280f;
 
         private Canvas canvas;
@@ -1353,7 +1353,7 @@ namespace MasterPotion
             {
                 furnitureModeOpen = false;
                 canvas.enabled = true;
-                ShowToast("家具配置表缺失：请先执行菜单 MasterPotion → 家具系统 → 创建配置表");
+                ShowToast("家具配置表缺失：请先执行菜单 MasterHouse → 家具系统 → 创建配置表");
             }
         }
 
@@ -2512,7 +2512,7 @@ namespace MasterPotion
             var table = Resources.Load<FurnitureTable>("OutGameUI/FurnitureTable");
             if (table == null || table.entries.Count == 0)
             {
-                F.Label(content, "Missing", "家具配置表缺失：请执行菜单 MasterPotion → 家具系统 → 创建配置表",
+                F.Label(content, "Missing", "家具配置表缺失：请执行菜单 MasterHouse → 家具系统 → 创建配置表",
                     20, F.White, TextAnchor.MiddleCenter);
                 return;
             }

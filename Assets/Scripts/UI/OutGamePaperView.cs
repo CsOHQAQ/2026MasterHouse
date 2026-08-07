@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>纸张风格完整页面的公共序列化引用基类。</summary>
     public class OutGamePaperView : MonoBehaviour

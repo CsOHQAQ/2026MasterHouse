@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>房间内一块可摆放网格。坐标与尺寸都用场景图像素表示（原点左上、Y 向下）。</summary>
     [Serializable]
@@ -56,7 +56,7 @@ namespace MasterPotion
     }
 
     /// <summary>房间配置表（一张表，一行一个房间）。</summary>
-    [CreateAssetMenu(menuName = "MasterPotion/家具房间配置表", fileName = "FurnitureRoomTable")]
+    [CreateAssetMenu(menuName = "MasterHouse/家具房间配置表", fileName = "FurnitureRoomTable")]
     public sealed class FurnitureRoomTable : ScriptableObject
     {
         public List<FurnitureRoomEntry> rooms = new List<FurnitureRoomEntry>();

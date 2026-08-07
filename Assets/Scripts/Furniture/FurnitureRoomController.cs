@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using F = MasterPotion.OutGameUIFactory;
+using F = MasterHouse.OutGameUIFactory;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>
     /// 家具摆放模式：配置表驱动的房间就地编辑。
@@ -88,7 +88,7 @@ namespace MasterPotion
             var rooms = Resources.Load<FurnitureRoomTable>(RoomTablePath);
             if (furniture == null || rooms == null || rooms.rooms.Count == 0 || rooms.rooms[0] == null)
             {
-                Debug.LogWarning("[Furniture] 配置表缺失，请先执行菜单 MasterPotion → 家具系统 → 创建配置表。");
+                Debug.LogWarning("[Furniture] 配置表缺失，请先执行菜单 MasterHouse → 家具系统 → 创建配置表。");
                 return false;
             }
             var go = new GameObject("FurnitureRoomMode");

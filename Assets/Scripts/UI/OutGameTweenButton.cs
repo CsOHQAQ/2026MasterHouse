@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>网页按钮 hover/press 的 DOTween 手感。</summary>
     public sealed class OutGameTweenButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler,

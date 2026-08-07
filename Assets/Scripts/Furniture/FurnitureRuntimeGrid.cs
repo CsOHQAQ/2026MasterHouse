@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>
     /// 运行时网格：占位数据 + 单元格高亮渲染。坐标全部用场景像素，渲染时经控制器换算为世界坐标。
