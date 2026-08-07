@@ -19,9 +19,9 @@ namespace MasterHouse
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoBuild()
         {
-            if (FindObjectOfType<HouseGmConsole>() != null) return;
-            var go = new GameObject("HouseGmConsole", typeof(HouseGmConsole));
-            DontDestroyOnLoad(go);
+            //if (FindObjectOfType<HouseGmConsole>() != null) return;
+            //var go = new GameObject("HouseGmConsole", typeof(HouseGmConsole));
+            //DontDestroyOnLoad(go);
         }
 
         private void Update()

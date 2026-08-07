@@ -86,7 +86,7 @@ namespace MasterHouse
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void AutoBuild()
         {
-            Build();
+            //Build();
         }
 
         public static OutGameUI Build()
