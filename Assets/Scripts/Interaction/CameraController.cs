@@ -41,6 +41,18 @@ namespace MasterHouse
             targetOrthoSize = cam.orthographicSize;
         }
 
+        /// <summary>
+        /// 把相机对准指定世界点并缩放到指定视野（切关/热重载后对准画布，需求记录·决策 2；
+        /// 正式选关与多关聚焦交互待定 #13，这是其最小形态）。
+        /// 必须经本方法而非外部直接改 orthographicSize——否则会被内部缩放目标值平滑拉回。
+        /// </summary>
+        public void Focus(Vector3 worldCenter, float orthoSize)
+        {
+            transform.position = new Vector3(worldCenter.x, worldCenter.y, transform.position.z);
+            targetOrthoSize = Mathf.Clamp(orthoSize, minOrthoSize, maxOrthoSize);
+            cam.orthographicSize = targetOrthoSize; // 直接到位，不做平滑（切关是跳变不是运镜）
+        }
+
         private void Update()
         {
             HandleZoom();

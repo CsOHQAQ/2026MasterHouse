@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,6 +18,25 @@ namespace MasterHouse
         private readonly List<LevelData> loadedLevels = new List<LevelData>();
 
         public IReadOnlyList<LevelData> LoadedLevels => loadedLevels;
+
+        // ── 结构变化广播（§2.1）：Manager 完成修改后触发，携带数据对象引用。
+        //    只覆盖玩家操作产生的离散结构变化；连续量（暂存/进度/链接状态）由 View 每帧轮询。
+        //    读档/Load 时 View 仍以全量重建为真相源，广播只是运行中的增量优化 ──
+
+        /// <summary>关卡 Load 完成（预置节点已就位）。Load 过程不逐节点广播，View 应全量重建。</summary>
+        public event Action<LevelData> OnLevelLoaded;
+
+        /// <summary>关卡 Unload 完成（已从推进列表移除）。</summary>
+        public event Action<LevelData> OnLevelUnloaded;
+
+        /// <summary>玩家放置节点完成。</summary>
+        public event Action<LevelData, NodeData> OnNodePlaced;
+
+        /// <summary>节点删除完成（附着链接已先行删除并各自广播 OnLinkDeleted）。</summary>
+        public event Action<LevelData, NodeData> OnNodeRemoved;
+
+        /// <summary>节点移动完成（含落点冲突进入非法临时态的情况，View 读 IsIllegal 呈现）。</summary>
+        public event Action<LevelData, NodeData> OnNodeMoved;
 
         public LevelManager(LinkManager linkManager, PlayerCargoData playerCargo)
         {
@@ -40,7 +60,7 @@ namespace MasterHouse
                     Debug.LogError($"关卡 {def.name} 预置节点 {preset.Node.name} 在 {origin} 放置非法，已跳过");
                     continue;
                 }
-                PlaceNode(level, preset.Node, origin, preset.CanMove, preset.CanDelete);
+                PlaceNodeCore(level, preset.Node, origin, preset.CanMove, preset.CanDelete);
             }
 
             // 待定 #9：存档恢复（存档系统未讨论），此处占位
@@ -48,6 +68,7 @@ namespace MasterHouse
 
             level.IsLoaded = true;
             loadedLevels.Add(level);
+            OnLevelLoaded?.Invoke(level);
             return level;
         }
 
@@ -56,7 +77,8 @@ namespace MasterHouse
             // 待定 #7：稳态吞吐分析（整条链瓶颈产率）→ 生成每 tick 净产出表，此处占位
             level.IsLoaded = false;
             loadedLevels.Remove(level);
-            // View 与运行时数据的释放由 View 层响应（绑定机制待定 #10）
+            // View 释放运行时表现物：响应本广播（§2.1）
+            OnLevelUnloaded?.Invoke(level);
         }
 
         // ───────────────── tick 推进 ─────────────────
@@ -174,17 +196,27 @@ namespace MasterHouse
         public NodeData PlaceNode(LevelData level, NodeDef def, Vector2Int origin,
             bool canMove = true, bool canDelete = true)
         {
+            var node = PlaceNodeCore(level, def, origin, canMove, canDelete);
+            OnNodePlaced?.Invoke(level, node);
+            return node;
+        }
+
+        /// <summary>纯修改不广播：Load 初始化预置节点走这里（§2.1 全量重建是真相源，逐节点广播多余）。</summary>
+        private static NodeData PlaceNodeCore(LevelData level, NodeDef def, Vector2Int origin,
+            bool canMove, bool canDelete)
+        {
             var node = new NodeData(level.NextNodeId++, def, origin, canMove, canDelete);
             level.Nodes.Add(node);
             level.OccupyNode(node);
             return node;
         }
 
-        /// <summary>删除节点，附着链接一并删除。</summary>
+        /// <summary>
+        /// 删除节点，附着链接一并删除。
+        /// CanDelete 资格校验属 Controller 层（与 CanBuild 同型；自由模式只绕过 Controller 层校验——权限模型）。
+        /// </summary>
         public bool RemoveNode(LevelData level, NodeData node)
         {
-            if (!node.CanDelete) return false;
-
             // 先收集再删，避免遍历中修改 Pin.Links；按 LinkId 升序（Pin.Links 有序，逐 Pin 合并仍稳定）
             var attached = new List<LinkData>();
             foreach (var pin in node.Pins)
@@ -197,6 +229,7 @@ namespace MasterHouse
             if (!node.IsIllegal)
                 level.ReleaseNode(node);
             level.Nodes.Remove(node);
+            OnNodeRemoved?.Invoke(level, node);
             return true;
         }
 
@@ -204,11 +237,10 @@ namespace MasterHouse
         /// 移动节点（§4.3 非法临时态）：
         /// 附着链接一律进入断线态（端点已位移，走线失效；无自动重寻路，修线是玩法 §5）；
         /// 新位置冲突时只冻结本节点，其余对象照常模拟。
+        /// CanMove 资格校验属 Controller 层（与 CanBuild 同型；自由模式只绕过 Controller 层校验——权限模型）。
         /// </summary>
         public void MoveNode(LevelData level, NodeData node, Vector2Int newOrigin)
         {
-            if (!node.CanMove) return;
-
             foreach (var pin in node.Pins)
                 foreach (var link in pin.Links)
                     linkManager.BreakLink(link);
@@ -227,6 +259,8 @@ namespace MasterHouse
                 // 非法临时态：冻结自身、不写占用索引；存在期间禁止存档（§4.3）。UI 提示待定 #14
                 node.IsIllegal = true;
             }
+
+            OnNodeMoved?.Invoke(level, node);
         }
     }
 }

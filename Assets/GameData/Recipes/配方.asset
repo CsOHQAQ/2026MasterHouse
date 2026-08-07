@@ -10,8 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 14e8ed5e66334b59ac0e6272c7997867, type: 3}
-  m_Name: "\u914D\u65B9"
-  m_EditorClassIdentifier: 
-  Inputs: []
-  Outputs: []
-  WorkTicks: 10
+  m_Name: "配方"
+  m_EditorClassIdentifier:
+  Inputs:
+  - Item: {fileID: 11400000, guid: f838ed94745aa10d1c57213190ab44f5, type: 2}
+    Count: 2
+  Outputs:
+  - Item: {fileID: 11400000, guid: cdb9c4eb230585826a99677d888f02ec, type: 2}
+    Count: 1
+  WorkTicks: 20

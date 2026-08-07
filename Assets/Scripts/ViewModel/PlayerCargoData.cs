@@ -25,5 +25,14 @@ namespace MasterHouse
             items.TryGetValue(item, out var count);
             return count;
         }
+
+        /// <summary>导出快照（UI 展示用）：按物资资产名排序后填入 result，枚举顺序稳定（§11.2）。</summary>
+        public void GetSnapshot(List<KeyValuePair<ItemDef, long>> result)
+        {
+            result.Clear();
+            foreach (var pair in items)
+                result.Add(pair);
+            result.Sort((a, b) => string.CompareOrdinal(a.Key.name, b.Key.name));
+        }
     }
 }

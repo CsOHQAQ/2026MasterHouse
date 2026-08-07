@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,6 +10,15 @@ namespace MasterHouse
     /// </summary>
     public class LinkManager
     {
+        // ── 结构变化广播（§2.1）：Manager 完成修改后触发，携带数据对象引用。
+        //    BreakLink / SetLinkTypeInvalid 及阻塞等只是 State 字段变化，不广播，View 每帧轮询配色 ──
+
+        /// <summary>链接创建完成（占用索引与中转 Pin 同步已就位）。</summary>
+        public event Action<LevelData, LinkData> OnLinkCreated;
+
+        /// <summary>链接删除完成。</summary>
+        public event Action<LevelData, LinkData> OnLinkDeleted;
+
         // ───────────────── ① 投递阶段 ─────────────────
 
         /// <summary>
@@ -298,9 +308,9 @@ namespace MasterHouse
             {
                 ItemType = item,
                 PathCells = path,
-                // 待定 #4：节拍与在途时长先用 GameConfig 全局默认
+                // 待定 #4：节拍先用 GameConfig 全局默认；在途时长见 ComputeTransitTicks
                 BeatTicks = config != null ? config.DefaultLinkBeatTicks : 10,
-                TransitTicks = config != null ? config.DefaultLinkTransitTicks : 10,
+                TransitTicks = ComputeTransitTicks(config, path),
             };
 
             level.Links.Add(link);          // 追加即按 LinkId 升序（§11.2）
@@ -310,7 +320,22 @@ namespace MasterHouse
 
             ApplyTransitPinSync(fromPin, item, EPinDirection.Output);
             ApplyTransitPinSync(toPin, item, EPinDirection.Input);
+
+            OnLinkCreated?.Invoke(level, link);
             return link;
+        }
+
+        /// <summary>
+        /// 在途时长（待定 #4）：默认用 GameConfig 全局固定值；
+        /// 实验开关开启时按线长计算（途径格数 × 每格 tick 数，含两端格）。
+        /// 仅创建时赋值一次，运行时不重算——切换开关后重载关卡刷新全部链接。
+        /// </summary>
+        private static int ComputeTransitTicks(GameConfig config, List<Vector2Int> path)
+        {
+            if (config == null) return 10;
+            return config.TransitTicksByLength
+                ? Mathf.Max(1, path.Count * config.TransitTicksPerCell)
+                : config.DefaultLinkTransitTicks;
         }
 
         /// <summary>删除链接。槽中在途物资随之消失（玩家主动操作；其余场景全游戏守恒 §6.4）。</summary>
@@ -323,6 +348,8 @@ namespace MasterHouse
 
             ClearTransitSyncIfIdle(link.FromPin);
             ClearTransitSyncIfIdle(link.ToPin);
+
+            OnLinkDeleted?.Invoke(level, link);
         }
 
         /// <summary>走线非法（棋盘变化/端点被移动）→ 断线：全部停止，槽中货物原地保留，等玩家修线（§6.5）。</summary>

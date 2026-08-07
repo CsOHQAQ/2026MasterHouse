@@ -19,6 +19,36 @@ namespace MasterHouse
         /// <summary>真实时间累积器。仅存在于驱动壳层，逻辑内部禁止接触真实时间（§3.1）。</summary>
         private float tickAccumulator;
 
+        /// <summary>单帧最多补的累积时长（秒）：卡帧后丢弃超出部分，防追帧螺旋。仅驱动壳层防御，tick 本身仍逐个完整执行。</summary>
+        private const float MaxCatchUpSeconds = 1f;
+
+        // ── 时间控制（调试面板能力清单；只作用于驱动壳层，不触碰 tick 内部逻辑）──
+
+        /// <summary>是否暂停逻辑推进（表现层照常运行）。</summary>
+        public bool IsPaused { get; private set; }
+
+        /// <summary>倍速系数（面板用 0.5x/1x/2x/4x/8x），乘在时间累积上。</summary>
+        public float TimeScale { get; private set; } = 1f;
+
+        /// <summary>暂停/恢复。切换时清零累积器，避免恢复瞬间连补一串 tick。</summary>
+        public void SetPaused(bool paused)
+        {
+            IsPaused = paused;
+            tickAccumulator = 0f;
+        }
+
+        public void SetTimeScale(float scale)
+        {
+            TimeScale = Mathf.Clamp(scale, 0.1f, 16f);
+        }
+
+        /// <summary>单步：自动进入暂停并直接喂一个 tick（绕过累积器）。</summary>
+        public void StepOneTick()
+        {
+            SetPaused(true);
+            LevelManager.TickAll();
+        }
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -44,11 +74,15 @@ namespace MasterHouse
             // 驱动壳层：整个逻辑层唯一允许接触真实时间的位置——
             // 把流逝的真实时间折算成固定步长 tick 次数（§3.1）。
             // tick 内部一律以 TickCount 计时，禁止 Time.deltaTime / DateTime.Now / 无种子随机（§11.1）。
+            if (IsPaused) return;
+
             var config = GameConfig.Instance;
             if (config == null) return;
 
             float tickInterval = 1f / Mathf.Max(1, config.TicksPerSecond); // 待定 #5：暂按 10 tick/秒
-            tickAccumulator += Time.deltaTime;
+            tickAccumulator += Time.deltaTime * TimeScale;
+            if (tickAccumulator > MaxCatchUpSeconds)
+                tickAccumulator = MaxCatchUpSeconds;
             while (tickAccumulator >= tickInterval)
             {
                 tickAccumulator -= tickInterval;

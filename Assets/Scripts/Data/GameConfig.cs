@@ -36,5 +36,12 @@ namespace MasterHouse
 
         [Tooltip("在途时长（tick）；是否与线长相关：待定 #4")]
         public int DefaultLinkTransitTicks = 10;
+
+        [Header("待定 #4 实验项（策划 A/B 用，定案后清理）")]
+        [Tooltip("在途时长按线长计算：默认关（维持全局固定值）。只影响新建链接，切换后重载关卡刷新全部链接")]
+        public bool TransitTicksByLength = false;
+
+        [Tooltip("开关开启时每个途径格的在途 tick 数（线长口径 = 途径格数，含两端格）")]
+        public int TransitTicksPerCell = 2;
     }
 }
