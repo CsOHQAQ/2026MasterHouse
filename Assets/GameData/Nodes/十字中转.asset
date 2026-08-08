@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3aa6232787cda8449bb6f57425f5fb2, type: 3}
+  m_Name: "十字中转"
+  m_EditorClassIdentifier:
+  DisplayName: "十字中转"
+  Shape:
+    Grids:
+    - DeltaPosition: {x: 0, y: 0}
+      Type: 0
+  Pins:
+  - Pin:
+      ItemType: {fileID: 0}
+      MaxRate: 1
+      Direction: 0
+      PairedPinIndex: 2
+    LocalCell: {x: 0, y: 0}
+    Facing: 0
+  - Pin:
+      ItemType: {fileID: 0}
+      MaxRate: 1
+      Direction: 0
+      PairedPinIndex: 3
+    LocalCell: {x: 0, y: 0}
+    Facing: 1
+  - Pin:
+      ItemType: {fileID: 0}
+      MaxRate: 1
+      Direction: 0
+      PairedPinIndex: 0
+    LocalCell: {x: 0, y: 0}
+    Facing: 2
+  - Pin:
+      ItemType: {fileID: 0}
+      MaxRate: 1
+      Direction: 0
+      PairedPinIndex: 1
+    LocalCell: {x: 0, y: 0}
+    Facing: 3
+  StorageCapPerItem: 1

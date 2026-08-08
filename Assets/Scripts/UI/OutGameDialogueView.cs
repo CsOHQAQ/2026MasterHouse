@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>访客对话界面的 Prefab 引用。文本、选中态与事件由控制器运行时绑定。</summary>
     public sealed class OutGameDialogueView : MonoBehaviour

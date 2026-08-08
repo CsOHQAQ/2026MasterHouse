@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>「今日委托」面板内容的 Prefab 引用。</summary>
     public sealed class OutGameTasksPanelView : MonoBehaviour

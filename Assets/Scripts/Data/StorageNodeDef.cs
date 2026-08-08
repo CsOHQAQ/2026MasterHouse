@@ -1,12 +1,18 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
-    /// <summary>存储节点：可接收并转发配置内的资源（每种资源同时生成一对输入/输出端口），容量无上限。</summary>
-    [CreateAssetMenu(menuName = "MasterPotion/Node/Storage Node", fileName = "StorageNode")]
+    /// <summary>
+    /// 仓库型节点（§7）：漏斗而非容器——收到即从本关经济中消失，计入全局 PlayerCargo。
+    /// 无存储上限；v1 只进不出（输出待定 #15）。
+    /// </summary>
+    [CreateAssetMenu(fileName = "仓库节点", menuName = "MasterHouse/节点/仓库型", order = 22)]
     public class StorageNodeDef : NodeDef
     {
-        public List<ResourceDef> resources = new();
+        public override ENodeType NodeType => ENodeType.Storage;
+
+        [Tooltip("可接收的物资白名单；空列表 = 任意物资都收。建线时校验")]
+        public List<ItemDef> Whitelist = new List<ItemDef>();
     }
 }

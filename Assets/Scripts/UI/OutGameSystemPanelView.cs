@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>右侧系统面板的公共外壳。</summary>
     public sealed class OutGameSystemPanelView : MonoBehaviour

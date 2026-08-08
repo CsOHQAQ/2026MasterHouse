@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace MasterPotion.EditorTools
+namespace MasterHouse.EditorTools
 {
     /// <summary>
     /// 家具系统配置表生成器。默认菜单只补齐缺失资产，不覆盖手工调整；
@@ -16,7 +16,7 @@ namespace MasterPotion.EditorTools
         private const string RoomTablePath = ResourceDir + "/FurnitureRoomTable.asset";
         private const string EconomyConfigPath = ResourceDir + "/HouseEconomyConfig.asset";
 
-        [MenuItem("MasterPotion/家具系统/创建配置表（补齐缺失）")]
+        [MenuItem("MasterHouse/家具系统/创建配置表（补齐缺失）")]
         public static void CreateIfMissing()
         {
             var created = new List<string>();
@@ -49,7 +49,7 @@ namespace MasterPotion.EditorTools
                 : "[Furniture] 配置表已存在，未做修改。若需恢复默认，请使用「重建默认配置表（覆盖）」。");
         }
 
-        [MenuItem("MasterPotion/家具系统/重建默认配置表（覆盖）")]
+        [MenuItem("MasterHouse/家具系统/重建默认配置表（覆盖）")]
         public static void RebuildDefaults()
         {
             if (!EditorUtility.DisplayDialog("重建默认配置表",

@@ -1,8 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
-using F = MasterPotion.OutGameUIFactory;
+using F = MasterHouse.OutGameUIFactory;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>
     /// GM 调试面板：F1 开关。可增加货币、声望、装饰分（GM 加成项），数值实时同步所有订阅方。
@@ -19,9 +19,9 @@ namespace MasterPotion
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoBuild()
         {
-            if (FindObjectOfType<HouseGmConsole>() != null) return;
-            var go = new GameObject("HouseGmConsole", typeof(HouseGmConsole));
-            DontDestroyOnLoad(go);
+            //if (FindObjectOfType<HouseGmConsole>() != null) return;
+            //var go = new GameObject("HouseGmConsole", typeof(HouseGmConsole));
+            //DontDestroyOnLoad(go);
         }
 
         private void Update()

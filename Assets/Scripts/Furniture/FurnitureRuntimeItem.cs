@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>运行时家具实例：一条配置表行在房间内的一次摆放。</summary>
     public sealed class FurnitureRuntimeItem

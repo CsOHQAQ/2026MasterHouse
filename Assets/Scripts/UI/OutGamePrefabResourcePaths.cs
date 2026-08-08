@@ -1,4 +1,4 @@
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>局外 UI Prefab 的 Resources 路径集中定义。</summary>
     public static class OutGamePrefabResourcePaths

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>
     /// 加速的游戏时钟（会话级单一数据源，随存档持久化，不读取现实时间）。

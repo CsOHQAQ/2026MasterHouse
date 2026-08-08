@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>
     /// 家具模式相机：透视相机围绕画面中心做鼠标视差微转 + 缓慢呼吸漂移。

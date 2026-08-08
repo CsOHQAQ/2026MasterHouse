@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     public sealed class OutGameHubSceneOverlayView : MonoBehaviour
     {

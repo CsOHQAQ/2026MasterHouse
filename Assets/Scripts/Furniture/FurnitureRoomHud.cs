@@ -4,9 +4,9 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using F = MasterPotion.OutGameUIFactory;
+using F = MasterHouse.OutGameUIFactory;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>家具模式收纳栏里一个槽位的展示状态。</summary>
     public enum FurnitureSlotState

@@ -1,6 +1,6 @@
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>完整标题设置页面。</summary>
     public sealed class OutGameSettingsPageView : OutGamePaperView

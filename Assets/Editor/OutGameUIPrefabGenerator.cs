@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 using System.IO;
-using MasterPotion;
+using MasterHouse;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
@@ -57,7 +57,7 @@ public static class OutGameUIPrefabGenerator
             EditorApplication.delayCall += EnsureMissingPrefabs;
     }
 
-    [MenuItem("Tools/MasterPotion/OutGame UI/Select Prefab Folder")]
+    [MenuItem("Tools/MasterHouse/OutGame UI/Select Prefab Folder")]
     private static void SelectFolder()
     {
         EnsureMissingPrefabs();
@@ -70,7 +70,7 @@ public static class OutGameUIPrefabGenerator
         EnsureMissingPrefabs();
     }
 
-    [MenuItem("Tools/MasterPotion/OutGame UI/Rebuild Default Prefabs...")]
+    [MenuItem("Tools/MasterHouse/OutGame UI/Rebuild Default Prefabs...")]
     private static void RebuildAll()
     {
         if (!EditorUtility.DisplayDialog("重建局外 UI Prefab",

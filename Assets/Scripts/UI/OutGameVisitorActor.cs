@@ -3,9 +3,9 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using F = MasterPotion.OutGameUIFactory;
+using F = MasterHouse.OutGameUIFactory;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>
     /// 场景中的单个访客 NPC 表现层演员，分两类：

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>给旧版 uGUI Text 补上网页 letter-spacing 能力。</summary>
     public sealed class OutGameLetterSpacing : BaseMeshEffect

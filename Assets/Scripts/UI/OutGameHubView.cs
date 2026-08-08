@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>House 主界面的可编辑布局槽。</summary>
     public sealed class OutGameHubView : MonoBehaviour

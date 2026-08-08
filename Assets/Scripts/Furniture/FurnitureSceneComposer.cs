@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>
     /// 家具布局烘焙器：把「干净背景 + 当前摆放家具」合成到 RenderTexture，

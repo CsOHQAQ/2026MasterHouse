@@ -1,16 +1,20 @@
-using System.Collections.Generic;
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
-    /// <summary>加工节点：输入/输出端口由全部配方的输入/输出资源并集决定。</summary>
-    [CreateAssetMenu(menuName = "MasterPotion/Node/Processor Node", fileName = "ProcessorNode")]
+    /// <summary>加工型节点（§7）：消耗输入暂存推进配方，产出写入输出暂存。</summary>
+    [CreateAssetMenu(fileName = "加工节点", menuName = "MasterHouse/节点/加工型", order = 21)]
     public class ProcessorNodeDef : NodeDef
     {
-        public List<RecipeDef> recipes = new();
-        [Tooltip("每种输入资源的缓存上限")]
-        public int inputBufferCap = 5;
-        [Tooltip("每种输出资源的缓存上限，堆满后暂停加工")]
-        public int outputBufferCap = 5;
+        public override ENodeType NodeType => ENodeType.Processor;
+
+        [Tooltip("待定 #3：先按「策划配单条配方」实现；加工时长配在 RecipeDef.WorkTicks")]
+        public RecipeDef Recipe;
+
+        [Tooltip("输入暂存上限（v1 简化：每种物资统一一个值）")]
+        public int InputStorageCapPerItem = 10;
+
+        [Tooltip("输出暂存上限（v1 简化：每种物资统一一个值）")]
+        public int OutputStorageCapPerItem = 10;
     }
 }

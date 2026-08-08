@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     /// <summary>
     /// 「日程与时间」面板内容的 Prefab 引用。日期格为 Prefab 内烘焙的 6×7=42 个槽位，

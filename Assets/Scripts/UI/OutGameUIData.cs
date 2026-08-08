@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MasterPotion
+namespace MasterHouse
 {
     [Serializable]
     internal sealed class OutGameSaveData
