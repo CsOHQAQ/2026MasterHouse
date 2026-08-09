@@ -101,7 +101,7 @@ namespace MasterHouse
             }
 
             if (view.dialogueText != null)
-                view.dialogueText.text = $"<size=15>{guest.type}{(guest.special ? " · 硬植入事件" : " · 无接待顺序")}</size>\n<size=31>{guest.displayName}</size>     <size=15>信赖 {guest.affinity}%</size>\n\n{guest.transactionLine}";
+                view.dialogueText.text = $"<size=15>{guest.type}{(guest.special ? " · 硬植入事件" : " · 无接待顺序")}</size>\n<size=31>{guest.displayName}</size>     <size=15>信赖 {guest.affinity}%</size>\n\n{GameManager.Instance.DialogueService.GetVisitorLine(guest)}";
             if (view.needButton != null)
                 HouseUIUtil.BindButton(view.needButton, () =>
                 {

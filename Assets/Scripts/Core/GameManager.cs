@@ -16,6 +16,9 @@ namespace MasterHouse
         public EconomyManager EconomyManager { get; private set; }
         public VisitorManager VisitorManager { get; private set; }
 
+        /// <summary>对话接缝（§16.9，待定 #17）：自研对话系统进场时在此替换实现，别处不动。</summary>
+        public IDialogueService DialogueService { get; private set; }
+
         /// <summary>局外内容表（Model，运行时只读，§16.6）。缺失是报错不是回退。</summary>
         public VisitorTable VisitorTable { get; private set; }
         public CodexTable CodexTable { get; private set; }
@@ -84,6 +87,7 @@ namespace MasterHouse
 
             HouseClockManager = new HouseClockManager();
             EconomyManager = new EconomyManager(CodexTable); // 纯事件驱动，不进 RunTick（§16.4）；Codex 供装饰分数量统计（§16.7）
+            DialogueService = new DefDialogueService();
             VisitorManager = new VisitorManager(VisitorTable, HouseClockManager, EconomyManager);
         }
 
