@@ -65,17 +65,6 @@ namespace MasterHouse
         public string sheetPath;
     }
 
-    /// <summary>
-    /// 访客配置表（§16.3 Visitor 模块的 Model）：业务访客 + 氛围邻居。
-    /// </summary>
-    [CreateAssetMenu(menuName = "MasterHouse/访客配置表", fileName = "VisitorTable")]
-    public sealed class VisitorTable : ScriptableObject
-    {
-        [Tooltip("业务访客。列表顺序即业务下标——旧存档的 served/refused/guestArrived 按下标对齐，" +
-                 "重排/插入会串旧档（待定 #9 统一存档时改用 id 键）")]
-        public List<VisitorDef> visitors = new List<VisitorDef>();
-
-        [Tooltip("串门邻居名册，顺序 = 轮换名册顺序")]
-        public List<AmbientVisitorDef> ambientVisitors = new List<AmbientVisitorDef>();
-    }
+    // 注意：表类 VisitorTable 必须独占同名文件 VisitorTable.cs——
+    // Unity 只为与文件同名的类生成 MonoScript，放在本文件里会导致 .asset 的脚本引用为空（资产损坏）。
 }

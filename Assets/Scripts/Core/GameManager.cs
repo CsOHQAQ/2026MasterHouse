@@ -87,7 +87,8 @@ namespace MasterHouse
             VisitorTable = Resources.Load<VisitorTable>("OutGameUI/VisitorTable");
             CodexTable = Resources.Load<CodexTable>("OutGameUI/CodexTable");
             if (VisitorTable == null || CodexTable == null)
-                Debug.LogError("局外内容表缺失（Resources/OutGameUI/VisitorTable|CodexTable）：请执行菜单 MasterHouse → 局外内容 → 生成内容表");
+                Debug.LogError("局外内容表缺失或损坏（Resources/OutGameUI/VisitorTable|CodexTable）：" +
+                               "内容资产是权威数据源，请从版本库恢复；若资产存在却加载不到，检查其 m_Script 引用是否指向 VisitorTable.cs / CodexTable.cs");
             FurnitureTable = Resources.Load<FurnitureTable>("OutGameUI/FurnitureTable");
             FurnitureRoomTable = Resources.Load<FurnitureRoomTable>("OutGameUI/FurnitureRoomTable");
             if (FurnitureTable == null || FurnitureRoomTable == null)

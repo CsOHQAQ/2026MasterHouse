@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: bc7ccbf47b82b7aabff9efe558026e8c, type: 3}
   m_Name: VisitorTable
   m_EditorClassIdentifier: Assembly-CSharp:MasterHouse:VisitorTable
   visitors:
