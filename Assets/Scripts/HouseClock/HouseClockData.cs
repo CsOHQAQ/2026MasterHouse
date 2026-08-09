@@ -16,6 +16,16 @@ namespace MasterHouse
     }
 
     /// <summary>
+    /// 时段展示文案。与 EHousePhase/划分边界同源同改（改边界必改本模块代码），故不进 SO（§16.6 决策，2026-08-09）。
+    /// 下标 = (int)EHousePhase。
+    /// </summary>
+    public static class HousePhaseText
+    {
+        public static readonly string[] Names = { "早晨", "上午", "中午", "下午", "晚上", "深夜" };
+        public static readonly string[] Ranges = { "07:00–09:00", "09:00–12:00", "12:00–14:00", "14:00–18:00", "18:00–22:00", "22:00–07:00" };
+    }
+
+    /// <summary>
     /// 局外游戏时钟运行时数据（§16.4）：唯一时间状态是 Day + 当天 tick 计数，禁止接触真实时间（§11.1）。
     /// 只能被 HouseClockManager 修改（§11.4）；时段/到访判定一律用整数属性比较，禁止 float 小时累加。
     /// </summary>

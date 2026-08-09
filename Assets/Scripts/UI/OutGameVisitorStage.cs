@@ -41,6 +41,9 @@ namespace MasterHouse
         /// <summary>过渡桥接：冻结的旧表现层读新 HouseClock 模块（§16.4）；HourF 判定在 3.4 访客业务重写时改整数比较。</summary>
         private static HouseClockData Clock => GameManager.Instance.HouseClockManager.Data;
 
+        /// <summary>过渡桥接：旧表现层读访客内容表（§16.6）；3.4 访客业务重写时随本类接新数据。</summary>
+        private static VisitorTable Visitors => GameManager.Instance.VisitorTable;
+
         private RawImage sceneArt;
         private RectTransform layerRoot;
         private bool[] served;
@@ -72,14 +75,14 @@ namespace MasterHouse
             stage.onGuestClicked = onGuestClicked;
             stage.onGuestArrived = onGuestArrived;
             var spawned = 0;
-            for (var i = 0; i < OutGameUIData.Guests.Length; i++)
+            for (var i = 0; i < Visitors.visitors.Count; i++)
             {
                 if (served != null && i < served.Length && served[i])
                 {
                     stage.guestSpawned[i] = true; // 已完成/已拒绝：本周不再出现
                     continue;
                 }
-                var guest = OutGameUIData.Guests[i];
+                var guest = Visitors.visitors[i];
                 var wasArrived = arrived != null && i < arrived.Length && arrived[i];
                 var timeReached = Clock.HourF >= guest.visitHour;
                 if (!wasArrived && !timeReached) continue; // 还没到拜访时间，Update 里等时钟
@@ -91,9 +94,9 @@ namespace MasterHouse
                 spawned++;
             }
             // 邻居首发阵容：随机挑几只错峰进场
-            var roster = OutGameUIData.AmbientVisitors;
+            var roster = Visitors.ambientVisitors;
             var order = new List<int>();
-            for (var i = 0; i < roster.Length; i++) order.Insert(UnityEngine.Random.Range(0, order.Count + 1), i);
+            for (var i = 0; i < roster.Count; i++) order.Insert(UnityEngine.Random.Range(0, order.Count + 1), i);
             for (var k = 0; k < Mathf.Min(MaxAmbient, order.Count); k++)
                 stage.SpawnAmbient(order[k], 5f + k * 3.5f + UnityEngine.Random.Range(0f, 2f));
             return stage;
@@ -103,8 +106,8 @@ namespace MasterHouse
         private void SpawnGuest(int index, bool walkIn, float delay)
         {
             guestSpawned[index] = true;
-            var guest = OutGameUIData.Guests[index];
-            var actor = OutGameVisitorActor.Create(layerRoot, guest.id, guest.name, OutGameUIData.VisitorSheets[index],
+            var guest = Visitors.visitors[index];
+            var actor = OutGameVisitorActor.Create(layerRoot, guest.id, guest.displayName, guest.sheetPath,
                 isAmbient: false, spawnDelay: delay,
                 DoorPoint, EntrancePoint, WanderPoints,
                 () => onGuestClicked?.Invoke(index), null,
@@ -117,9 +120,9 @@ namespace MasterHouse
 
         private void SpawnAmbient(int rosterIndex, float delay)
         {
-            var parts = OutGameUIData.AmbientVisitors[rosterIndex].Split('|');
-            var actor = OutGameVisitorActor.Create(layerRoot, "neighbor_" + parts[0].Substring(parts[0].LastIndexOf('/') + 1),
-                parts[1], parts[0],
+            var neighbor = Visitors.ambientVisitors[rosterIndex];
+            var actor = OutGameVisitorActor.Create(layerRoot, "neighbor_" + neighbor.id,
+                neighbor.displayName, neighbor.sheetPath,
                 isAmbient: true, spawnDelay: delay,
                 DoorPoint, QueuePoints[0], WanderPoints,
                 null, () => OnAmbientGone(rosterIndex));
@@ -156,11 +159,11 @@ namespace MasterHouse
         private void Update()
         {
             // 业务访客到点进场（按加速的游戏时钟；跨过拜访小时即从大门走进来）
-            for (var i = 0; i < guestSpawned.Length && i < OutGameUIData.Guests.Length; i++)
+            for (var i = 0; i < guestSpawned.Length && i < Visitors.visitors.Count; i++)
             {
                 if (guestSpawned[i]) continue;
                 if (served != null && i < served.Length && served[i]) { guestSpawned[i] = true; continue; }
-                if (Clock.HourF >= OutGameUIData.Guests[i].visitHour)
+                if (Clock.HourF >= Visitors.visitors[i].visitHour)
                     SpawnGuest(i, walkIn: true, delay: UnityEngine.Random.Range(0f, 1f));
             }
             // 邻居刷新循环
@@ -170,7 +173,7 @@ namespace MasterHouse
                 if (respawnTimers[i] > 0f) continue;
                 respawnTimers.RemoveAt(i);
                 var candidates = new List<int>();
-                for (var r = 0; r < OutGameUIData.AmbientVisitors.Length; r++)
+                for (var r = 0; r < Visitors.ambientVisitors.Count; r++)
                     if (!activeAmbient.Contains(r)) candidates.Add(r);
                 if (candidates.Count > 0)
                     SpawnAmbient(candidates[UnityEngine.Random.Range(0, candidates.Count)], 0f);

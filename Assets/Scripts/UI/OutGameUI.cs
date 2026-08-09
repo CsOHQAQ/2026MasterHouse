@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using DG.Tweening;
 using UnityEngine;
@@ -88,6 +89,40 @@ namespace MasterHouse
         /// <summary>过渡桥接：冻结的旧 UI 读写新 Economy 模块（§16.3）；本属性随 OutGameUI 退役删除（3.9）。</summary>
         private static EconomyManager Economy => GameManager.Instance.EconomyManager;
 
+        /// <summary>过渡桥接：旧 UI 读内容表（§16.6）；随 OutGameUI 退役删除（3.9）。</summary>
+        private static VisitorTable Visitors => GameManager.Instance.VisitorTable;
+        private static CodexTable Codex => GameManager.Instance.CodexTable;
+
+        // 档案面板的分类缓存（内容表运行时只读，首次访问填充一次）
+        private static List<CodexEntryDef> furnitureArchives;
+        private static List<CodexEntryDef> worldArchives;
+
+        private static List<CodexEntryDef> FurnitureArchives
+        {
+            get
+            {
+                if (furnitureArchives == null)
+                {
+                    furnitureArchives = new List<CodexEntryDef>();
+                    Codex.GetArchives(ECodexArchiveCategory.NarrativeFurniture, furnitureArchives);
+                }
+                return furnitureArchives;
+            }
+        }
+
+        private static List<CodexEntryDef> WorldArchives
+        {
+            get
+            {
+                if (worldArchives == null)
+                {
+                    worldArchives = new List<CodexEntryDef>();
+                    Codex.GetArchives(ECodexArchiveCategory.World, worldArchives);
+                }
+                return worldArchives;
+            }
+        }
+
         /// <summary>
         /// 局外 UI 不依赖当前打开的场景。即使从 Untitled、备份场景或其他玩法场景进入 Play，
         /// 也会在场景加载前创建入口；SampleScene 中的 Bootstrap 仅作为兼容兜底。
@@ -122,8 +157,6 @@ namespace MasterHouse
         {
             canvas = GetComponent<Canvas>();
             canvasRect = (RectTransform)transform;
-            // 过渡桥接（§16.7 毒点①已断）：装饰分的房间/设备数量由内容侧推入 Economy，3.3 内容 Def 化后改由 Def 资产统计
-            Economy.SetDecorSourceCounts(OutGameUIData.Rooms.Length, OutGameUIData.CountOwnedDevices());
             Economy.Changed += UpdateEconomyHud;
             HouseGmConsole.FullResetRequested += OnGmFullReset;
         }
@@ -943,7 +976,7 @@ namespace MasterHouse
             sceneRoot = activeHubView != null && activeHubView.sceneRoot != null
                 ? activeHubView.sceneRoot
                 : F.Stretch(root, "Scene");
-            sceneArt = F.StretchTexture(sceneRoot, "SceneArt", OutGameUIData.Rooms[roomIndex].art);
+            sceneArt = F.StretchTexture(sceneRoot, "SceneArt", Codex.rooms[roomIndex].artPath);
             sceneArt.raycastTarget = false; // 场景图不拦截指针，观景模式拖拽与家具热点都依赖穿透
             ApplySceneArt();
             var sceneWash = F.StretchPanel(sceneRoot, "SceneWash", new Color(.015f, .02f, .04f, .22f));
@@ -1000,8 +1033,8 @@ namespace MasterHouse
         private void BindTopHud(OutGameHubTopBarView hud)
         {
             var phase = OutGameUIData.CurrentPhase;
-            hud.weekDatePhase.text = $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {Clock.Data.Day:00}</size>    {OutGameUIData.PhaseNames[phase]}";
-            hud.phaseRange.text = OutGameUIData.PhaseRanges[phase];
+            hud.weekDatePhase.text = $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {Clock.Data.Day:00}</size>    {HousePhaseText.Names[phase]}";
+            hud.phaseRange.text = HousePhaseText.Ranges[phase];
             hud.clock.text = Clock.Data.TimeText;
             clockLabel = hud.clock;
             hudPhaseLabel = hud.weekDatePhase;
@@ -1018,9 +1051,9 @@ namespace MasterHouse
 
         private void BindTaskCard(OutGameHubTaskCardView card)
         {
-            var guest = OutGameUIData.Guests[guestIndex];
+            var guest = Visitors.visitors[guestIndex];
             card.header.text = "CURRENT VISITOR TASK                         进行中";
-            card.guestTitle.text = guest.name + " · " + guest.need;
+            card.guestTitle.text = guest.displayName + " · " + guest.need;
             card.hint.text = guest.hint;
             card.progress.text = $"━━━━━━  {ProgressForGuest(guestIndex)}%     点击查看任务详情  →";
             BindButton(card.button, () => OpenPanel(SystemPanel.Tasks));
@@ -1030,15 +1063,15 @@ namespace MasterHouse
         {
             rail.title.text = "VISITOR EVENTS / 访客事件";
             rail.remaining.text = RemainingGuests().ToString("00");
-            for (var i = 0; i < rail.cards.Length && i < OutGameUIData.Guests.Length; i++)
+            for (var i = 0; i < rail.cards.Length && i < Visitors.visitors.Count; i++)
             {
                 var index = i;
-                var guest = OutGameUIData.Guests[i];
+                var guest = Visitors.visitors[i];
                 var done = served[i];
                 var card = rail.cards[i];
-                card.portrait.texture = Resources.Load<Texture2D>(guest.portrait);
+                card.portrait.texture = Resources.Load<Texture2D>(guest.portraitPath);
                 card.eventLabel.text = guest.special ? "SPECIAL EVENT" : "EVENT 0" + (i + 1);
-                card.guestName.text = guest.name;
+                card.guestName.text = guest.displayName;
                 card.status.text = done ? "事件已完成" : guest.special ? "特殊客人 · 可打断" : "一般客人 · 可接待";
                 card.typeLabel.text = done ? "✓" : guest.special ? "特" : "普";
                 card.background.color = done ? new Color(.03f, .03f, .045f, .55f) : new Color(.025f, .025f, .045f, .83f);
@@ -1064,15 +1097,15 @@ namespace MasterHouse
 
         private void BindRoomNavigation(OutGameHubRoomNavigationView navigation)
         {
-            for (var i = 0; i < navigation.rooms.Length && i < OutGameUIData.Rooms.Length; i++)
+            for (var i = 0; i < navigation.rooms.Length && i < Codex.rooms.Count; i++)
             {
                 var index = i;
-                var room = OutGameUIData.Rooms[i];
+                var room = Codex.rooms[i];
                 var selected = roomIndex == i;
                 var item = navigation.rooms[i];
                 item.code.text = room.code;
                 item.icon.text = RoomIcon(i);
-                item.roomName.text = room.name;
+                item.roomName.text = room.displayName;
                 item.state.text = selected ? "CURRENT" : string.Empty;
                 item.background.color = selected ? new Color(.45f, .08f, .3f, .77f) : new Color(1, 1, 1, .015f);
                 var color = selected ? F.White : new Color(1, 1, 1, .72f);
@@ -1094,9 +1127,9 @@ namespace MasterHouse
             // Prefab 字段可能因手动编辑而缺失；绑定必须逐项判空，
             // 否则一次 NRE 会把 ShowHub 后续的运行时控件（数值条/家具摆放/收起按钮）全部截断。
             if (overlay == null) return;
-            var room = OutGameUIData.Rooms[roomIndex];
+            var room = Codex.rooms[roomIndex];
             if (overlay.captionHeader != null) overlay.captionHeader.text = "CURRENT ROOM / 04";
-            if (overlay.roomName != null) overlay.roomName.text = room.name;
+            if (overlay.roomName != null) overlay.roomName.text = room.displayName;
             if (overlay.roomNote != null) overlay.roomNote.text = room.note;
             var hotspotLabel = roomIndex == 2 ? "手冲咖啡台" : roomIndex == 3 ? "旧书检索机" : "黑胶唱机";
             if (overlay.hotspotTitle != null) overlay.hotspotTitle.text = "＋  " + hotspotLabel + "\n<size=13>查看设备</size>";
@@ -1186,8 +1219,8 @@ namespace MasterHouse
             var key = Clock.Data.Day * 10 + phase; // 跨天时 DAY 文案也要刷新
             if (key == hudPhaseShown) return;
             hudPhaseShown = key;
-            hudPhaseLabel.text = $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {Clock.Data.Day:00}</size>    {OutGameUIData.PhaseNames[phase]}";
-            if (hudPhaseRangeLabel != null) hudPhaseRangeLabel.text = OutGameUIData.PhaseRanges[phase];
+            hudPhaseLabel.text = $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {Clock.Data.Day:00}</size>    {HousePhaseText.Names[phase]}";
+            if (hudPhaseRangeLabel != null) hudPhaseRangeLabel.text = HousePhaseText.Ranges[phase];
         }
 
         /// <summary>重建场景访客 NPC 层（仅起居室）。演员自己跟随 uvRect 换算锚点，观景模式无需额外通知。</summary>
@@ -1386,10 +1419,10 @@ namespace MasterHouse
                 new Vector2(1920, 124), new Color(.025f, .025f, .045f, .77f));
 
             var phase = OutGameUIData.CurrentPhase;
-            var time = F.Button(top.transform, "Time", $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {Clock.Data.Day:00}</size>    {OutGameUIData.PhaseNames[phase]}",
+            var time = F.Button(top.transform, "Time", $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {Clock.Data.Day:00}</size>    {HousePhaseText.Names[phase]}",
                 () => OpenPanel(SystemPanel.Calendar), new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(230, 0),
                 new Vector2(410, 100), new Color(.17f, .06f, .12f, .74f), F.White, 23, TextAnchor.MiddleLeft);
-            F.Label(time.transform, "Phase", $"{OutGameUIData.PhaseRanges[phase]}", 12, new Color(1, 1, 1, .58f),
+            F.Label(time.transform, "Phase", $"{HousePhaseText.Ranges[phase]}", 12, new Color(1, 1, 1, .58f),
                 new Vector2(1, 0), new Vector2(1, 0), new Vector2(-78, 14), new Vector2(150, 24), TextAnchor.MiddleRight);
             clockLabel = F.Label(time.transform, "Clock", Clock.Data.TimeText, 24, F.White,
                 new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-62, -7), new Vector2(110, 42), TextAnchor.MiddleRight, FontStyle.Bold);
@@ -1414,8 +1447,8 @@ namespace MasterHouse
 
         private void BuildTaskCard(Transform root)
         {
-            var guest = OutGameUIData.Guests[guestIndex];
-            var card = F.Button(root, "VisitorTask", $"<size=13>CURRENT VISITOR TASK                     进行中</size>\n\n{guest.name} · {guest.need}\n<size=16>{guest.hint}</size>\n\n<size=14>━━━━━━  {ProgressForGuest(guestIndex)}%     点击查看任务详情  →</size>",
+            var guest = Visitors.visitors[guestIndex];
+            var card = F.Button(root, "VisitorTask", $"<size=13>CURRENT VISITOR TASK                     进行中</size>\n\n{guest.displayName} · {guest.need}\n<size=16>{guest.hint}</size>\n\n<size=14>━━━━━━  {ProgressForGuest(guestIndex)}%     点击查看任务详情  →</size>",
                 () => OpenPanel(SystemPanel.Tasks), new Vector2(0, 1), new Vector2(0, 1), new Vector2(228, -250),
                 new Vector2(390, 255), new Color(.13f, .045f, .11f, .84f), F.White, 22, TextAnchor.UpperLeft);
             F.Outline(card.gameObject, new Color(.85f, .15f, .45f, .45f), new Vector2(1, -1));
@@ -1426,17 +1459,17 @@ namespace MasterHouse
             var rail = F.Rect(root, "GuestRail", new Vector2(0, 1), new Vector2(0, 1), new Vector2(228, -650), new Vector2(390, 535));
             F.Label(rail, "Title", $"VISITOR EVENTS / 访客事件                         {RemainingGuests():00}", 16, F.Rose,
                 new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -20), new Vector2(390, 36), TextAnchor.MiddleLeft, FontStyle.Bold);
-            for (var i = 0; i < OutGameUIData.Guests.Length; i++)
+            for (var i = 0; i < Visitors.visitors.Count; i++)
             {
                 var index = i;
-                var guest = OutGameUIData.Guests[i];
+                var guest = Visitors.visitors[i];
                 var done = served[i];
-                var caption = $"<size=12>{(guest.special ? "SPECIAL EVENT" : "EVENT 0" + (i + 1))}</size>\n{guest.name}\n<size=15>{(done ? "事件已完成" : guest.special ? "特殊客人 · 可打断" : "一般客人 · 可接待")}</size>";
+                var caption = $"<size=12>{(guest.special ? "SPECIAL EVENT" : "EVENT 0" + (i + 1))}</size>\n{guest.displayName}\n<size=15>{(done ? "事件已完成" : guest.special ? "特殊客人 · 可打断" : "一般客人 · 可接待")}</size>";
                 var button = F.Button(rail, "Guest" + guest.id, caption, () => SelectGuest(index),
                     new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -90 - i * 112), new Vector2(390, 100),
                     done ? new Color(.03f, .03f, .045f, .55f) : new Color(.025f, .025f, .045f, .83f),
                     done ? new Color(1, 1, 1, .45f) : F.White, 21, TextAnchor.MiddleLeft);
-                BuildPortrait(button.transform, guest.portrait, new Vector2(55, 0), new Vector2(76, 76), new Vector2(0, .5f), true);
+                BuildPortrait(button.transform, guest.portraitPath, new Vector2(55, 0), new Vector2(76, 76), new Vector2(0, .5f), true);
                 var label = button.GetComponentInChildren<Text>();
                 label.rectTransform.offsetMin = new Vector2(110, 6);
                 F.Label(button.transform, "Type", done ? "✓" : guest.special ? "特" : "普", 17, F.White,
@@ -1475,9 +1508,9 @@ namespace MasterHouse
             for (var i = 0; i < 4; i++)
             {
                 var index = i;
-                var room = OutGameUIData.Rooms[i];
+                var room = Codex.rooms[i];
                 var selected = roomIndex == i;
-                F.Button(nav.transform, "Room" + room.id, $"<size=12>{room.code}</size>\n{RoomIcon(i)}\n{room.name}{(selected ? "\n<size=11>CURRENT</size>" : "")}",
+                F.Button(nav.transform, "Room" + room.id, $"<size=12>{room.code}</size>\n{RoomIcon(i)}\n{room.displayName}{(selected ? "\n<size=11>CURRENT</size>" : "")}",
                     () => SelectRoom(index), new Vector2(0, .5f), new Vector2(0, .5f),
                     new Vector2(305 + i * 175, 0), new Vector2(170, 150),
                     selected ? new Color(.45f, .08f, .3f, .77f) : new Color(1, 1, 1, .015f),
@@ -1490,10 +1523,10 @@ namespace MasterHouse
 
         private void BuildSceneCaption(Transform root)
         {
-            var room = OutGameUIData.Rooms[roomIndex];
+            var room = Codex.rooms[roomIndex];
             var caption = F.Panel(root, "SceneCaption", new Vector2(0, 0), new Vector2(0, 0), new Vector2(390, 135),
                 new Vector2(310, 84), new Color(.8f, .75f, .67f, .92f));
-            F.Label(caption.transform, "Caption", $"<size=12>CURRENT ROOM / 04</size>\n{room.name}  <size=14>{room.note}</size>",
+            F.Label(caption.transform, "Caption", $"<size=12>CURRENT ROOM / 04</size>\n{room.displayName}  <size=14>{room.note}</size>",
                 23, F.Hex("3B2D31"), TextAnchor.MiddleCenter, FontStyle.Bold);
             var hotspotLabel = roomIndex == 2 ? "手冲咖啡台" : roomIndex == 3 ? "旧书检索机" : "黑胶唱机";
             F.Button(root, "Hotspot", "＋  " + hotspotLabel + "\n<size=13>查看设备</size>", () => OpenPanel(SystemPanel.Device),
@@ -1525,7 +1558,7 @@ namespace MasterHouse
         {
             if (index == roomIndex || roomTransitioning)
             {
-                if (index == roomIndex) ShowToast($"当前位于{OutGameUIData.Rooms[index].name} · {OutGameUIData.Rooms[index].note}");
+                if (index == roomIndex) ShowToast($"当前位于{Codex.rooms[index].displayName} · {Codex.rooms[index].note}");
                 return;
             }
             var usesDoor = index == 1 || roomIndex == 1;
@@ -1559,7 +1592,7 @@ namespace MasterHouse
             if (sceneArt != null)
             {
                 var old = sceneArt;
-                var next = F.StretchTexture(sceneRoot, "SceneArtNext", OutGameUIData.Rooms[index].art, new Color(1, 1, 1, 0));
+                var next = F.StretchTexture(sceneRoot, "SceneArtNext", Codex.rooms[index].artPath, new Color(1, 1, 1, 0));
                 next.raycastTarget = false;
                 next.transform.SetAsFirstSibling();
                 next.DOFade(1, .5f).SetTarget(this).SetUpdate(true);
@@ -1596,14 +1629,14 @@ namespace MasterHouse
         {
             if (served[index])
             {
-                ShowToast(OutGameUIData.Guests[index].name + " 已完成接待并离开旅店");
+                ShowToast(Visitors.visitors[index].displayName + " 已完成接待并离开旅店");
                 return;
             }
-            var guest = OutGameUIData.Guests[index];
+            var guest = Visitors.visitors[index];
             // 服务时间窗口按加速的游戏时钟判定；窗口外访客仍留在屋内，只是暂不开放服务
             if (!guest.InServiceWindow(Clock.Data.HourF))
             {
-                ShowToast($"{guest.name} 的可服务时间是 {guest.ServiceWindowText} · 现在 {Clock.Data.TimeText}，TA 先在屋里歇着");
+                ShowToast($"{guest.displayName} 的可服务时间是 {guest.ServiceWindowText} · 现在 {Clock.Data.TimeText}，TA 先在屋里歇着");
                 return;
             }
             guestIndex = index;
@@ -1616,7 +1649,7 @@ namespace MasterHouse
             dialogueOpen = true;
             if (ShowDialogueFromPrefab()) return;
             Debug.LogWarning("[OutGameUI] Prefab 缺失，暂时回退代码布局：" + OutGamePrefabResourcePaths.DialogueView);
-            var guest = OutGameUIData.Guests[guestIndex];
+            var guest = Visitors.visitors[guestIndex];
             modalRoot = F.Stretch(HubOverlayRoot, "DialogueLayer");
             modalRoot.SetAsLastSibling();
             F.StretchTexture(modalRoot, "VisitorScene", "OutGameUI/house-hub-v2", new Color(.72f, .72f, .78f, 1));
@@ -1626,7 +1659,7 @@ namespace MasterHouse
 
             var portrait = F.Panel(modalRoot, "CharacterCard", new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(390, 40),
                 new Vector2(500, 700), new Color(.16f, .05f, .12f, .82f));
-            BuildPortrait(portrait.transform, guest.portrait, Vector2.zero, new Vector2(460, 620), new Vector2(.5f, .5f), false);
+            BuildPortrait(portrait.transform, guest.portraitPath, Vector2.zero, new Vector2(460, 620), new Vector2(.5f, .5f), false);
             F.Label(portrait.transform, "Tag", "VISITOR / " + (guest.special ? "SPECIAL" : "WEEK 01"), 15, F.Rose,
                 new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 25), new Vector2(420, 30), TextAnchor.MiddleCenter, FontStyle.Bold);
 
@@ -1637,8 +1670,8 @@ namespace MasterHouse
             for (var i = 0; i < 4; i++)
             {
                 var index = i;
-                var item = OutGameUIData.Guests[i];
-                F.Button(week.transform, "WeekGuest" + i, item.name + "\n<size=13>" + (item.special ? "特殊事件 · 可打断" : "一般事件 · 无先后") + "</size>",
+                var item = Visitors.visitors[i];
+                F.Button(week.transform, "WeekGuest" + i, item.displayName + "\n<size=13>" + (item.special ? "特殊事件 · 可打断" : "一般事件 · 无先后") + "</size>",
                     () => { guestIndex = index; CloseDialogue(); ShowDialogue(); }, new Vector2(.5f, 1), new Vector2(.5f, 1),
                     new Vector2(0, -105 - i * 100), new Vector2(355, 82),
                     i == guestIndex ? new Color(.45f, .08f, .28f, .75f) : new Color(1, 1, 1, .035f), F.White, 19, TextAnchor.MiddleLeft);
@@ -1646,8 +1679,8 @@ namespace MasterHouse
 
             var box = F.Panel(modalRoot, "DialogueBox", new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(80, 190),
                 new Vector2(1120, 250), new Color(.035f, .025f, .045f, .94f));
-            var line = DialogueLine(guestIndex);
-            F.Label(box.transform, "Dialogue", $"<size=15>{guest.type}{(guest.special ? " · 硬植入事件" : " · 无接待顺序")}</size>\n<size=31>{guest.name}</size>     <size=15>信赖 {guest.affinity}%</size>\n\n{line}",
+            var line = guest.transactionLine;
+            F.Label(box.transform, "Dialogue", $"<size=15>{guest.type}{(guest.special ? " · 硬植入事件" : " · 无接待顺序")}</size>\n<size=31>{guest.displayName}</size>     <size=15>信赖 {guest.affinity}%</size>\n\n{line}",
                 22, F.White, new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(-90, 10), new Vector2(850, 205), TextAnchor.UpperLeft);
             F.Button(box.transform, "Need", "查看需求家具", () => { CloseDialogue(); OpenPanel(SystemPanel.Archive); },
                 new Vector2(1, 0), new Vector2(1, 0), new Vector2(-170, 82), new Vector2(250, 58), new Color(1, 1, 1, .05f), F.White, 18);
@@ -1662,11 +1695,11 @@ namespace MasterHouse
                 new Vector2(1480, 90), new Color(.015f, .018f, .032f, .93f));
             F.Label(furniture.transform, "Title", "MAKE FOR VISITOR\n<size=11>根据来客需求制造并摆放</size>", 15, F.Rose,
                 new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(130, 0), new Vector2(240, 62), TextAnchor.MiddleCenter, FontStyle.Bold);
-            for (var i = 0; i < OutGameUIData.Furniture.Length; i++)
+            for (var i = 0; i < FurnitureArchives.Count; i++)
             {
                 var index = i;
-                var item = OutGameUIData.Furniture[i];
-                F.Button(furniture.transform, "Furniture" + i, item.name, () => { placedFurniture = item.id; ShowToast("已摆放：" + item.name); },
+                var item = FurnitureArchives[i];
+                F.Button(furniture.transform, "Furniture" + i, item.displayName, () => { placedFurniture = item.id; ShowToast("已摆放：" + item.displayName); },
                     new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(335 + i * 205, 0), new Vector2(195, 70),
                     placedFurniture == item.id ? new Color(.48f, .08f, .28f, .72f) : new Color(1, 1, 1, .035f), F.White, 15);
             }
@@ -1696,7 +1729,7 @@ namespace MasterHouse
             }
             modalRoot = instance.transform as RectTransform;
             modalRoot.SetAsLastSibling();
-            var guest = OutGameUIData.Guests[guestIndex];
+            var guest = Visitors.visitors[guestIndex];
 
             if (view.sceneArt != null)
             {
@@ -1705,16 +1738,16 @@ namespace MasterHouse
                 else view.sceneArt.texture = Resources.Load<Texture2D>("OutGameUI/house-hub-v2");
             }
             if (view.closeButton != null) BindButton(view.closeButton, CloseDialogue);
-            if (view.portrait != null) view.portrait.texture = Resources.Load<Texture2D>(guest.portrait);
+            if (view.portrait != null) view.portrait.texture = Resources.Load<Texture2D>(guest.portraitPath);
             if (view.portraitTag != null)
                 view.portraitTag.text = "VISITOR / " + (guest.special ? "SPECIAL" : "WEEK 01");
 
             for (var i = 0; i < 4; i++)
             {
                 var index = i;
-                var item = OutGameUIData.Guests[i];
+                var item = Visitors.visitors[i];
                 if (view.weekGuestLabels != null && i < view.weekGuestLabels.Length && view.weekGuestLabels[i] != null)
-                    view.weekGuestLabels[i].text = item.name + "\n<size=13>" + (item.special ? "特殊事件 · 可打断" : "一般事件 · 无先后") + "</size>";
+                    view.weekGuestLabels[i].text = item.displayName + "\n<size=13>" + (item.special ? "特殊事件 · 可打断" : "一般事件 · 无先后") + "</size>";
                 if (view.weekGuestBackgrounds != null && i < view.weekGuestBackgrounds.Length && view.weekGuestBackgrounds[i] != null)
                     view.weekGuestBackgrounds[i].color = i == guestIndex ? new Color(.45f, .08f, .28f, .75f) : new Color(1, 1, 1, .035f);
                 if (view.weekGuestButtons != null && i < view.weekGuestButtons.Length && view.weekGuestButtons[i] != null)
@@ -1722,7 +1755,7 @@ namespace MasterHouse
             }
 
             if (view.dialogueText != null)
-                view.dialogueText.text = $"<size=15>{guest.type}{(guest.special ? " · 硬植入事件" : " · 无接待顺序")}</size>\n<size=31>{guest.name}</size>     <size=15>信赖 {guest.affinity}%</size>\n\n{DialogueLine(guestIndex)}";
+                view.dialogueText.text = $"<size=15>{guest.type}{(guest.special ? " · 硬植入事件" : " · 无接待顺序")}</size>\n<size=31>{guest.displayName}</size>     <size=15>信赖 {guest.affinity}%</size>\n\n{guest.transactionLine}";
             if (view.needButton != null)
                 BindButton(view.needButton, () => { CloseDialogue(); OpenPanel(SystemPanel.Archive); });
             if (view.serveButton != null)
@@ -1739,24 +1772,24 @@ namespace MasterHouse
                 view.refuseButton.interactable = !served[guestIndex];
             }
 
-            for (var i = 0; i < OutGameUIData.Furniture.Length && i < 5; i++)
+            for (var i = 0; i < FurnitureArchives.Count && i < 5; i++)
             {
-                var item = OutGameUIData.Furniture[i];
+                var item = FurnitureArchives[i];
                 if (view.furnitureLabels != null && i < view.furnitureLabels.Length && view.furnitureLabels[i] != null)
-                    view.furnitureLabels[i].text = item.name;
+                    view.furnitureLabels[i].text = item.displayName;
                 if (view.furnitureBackgrounds != null && i < view.furnitureBackgrounds.Length && view.furnitureBackgrounds[i] != null)
                     view.furnitureBackgrounds[i].color = placedFurniture == item.id ? new Color(.48f, .08f, .28f, .72f) : new Color(1, 1, 1, .035f);
                 if (view.furnitureButtons != null && i < view.furnitureButtons.Length && view.furnitureButtons[i] != null)
                 {
                     var itemId = item.id;
-                    var itemName = item.name;
+                    var itemName = item.displayName;
                     var backgrounds = view.furnitureBackgrounds;
                     BindButton(view.furnitureButtons[i], () =>
                     {
                         placedFurniture = itemId;
-                        for (var j = 0; j < OutGameUIData.Furniture.Length && j < backgrounds.Length; j++)
+                        for (var j = 0; j < FurnitureArchives.Count && j < backgrounds.Length; j++)
                             if (backgrounds[j] != null)
-                                backgrounds[j].color = OutGameUIData.Furniture[j].id == itemId
+                                backgrounds[j].color = FurnitureArchives[j].id == itemId
                                     ? new Color(.48f, .08f, .28f, .72f)
                                     : new Color(1, 1, 1, .035f);
                         ShowToast("已摆放：" + itemName);
@@ -1797,7 +1830,7 @@ namespace MasterHouse
         {
             if (served[guestIndex]) return;
             served[guestIndex] = true;
-            var name = OutGameUIData.Guests[guestIndex].name;
+            var name = Visitors.visitors[guestIndex].displayName;
             // 流通循环：完成客人服务 → 产出货币 + 积累声望
             Economy.CompleteGuestService();
             if (visitorStage != null) visitorStage.NotifyServed(guestIndex);
@@ -1813,7 +1846,7 @@ namespace MasterHouse
             if (served[guestIndex]) return;
             served[guestIndex] = true;
             refused[guestIndex] = true;
-            var name = OutGameUIData.Guests[guestIndex].name;
+            var name = Visitors.visitors[guestIndex].displayName;
             // 流通循环：拒绝服务客人 → 扣除声望
             Economy.RefuseGuestService();
             if (visitorStage != null) visitorStage.NotifyRefused(guestIndex);
@@ -2068,9 +2101,9 @@ namespace MasterHouse
                 Destroy(instance);
             }
             Debug.LogWarning("[OutGameUI] Prefab 缺失，暂时回退代码布局：" + OutGamePrefabResourcePaths.TasksPanel);
-            var guest = OutGameUIData.Guests[guestIndex];
+            var guest = Visitors.visitors[guestIndex];
             var focus = DarkCard(content, "Focus", new Vector2(0, 270), new Vector2(1120, 220), new Color(.3f, .06f, .2f, .45f));
-            F.Label(focus, "Text", $"<color=#E22D76>●  MAIN / {guest.type}</color>\n<size=28>{guest.name} · {guest.need}</size>\n<size=17>{guest.hint} 推荐使用「{guest.solution}」，完成后可能留下「{guest.gift}」。</size>",
+            F.Label(focus, "Text", $"<color=#E22D76>●  MAIN / {guest.type}</color>\n<size=28>{guest.displayName} · {guest.need}</size>\n<size=17>{guest.hint} 推荐使用「{guest.solution}」，完成后可能留下「{guest.gift}」。</size>",
                 20, F.White, new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(-30, 0), new Vector2(970, 175), TextAnchor.MiddleLeft);
             var tasks = new[] { "为赫墨制造琴弦窗户", "把米娅的纸条挂上风铃", "检查明日访客预告" };
             for (var i = 0; i < tasks.Length; i++)
@@ -2099,9 +2132,9 @@ namespace MasterHouse
         private void BindTasksPanel(OutGameTasksPanelView view)
         {
             if (view == null) return;
-            var guest = OutGameUIData.Guests[guestIndex];
+            var guest = Visitors.visitors[guestIndex];
             if (view.focusText != null)
-                view.focusText.text = $"<color=#E22D76>●  MAIN / {guest.type}</color>\n<size=28>{guest.name} · {guest.need}</size>\n<size=17>{guest.hint} 推荐使用「{guest.solution}」，完成后可能留下「{guest.gift}」。</size>";
+                view.focusText.text = $"<color=#E22D76>●  MAIN / {guest.type}</color>\n<size=28>{guest.displayName} · {guest.need}</size>\n<size=17>{guest.hint} 推荐使用「{guest.solution}」，完成后可能留下「{guest.gift}」。</size>";
             var tasks = new[] { "为赫墨制造琴弦窗户", "把米娅的纸条挂上风铃", "检查明日访客预告" };
             for (var i = 0; i < tasks.Length; i++)
             {
@@ -2118,28 +2151,29 @@ namespace MasterHouse
             for (var i = 0; i < 4; i++)
             {
                 var index = i;
-                var room = OutGameUIData.Rooms[i];
-                F.Button(content, "DeviceRoom" + i, room.name + $"\n<size=12>{OutGameUIData.Devices[i].Length} DEVICES</size>",
+                var room = Codex.rooms[i];
+                F.Button(content, "DeviceRoom" + i, room.displayName + $"\n<size=12>{Codex.CountDevicesOfRoom(room.id)} DEVICES</size>",
                     () => { roomIndex = index; selectedDevice = 0; OpenPanel(SystemPanel.Device); },
                     new Vector2(0, 1), new Vector2(0, 1), new Vector2(115, -70 - i * 98), new Vector2(210, 82),
                     roomIndex == i ? F.Wine : new Color(1, 1, 1, .035f), F.White, 19);
             }
-            var devices = OutGameUIData.Devices[roomIndex];
-            for (var i = 0; i < devices.Length; i++)
+            var devices = new List<DeviceDef>();
+            Codex.GetDevicesOfRoom(Codex.rooms[roomIndex].id, devices);
+            for (var i = 0; i < devices.Count; i++)
             {
                 var index = i;
-                var parts = devices[i].Split('|');
-                F.Button(content, "Device" + i, $"⚙\n<size=13>{parts[1]} · {(parts[3] == "1" ? "可使用" : "待修复")}</size>\n{parts[0]}\n<size=14>{parts[2]}</size>",
+                var device = devices[i];
+                F.Button(content, "Device" + i, $"⚙\n<size=13>LV.{device.level} · {(device.owned ? "可使用" : "待修复")}</size>\n{device.displayName}\n<size=14>{device.effect}</size>",
                     () => { selectedDevice = index; OpenPanel(SystemPanel.Device); },
                     new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(-120 + i * 270, -155), new Vector2(245, 270),
                     selectedDevice == i ? new Color(.38f, .08f, .24f, .75f) : new Color(1, 1, 1, .045f), F.White, 21, TextAnchor.MiddleCenter);
             }
-            var chosen = devices[Mathf.Clamp(selectedDevice, 0, devices.Length - 1)].Split('|');
+            var chosen = devices[Mathf.Clamp(selectedDevice, 0, devices.Count - 1)];
             var recipe = DarkCard(content, "Recipe", new Vector2(230, -230), new Vector2(610, 270), new Color(.18f, .07f, .14f, .82f));
-            F.Label(recipe, "RecipeText", $"<size=13>当前设备</size>\n<size=30>{chosen[0]}</size>\n{chosen[2]}\n\n咖啡豆 ×2     温水 ×1", 20, F.White,
+            F.Label(recipe, "RecipeText", $"<size=13>当前设备</size>\n<size=30>{chosen.displayName}</size>\n{chosen.effect}\n\n咖啡豆 ×2     温水 ×1", 20, F.White,
                 new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 35), new Vector2(540, 175), TextAnchor.MiddleLeft);
-            var ready = chosen[3] == "1";
-            var make = F.Button(recipe, "Make", ready ? "开始制作" : "需要修复", () => ShowToast(chosen[0] + " 已开始运作"),
+            var ready = chosen.owned;
+            var make = F.Button(recipe, "Make", ready ? "开始制作" : "需要修复", () => ShowToast(chosen.displayName + " 已开始运作"),
                 new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 35), new Vector2(280, 58), ready ? F.Wine : F.Hex("49434A"), F.White, 19);
             make.interactable = ready;
         }
@@ -2152,19 +2186,19 @@ namespace MasterHouse
                 new Vector2(0, 1), new Vector2(0, 1), new Vector2(380, -45), new Vector2(220, 58), journalAchievements ? F.Wine : new Color(1, 1, 1, .04f), F.White, 20);
             if (!journalAchievements)
             {
-                DarkArticle(content, new Vector2(-280, 90), "06 / 17 · 雨转晴", "窗户唱回来的那句话",
-                    "赫墨说“今天糟透了”。琴弦轻轻响了一下，唱回：“但你还是走到了这里。”\n\n关键词：琴弦窗户 / 反向情绪");
-                DarkArticle(content, new Vector2(300, 90), "06 / 16 · 阴", "风铃下的纸条",
-                    "米娅没有说再见，只留下一张画着胡萝卜的小纸条。");
+                for (var i = 0; i < Codex.journalEntries.Count; i++)
+                {
+                    var entry = Codex.journalEntries[i];
+                    DarkArticle(content, new Vector2(i % 2 == 0 ? -280 : 300, 90 - i / 2 * 420), entry.dateText, entry.title, entry.body);
+                }
             }
             else
             {
-                var names = new[] { "夜的主人", "初次相识", "家的轮廓", "无人知晓" };
-                var notes = new[] { "在深夜完成一次服务", "录入 3 位访客", "解锁全部房间", "发现特殊访客的秘密" };
-                for (var i = 0; i < 4; i++)
+                for (var i = 0; i < Codex.achievements.Count; i++)
                 {
-                    var done = i < 2;
-                    F.Button(content, "JournalAchievement" + i, $"{(done ? "✓" : (i + 1).ToString())}     {names[i]}\n<size=15>          {notes[i]}</size>", null,
+                    var achievement = Codex.achievements[i];
+                    var done = i < 2; // 原型假状态：完成态是运行时数据，成就系统未实现前保持「前两项 ✓」
+                    F.Button(content, "JournalAchievement" + i, $"{(done ? "✓" : (i + 1).ToString())}     {achievement.displayName}\n<size=15>          {achievement.note}</size>", null,
                         new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(i % 2 == 0 ? -280 : 300, 150 - i / 2 * 210),
                         new Vector2(520, 170), done ? new Color(.4f, .08f, .25f, .6f) : new Color(1, 1, 1, .035f), F.White, 23, TextAnchor.MiddleLeft);
                 }
@@ -2176,17 +2210,17 @@ namespace MasterHouse
             for (var i = 0; i < 4; i++)
             {
                 var index = i;
-                var guest = OutGameUIData.Guests[i];
-                var button = F.Button(content, "Contact" + i, $"{guest.name}\n<size=13>{guest.type}                                  {guest.affinity}%</size>",
+                var guest = Visitors.visitors[i];
+                var button = F.Button(content, "Contact" + i, $"{guest.displayName}\n<size=13>{guest.type}                                  {guest.affinity}%</size>",
                     () => { guestIndex = index; OpenPanel(SystemPanel.Contacts); }, new Vector2(0, 1), new Vector2(0, 1),
                     new Vector2(170, -85 - i * 125), new Vector2(320, 105), guestIndex == i ? F.Wine : new Color(1, 1, 1, .035f), F.White, 20, TextAnchor.MiddleLeft);
-                BuildPortrait(button.transform, guest.portrait, new Vector2(50, 0), new Vector2(76, 76), new Vector2(0, .5f), true);
+                BuildPortrait(button.transform, guest.portraitPath, new Vector2(50, 0), new Vector2(76, 76), new Vector2(0, .5f), true);
                 button.GetComponentInChildren<Text>().rectTransform.offsetMin = new Vector2(105, 6);
             }
-            var current = OutGameUIData.Guests[guestIndex];
+            var current = Visitors.visitors[guestIndex];
             var profile = DarkCard(content, "ContactProfile", new Vector2(245, -40), new Vector2(720, 690), new Color(.09f, .045f, .08f, .86f));
-            BuildPortrait(profile, current.portrait, new Vector2(-230, 160), new Vector2(210, 260), new Vector2(.5f, .5f), false);
-            F.Label(profile, "ProfileText", $"<size=14>{current.type} / No. 0{guestIndex + 1}</size>\n<size=40>{current.name}</size>\n“{current.hint}”\n\n信赖  <color=#E22D76>━━━━━━━━</color>  {current.affinity}\n\n当前需求     {current.need}\n\n适配家具     {current.solution}\n\n可能留下     {current.gift}",
+            BuildPortrait(profile, current.portraitPath, new Vector2(-230, 160), new Vector2(210, 260), new Vector2(.5f, .5f), false);
+            F.Label(profile, "ProfileText", $"<size=14>{current.type} / No. 0{guestIndex + 1}</size>\n<size=40>{current.displayName}</size>\n“{current.hint}”\n\n信赖  <color=#E22D76>━━━━━━━━</color>  {current.affinity}\n\n当前需求     {current.need}\n\n适配家具     {current.solution}\n\n可能留下     {current.gift}",
                 19, F.White, new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(120, 50), new Vector2(430, 520), TextAnchor.UpperLeft);
             F.Button(profile, "Talk", "与 TA 交谈", () => { ClosePanelImmediate(); ShowDialogue(); },
                 new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(130, 52), new Vector2(310, 62), F.Wine, F.White, 20);
@@ -2198,27 +2232,27 @@ namespace MasterHouse
                 new Vector2(0, 1), new Vector2(0, 1), new Vector2(130, -45), new Vector2(220, 58), archiveWorld ? new Color(1, 1, 1, .04f) : F.Wine, F.White, 19);
             F.Button(content, "WorldTab", "世界与角色", () => { archiveWorld = true; selectedArchive = 0; OpenPanel(SystemPanel.Archive); },
                 new Vector2(0, 1), new Vector2(0, 1), new Vector2(370, -45), new Vector2(220, 58), archiveWorld ? F.Wine : new Color(1, 1, 1, .04f), F.White, 19);
-            var items = archiveWorld ? OutGameUIData.World : OutGameUIData.Furniture;
-            selectedArchive = Mathf.Clamp(selectedArchive, 0, items.Length - 1);
-            for (var i = 0; i < items.Length; i++)
+            var items = archiveWorld ? WorldArchives : FurnitureArchives;
+            selectedArchive = Mathf.Clamp(selectedArchive, 0, items.Count - 1);
+            for (var i = 0; i < items.Count; i++)
             {
                 var index = i;
                 var item = items[i];
-                var card = F.Button(content, "Archive" + i, $"0{i + 1} / {item.type}\n{item.name}\n<size=13>{item.owner}</size>",
+                var card = F.Button(content, "Archive" + i, $"0{i + 1} / {item.type}\n{item.displayName}\n<size=13>{item.owner}</size>",
                     () => { selectedArchive = index; OpenPanel(SystemPanel.Archive); }, new Vector2(0, 1), new Vector2(0, 1),
                     new Vector2(135 + (i % 2) * 235, -165 - (i / 2) * 235), new Vector2(215, 215),
                     selectedArchive == i ? new Color(.42f, .08f, .28f, .72f) : new Color(1, 1, 1, .04f), F.White, 17, TextAnchor.LowerCenter);
-                var art = F.Texture(card.transform, "Art", item.image, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -70), new Vector2(180, 110));
+                var art = F.Texture(card.transform, "Art", item.imagePath, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -70), new Vector2(180, 110));
                 art.raycastTarget = false;
             }
             var selected = items[selectedArchive];
             var detail = DarkCard(content, "ArchiveDetail", new Vector2(300, -20), new Vector2(650, 730), new Color(.09f, .04f, .075f, .9f));
-            F.Texture(detail, "Preview", selected.image, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -180), new Vector2(590, 300));
-            F.Label(detail, "DetailText", $"<size=13>{selected.type} · {selected.owner}</size>\n<size=32>{selected.name}</size>\n{(selected.id == "map" ? $"角色移动时，以当前位置为中心永久揭开迷雾。当前探索半径 {fogRadius} 米。" : selected.note)}",
+            F.Texture(detail, "Preview", selected.imagePath, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -180), new Vector2(590, 300));
+            F.Label(detail, "DetailText", $"<size=13>{selected.type} · {selected.owner}</size>\n<size=32>{selected.displayName}</size>\n{(selected.id == "map" ? $"角色移动时，以当前位置为中心永久揭开迷雾。当前探索半径 {fogRadius} 米。" : selected.note)}",
                 19, F.White, new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -120), new Vector2(560, 230), TextAnchor.UpperLeft);
             if (!archiveWorld)
             {
-                F.Button(detail, "Place", "放入房间", () => { placedFurniture = selected.id; ShowToast(selected.name + " 已加入访客房间快捷栏"); },
+                F.Button(detail, "Place", "放入房间", () => { placedFurniture = selected.id; ShowToast(selected.displayName + " 已加入访客房间快捷栏"); },
                     new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 45), new Vector2(300, 62), F.Wine, F.White, 20);
             }
             else if (selected.id == "map")
@@ -2233,7 +2267,7 @@ namespace MasterHouse
             }
             else
             {
-                F.Button(detail, "Track", "追踪这份资料", () => ShowToast(selected.name + " 已设为追踪资料"),
+                F.Button(detail, "Track", "追踪这份资料", () => ShowToast(selected.displayName + " 已设为追踪资料"),
                     new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 45), new Vector2(300, 62), new Color(1, 1, 1, .04f), F.White, 19);
             }
         }
@@ -2244,38 +2278,39 @@ namespace MasterHouse
             for (var i = 0; i < 4; i++)
             {
                 var index = i;
-                var room = OutGameUIData.Rooms[i];
+                var room = Codex.rooms[i];
                 if (view.roomLabels != null && i < view.roomLabels.Length && view.roomLabels[i] != null)
-                    view.roomLabels[i].text = room.name + $"\n<size=12>{OutGameUIData.Devices[i].Length} DEVICES</size>";
+                    view.roomLabels[i].text = room.displayName + $"\n<size=12>{Codex.CountDevicesOfRoom(room.id)} DEVICES</size>";
                 if (view.roomBackgrounds != null && i < view.roomBackgrounds.Length && view.roomBackgrounds[i] != null)
                     view.roomBackgrounds[i].color = roomIndex == i ? F.Wine : new Color(1, 1, 1, .035f);
                 if (view.roomButtons != null && i < view.roomButtons.Length && view.roomButtons[i] != null)
                     BindButton(view.roomButtons[i], () => { roomIndex = index; selectedDevice = 0; OpenPanel(SystemPanel.Device); });
             }
-            var devices = OutGameUIData.Devices[roomIndex];
+            var devices = new List<DeviceDef>();
+            Codex.GetDevicesOfRoom(Codex.rooms[roomIndex].id, devices);
             if (view.deviceCardsRoot != null)
             {
-                for (var i = 0; i < devices.Length; i++)
+                for (var i = 0; i < devices.Count; i++)
                 {
                     var index = i;
-                    var parts = devices[i].Split('|');
+                    var device = devices[i];
                     F.Button(view.deviceCardsRoot, "Device" + i,
-                        $"⚙\n<size=13>{parts[1]} · {(parts[3] == "1" ? "可使用" : "待修复")}</size>\n{parts[0]}\n<size=14>{parts[2]}</size>",
+                        $"⚙\n<size=13>LV.{device.level} · {(device.owned ? "可使用" : "待修复")}</size>\n{device.displayName}\n<size=14>{device.effect}</size>",
                         () => { selectedDevice = index; OpenPanel(SystemPanel.Device); },
                         new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(-120 + i * 270, -155), new Vector2(245, 270),
                         selectedDevice == i ? new Color(.38f, .08f, .24f, .75f) : new Color(1, 1, 1, .045f), F.White, 21, TextAnchor.MiddleCenter);
                 }
             }
-            var chosen = devices[Mathf.Clamp(selectedDevice, 0, devices.Length - 1)].Split('|');
+            var chosen = devices[Mathf.Clamp(selectedDevice, 0, devices.Count - 1)];
             if (view.recipeText != null)
-                view.recipeText.text = $"<size=13>当前设备</size>\n<size=30>{chosen[0]}</size>\n{chosen[2]}\n\n咖啡豆 ×2     温水 ×1";
-            var ready = chosen[3] == "1";
+                view.recipeText.text = $"<size=13>当前设备</size>\n<size=30>{chosen.displayName}</size>\n{chosen.effect}\n\n咖啡豆 ×2     温水 ×1";
+            var ready = chosen.owned;
             if (view.makeButton != null)
             {
                 if (view.makeLabel != null) view.makeLabel.text = ready ? "开始制作" : "需要修复";
                 var background = view.makeButton.targetGraphic as Image;
                 if (background != null) background.color = ready ? F.Wine : F.Hex("49434A");
-                BindButton(view.makeButton, () => ShowToast(chosen[0] + " 已开始运作"));
+                BindButton(view.makeButton, () => ShowToast(chosen.displayName + " 已开始运作"));
                 view.makeButton.interactable = ready;
             }
         }
@@ -2294,20 +2329,20 @@ namespace MasterHouse
             if (view.bodyRoot == null) return;
             if (!journalAchievements)
             {
-                DarkArticle(view.bodyRoot, new Vector2(-280, 90), "06 / 17 · 雨转晴", "窗户唱回来的那句话",
-                    "赫墨说“今天糟透了”。琴弦轻轻响了一下，唱回：“但你还是走到了这里。”\n\n关键词：琴弦窗户 / 反向情绪");
-                DarkArticle(view.bodyRoot, new Vector2(300, 90), "06 / 16 · 阴", "风铃下的纸条",
-                    "米娅没有说再见，只留下一张画着胡萝卜的小纸条。");
+                for (var i = 0; i < Codex.journalEntries.Count; i++)
+                {
+                    var entry = Codex.journalEntries[i];
+                    DarkArticle(view.bodyRoot, new Vector2(i % 2 == 0 ? -280 : 300, 90 - i / 2 * 420), entry.dateText, entry.title, entry.body);
+                }
             }
             else
             {
-                var names = new[] { "夜的主人", "初次相识", "家的轮廓", "无人知晓" };
-                var notes = new[] { "在深夜完成一次服务", "录入 3 位访客", "解锁全部房间", "发现特殊访客的秘密" };
-                for (var i = 0; i < 4; i++)
+                for (var i = 0; i < Codex.achievements.Count; i++)
                 {
-                    var done = i < 2;
+                    var achievement = Codex.achievements[i];
+                    var done = i < 2; // 原型假状态：完成态是运行时数据，成就系统未实现前保持「前两项 ✓」
                     F.Button(view.bodyRoot, "JournalAchievement" + i,
-                        $"{(done ? "✓" : (i + 1).ToString())}     {names[i]}\n<size=15>          {notes[i]}</size>", null,
+                        $"{(done ? "✓" : (i + 1).ToString())}     {achievement.displayName}\n<size=15>          {achievement.note}</size>", null,
                         new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(i % 2 == 0 ? -280 : 300, 150 - i / 2 * 210),
                         new Vector2(520, 170), done ? new Color(.4f, .08f, .25f, .6f) : new Color(1, 1, 1, .035f), F.White, 23, TextAnchor.MiddleLeft);
                 }
@@ -2325,30 +2360,30 @@ namespace MasterHouse
                 if (view.tabButtons != null && i < view.tabButtons.Length && view.tabButtons[i] != null)
                     BindButton(view.tabButtons[i], () => { archiveWorld = toWorld; selectedArchive = 0; OpenPanel(SystemPanel.Archive); });
             }
-            var items = archiveWorld ? OutGameUIData.World : OutGameUIData.Furniture;
-            selectedArchive = Mathf.Clamp(selectedArchive, 0, items.Length - 1);
+            var items = archiveWorld ? WorldArchives : FurnitureArchives;
+            selectedArchive = Mathf.Clamp(selectedArchive, 0, items.Count - 1);
             if (view.gridRoot != null)
             {
-                for (var i = 0; i < items.Length; i++)
+                for (var i = 0; i < items.Count; i++)
                 {
                     var index = i;
                     var item = items[i];
-                    var card = F.Button(view.gridRoot, "Archive" + i, $"0{i + 1} / {item.type}\n{item.name}\n<size=13>{item.owner}</size>",
+                    var card = F.Button(view.gridRoot, "Archive" + i, $"0{i + 1} / {item.type}\n{item.displayName}\n<size=13>{item.owner}</size>",
                         () => { selectedArchive = index; OpenPanel(SystemPanel.Archive); }, new Vector2(0, 1), new Vector2(0, 1),
                         new Vector2(135 + i % 2 * 235, -165 - i / 2 * 235), new Vector2(215, 215),
                         selectedArchive == i ? new Color(.42f, .08f, .28f, .72f) : new Color(1, 1, 1, .04f), F.White, 17, TextAnchor.LowerCenter);
-                    var art = F.Texture(card.transform, "Art", item.image, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -70), new Vector2(180, 110));
+                    var art = F.Texture(card.transform, "Art", item.imagePath, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -70), new Vector2(180, 110));
                     art.raycastTarget = false;
                 }
             }
             var selected = items[selectedArchive];
-            if (view.detailPreview != null) view.detailPreview.texture = Resources.Load<Texture2D>(selected.image);
+            if (view.detailPreview != null) view.detailPreview.texture = Resources.Load<Texture2D>(selected.imagePath);
             if (view.detailText != null)
-                view.detailText.text = $"<size=13>{selected.type} · {selected.owner}</size>\n<size=32>{selected.name}</size>\n{(selected.id == "map" ? $"角色移动时，以当前位置为中心永久揭开迷雾。当前探索半径 {fogRadius} 米。" : selected.note)}";
+                view.detailText.text = $"<size=13>{selected.type} · {selected.owner}</size>\n<size=32>{selected.displayName}</size>\n{(selected.id == "map" ? $"角色移动时，以当前位置为中心永久揭开迷雾。当前探索半径 {fogRadius} 米。" : selected.note)}";
             if (view.actionRoot == null) return;
             if (!archiveWorld)
             {
-                F.Button(view.actionRoot, "Place", "放入房间", () => { placedFurniture = selected.id; ShowToast(selected.name + " 已加入访客房间快捷栏"); },
+                F.Button(view.actionRoot, "Place", "放入房间", () => { placedFurniture = selected.id; ShowToast(selected.displayName + " 已加入访客房间快捷栏"); },
                     new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 45), new Vector2(300, 62), F.Wine, F.White, 20);
             }
             else if (selected.id == "map")
@@ -2363,7 +2398,7 @@ namespace MasterHouse
             }
             else
             {
-                F.Button(view.actionRoot, "Track", "追踪这份资料", () => ShowToast(selected.name + " 已设为追踪资料"),
+                F.Button(view.actionRoot, "Track", "追踪这份资料", () => ShowToast(selected.displayName + " 已设为追踪资料"),
                     new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 45), new Vector2(300, 62), new Color(1, 1, 1, .04f), F.White, 19);
             }
         }
@@ -2389,7 +2424,7 @@ namespace MasterHouse
             var now = DateTime.Now;
             var phase = OutGameUIData.CurrentPhase;
             var date = DarkCard(content, "BigDate", new Vector2(-385, 195), new Vector2(340, 330), new Color(.34f, .07f, .22f, .65f));
-            F.Label(date, "DateText", $"{now:yyyy / MMMM}\n<size=100>{now:dd}</size>\n{now:dddd} · {OutGameUIData.PhaseNames[phase]}\n<size=28>{now:HH:mm}</size>",
+            F.Label(date, "DateText", $"{now:yyyy / MMMM}\n<size=100>{now:dd}</size>\n{now:dddd} · {HousePhaseText.Names[phase]}\n<size=28>{now:HH:mm}</size>",
                 20, F.White, TextAnchor.MiddleCenter, FontStyle.Bold);
             var first = new DateTime(now.Year, now.Month, 1);
             var offset = ((int)first.DayOfWeek + 6) % 7;
@@ -2406,7 +2441,7 @@ namespace MasterHouse
             F.Label(schedule, "ScheduleTitle", "现实时间阶段", 24, F.White, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -40), new Vector2(270, 40), TextAnchor.MiddleCenter, FontStyle.Bold);
             for (var i = 0; i < 6; i++)
             {
-                F.Button(schedule, "Phase" + i, $"{OutGameUIData.PhaseNames[i]}   <size=13>{OutGameUIData.PhaseRanges[i]}</size>       {(i == 5 ? "休息" : "可服务")}",
+                F.Button(schedule, "Phase" + i, $"{HousePhaseText.Names[i]}   <size=13>{HousePhaseText.Ranges[i]}</size>       {(i == 5 ? "休息" : "可服务")}",
                     null, new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -105 - i * 75), new Vector2(290, 62),
                     phase == i ? F.Wine : new Color(1, 1, 1, .035f), F.White, 16, TextAnchor.MiddleLeft);
             }
@@ -2420,7 +2455,7 @@ namespace MasterHouse
             var now = DateTime.Now;
             var phase = OutGameUIData.CurrentPhase;
             if (view.dateText != null)
-                view.dateText.text = $"{now:yyyy / MMMM}\n<size=100>{now:dd}</size>\n{now:dddd} · {OutGameUIData.PhaseNames[phase]}\n<size=28>{now:HH:mm}</size>";
+                view.dateText.text = $"{now:yyyy / MMMM}\n<size=100>{now:dd}</size>\n{now:dddd} · {HousePhaseText.Names[phase]}\n<size=28>{now:HH:mm}</size>";
             var firstOfMonth = new DateTime(now.Year, now.Month, 1);
             var weekOffset = ((int)firstOfMonth.DayOfWeek + 6) % 7;
             var daysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
@@ -2455,7 +2490,7 @@ namespace MasterHouse
             for (var i = 0; i < 6; i++)
             {
                 if (view.phaseLabels != null && i < view.phaseLabels.Length && view.phaseLabels[i] != null)
-                    view.phaseLabels[i].text = $"{OutGameUIData.PhaseNames[i]}   <size=13>{OutGameUIData.PhaseRanges[i]}</size>       {(i == 5 ? "休息" : "可服务")}";
+                    view.phaseLabels[i].text = $"{HousePhaseText.Names[i]}   <size=13>{HousePhaseText.Ranges[i]}</size>       {(i == 5 ? "休息" : "可服务")}";
                 if (view.phaseBackgrounds != null && i < view.phaseBackgrounds.Length && view.phaseBackgrounds[i] != null)
                     view.phaseBackgrounds[i].color = phase == i ? F.Wine : new Color(1, 1, 1, .035f);
             }
@@ -2685,18 +2720,6 @@ namespace MasterHouse
             slider.onValueChanged.AddListener(v => onChanged(v));
         }
 
-        // 过渡：internal 供 3.3 迁移工具读取生成 VisitorTable；消费代码切到资产后本方法删除
-        internal static string DialogueLine(int index)
-        {
-            return index switch
-            {
-                0 => "看来你已经开始安顿下来了。这里有没有一台电话，能让人听见很远的声音？",
-                1 => "如果我说『今天糟透了』，那扇窗能不能唱回一句不一样的话？",
-                2 => "我写了一句话，可是还不想自己念出来……可以把它挂在风铃下面吗？",
-                _ => "不用问我发生了什么。给我一盏安静的灯，我会自己坐一会儿。"
-            };
-        }
-
         private static string RoomIcon(int index) => index switch { 0 => "▰", 1 => "▱", 2 => "▦", _ => "▥" };
 
         private int ProgressForGuest(int index) => served[index] ? 100 : index == 0 ? 35 : 20;
@@ -2728,7 +2751,7 @@ namespace MasterHouse
 
         private static string RoomName(string id)
         {
-            foreach (var room in OutGameUIData.Rooms) if (room.id == id) return room.name;
+            foreach (var room in Codex.rooms) if (room.id == id) return room.displayName;
             return "起居室";
         }
 
@@ -2750,7 +2773,7 @@ namespace MasterHouse
         {
             if (data == null) return;
             roomIndex = 0;
-            for (var i = 0; i < OutGameUIData.Rooms.Length; i++) if (OutGameUIData.Rooms[i].id == data.room) roomIndex = i;
+            for (var i = 0; i < Codex.rooms.Count; i++) if (Codex.rooms[i].id == data.room) roomIndex = i;
             for (var i = 0; i < served.Length; i++) served[i] = data.served != null && i < data.served.Length && data.served[i];
             for (var i = 0; i < refused.Length; i++)
                 refused[i] = data.version >= 2 && data.refused != null && i < data.refused.Length && data.refused[i];
@@ -2807,7 +2830,7 @@ namespace MasterHouse
             {
                 version = 3,
                 slot = activeSlot,
-                room = OutGameUIData.Rooms[roomIndex].id,
+                room = Codex.rooms[roomIndex].id,
                 served = (bool[])served.Clone(),
                 refused = (bool[])refused.Clone(),
                 guestArrived = (bool[])guestArrived.Clone(),

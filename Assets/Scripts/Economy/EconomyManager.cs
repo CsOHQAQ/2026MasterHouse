@@ -7,7 +7,7 @@ namespace MasterHouse
     /// <summary>
     /// 流通数值逻辑（§16.3，旧 HouseEconomy 静态服务平移）：货币/声望/装饰分与家具所有权的唯一修改入口，
     /// 商城面板与家具摆放模式都从这里读写。纯事件驱动、不挂 tick（§16.4 只要求时钟与访客业务上 tick）。
-    /// 与旧实现的唯一结构差异：不再反向读 OutGameUIData（§16.7 毒点①），房间/设备数量由内容侧推入。
+    /// 与旧实现的唯一结构差异：不再反向读 OutGameUIData（§16.7 毒点①），房间/设备数量改由 CodexTable（Def 资产）统计。
     /// 家具表/房间表仍在此加载（SO 配置属 Model 层，方向正常；并入 Def 体系是 3.8）。
     /// </summary>
     public class EconomyManager
@@ -23,7 +23,7 @@ namespace MasterHouse
         /// <summary>任一数值变化后触发（§2.1：玩家操作产生的离散变化由 Manager 广播，UI 刷新用）。</summary>
         public event Action Changed;
 
-        public EconomyManager()
+        public EconomyManager(CodexTable codex)
         {
             var loaded = Resources.Load<EconomyConfig>(ConfigPath);
             if (loaded == null)
@@ -33,6 +33,13 @@ namespace MasterHouse
             }
             config = loaded;
             ApplyDefaults();
+
+            // 装饰分构成项的数量来源 = Def 资产统计（§16.7 毒点①的最终形态）；内容表运行时只读，统计一次即可
+            if (codex != null)
+            {
+                Data.RoomCount = codex.rooms.Count;
+                Data.DeviceCount = codex.CountOwnedDevices();
+            }
         }
 
         /// <summary>House 装饰分 = 房间数量 × 权重 + 设备 × 权重 + 已摆放装饰品得分 + GM 加成。纯展示派生值，无去处。</summary>
@@ -44,15 +51,6 @@ namespace MasterHouse
         public int ServiceReputationReward => config.serviceReputationReward;
         public int RefuseReputationPenalty => config.refuseReputationPenalty;
         public int FailReputationPenalty => config.failReputationPenalty;
-
-        /// <summary>装饰分构成项的数量来源（§16.7 毒点①已断）：由内容侧推入，3.3 内容 Def 化后改由 Def 资产统计。</summary>
-        public void SetDecorSourceCounts(int roomCount, int deviceCount)
-        {
-            if (Data.RoomCount == roomCount && Data.DeviceCount == deviceCount) return;
-            Data.RoomCount = roomCount;
-            Data.DeviceCount = deviceCount;
-            RaiseChanged();
-        }
 
         /// <summary>货币+声望来源：完成一次客人服务。</summary>
         public void CompleteGuestService()

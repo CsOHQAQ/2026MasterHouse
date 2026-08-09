@@ -15,6 +15,10 @@ namespace MasterHouse
         public HouseClockManager HouseClockManager { get; private set; }
         public EconomyManager EconomyManager { get; private set; }
 
+        /// <summary>局外内容表（Model，运行时只读，§16.6）。缺失是报错不是回退。</summary>
+        public VisitorTable VisitorTable { get; private set; }
+        public CodexTable CodexTable { get; private set; }
+
         [Tooltip("启动时自动加载的小关（可空，便于搭测试场景）")]
         [SerializeField] private LevelDef startLevel;
 
@@ -70,8 +74,13 @@ namespace MasterHouse
             PlayerCargo = new PlayerCargoData();
             LinkManager = new LinkManager();
             LevelManager = new LevelManager(LinkManager, PlayerCargo);
+            VisitorTable = Resources.Load<VisitorTable>("OutGameUI/VisitorTable");
+            CodexTable = Resources.Load<CodexTable>("OutGameUI/CodexTable");
+            if (VisitorTable == null || CodexTable == null)
+                Debug.LogError("局外内容表缺失（Resources/OutGameUI/VisitorTable|CodexTable）：请执行菜单 MasterHouse → 局外内容 → 生成内容表");
+
             HouseClockManager = new HouseClockManager();
-            EconomyManager = new EconomyManager(); // 纯事件驱动，不进 RunTick（§16.4）
+            EconomyManager = new EconomyManager(CodexTable); // 纯事件驱动，不进 RunTick（§16.4）；Codex 供装饰分数量统计（§16.7）
         }
 
         private void Start()

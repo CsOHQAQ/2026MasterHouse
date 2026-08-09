@@ -44,7 +44,7 @@ namespace MasterHouse
         /// <summary>当前已摆放装饰品的得分总和（家具模式回写）。</summary>
         public int FurnitureDecorScore;
 
-        /// <summary>房间数量（装饰分构成项）。由内容侧推入（§16.7 毒点①已断），3.3 内容 Def 化后改由 Def 资产统计。</summary>
+        /// <summary>房间数量（装饰分构成项）。来源 = CodexTable 的 Def 资产统计（§16.7 毒点①已断）。</summary>
         public int RoomCount;
 
         /// <summary>已拥有设备数量（装饰分构成项）。来源同 RoomCount。</summary>
