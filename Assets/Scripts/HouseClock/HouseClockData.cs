@@ -65,11 +65,6 @@ namespace MasterHouse
             }
         }
 
-        // ── 过渡兼容（冻结旧代码专用，逐模块重写推进时删除）──
-
-        /// <summary>过渡兼容：旧访客进场/服务窗口判定用的小数小时；3.4 访客业务重写为整数比较后删除。</summary>
-        public float HourF => TickOfDay / (TicksPerMinute * 60f);
-
         /// <summary>过渡兼容：旧存档 v3 的 float 分钟字段口径；待定 #9 统一存档定案后改存 TickOfDay（§11.5）。</summary>
         public float MinuteOfDayF => TickOfDay / (float)TicksPerMinute;
     }

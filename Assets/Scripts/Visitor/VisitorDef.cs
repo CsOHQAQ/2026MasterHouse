@@ -51,9 +51,6 @@ namespace MasterHouse
         public bool InServiceWindow(int minuteOfDay) =>
             special || (minuteOfDay >= serviceStart * 60 && minuteOfDay < serviceEnd * 60);
 
-        /// <summary>过渡兼容：冻结旧代码用的小数小时判定；3.4 访客业务重写为整数比较后删除。</summary>
-        public bool InServiceWindow(float hourF) => special || (hourF >= serviceStart && hourF < serviceEnd);
-
         public string ServiceWindowText => special ? "全天（特殊客人）" : $"{serviceStart:00}:00–{serviceEnd:00}:00";
     }
 

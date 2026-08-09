@@ -14,6 +14,7 @@ namespace MasterHouse
         public PlayerCargoData PlayerCargo { get; private set; }
         public HouseClockManager HouseClockManager { get; private set; }
         public EconomyManager EconomyManager { get; private set; }
+        public VisitorManager VisitorManager { get; private set; }
 
         /// <summary>局外内容表（Model，运行时只读，§16.6）。缺失是报错不是回退。</summary>
         public VisitorTable VisitorTable { get; private set; }
@@ -55,11 +56,13 @@ namespace MasterHouse
             RunTick();
         }
 
-        /// <summary>推进一个全局 tick：局内局外共用同一心跳（§16.4）。两侧测试场景当前隔离（待定 #19），推进顺序暂无耦合。</summary>
+        /// <summary>推进一个全局 tick：局内局外共用同一心跳（§16.4）。两侧测试场景当前隔离（待定 #19），推进顺序暂无耦合；
+        /// 局外内部时钟先走、访客后判（用刚推进的时间做整数比较）。</summary>
         private void RunTick()
         {
             LevelManager.TickAll();
             HouseClockManager.Tick();
+            VisitorManager.Tick();
         }
 
         private void Awake()
@@ -81,6 +84,7 @@ namespace MasterHouse
 
             HouseClockManager = new HouseClockManager();
             EconomyManager = new EconomyManager(CodexTable); // 纯事件驱动，不进 RunTick（§16.4）；Codex 供装饰分数量统计（§16.7）
+            VisitorManager = new VisitorManager(VisitorTable, HouseClockManager, EconomyManager);
         }
 
         private void Start()

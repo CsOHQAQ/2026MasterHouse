@@ -7,11 +7,11 @@ using F = MasterHouse.OutGameUIFactory;
 namespace MasterHouse
 {
     /// <summary>
-    /// Hub 场景里的访客 NPC 舞台层：
-    /// ①业务访客：按 served 状态刷新，点击转发给 OutGameUI 触发对话；
-    /// ②串门邻居（ambient）：随机轮换进场，在门口排队等玩家决定去留，走掉后隔一阵换一只新的进来；
+    /// Hub 场景里的访客 NPC 舞台层（纯表现，§16.4）：
+    /// ①业务访客：每帧轮询 VisitorManager 的到访/处理状态生成演员（表现不回写业务），点击转发给 OutGameUI 触发对话；
+    /// ②串门邻居（ambient）：随机轮换进场，在门口排队等玩家决定去留，走掉后隔一阵换一只新的进来（无业务后果）；
     /// ③把场景归一化坐标换算成锚点（跟随观景模式的 uvRect 平移缩放，与家具热点同一套换算），并按深度排序前后遮挡。
-    /// 只在起居室出现；业务结算仍由 OutGameUI 持有，这里只做表现转发。
+    /// 只在起居室出现。
     /// </summary>
     internal sealed class OutGameVisitorStage : MonoBehaviour
     {
@@ -38,17 +38,15 @@ namespace MasterHouse
         };
         private const int MaxAmbient = 3;
 
-        /// <summary>过渡桥接：冻结的旧表现层读新 HouseClock 模块（§16.4）；HourF 判定在 3.4 访客业务重写时改整数比较。</summary>
-        private static HouseClockData Clock => GameManager.Instance.HouseClockManager.Data;
-
-        /// <summary>过渡桥接：旧表现层读访客内容表（§16.6）；3.4 访客业务重写时随本类接新数据。</summary>
+        /// <summary>访客内容表（Model 只读，§16.6）。</summary>
         private static VisitorTable Visitors => GameManager.Instance.VisitorTable;
+
+        /// <summary>访客业务状态（只读轮询，§2.1；表现结果不回写业务，§16.4）。</summary>
+        private static VisitorManager Visitor => GameManager.Instance.VisitorManager;
 
         private RawImage sceneArt;
         private RectTransform layerRoot;
-        private bool[] served;
         private Action<int> onGuestClicked;
-        private Action<int> onGuestArrived;
         private readonly bool[] guestSpawned = new bool[4];
         private readonly List<OutGameVisitorActor> actors = new List<OutGameVisitorActor>();
         private readonly OutGameVisitorActor[] byGuest = new OutGameVisitorActor[4];
@@ -58,11 +56,10 @@ namespace MasterHouse
         private readonly List<float> respawnTimers = new List<float>();
 
         /// <summary>
-        /// 在场景根下创建访客层。业务访客按游戏时钟与到访状态生成：已到访（存档记录）或已过拜访时间 → 常驻屋内；
-        /// 未到拜访时间 → 由 Update 盯着时钟，到点从大门走进来。served 为 true 的业务访客不再出现。
+        /// 在场景根下创建访客层。业务访客按 VisitorManager 的状态生成：已到访 → 常驻屋内（读档/切房间回来直接在屋里）；
+        /// 未到访 → 由 Update 轮询业务状态，到点从大门走进来。已处理完毕（Served）的业务访客不再出现。
         /// </summary>
-        public static OutGameVisitorStage Build(RectTransform sceneRoot, RawImage art, bool[] served, bool[] arrived,
-            Action<int> onGuestClicked, Action<int> onGuestArrived)
+        public static OutGameVisitorStage Build(RectTransform sceneRoot, RawImage art, Action<int> onGuestClicked)
         {
             var existing = sceneRoot.Find("VisitorStage");
             if (existing != null) Destroy(existing.gameObject);
@@ -71,26 +68,19 @@ namespace MasterHouse
             var stage = root.gameObject.AddComponent<OutGameVisitorStage>();
             stage.sceneArt = art;
             stage.layerRoot = root;
-            stage.served = served;
             stage.onGuestClicked = onGuestClicked;
-            stage.onGuestArrived = onGuestArrived;
             var spawned = 0;
-            for (var i = 0; i < Visitors.visitors.Count; i++)
+            for (var i = 0; i < Visitors.visitors.Count && i < stage.guestSpawned.Length; i++)
             {
-                if (served != null && i < served.Length && served[i])
+                var state = Visitor.Data.States[i];
+                if (state.Served)
                 {
                     stage.guestSpawned[i] = true; // 已完成/已拒绝：本周不再出现
                     continue;
                 }
-                var guest = Visitors.visitors[i];
-                var wasArrived = arrived != null && i < arrived.Length && arrived[i];
-                var timeReached = Clock.HourF >= guest.visitHour;
-                if (!wasArrived && !timeReached) continue; // 还没到拜访时间，Update 里等时钟
-                // 刚踩点到访（半游戏小时内）→ 从大门走进来；否则视为早已在屋内（读档/切房间回来）→ 直接出现在屋里
-                var walkIn = !wasArrived && Clock.HourF - guest.visitHour < .5f;
-                stage.SpawnGuest(i, walkIn,
-                    walkIn ? 1.2f + spawned * 2.8f + UnityEngine.Random.Range(0f, 1.5f)
-                           : .3f + spawned * .6f + UnityEngine.Random.Range(0f, .5f));
+                if (!state.Arrived) continue; // 还没到拜访时间，Update 里等业务层判定
+                // 建层时已到访 → 直接出现在屋内游走点；「从大门走进来」只发生在 Update 捕捉到的实时到访
+                stage.SpawnGuest(i, walkIn: false, delay: .3f + spawned * .6f + UnityEngine.Random.Range(0f, .5f));
                 spawned++;
             }
             // 邻居首发阵容：随机挑几只错峰进场
@@ -115,7 +105,6 @@ namespace MasterHouse
             if (actor == null) return;
             actors.Add(actor);
             byGuest[index] = actor;
-            onGuestArrived?.Invoke(index);
         }
 
         private void SpawnAmbient(int rosterIndex, float delay)
@@ -158,12 +147,13 @@ namespace MasterHouse
 
         private void Update()
         {
-            // 业务访客到点进场（按加速的游戏时钟；跨过拜访小时即从大门走进来）
-            for (var i = 0; i < guestSpawned.Length && i < Visitors.visitors.Count; i++)
+            // 业务访客到点进场（轮询 VisitorManager 的到访判定；实时到访 → 从大门走进来）
+            for (var i = 0; i < guestSpawned.Length && i < Visitor.Data.States.Count; i++)
             {
                 if (guestSpawned[i]) continue;
-                if (served != null && i < served.Length && served[i]) { guestSpawned[i] = true; continue; }
-                if (Clock.HourF >= Visitors.visitors[i].visitHour)
+                var state = Visitor.Data.States[i];
+                if (state.Served) { guestSpawned[i] = true; continue; }
+                if (state.Arrived)
                     SpawnGuest(i, walkIn: true, delay: UnityEngine.Random.Range(0f, 1f));
             }
             // 邻居刷新循环

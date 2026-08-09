@@ -72,13 +72,10 @@ namespace MasterHouse
         private readonly System.Collections.Generic.List<(RectTransform rect, Rect viewport)> furnitureHotspots =
             new System.Collections.Generic.List<(RectTransform, Rect)>();
         private OutGameVisitorStage visitorStage;
-        private readonly bool[] guestArrived = new bool[4];
         private Text hudPhaseLabel;
         private Text hudPhaseRangeLabel;
         private int hudPhaseShown = -1;
         private float autoSaveTimer;
-        private readonly bool[] served = new bool[4];
-        private readonly bool[] refused = new bool[4];
 
         /// <summary>
         /// 过渡桥接：冻结的旧 UI 读写新 HouseClock 模块（§16.4，GameManager 全局 tick 驱动，由 OutGameBootstrap 保证存在）；
@@ -92,6 +89,9 @@ namespace MasterHouse
         /// <summary>过渡桥接：旧 UI 读内容表（§16.6）；随 OutGameUI 退役删除（3.9）。</summary>
         private static VisitorTable Visitors => GameManager.Instance.VisitorTable;
         private static CodexTable Codex => GameManager.Instance.CodexTable;
+
+        /// <summary>过渡桥接：旧 UI 读写访客业务（§16.3 Visitor 模块）；随 OutGameUI 退役删除（3.9）。</summary>
+        private static VisitorManager Visitor => GameManager.Instance.VisitorManager;
 
         // 档案面板的分类缓存（内容表运行时只读，首次访问填充一次）
         private static List<CodexEntryDef> furnitureArchives;
@@ -177,9 +177,7 @@ namespace MasterHouse
         /// <summary>GM「恢复初始态」：访客服务状态归零，背景重烘焙为默认布局，并把重置结果写入当前槽位。</summary>
         private void OnGmFullReset()
         {
-            for (var i = 0; i < served.Length; i++) served[i] = false;
-            for (var i = 0; i < refused.Length; i++) refused[i] = false;
-            for (var i = 0; i < guestArrived.Length; i++) guestArrived[i] = false;
+            Visitor.ResetNew();
             guestIndex = 0;
             Clock.ResetNew();
             FurnitureSceneComposer.RequestBake(_ => { ApplySceneArt(); BuildFurnitureHotspots(); });
@@ -1067,7 +1065,7 @@ namespace MasterHouse
             {
                 var index = i;
                 var guest = Visitors.visitors[i];
-                var done = served[i];
+                var done = Visitor.Data.States[i].Served;
                 var card = rail.cards[i];
                 card.portrait.texture = Resources.Load<Texture2D>(guest.portraitPath);
                 card.eventLabel.text = guest.special ? "SPECIAL EVENT" : "EVENT 0" + (i + 1);
@@ -1234,8 +1232,8 @@ namespace MasterHouse
                 if (existing != null) Destroy(existing.gameObject);
                 return;
             }
-            visitorStage = OutGameVisitorStage.Build(sceneRoot, sceneArt, served, guestArrived,
-                OnVisitorClicked, index => guestArrived[index] = true);
+            // 到访判定已归 VisitorManager（§16.4）：舞台只读业务状态生成演员，旧版「生成回调写 guestArrived」的回写路线已废除
+            visitorStage = OutGameVisitorStage.Build(sceneRoot, sceneArt, OnVisitorClicked);
         }
 
         /// <summary>点击场景中的访客 NPC → 触发对话（观景模式下先展开界面）。</summary>
@@ -1463,7 +1461,7 @@ namespace MasterHouse
             {
                 var index = i;
                 var guest = Visitors.visitors[i];
-                var done = served[i];
+                var done = Visitor.Data.States[i].Served;
                 var caption = $"<size=12>{(guest.special ? "SPECIAL EVENT" : "EVENT 0" + (i + 1))}</size>\n{guest.displayName}\n<size=15>{(done ? "事件已完成" : guest.special ? "特殊客人 · 可打断" : "一般客人 · 可接待")}</size>";
                 var button = F.Button(rail, "Guest" + guest.id, caption, () => SelectGuest(index),
                     new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -90 - i * 112), new Vector2(390, 100),
@@ -1627,15 +1625,15 @@ namespace MasterHouse
 
         private void SelectGuest(int index)
         {
-            if (served[index])
+            if (Visitor.Data.States[index].Served)
             {
                 ShowToast(Visitors.visitors[index].displayName + " 已完成接待并离开旅店");
                 return;
             }
-            var guest = Visitors.visitors[index];
-            // 服务时间窗口按加速的游戏时钟判定；窗口外访客仍留在屋内，只是暂不开放服务
-            if (!guest.InServiceWindow(Clock.Data.HourF))
+            // 服务时间窗口由 VisitorManager 整数分钟判定（§16.4）；窗口外访客仍留在屋内，只是暂不开放服务
+            if (!Visitor.CanServe(index))
             {
+                var guest = Visitors.visitors[index];
                 ShowToast($"{guest.displayName} 的可服务时间是 {guest.ServiceWindowText} · 现在 {Clock.Data.TimeText}，TA 先在屋里歇着");
                 return;
             }
@@ -1684,12 +1682,12 @@ namespace MasterHouse
                 22, F.White, new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(-90, 10), new Vector2(850, 205), TextAnchor.UpperLeft);
             F.Button(box.transform, "Need", "查看需求家具", () => { CloseDialogue(); OpenPanel(SystemPanel.Archive); },
                 new Vector2(1, 0), new Vector2(1, 0), new Vector2(-170, 82), new Vector2(250, 58), new Color(1, 1, 1, .05f), F.White, 18);
-            var serve = F.Button(box.transform, "Serve", served[guestIndex] ? "事件已完成" : "回应访客事件", ServeGuest,
+            var serve = F.Button(box.transform, "Serve", Visitor.Data.States[guestIndex].Served ? "事件已完成" : "回应访客事件", ServeGuest,
                 new Vector2(1, 0), new Vector2(1, 0), new Vector2(-170, 25), new Vector2(250, 58), F.Wine, F.White, 18);
-            serve.interactable = !served[guestIndex];
+            serve.interactable = !Visitor.Data.States[guestIndex].Served;
             var refuse = F.Button(box.transform, "Refuse", $"拒绝接待 <size=13>声望 -{Economy.RefuseReputationPenalty}</size>", RefuseGuest,
                 new Vector2(1, 0), new Vector2(1, 0), new Vector2(-425, 25), new Vector2(230, 58), new Color(1, 1, 1, .05f), F.White, 17);
-            refuse.interactable = !served[guestIndex];
+            refuse.interactable = !Visitor.Data.States[guestIndex].Served;
 
             var furniture = F.Panel(modalRoot, "FurnitureDock", new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 45),
                 new Vector2(1480, 90), new Color(.015f, .018f, .032f, .93f));
@@ -1760,16 +1758,16 @@ namespace MasterHouse
                 BindButton(view.needButton, () => { CloseDialogue(); OpenPanel(SystemPanel.Archive); });
             if (view.serveButton != null)
             {
-                if (view.serveLabel != null) view.serveLabel.text = served[guestIndex] ? "事件已完成" : "回应访客事件";
+                if (view.serveLabel != null) view.serveLabel.text = Visitor.Data.States[guestIndex].Served ? "事件已完成" : "回应访客事件";
                 BindButton(view.serveButton, ServeGuest);
-                view.serveButton.interactable = !served[guestIndex];
+                view.serveButton.interactable = !Visitor.Data.States[guestIndex].Served;
             }
             if (view.refuseButton != null)
             {
                 if (view.refuseLabel != null)
                     view.refuseLabel.text = $"拒绝接待 <size=13>声望 -{Economy.RefuseReputationPenalty}</size>";
                 BindButton(view.refuseButton, RefuseGuest);
-                view.refuseButton.interactable = !served[guestIndex];
+                view.refuseButton.interactable = !Visitor.Data.States[guestIndex].Served;
             }
 
             for (var i = 0; i < FurnitureArchives.Count && i < 5; i++)
@@ -1828,11 +1826,9 @@ namespace MasterHouse
 
         private void ServeGuest()
         {
-            if (served[guestIndex]) return;
-            served[guestIndex] = true;
+            // 业务结算（置状态 + 货币/声望产出）归 VisitorManager（§16.3）；此处只剩表现刷新与落档
+            if (!Visitor.Serve(guestIndex)) return;
             var name = Visitors.visitors[guestIndex].displayName;
-            // 流通循环：完成客人服务 → 产出货币 + 积累声望
-            Economy.CompleteGuestService();
             if (visitorStage != null) visitorStage.NotifyServed(guestIndex);
             CloseDialogue();
             RebuildGuestChrome();
@@ -1843,12 +1839,9 @@ namespace MasterHouse
 
         private void RefuseGuest()
         {
-            if (served[guestIndex]) return;
-            served[guestIndex] = true;
-            refused[guestIndex] = true;
+            // 业务结算（置状态 + 声望扣除）归 VisitorManager（§16.3）；此处只剩表现刷新与落档
+            if (!Visitor.Refuse(guestIndex)) return;
             var name = Visitors.visitors[guestIndex].displayName;
-            // 流通循环：拒绝服务客人 → 扣除声望
-            Economy.RefuseGuestService();
             if (visitorStage != null) visitorStage.NotifyRefused(guestIndex);
             CloseDialogue();
             RebuildGuestChrome();
@@ -1859,18 +1852,8 @@ namespace MasterHouse
 
         private void EndWeek()
         {
-            var missed = 0;
-            for (var i = 0; i < served.Length; i++)
-                if (!served[i]) missed++;
-            // 流通循环：周结算时未完成的客人服务 → 扣除声望
-            Economy.FailGuestServices(missed);
-            for (var i = 0; i < served.Length; i++)
-            {
-                served[i] = false;
-                refused[i] = false;
-                guestArrived[i] = false;
-            }
-            Clock.NextDay(); // 周结算跳到下一天早晨，访客按各自拜访时间重新进场
+            // 周结算业务（未完成扣声望 → 清空本周状态 → 时钟跳次日早晨）整体归 VisitorManager（§16.3）
+            var missed = Visitor.EndWeek();
             CloseDialogue();
             RebuildGuestChrome();
             BuildVisitorStage(); // 新的一周 → 访客整体刷新，重新从大门进场
@@ -2522,7 +2505,7 @@ namespace MasterHouse
         private void BuildSettingsPanel(Transform content)
         {
             var save = DarkCard(content, "Save", new Vector2(-290, 185), new Vector2(520, 300), new Color(.26f, .06f, .18f, .52f));
-            F.Label(save, "Text", $"<size=13>SAVE DATA</size>\n<size=36>Slot 0{activeSlot}</size>\nHouse LV.03 · WEEK 01 · {CountServed(served)}/4 委托推进", 20, F.White,
+            F.Label(save, "Text", $"<size=13>SAVE DATA</size>\n<size=36>Slot 0{activeSlot}</size>\nHouse LV.03 · WEEK 01 · {Visitor.CountServed()}/4 委托推进", 20, F.White,
                 new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 45), new Vector2(440, 160), TextAnchor.MiddleCenter);
             F.Button(save, "SaveButton", "保存进度", SaveCurrent, new Vector2(0, 0), new Vector2(0, 0), new Vector2(145, 48), new Vector2(210, 58), F.Wine, F.White, 18);
             F.Button(save, "LoadButton", "读取存档", LoadCurrent, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-145, 48), new Vector2(210, 58), new Color(1, 1, 1, .045f), F.White, 18);
@@ -2722,13 +2705,11 @@ namespace MasterHouse
 
         private static string RoomIcon(int index) => index switch { 0 => "▰", 1 => "▱", 2 => "▦", _ => "▥" };
 
-        private int ProgressForGuest(int index) => served[index] ? 100 : index == 0 ? 35 : 20;
+        private int ProgressForGuest(int index) => Visitor.Data.States[index].Served ? 100 : index == 0 ? 35 : 20;
 
         private int RemainingGuests()
         {
-            var result = 0;
-            for (var i = 0; i < served.Length; i++) if (!served[i]) result++;
-            return result;
+            return Visitor.CountRemaining();
         }
 
         private static (string eyebrow, string title, string mark) PanelMeta(SystemPanel panel)
@@ -2774,12 +2755,10 @@ namespace MasterHouse
             if (data == null) return;
             roomIndex = 0;
             for (var i = 0; i < Codex.rooms.Count; i++) if (Codex.rooms[i].id == data.room) roomIndex = i;
-            for (var i = 0; i < served.Length; i++) served[i] = data.served != null && i < data.served.Length && data.served[i];
-            for (var i = 0; i < refused.Length; i++)
-                refused[i] = data.version >= 2 && data.refused != null && i < data.refused.Length && data.refused[i];
-            // v3 起存档包含游戏时钟与访客到访状态；旧档回落到第 1 天早晨、访客未到访
-            for (var i = 0; i < guestArrived.Length; i++)
-                guestArrived[i] = data.version >= 3 && data.guestArrived != null && i < data.guestArrived.Length && data.guestArrived[i];
+            // v3 起存档包含游戏时钟与访客到访状态；旧档回落到第 1 天早晨、访客未到访（数组传 null = 全 false）
+            Visitor.RestoreFromArrays(data.served,
+                data.version >= 2 ? data.refused : null,
+                data.version >= 3 ? data.guestArrived : null);
             if (data.version >= 3) Clock.RestoreFromMinutes(data.gameDay, data.gameMinute);
             else Clock.ResetNew();
             bgm = data.bgm;
@@ -2807,9 +2786,7 @@ namespace MasterHouse
             roomIndex = 0;
             guestIndex = 0;
             selectedDevice = 0;
-            for (var i = 0; i < served.Length; i++) served[i] = false;
-            for (var i = 0; i < refused.Length; i++) refused[i] = false;
-            for (var i = 0; i < guestArrived.Length; i++) guestArrived[i] = false;
+            Visitor.ResetNew();
             Clock.ResetNew();
             // 新游戏必须重置会话级状态，避免上一局的货币/声望/家具污染新档
             Economy.ResetToDefaults();
@@ -2831,9 +2808,9 @@ namespace MasterHouse
                 version = 3,
                 slot = activeSlot,
                 room = Codex.rooms[roomIndex].id,
-                served = (bool[])served.Clone(),
-                refused = (bool[])refused.Clone(),
-                guestArrived = (bool[])guestArrived.Clone(),
+                served = Visitor.CaptureServed(),
+                refused = Visitor.CaptureRefused(),
+                guestArrived = Visitor.CaptureArrived(),
                 gameDay = Clock.Data.Day,
                 gameMinute = Clock.Data.MinuteOfDayF,
                 bgm = bgm,
