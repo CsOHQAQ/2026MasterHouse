@@ -3,12 +3,13 @@ using UnityEngine;
 namespace MasterHouse
 {
     /// <summary>
-    /// 流通数值配置表：货币 / 玩家声望 / House 装饰分 三值循环的全部数值参数。
+    /// 流通数值配置表（§16.3 EconomyConfig，原 HouseEconomyConfig 改名，资产文件名与 Resources 路径维持不变）：
+    /// 货币 / 玩家声望 / House 装饰分 三值循环的全部数值参数。
     /// 依据《大House》文档：货币来源=客人服务，去处=购买设备与装饰品；
     /// 声望来源=完成服务，去处=拒绝服务与未完成服务；装饰分无去处，来源=房间数量+装饰品+设备。
     /// </summary>
     [CreateAssetMenu(menuName = "MasterHouse/流通数值配置", fileName = "HouseEconomyConfig")]
-    public sealed class HouseEconomyConfig : ScriptableObject
+    public sealed class EconomyConfig : ScriptableObject
     {
         [Header("初始值")]
         [Tooltip("初始货币（HOUSE CREDIT）")] public int startCurrency = 2480;

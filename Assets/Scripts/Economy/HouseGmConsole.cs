@@ -13,6 +13,9 @@ namespace MasterHouse
         /// <summary>「恢复所有状态到初始态」按下后广播；局外 UI 借此重置访客状态并落档。</summary>
         public static event System.Action FullResetRequested;
 
+        /// <summary>过渡桥接：GM 面板读写 Economy 模块（§16.3）；GameManager 由 OutGameBootstrap 保证存在。</summary>
+        private static EconomyManager Economy => GameManager.Instance.EconomyManager;
+
         private GameObject panelRoot;
         private Text valuesLabel;
 
@@ -34,7 +37,7 @@ namespace MasterHouse
             if (panelRoot == null) BuildPanel();
             else
             {
-                HouseEconomy.Changed -= RefreshValues;
+                Economy.Changed -= RefreshValues;
                 Destroy(panelRoot);
                 panelRoot = null;
             }
@@ -63,14 +66,14 @@ namespace MasterHouse
             valuesLabel = F.Label(panel.transform, "Values", string.Empty, 17, F.White,
                 new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -84), new Vector2(290, 74), TextAnchor.UpperLeft);
 
-            GmButton(panel.transform, 0, "货币 +1,000", () => HouseEconomy.GmAddCurrency(1000));
-            GmButton(panel.transform, 1, "货币 +10,000", () => HouseEconomy.GmAddCurrency(10000));
-            GmButton(panel.transform, 2, "声望 +50", () => HouseEconomy.GmAddReputation(50));
-            GmButton(panel.transform, 3, "声望 -50", () => HouseEconomy.GmAddReputation(-50));
-            GmButton(panel.transform, 4, "装饰分 +100", () => HouseEconomy.GmAddDecorationBonus(100));
+            GmButton(panel.transform, 0, "货币 +1,000", () => Economy.GmAddCurrency(1000));
+            GmButton(panel.transform, 1, "货币 +10,000", () => Economy.GmAddCurrency(10000));
+            GmButton(panel.transform, 2, "声望 +50", () => Economy.GmAddReputation(50));
+            GmButton(panel.transform, 3, "声望 -50", () => Economy.GmAddReputation(-50));
+            GmButton(panel.transform, 4, "装饰分 +100", () => Economy.GmAddDecorationBonus(100));
             GmButton(panel.transform, 5, "恢复所有状态到初始态", FullReset);
 
-            HouseEconomy.Changed += RefreshValues;
+            Economy.Changed += RefreshValues;
             RefreshValues();
         }
 
@@ -78,7 +81,7 @@ namespace MasterHouse
         private static void FullReset()
         {
             FurnitureRoomController.CloseActive();
-            HouseEconomy.ResetToDefaults();
+            Economy.ResetToDefaults();
             FurnitureRoomController.ResetSession();
             FullResetRequested?.Invoke();
         }
@@ -94,14 +97,15 @@ namespace MasterHouse
         {
             if (valuesLabel == null) return;
             valuesLabel.text =
-                $"货币　　<color=#D4A46B>◈ {HouseEconomy.Currency:N0}</color>\n" +
-                $"声望　　<color=#74D8D1>{HouseEconomy.Reputation}</color>\n" +
-                $"装饰分　<color=#E22D76>{HouseEconomy.DecorationScore}</color>";
+                $"货币　　<color=#D4A46B>◈ {Economy.Data.Currency:N0}</color>\n" +
+                $"声望　　<color=#74D8D1>{Economy.Data.Reputation}</color>\n" +
+                $"装饰分　<color=#E22D76>{Economy.DecorationScore}</color>";
         }
 
         private void OnDestroy()
         {
-            HouseEconomy.Changed -= RefreshValues;
+            // 应用退出时各常驻对象的销毁顺序不确定，GameManager 可能先没
+            if (GameManager.Instance != null) Economy.Changed -= RefreshValues;
         }
     }
 }

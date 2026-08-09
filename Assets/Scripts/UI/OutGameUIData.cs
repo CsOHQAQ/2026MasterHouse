@@ -23,7 +23,7 @@ namespace MasterHouse
         public int sfx = 78;
         public string windowMode = "无边框";
         public string savedAt = "";
-        public HouseEconomySaveData economy = new HouseEconomySaveData();
+        public EconomySaveData economy = new EconomySaveData();
         /// <summary>是否保存过家具布局（区分「摆空了」与「从未编辑过（用房间默认摆放）」）。</summary>
         public bool hasFurnitureLayout;
         public List<FurniturePlacementConfig> furniturePlacements = new List<FurniturePlacementConfig>();
@@ -186,6 +186,20 @@ namespace MasterHouse
 
         /// <summary>当前时段下标（过渡桥接：时段划分已归 HouseClock 模块整数判定，§16.4；本属性随旧 UI 退役删除）。</summary>
         public static int CurrentPhase => (int)GameManager.Instance.HouseClockManager.Data.CurrentPhase;
+
+        /// <summary>已拥有设备数量（管道字符串第 4 段为 "1"）。过渡桥接：由 UI 侧推入 Economy 作装饰分构成项（§16.7 毒点①），
+        /// 3.3 内容 Def 化后由 Def 资产统计取代，本方法随之删除。</summary>
+        public static int CountOwnedDevices()
+        {
+            var count = 0;
+            foreach (var room in Devices)
+                foreach (var device in room)
+                {
+                    var parts = device.Split('|');
+                    if (parts.Length > 3 && parts[3] == "1") count++;
+                }
+            return count;
+        }
 
         public static readonly string[] PhaseNames = { "早晨", "上午", "中午", "下午", "晚上", "深夜" };
         public static readonly string[] PhaseRanges = { "07:00–09:00", "09:00–12:00", "12:00–14:00", "14:00–18:00", "18:00–22:00", "22:00–07:00" };

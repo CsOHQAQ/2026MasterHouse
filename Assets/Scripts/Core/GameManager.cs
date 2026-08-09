@@ -13,6 +13,7 @@ namespace MasterHouse
         public LinkManager LinkManager { get; private set; }
         public PlayerCargoData PlayerCargo { get; private set; }
         public HouseClockManager HouseClockManager { get; private set; }
+        public EconomyManager EconomyManager { get; private set; }
 
         [Tooltip("启动时自动加载的小关（可空，便于搭测试场景）")]
         [SerializeField] private LevelDef startLevel;
@@ -70,6 +71,7 @@ namespace MasterHouse
             LinkManager = new LinkManager();
             LevelManager = new LevelManager(LinkManager, PlayerCargo);
             HouseClockManager = new HouseClockManager();
+            EconomyManager = new EconomyManager(); // 纯事件驱动，不进 RunTick（§16.4）
         }
 
         private void Start()

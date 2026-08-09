@@ -85,6 +85,9 @@ namespace MasterHouse
         /// </summary>
         private static HouseClockManager Clock => GameManager.Instance.HouseClockManager;
 
+        /// <summary>过渡桥接：冻结的旧 UI 读写新 Economy 模块（§16.3）；本属性随 OutGameUI 退役删除（3.9）。</summary>
+        private static EconomyManager Economy => GameManager.Instance.EconomyManager;
+
         /// <summary>
         /// 局外 UI 不依赖当前打开的场景。即使从 Untitled、备份场景或其他玩法场景进入 Play，
         /// 也会在场景加载前创建入口；SampleScene 中的 Bootstrap 仅作为兼容兜底。
@@ -119,13 +122,16 @@ namespace MasterHouse
         {
             canvas = GetComponent<Canvas>();
             canvasRect = (RectTransform)transform;
-            HouseEconomy.Changed += UpdateEconomyHud;
+            // 过渡桥接（§16.7 毒点①已断）：装饰分的房间/设备数量由内容侧推入 Economy，3.3 内容 Def 化后改由 Def 资产统计
+            Economy.SetDecorSourceCounts(OutGameUIData.Rooms.Length, OutGameUIData.CountOwnedDevices());
+            Economy.Changed += UpdateEconomyHud;
             HouseGmConsole.FullResetRequested += OnGmFullReset;
         }
 
         private void OnDestroy()
         {
-            HouseEconomy.Changed -= UpdateEconomyHud;
+            // 应用退出时各常驻对象的销毁顺序不确定，GameManager 可能先没
+            if (GameManager.Instance != null) Economy.Changed -= UpdateEconomyHud;
             HouseGmConsole.FullResetRequested -= OnGmFullReset;
         }
 
@@ -1002,7 +1008,7 @@ namespace MasterHouse
             hudPhaseRangeLabel = hud.phaseRange;
             hudPhaseShown = Clock.Data.Day * 10 + phase;
             creditHudLabel = hud.creditLabel;
-            hud.creditLabel.text = $"<size=13>HOUSE CREDIT</size>\n◈ {HouseEconomy.Currency:N0}     ＋";
+            hud.creditLabel.text = $"<size=13>HOUSE CREDIT</size>\n◈ {Economy.Data.Currency:N0}     ＋";
             hud.welcomeLabel.text = "WELCOME HOME.\n本周将有 <color=#E22D76>" + RemainingGuests() + "</color> 位访客来访";
             BindButton(hud.timeButton, () => OpenPanel(SystemPanel.Calendar));
             BindButton(hud.creditButton, () => OpenPanel(SystemPanel.Market));
@@ -1337,10 +1343,10 @@ namespace MasterHouse
         private void UpdateEconomyHud()
         {
             if (creditHudLabel != null)
-                creditHudLabel.text = $"<size=13>HOUSE CREDIT</size>\n◈ {HouseEconomy.Currency:N0}     ＋";
+                creditHudLabel.text = $"<size=13>HOUSE CREDIT</size>\n◈ {Economy.Data.Currency:N0}     ＋";
             if (economyChipLabel != null)
                 economyChipLabel.text =
-                    $"<color=#74D8D1>声望 {HouseEconomy.Reputation}</color>      <color=#E22D76>装饰分 {HouseEconomy.DecorationScore}</color>";
+                    $"<color=#74D8D1>声望 {Economy.Data.Reputation}</color>      <color=#E22D76>装饰分 {Economy.DecorationScore}</color>";
         }
 
         private void OpenFurnitureMode()
@@ -1391,7 +1397,7 @@ namespace MasterHouse
             hudPhaseRangeLabel = time.transform.Find("Phase") != null ? time.transform.Find("Phase").GetComponent<Text>() : null;
             hudPhaseShown = Clock.Data.Day * 10 + phase;
 
-            var creditButton = F.Button(top.transform, "Credit", $"<size=13>HOUSE CREDIT</size>\n◈ {HouseEconomy.Currency:N0}     ＋", () => OpenPanel(SystemPanel.Market),
+            var creditButton = F.Button(top.transform, "Credit", $"<size=13>HOUSE CREDIT</size>\n◈ {Economy.Data.Currency:N0}     ＋", () => OpenPanel(SystemPanel.Market),
                 new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(625, 0), new Vector2(270, 82),
                 new Color(.06f, .025f, .06f, .7f), F.White, 21, TextAnchor.MiddleLeft);
             creditHudLabel = creditButton.GetComponentInChildren<Text>();
@@ -1648,7 +1654,7 @@ namespace MasterHouse
             var serve = F.Button(box.transform, "Serve", served[guestIndex] ? "事件已完成" : "回应访客事件", ServeGuest,
                 new Vector2(1, 0), new Vector2(1, 0), new Vector2(-170, 25), new Vector2(250, 58), F.Wine, F.White, 18);
             serve.interactable = !served[guestIndex];
-            var refuse = F.Button(box.transform, "Refuse", $"拒绝接待 <size=13>声望 -{HouseEconomy.RefuseReputationPenalty}</size>", RefuseGuest,
+            var refuse = F.Button(box.transform, "Refuse", $"拒绝接待 <size=13>声望 -{Economy.RefuseReputationPenalty}</size>", RefuseGuest,
                 new Vector2(1, 0), new Vector2(1, 0), new Vector2(-425, 25), new Vector2(230, 58), new Color(1, 1, 1, .05f), F.White, 17);
             refuse.interactable = !served[guestIndex];
 
@@ -1728,7 +1734,7 @@ namespace MasterHouse
             if (view.refuseButton != null)
             {
                 if (view.refuseLabel != null)
-                    view.refuseLabel.text = $"拒绝接待 <size=13>声望 -{HouseEconomy.RefuseReputationPenalty}</size>";
+                    view.refuseLabel.text = $"拒绝接待 <size=13>声望 -{Economy.RefuseReputationPenalty}</size>";
                 BindButton(view.refuseButton, RefuseGuest);
                 view.refuseButton.interactable = !served[guestIndex];
             }
@@ -1793,13 +1799,13 @@ namespace MasterHouse
             served[guestIndex] = true;
             var name = OutGameUIData.Guests[guestIndex].name;
             // 流通循环：完成客人服务 → 产出货币 + 积累声望
-            HouseEconomy.CompleteGuestService();
+            Economy.CompleteGuestService();
             if (visitorStage != null) visitorStage.NotifyServed(guestIndex);
             CloseDialogue();
             RebuildGuestChrome();
             UpdateEconomyHud();
             AutoSave();
-            ShowToast($"{name} 的服务已完成 · ◈ +{HouseEconomy.ServiceCurrencyReward} · 声望 +{HouseEconomy.ServiceReputationReward}");
+            ShowToast($"{name} 的服务已完成 · ◈ +{Economy.ServiceCurrencyReward} · 声望 +{Economy.ServiceReputationReward}");
         }
 
         private void RefuseGuest()
@@ -1809,13 +1815,13 @@ namespace MasterHouse
             refused[guestIndex] = true;
             var name = OutGameUIData.Guests[guestIndex].name;
             // 流通循环：拒绝服务客人 → 扣除声望
-            HouseEconomy.RefuseGuestService();
+            Economy.RefuseGuestService();
             if (visitorStage != null) visitorStage.NotifyRefused(guestIndex);
             CloseDialogue();
             RebuildGuestChrome();
             UpdateEconomyHud();
             AutoSave();
-            ShowToast($"已婉拒 {name} 的委托 · 声望 -{HouseEconomy.RefuseReputationPenalty}");
+            ShowToast($"已婉拒 {name} 的委托 · 声望 -{Economy.RefuseReputationPenalty}");
         }
 
         private void EndWeek()
@@ -1824,7 +1830,7 @@ namespace MasterHouse
             for (var i = 0; i < served.Length; i++)
                 if (!served[i]) missed++;
             // 流通循环：周结算时未完成的客人服务 → 扣除声望
-            HouseEconomy.FailGuestServices(missed);
+            Economy.FailGuestServices(missed);
             for (var i = 0; i < served.Length; i++)
             {
                 served[i] = false;
@@ -1838,7 +1844,7 @@ namespace MasterHouse
             UpdateEconomyHud();
             AutoSave();
             ShowToast(missed > 0
-                ? $"本周结束 · {missed} 项服务未完成，声望 -{missed * HouseEconomy.FailReputationPenalty}"
+                ? $"本周结束 · {missed} 项服务未完成，声望 -{missed * Economy.FailReputationPenalty}"
                 : "本周结束 · 所有访客服务全部完成！新的一周开始了");
         }
 
@@ -2509,7 +2515,7 @@ namespace MasterHouse
         {
             var wallet = DarkCard(content, "Wallet", new Vector2(-370, 330), new Vector2(400, 130), new Color(.35f, .07f, .22f, .58f));
             F.Label(wallet, "WalletText",
-                $"<size=13>流通数值</size>\n<size=28><color=#E3A869>◈ {HouseEconomy.Currency:N0}</color></size>\n<color=#74D8D1>声望 {HouseEconomy.Reputation}</color>    <color=#E22D76>装饰分 {HouseEconomy.DecorationScore}</color>",
+                $"<size=13>流通数值</size>\n<size=28><color=#E3A869>◈ {Economy.Data.Currency:N0}</color></size>\n<color=#74D8D1>声望 {Economy.Data.Reputation}</color>    <color=#E22D76>装饰分 {Economy.DecorationScore}</color>",
                 18, F.White, TextAnchor.MiddleCenter, FontStyle.Bold);
             F.Label(content, "MarketNote",
                 "商城 · 装饰品货架：声望解禁货架（未解禁呈「？」），货币购买；已购家具会出现在「家具摆放」的收纳栏。设备货架待投放方式确定后开放。",
@@ -2534,8 +2540,8 @@ namespace MasterHouse
 
         private void BuildMarketCard(Transform content, FurnitureEntry entry, Vector2 position)
         {
-            var owned = HouseEconomy.IsFurnitureOwned(entry.id);
-            var revealed = HouseEconomy.IsFurnitureRevealed(entry);
+            var owned = Economy.IsFurnitureOwned(entry.id);
+            var revealed = Economy.IsFurnitureRevealed(entry);
             string caption;
             Color background;
             if (!revealed)
@@ -2556,17 +2562,17 @@ namespace MasterHouse
             }
             var button = F.Button(content, "Market_" + entry.id, caption, () =>
                 {
-                    if (!HouseEconomy.IsFurnitureRevealed(entry))
+                    if (!Economy.IsFurnitureRevealed(entry))
                     {
-                        ShowToast($"声望达到 {entry.unlockReputation} 后解禁（当前 {HouseEconomy.Reputation}）");
+                        ShowToast($"声望达到 {entry.unlockReputation} 后解禁（当前 {Economy.Data.Reputation}）");
                         return;
                     }
-                    if (HouseEconomy.IsFurnitureOwned(entry.id))
+                    if (Economy.IsFurnitureOwned(entry.id))
                     {
                         ShowToast($"「{entry.displayName}」已拥有，可在「家具摆放」中使用");
                         return;
                     }
-                    if (HouseEconomy.TryPurchaseFurniture(entry) == FurniturePurchaseResult.Success)
+                    if (Economy.TryPurchaseFurniture(entry) == FurniturePurchaseResult.Success)
                     {
                         AutoSave();
                         ShowToast($"已购入「{entry.displayName}」 · ◈ -{entry.price}");
@@ -2758,14 +2764,14 @@ namespace MasterHouse
             // v2 起存档包含流通数值与家具布局；旧档回落到配置表默认值，避免带入上一局的会话状态
             if (data.version >= 2)
             {
-                HouseEconomy.Restore(data.economy);
+                Economy.Restore(data.economy);
                 FurnitureRoomController.RestoreSessionPlacements(data.hasFurnitureLayout ? data.furniturePlacements : null);
                 if (data.hasFurnitureLayout) FurnitureSceneComposer.RequestBake(_ => { ApplySceneArt(); BuildFurnitureHotspots(); });
                 else FurnitureSceneComposer.ClearBaked();
             }
             else
             {
-                HouseEconomy.ResetToDefaults();
+                Economy.ResetToDefaults();
                 FurnitureRoomController.ResetSession();
                 FurnitureSceneComposer.ClearBaked();
             }
@@ -2782,7 +2788,7 @@ namespace MasterHouse
             for (var i = 0; i < guestArrived.Length; i++) guestArrived[i] = false;
             Clock.ResetNew();
             // 新游戏必须重置会话级状态，避免上一局的货币/声望/家具污染新档
-            HouseEconomy.ResetToDefaults();
+            Economy.ResetToDefaults();
             FurnitureRoomController.ResetSession();
             FurnitureSceneComposer.ClearBaked();
             UpdateEconomyHud();
@@ -2810,7 +2816,7 @@ namespace MasterHouse
                 sfx = sfx,
                 windowMode = windowMode,
                 savedAt = DateTime.Now.ToString("O", CultureInfo.InvariantCulture),
-                economy = HouseEconomy.Capture(),
+                economy = Economy.Capture(),
                 hasFurnitureLayout = placements != null,
                 furniturePlacements = placements ?? new System.Collections.Generic.List<FurniturePlacementConfig>(),
             };

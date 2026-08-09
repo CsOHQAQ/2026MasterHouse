@@ -39,7 +39,10 @@ namespace MasterHouse
         private const float ZFloorPerRow = -.022f;
         private const float ZGhost = -.6f;
 
-        /// <summary>会话内保留的摆放布局（进出模式不丢，重开进程重置）。货币/声望/所有权由 HouseEconomy 统一管理。</summary>
+        /// <summary>过渡桥接：家具模式读写新 Economy 模块（§16.3）；GameManager 由 OutGameBootstrap 保证存在。</summary>
+        private static EconomyManager Economy => GameManager.Instance.EconomyManager;
+
+        /// <summary>会话内保留的摆放布局（进出模式不丢，重开进程重置）。货币/声望/所有权由 Economy 模块统一管理。</summary>
         private sealed class SessionState
         {
             public readonly List<FurniturePlacementConfig> Placements = new List<FurniturePlacementConfig>();
@@ -118,7 +121,7 @@ namespace MasterHouse
             hud.GridToggleClicked += ToggleGrids;
             hud.SlotPressed += OnSlotPressed;
             hud.PurchaseConfirmed += OnPurchaseConfirmed;
-            HouseEconomy.Changed += OnEconomyChanged;
+            Economy.Changed += OnEconomyChanged;
 
             RestoreState();
             RecomputeDecorationScore();
@@ -440,14 +443,14 @@ namespace MasterHouse
             var entry = furnitureTable.Find(furnitureId);
             if (entry == null) return;
             if (hud.PopupOpen) return;
-            if (!HouseEconomy.IsFurnitureOwned(furnitureId))
+            if (!Economy.IsFurnitureOwned(furnitureId))
             {
-                if (!HouseEconomy.IsFurnitureRevealed(entry))
+                if (!Economy.IsFurnitureRevealed(entry))
                 {
-                    hud.ShowToast($"「？」声望达到 {entry.unlockReputation} 后解禁（当前 {HouseEconomy.Reputation}）");
+                    hud.ShowToast($"「？」声望达到 {entry.unlockReputation} 后解禁（当前 {Economy.Data.Reputation}）");
                     return;
                 }
-                hud.ShowPurchasePopup(entry, HouseEconomy.Currency);
+                hud.ShowPurchasePopup(entry, Economy.Data.Currency);
                 return;
             }
             if (IsPlaced(furnitureId))
@@ -681,8 +684,8 @@ namespace MasterHouse
         private FurnitureSlotState GetSlotState(string furnitureId)
         {
             var entry = furnitureTable.Find(furnitureId);
-            if (!HouseEconomy.IsFurnitureOwned(furnitureId))
-                return HouseEconomy.IsFurnitureRevealed(entry) ? FurnitureSlotState.Locked : FurnitureSlotState.Unknown;
+            if (!Economy.IsFurnitureOwned(furnitureId))
+                return Economy.IsFurnitureRevealed(entry) ? FurnitureSlotState.Locked : FurnitureSlotState.Unknown;
             return IsPlaced(furnitureId) ? FurnitureSlotState.Placed : FurnitureSlotState.Available;
         }
 
@@ -690,7 +693,7 @@ namespace MasterHouse
         {
             var entry = furnitureTable.Find(furnitureId);
             if (entry == null) return;
-            var result = HouseEconomy.TryPurchaseFurniture(entry);
+            var result = Economy.TryPurchaseFurniture(entry);
             if (result == FurniturePurchaseResult.Success)
             {
                 hud.RefreshInventory();
@@ -707,12 +710,12 @@ namespace MasterHouse
         {
             var sum = 0;
             foreach (var item in items.Values) sum += item.Entry.decorationScore;
-            HouseEconomy.SetFurnitureDecorationScore(sum);
+            Economy.SetFurnitureDecorationScore(sum);
         }
 
         private void OnEconomyChanged()
         {
-            hud?.SetEconomy(HouseEconomy.Currency, HouseEconomy.Reputation, HouseEconomy.DecorationScore);
+            hud?.SetEconomy(Economy.Data.Currency, Economy.Data.Reputation, Economy.DecorationScore);
         }
 
         #endregion
@@ -771,7 +774,7 @@ namespace MasterHouse
                 var rooms = Resources.Load<FurnitureRoomTable>(RoomTablePath);
                 if (rooms == null || rooms.rooms.Count == 0 || rooms.rooms[0] == null)
                 {
-                    HouseEconomy.SetFurnitureDecorationScore(0);
+                    Economy.SetFurnitureDecorationScore(0);
                     return;
                 }
                 placements = rooms.rooms[0].initialPlacements;
@@ -782,7 +785,7 @@ namespace MasterHouse
                 var entry = placement == null ? null : table.Find(placement.furnitureId);
                 if (entry != null) sum += entry.decorationScore;
             }
-            HouseEconomy.SetFurnitureDecorationScore(sum);
+            Economy.SetFurnitureDecorationScore(sum);
         }
 
         private void RestoreState()
@@ -853,7 +856,7 @@ namespace MasterHouse
                 drag = null;
             }
             SaveState();
-            HouseEconomy.Changed -= OnEconomyChanged;
+            Economy.Changed -= OnEconomyChanged;
             DOTween.Kill(this);
             if (focusBlurRenderer != null) focusBlurRenderer.DOKill();
             hud?.Destroy();
@@ -867,7 +870,8 @@ namespace MasterHouse
 
         private void OnDestroy()
         {
-            HouseEconomy.Changed -= OnEconomyChanged;
+            // 应用退出时各常驻对象的销毁顺序不确定，GameManager 可能先没
+            if (GameManager.Instance != null) Economy.Changed -= OnEconomyChanged;
             if (active == this) active = null;
         }
     }

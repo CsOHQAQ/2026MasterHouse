@@ -36,10 +36,10 @@ namespace MasterHouse.EditorTools
                 AssetDatabase.CreateAsset(rooms, RoomTablePath);
                 created.Add(RoomTablePath);
             }
-            var economy = AssetDatabase.LoadAssetAtPath<HouseEconomyConfig>(EconomyConfigPath);
+            var economy = AssetDatabase.LoadAssetAtPath<EconomyConfig>(EconomyConfigPath);
             if (economy == null)
             {
-                economy = ScriptableObject.CreateInstance<HouseEconomyConfig>();
+                economy = ScriptableObject.CreateInstance<EconomyConfig>();
                 AssetDatabase.CreateAsset(economy, EconomyConfigPath);
                 created.Add(EconomyConfigPath);
             }
@@ -75,10 +75,10 @@ namespace MasterHouse.EditorTools
             FillDefaultRooms(rooms);
             EditorUtility.SetDirty(rooms);
 
-            var economy = AssetDatabase.LoadAssetAtPath<HouseEconomyConfig>(EconomyConfigPath);
+            var economy = AssetDatabase.LoadAssetAtPath<EconomyConfig>(EconomyConfigPath);
             if (economy == null)
             {
-                economy = ScriptableObject.CreateInstance<HouseEconomyConfig>();
+                economy = ScriptableObject.CreateInstance<EconomyConfig>();
                 AssetDatabase.CreateAsset(economy, EconomyConfigPath);
             }
 
