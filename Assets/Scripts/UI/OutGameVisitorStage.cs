@@ -38,6 +38,9 @@ namespace MasterHouse
         };
         private const int MaxAmbient = 3;
 
+        /// <summary>过渡桥接：冻结的旧表现层读新 HouseClock 模块（§16.4）；HourF 判定在 3.4 访客业务重写时改整数比较。</summary>
+        private static HouseClockData Clock => GameManager.Instance.HouseClockManager.Data;
+
         private RawImage sceneArt;
         private RectTransform layerRoot;
         private bool[] served;
@@ -78,10 +81,10 @@ namespace MasterHouse
                 }
                 var guest = OutGameUIData.Guests[i];
                 var wasArrived = arrived != null && i < arrived.Length && arrived[i];
-                var timeReached = OutGameClock.HourF >= guest.visitHour;
+                var timeReached = Clock.HourF >= guest.visitHour;
                 if (!wasArrived && !timeReached) continue; // 还没到拜访时间，Update 里等时钟
                 // 刚踩点到访（半游戏小时内）→ 从大门走进来；否则视为早已在屋内（读档/切房间回来）→ 直接出现在屋里
-                var walkIn = !wasArrived && OutGameClock.HourF - guest.visitHour < .5f;
+                var walkIn = !wasArrived && Clock.HourF - guest.visitHour < .5f;
                 stage.SpawnGuest(i, walkIn,
                     walkIn ? 1.2f + spawned * 2.8f + UnityEngine.Random.Range(0f, 1.5f)
                            : .3f + spawned * .6f + UnityEngine.Random.Range(0f, .5f));
@@ -157,7 +160,7 @@ namespace MasterHouse
             {
                 if (guestSpawned[i]) continue;
                 if (served != null && i < served.Length && served[i]) { guestSpawned[i] = true; continue; }
-                if (OutGameClock.HourF >= OutGameUIData.Guests[i].visitHour)
+                if (Clock.HourF >= OutGameUIData.Guests[i].visitHour)
                     SpawnGuest(i, walkIn: true, delay: UnityEngine.Random.Range(0f, 1f));
             }
             // 邻居刷新循环

@@ -30,6 +30,10 @@ namespace MasterHouse
         [Tooltip("待定 #5：tick 频率，暂按 10 tick/秒")]
         public int TicksPerSecond = 10;
 
+        [Header("局外时间（§16.4）")]
+        [Tooltip("待定 #18：局外时钟倍率——每游戏分钟对应的 tick 数。10 tick/秒 ÷ 10 = 「现实 1 秒 = 游戏 1 分钟」的原型节奏")]
+        public int HouseTicksPerGameMinute = 10;
+
         [Header("链接默认参数（待定 #4：先用全局默认）")]
         [Tooltip("节拍：链接每 N tick 发起一次取货")]
         public int DefaultLinkBeatTicks = 10;

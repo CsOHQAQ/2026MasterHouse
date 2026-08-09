@@ -14,6 +14,14 @@ namespace MasterHouse
 
         private void Start()
         {
+            // 局外时钟由 GameManager 的全局固定 tick 驱动（§16.4）；测试场景保持只含 Bootstrap（§16.10），
+            // 缺 GameManager 时代码创建（startLevel 为空，局内侧不加载任何小关）
+            if (GameManager.Instance == null && FindObjectOfType<GameManager>() == null)
+            {
+                var gm = new GameObject("GameManager", typeof(GameManager));
+                DontDestroyOnLoad(gm); // 与局外 UI 同寿命（OutGameUI 自身是 DontDestroyOnLoad）
+            }
+
             OutGameUI.Build();
 
             // 旧分支的 GM 面板与局外 UI 一同自动注入，点亮基线保持同样组合

@@ -12,6 +12,7 @@ namespace MasterHouse
         public LevelManager LevelManager { get; private set; }
         public LinkManager LinkManager { get; private set; }
         public PlayerCargoData PlayerCargo { get; private set; }
+        public HouseClockManager HouseClockManager { get; private set; }
 
         [Tooltip("启动时自动加载的小关（可空，便于搭测试场景）")]
         [SerializeField] private LevelDef startLevel;
@@ -46,7 +47,14 @@ namespace MasterHouse
         public void StepOneTick()
         {
             SetPaused(true);
+            RunTick();
+        }
+
+        /// <summary>推进一个全局 tick：局内局外共用同一心跳（§16.4）。两侧测试场景当前隔离（待定 #19），推进顺序暂无耦合。</summary>
+        private void RunTick()
+        {
             LevelManager.TickAll();
+            HouseClockManager.Tick();
         }
 
         private void Awake()
@@ -61,6 +69,7 @@ namespace MasterHouse
             PlayerCargo = new PlayerCargoData();
             LinkManager = new LinkManager();
             LevelManager = new LevelManager(LinkManager, PlayerCargo);
+            HouseClockManager = new HouseClockManager();
         }
 
         private void Start()
@@ -86,7 +95,7 @@ namespace MasterHouse
             while (tickAccumulator >= tickInterval)
             {
                 tickAccumulator -= tickInterval;
-                LevelManager.TickAll();
+                RunTick();
             }
         }
     }

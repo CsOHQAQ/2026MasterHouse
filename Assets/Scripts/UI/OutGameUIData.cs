@@ -184,20 +184,8 @@ namespace MasterHouse
             new[] { "旧书检索机|LV.2|发现线索|1", "观星镜|LV.1|预测特殊访客|0" },
         };
 
-        /// <summary>当前时段按加速的游戏时钟计算（OutGameClock），不再读现实时间。</summary>
-        public static int CurrentPhase
-        {
-            get
-            {
-                var hour = OutGameClock.HourF;
-                if (hour >= 7 && hour < 9) return 0;
-                if (hour >= 9 && hour < 12) return 1;
-                if (hour >= 12 && hour < 14) return 2;
-                if (hour >= 14 && hour < 18) return 3;
-                if (hour >= 18 && hour < 22) return 4;
-                return 5;
-            }
-        }
+        /// <summary>当前时段下标（过渡桥接：时段划分已归 HouseClock 模块整数判定，§16.4；本属性随旧 UI 退役删除）。</summary>
+        public static int CurrentPhase => (int)GameManager.Instance.HouseClockManager.Data.CurrentPhase;
 
         public static readonly string[] PhaseNames = { "早晨", "上午", "中午", "下午", "晚上", "深夜" };
         public static readonly string[] PhaseRanges = { "07:00–09:00", "09:00–12:00", "12:00–14:00", "14:00–18:00", "18:00–22:00", "22:00–07:00" };

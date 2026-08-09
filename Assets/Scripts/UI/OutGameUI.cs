@@ -80,6 +80,12 @@ namespace MasterHouse
         private readonly bool[] refused = new bool[4];
 
         /// <summary>
+        /// 过渡桥接：冻结的旧 UI 读写新 HouseClock 模块（§16.4，GameManager 全局 tick 驱动，由 OutGameBootstrap 保证存在）；
+        /// 本属性随 OutGameUI 退役删除（3.9）。
+        /// </summary>
+        private static HouseClockManager Clock => GameManager.Instance.HouseClockManager;
+
+        /// <summary>
         /// 局外 UI 不依赖当前打开的场景。即使从 Untitled、备份场景或其他玩法场景进入 Play，
         /// 也会在场景加载前创建入口；SampleScene 中的 Bootstrap 仅作为兼容兜底。
         /// </summary>
@@ -136,7 +142,7 @@ namespace MasterHouse
             for (var i = 0; i < refused.Length; i++) refused[i] = false;
             for (var i = 0; i < guestArrived.Length; i++) guestArrived[i] = false;
             guestIndex = 0;
-            OutGameClock.Reset();
+            Clock.ResetNew();
             FurnitureSceneComposer.RequestBake(_ => { ApplySceneArt(); BuildFurnitureHotspots(); });
             UpdateEconomyHud();
             if (view == View.Hub && !furnitureModeOpen)
@@ -164,14 +170,15 @@ namespace MasterHouse
 
         private void Update()
         {
-            // 加速的游戏时钟只在 Hub 内流动（标题/开门过场暂停）；家具模式期间访客仍在走动，时间同样继续
-            if (view == View.Hub) OutGameClock.Tick(Time.unscaledDeltaTime);
+            // 时钟推进已并入 GameManager 全局固定 tick（§16.4），这里只按页面状态开合闸门：
+            // 时间只在 Hub 内流动（标题/开门过场暂停）；家具模式期间访客仍在走动，时间同样继续
+            Clock.SetRunning(view == View.Hub);
 
             // 家具模式接管输入与画面，局外 UI 挂起等待回调恢复。
             if (furnitureModeOpen) return;
 
             if (clockLabel != null)
-                clockLabel.text = OutGameClock.TimeText;
+                clockLabel.text = Clock.Data.TimeText;
             RefreshHudPhase();
 
             // 时钟是持续流动的状态，只靠事件节点写档会丢挂机进度：Hub 内每 60 秒（=1 游戏小时）静默补一次档
@@ -987,13 +994,13 @@ namespace MasterHouse
         private void BindTopHud(OutGameHubTopBarView hud)
         {
             var phase = OutGameUIData.CurrentPhase;
-            hud.weekDatePhase.text = $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {OutGameClock.Day:00}</size>    {OutGameUIData.PhaseNames[phase]}";
+            hud.weekDatePhase.text = $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {Clock.Data.Day:00}</size>    {OutGameUIData.PhaseNames[phase]}";
             hud.phaseRange.text = OutGameUIData.PhaseRanges[phase];
-            hud.clock.text = OutGameClock.TimeText;
+            hud.clock.text = Clock.Data.TimeText;
             clockLabel = hud.clock;
             hudPhaseLabel = hud.weekDatePhase;
             hudPhaseRangeLabel = hud.phaseRange;
-            hudPhaseShown = OutGameClock.Day * 10 + phase;
+            hudPhaseShown = Clock.Data.Day * 10 + phase;
             creditHudLabel = hud.creditLabel;
             hud.creditLabel.text = $"<size=13>HOUSE CREDIT</size>\n◈ {HouseEconomy.Currency:N0}     ＋";
             hud.welcomeLabel.text = "WELCOME HOME.\n本周将有 <color=#E22D76>" + RemainingGuests() + "</color> 位访客来访";
@@ -1170,10 +1177,10 @@ namespace MasterHouse
         {
             if (view != View.Hub || hudPhaseLabel == null) return;
             var phase = OutGameUIData.CurrentPhase;
-            var key = OutGameClock.Day * 10 + phase; // 跨天时 DAY 文案也要刷新
+            var key = Clock.Data.Day * 10 + phase; // 跨天时 DAY 文案也要刷新
             if (key == hudPhaseShown) return;
             hudPhaseShown = key;
-            hudPhaseLabel.text = $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {OutGameClock.Day:00}</size>    {OutGameUIData.PhaseNames[phase]}";
+            hudPhaseLabel.text = $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {Clock.Data.Day:00}</size>    {OutGameUIData.PhaseNames[phase]}";
             if (hudPhaseRangeLabel != null) hudPhaseRangeLabel.text = OutGameUIData.PhaseRanges[phase];
         }
 
@@ -1373,16 +1380,16 @@ namespace MasterHouse
                 new Vector2(1920, 124), new Color(.025f, .025f, .045f, .77f));
 
             var phase = OutGameUIData.CurrentPhase;
-            var time = F.Button(top.transform, "Time", $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {OutGameClock.Day:00}</size>    {OutGameUIData.PhaseNames[phase]}",
+            var time = F.Button(top.transform, "Time", $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {Clock.Data.Day:00}</size>    {OutGameUIData.PhaseNames[phase]}",
                 () => OpenPanel(SystemPanel.Calendar), new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(230, 0),
                 new Vector2(410, 100), new Color(.17f, .06f, .12f, .74f), F.White, 23, TextAnchor.MiddleLeft);
             F.Label(time.transform, "Phase", $"{OutGameUIData.PhaseRanges[phase]}", 12, new Color(1, 1, 1, .58f),
                 new Vector2(1, 0), new Vector2(1, 0), new Vector2(-78, 14), new Vector2(150, 24), TextAnchor.MiddleRight);
-            clockLabel = F.Label(time.transform, "Clock", OutGameClock.TimeText, 24, F.White,
+            clockLabel = F.Label(time.transform, "Clock", Clock.Data.TimeText, 24, F.White,
                 new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-62, -7), new Vector2(110, 42), TextAnchor.MiddleRight, FontStyle.Bold);
             hudPhaseLabel = time.GetComponentInChildren<Text>();
             hudPhaseRangeLabel = time.transform.Find("Phase") != null ? time.transform.Find("Phase").GetComponent<Text>() : null;
-            hudPhaseShown = OutGameClock.Day * 10 + phase;
+            hudPhaseShown = Clock.Data.Day * 10 + phase;
 
             var creditButton = F.Button(top.transform, "Credit", $"<size=13>HOUSE CREDIT</size>\n◈ {HouseEconomy.Currency:N0}     ＋", () => OpenPanel(SystemPanel.Market),
                 new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(625, 0), new Vector2(270, 82),
@@ -1588,9 +1595,9 @@ namespace MasterHouse
             }
             var guest = OutGameUIData.Guests[index];
             // 服务时间窗口按加速的游戏时钟判定；窗口外访客仍留在屋内，只是暂不开放服务
-            if (!guest.InServiceWindow(OutGameClock.HourF))
+            if (!guest.InServiceWindow(Clock.Data.HourF))
             {
-                ShowToast($"{guest.name} 的可服务时间是 {guest.ServiceWindowText} · 现在 {OutGameClock.TimeText}，TA 先在屋里歇着");
+                ShowToast($"{guest.name} 的可服务时间是 {guest.ServiceWindowText} · 现在 {Clock.Data.TimeText}，TA 先在屋里歇着");
                 return;
             }
             guestIndex = index;
@@ -1824,7 +1831,7 @@ namespace MasterHouse
                 refused[i] = false;
                 guestArrived[i] = false;
             }
-            OutGameClock.NextDay(); // 周结算跳到下一天早晨，访客按各自拜访时间重新进场
+            Clock.NextDay(); // 周结算跳到下一天早晨，访客按各自拜访时间重新进场
             CloseDialogue();
             RebuildGuestChrome();
             BuildVisitorStage(); // 新的一周 → 访客整体刷新，重新从大门进场
@@ -2743,8 +2750,8 @@ namespace MasterHouse
             // v3 起存档包含游戏时钟与访客到访状态；旧档回落到第 1 天早晨、访客未到访
             for (var i = 0; i < guestArrived.Length; i++)
                 guestArrived[i] = data.version >= 3 && data.guestArrived != null && i < data.guestArrived.Length && data.guestArrived[i];
-            if (data.version >= 3) OutGameClock.Restore(data.gameDay, data.gameMinute);
-            else OutGameClock.Reset();
+            if (data.version >= 3) Clock.RestoreFromMinutes(data.gameDay, data.gameMinute);
+            else Clock.ResetNew();
             bgm = data.bgm;
             sfx = data.sfx;
             windowMode = string.IsNullOrEmpty(data.windowMode) ? "无边框" : data.windowMode;
@@ -2773,7 +2780,7 @@ namespace MasterHouse
             for (var i = 0; i < served.Length; i++) served[i] = false;
             for (var i = 0; i < refused.Length; i++) refused[i] = false;
             for (var i = 0; i < guestArrived.Length; i++) guestArrived[i] = false;
-            OutGameClock.Reset();
+            Clock.ResetNew();
             // 新游戏必须重置会话级状态，避免上一局的货币/声望/家具污染新档
             HouseEconomy.ResetToDefaults();
             FurnitureRoomController.ResetSession();
@@ -2797,8 +2804,8 @@ namespace MasterHouse
                 served = (bool[])served.Clone(),
                 refused = (bool[])refused.Clone(),
                 guestArrived = (bool[])guestArrived.Clone(),
-                gameDay = OutGameClock.Day,
-                gameMinute = OutGameClock.MinuteOfDay,
+                gameDay = Clock.Data.Day,
+                gameMinute = Clock.Data.MinuteOfDayF,
                 bgm = bgm,
                 sfx = sfx,
                 windowMode = windowMode,
