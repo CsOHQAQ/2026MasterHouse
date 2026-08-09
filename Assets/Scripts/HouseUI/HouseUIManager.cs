@@ -19,6 +19,9 @@ namespace MasterHouse
         /// <summary>页面与叠加层的父节点（Canvas 根）。</summary>
         public RectTransform PageRoot => (RectTransform)transform;
 
+        /// <summary>壳的 Canvas（家具模式打开期间整体禁用渲染）。</summary>
+        public Canvas Canvas { get; private set; }
+
         private HousePage currentPage;
         private readonly List<IHouseOverlay> overlayStack = new List<IHouseOverlay>();
 
@@ -48,6 +51,7 @@ namespace MasterHouse
         private void Awake()
         {
             Instance = this;
+            Canvas = GetComponent<Canvas>();
         }
 
         private void Start()
@@ -87,6 +91,8 @@ namespace MasterHouse
         private void Update()
         {
             if (currentPage == null) return;
+
+            currentPage.OnUpdate();
 
             if (Input.GetKeyDown(KeyCode.Escape))
             {

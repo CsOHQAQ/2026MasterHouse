@@ -142,8 +142,14 @@ namespace MasterHouse
 
         private void StartNewGame()
         {
-            // 3.5b：重置局外各 Manager → 开门过场 → Hub。壳先行阶段占位提示。
-            UI.ShowToast("Hub 页面迁移中（3.5b）——核心循环请暂用旧壳冒烟");
+            // §16.5：存档移除期间无槽位概念，新游戏直接重置局外进度进屋（统一存档接入后回归槽位选择，待定 #9）
+            var gm = GameManager.Instance;
+            gm.VisitorManager.ResetNew();
+            gm.EconomyManager.ResetToDefaults();
+            gm.HouseClockManager.ResetNew();
+            FurnitureRoomController.ResetSession();
+            FurnitureSceneComposer.ClearBaked();
+            UI.ShowPage(new OpeningPage());
         }
 
         // ── 标题页程序化贴图（复刻网页版渐变/晕影；随本页使用，非布局兜底）──

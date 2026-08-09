@@ -66,6 +66,9 @@ namespace MasterHouse
         /// <summary>每帧输入（仅当前页、且无叠加层时由壳调用）。</summary>
         public virtual void HandleInput() { }
 
+        /// <summary>每帧刷新（叠加层打开时也会调用；用于时钟走字这类持续展示，§2.1 轮询）。</summary>
+        public virtual void OnUpdate() { }
+
         private static RectTransform CreateEmptyRoot(Transform parent, string name)
         {
             var go = new GameObject(name, typeof(RectTransform));

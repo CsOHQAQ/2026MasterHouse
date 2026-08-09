@@ -66,6 +66,17 @@ namespace MasterHouse
             return group;
         }
 
+        /// <summary>Prefab 按钮统一绑定：清旧监听、挂新回调、补 hover 手感组件。</summary>
+        public static void BindButton(Button button, UnityEngine.Events.UnityAction action)
+        {
+            if (button == null) return;
+            var feedback = button.GetComponent<OutGameTweenButton>();
+            if (feedback == null) feedback = button.gameObject.AddComponent<OutGameTweenButton>();
+            feedback.hoverScale = 1.025f;
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(action);
+        }
+
         public static void BindToggle(Toggle toggle, bool value, UnityEngine.Events.UnityAction<bool> action)
         {
             if (toggle == null) return;
