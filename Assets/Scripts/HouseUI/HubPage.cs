@@ -31,8 +31,11 @@ namespace MasterHouse
         /// <summary>当前房间下标（列表顺序 = 导航顺序）。</summary>
         public int RoomIndex { get; private set; }
 
-        /// <summary>当前选中的访客下标（任务卡展示；对话层 3.5c 接管选中语义）。</summary>
+        /// <summary>当前选中的访客下标（任务卡与对话层共用）。</summary>
         public int GuestIndex { get; private set; }
+
+        /// <summary>对话快捷栏/档案「放入房间」共用的会话级摆放选择（纯表现，与真实家具布局无数据联系）。</summary>
+        internal static string PlacedFurnitureId = "whale";
 
         public HubPage(string notice = "欢迎回家。本周有 4 位访客。")
         {
@@ -65,13 +68,30 @@ namespace MasterHouse
 
             // 时间只在 Hub 内流动（§16.4 闸门）：进场开、退场关；家具模式不退页，时钟照走
             GameManager.Instance.HouseClockManager.SetRunning(true);
+            HouseGmConsole.FullResetRequested += OnGmFullReset;
             UI.ShowToast(notice);
         }
 
         protected override void OnExit()
         {
+            HouseGmConsole.FullResetRequested -= OnGmFullReset;
             GameManager.Instance.HouseClockManager.SetRunning(false);
             topBar.Dispose();
+        }
+
+        /// <summary>GM「恢复初始态」：面板本体已重置经济与家具会话，这里补访客/时钟归零与表现重建。</summary>
+        private void OnGmFullReset()
+        {
+            var gm = GameManager.Instance;
+            gm.VisitorManager.ResetNew();
+            gm.HouseClockManager.ResetNew();
+            GuestIndex = 0;
+            if (view == null) return;
+            scene.RefreshAfterFurniture();
+            scene.RebuildStage();
+            guestRail.Refresh();
+            taskCard.Refresh();
+            Toast("GM · 已恢复所有状态到初始态");
         }
 
         public override bool OnEscape()
@@ -96,7 +116,7 @@ namespace MasterHouse
             }
             if (Input.GetKeyDown(KeyCode.LeftArrow)) SelectRoom((RoomIndex + 3) % 4);
             if (Input.GetKeyDown(KeyCode.RightArrow)) SelectRoom((RoomIndex + 1) % 4);
-            if (Input.GetKeyDown(KeyCode.I)) OpenPanelPlaceholder("仓库");
+            if (Input.GetKeyDown(KeyCode.I)) OpenPanelPlaceholder("仓库"); // 仓库占位页归 3.6
         }
 
         public override void OnUpdate()
@@ -111,9 +131,17 @@ namespace MasterHouse
 
         public void BackToTitle() => UI.ShowPage(new TitlePage());
 
-        /// <summary>面板栈 3.5c 迁移前的统一占位入口。</summary>
+        /// <summary>打开已迁移的系统面板（叠加层压栈；ESC/遮罩/返回弹栈）。</summary>
+        public void OpenPanel(EHousePanel panel)
+        {
+            if (furnitureModeOpen) return;
+            if (immersive) SetImmersive(false);
+            PanelHost.Open(UI, this, panel);
+        }
+
+        /// <summary>3.6 面板（商城/设置/仓库/个人/通讯录）迁移前的占位入口。</summary>
         public void OpenPanelPlaceholder(string panelName) =>
-            UI.ShowToast($"「{panelName}」面板迁移中（3.5c）——请暂用旧壳查看");
+            UI.ShowToast($"「{panelName}」面板迁移中（3.6）——请暂用旧壳查看");
 
         public void SelectRoom(int index)
         {
@@ -172,8 +200,56 @@ namespace MasterHouse
             }
             GuestIndex = index;
             taskCard.Refresh();
-            // 对话层 3.5c 迁移后从这里进入事务对话
-            OpenPanelPlaceholder("访客对话");
+            DialogueOverlay.Open(UI, this);
+        }
+
+        /// <summary>对话层内切换本周访客：关当前层重开（选中语义与旧壳一致）。</summary>
+        public void SwitchDialogueGuest(int index)
+        {
+            GuestIndex = index;
+            taskCard.Refresh();
+            UI.PopOverlay();
+            DialogueOverlay.Open(UI, this);
+        }
+
+        /// <summary>完成服务：业务结算归 VisitorManager，这里只做表现刷新与提示（存档移除，§16.5）。</summary>
+        public void ServeSelectedGuest()
+        {
+            var gm = GameManager.Instance;
+            if (!gm.VisitorManager.Serve(GuestIndex)) return;
+            var name = gm.VisitorTable.visitors[GuestIndex].displayName;
+            scene.NotifyServed(GuestIndex);
+            UI.PopOverlay();
+            guestRail.Refresh();
+            taskCard.Refresh();
+            Toast($"{name} 的服务已完成 · ◈ +{gm.EconomyManager.ServiceCurrencyReward} · 声望 +{gm.EconomyManager.ServiceReputationReward}");
+        }
+
+        /// <summary>拒绝接待：业务结算归 VisitorManager。</summary>
+        public void RefuseSelectedGuest()
+        {
+            var gm = GameManager.Instance;
+            if (!gm.VisitorManager.Refuse(GuestIndex)) return;
+            var name = gm.VisitorTable.visitors[GuestIndex].displayName;
+            scene.NotifyRefused(GuestIndex);
+            UI.PopOverlay();
+            guestRail.Refresh();
+            taskCard.Refresh();
+            Toast($"已婉拒 {name} 的委托 · 声望 -{gm.EconomyManager.RefuseReputationPenalty}");
+        }
+
+        /// <summary>周结算：业务（扣声望/清状态/时钟跳次日）整体归 VisitorManager；表现整体刷新。</summary>
+        public void EndWeek()
+        {
+            var gm = GameManager.Instance;
+            var missed = gm.VisitorManager.EndWeek();
+            UI.PopOverlay();
+            guestRail.Refresh();
+            taskCard.Refresh();
+            scene.RebuildStage(); // 新的一周 → 访客整体刷新，重新从大门进场
+            Toast(missed > 0
+                ? $"本周结束 · {missed} 项服务未完成，声望 -{missed * gm.EconomyManager.FailReputationPenalty}"
+                : "本周结束 · 所有访客服务全部完成！新的一周开始了");
         }
 
         /// <summary>点击场景中的访客 NPC（观景模式下先展开界面）。</summary>

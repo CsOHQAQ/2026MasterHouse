@@ -43,6 +43,11 @@ public static class OutGameUIPrefabGenerator
     private const string DevicePagePath = Folder + "/DevicePage.prefab";
     private const string JournalPagePath = Folder + "/JournalPage.prefab";
     private const string ArchivePagePath = Folder + "/ArchivePage.prefab";
+    // 3.5c：动态列表项模板（§16.2 列表项 = Prefab 模板 + 运行时实例化），供重写版 HouseUI 面板使用
+    private const string DeviceCardPath = Folder + "/DeviceCard.prefab";
+    private const string ArchiveCardPath = Folder + "/ArchiveCard.prefab";
+    private const string JournalArticlePath = Folder + "/JournalArticle.prefab";
+    private const string AchievementRowPath = Folder + "/AchievementRow.prefab";
 
     static OutGameUIPrefabGenerator()
     {
@@ -106,6 +111,10 @@ public static class OutGameUIPrefabGenerator
         BuildPanelPage(DevicePagePath, "DevicePage", "HOUSE INDEX", "设备图鉴", "器", DevicePanelPath);
         BuildPanelPage(JournalPagePath, "JournalPage", "MEMORY LOG", "日记与成就", "记", JournalPanelPath);
         BuildPanelPage(ArchivePagePath, "ArchivePage", "HOUSE ARCHIVE", "叙事资源档案", "集", ArchivePanelPath);
+        BuildDeviceCard(DeviceCardPath);
+        BuildArchiveCard(ArchiveCardPath);
+        BuildJournalArticle(JournalArticlePath);
+        BuildAchievementRow(AchievementRowPath);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log("[OutGameUI] 默认 Prefab 已显式重建。");
@@ -147,6 +156,10 @@ public static class OutGameUIPrefabGenerator
         if (!File.Exists(DevicePagePath)) { BuildPanelPage(DevicePagePath, "DevicePage", "HOUSE INDEX", "设备图鉴", "器", DevicePanelPath); changed = true; }
         if (!File.Exists(JournalPagePath)) { BuildPanelPage(JournalPagePath, "JournalPage", "MEMORY LOG", "日记与成就", "记", JournalPanelPath); changed = true; }
         if (!File.Exists(ArchivePagePath)) { BuildPanelPage(ArchivePagePath, "ArchivePage", "HOUSE ARCHIVE", "叙事资源档案", "集", ArchivePanelPath); changed = true; }
+        if (!File.Exists(DeviceCardPath)) { BuildDeviceCard(DeviceCardPath); changed = true; }
+        if (!File.Exists(ArchiveCardPath)) { BuildArchiveCard(ArchiveCardPath); changed = true; }
+        if (!File.Exists(JournalArticlePath)) { BuildJournalArticle(JournalArticlePath); changed = true; }
+        if (!File.Exists(AchievementRowPath)) { BuildAchievementRow(AchievementRowPath); changed = true; }
         changed |= RepairExistingPrefabs();
         changed |= RepairButtonFeedback();
         if (!changed) return;
@@ -1176,6 +1189,60 @@ public static class OutGameUIPrefabGenerator
             TextAnchor.MiddleCenter, FontStyle.Bold);
         view.contentRoot = InstantiateNested<RectTransform>(contentPrefabPath, view.panel.transform, "Content",
             new Vector2(.5f, .5f), new Vector2(0, -75), new Vector2(1180, 830));
+        Save(root, path);
+    }
+
+    // ── 3.5c 动态列表项模板（默认视觉与旧运行时代码逐参数一致，生成后可在编辑器手调）──
+
+    private static void BuildDeviceCard(string path)
+    {
+        var root = ComponentRoot("DeviceCard", new Vector2(245, 270));
+        var refs = root.AddComponent<DeviceCardView>();
+        refs.background = ImageOn((RectTransform)root.transform, new Color(1, 1, 1, .045f));
+        refs.button = root.AddComponent<Button>();
+        refs.button.targetGraphic = refs.background;
+        AddTweenFeedback(refs.button);
+        refs.label = Label(root.transform, "Label", "⚙\n<size=13>LV.2 · 可使用</size>\n黑胶唱机\n<size=14>舒缓情绪</size>",
+            21, Hex("F3E8DD"), TextAnchor.MiddleCenter, FontStyle.Bold);
+        Save(root, path);
+    }
+
+    private static void BuildArchiveCard(string path)
+    {
+        var root = ComponentRoot("ArchiveCard", new Vector2(215, 215));
+        var refs = root.AddComponent<ArchiveCardView>();
+        refs.background = ImageOn((RectTransform)root.transform, new Color(1, 1, 1, .04f));
+        refs.button = root.AddComponent<Button>();
+        refs.button.targetGraphic = refs.background;
+        AddTweenFeedback(refs.button);
+        refs.label = Label(root.transform, "Label", "01 / 回应家具\n鲸声电话亭\n<size=13>洛恩</size>",
+            17, Hex("F3E8DD"), TextAnchor.LowerCenter, FontStyle.Bold);
+        refs.art = Raw(root.transform, "Art", new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -70), new Vector2(180, 110));
+        Save(root, path);
+    }
+
+    private static void BuildJournalArticle(string path)
+    {
+        var root = ComponentRoot("JournalArticle", new Vector2(530, 540));
+        var refs = root.AddComponent<JournalArticleView>();
+        refs.background = ImageOn((RectTransform)root.transform, new Color(.08f, .04f, .075f, .86f));
+        var outline = root.AddComponent<Outline>();
+        outline.effectColor = new Color(.7f, .2f, .45f, .28f);
+        outline.effectDistance = new Vector2(1, -1);
+        refs.text = Label(root.transform, "Text",
+            "<color=#E22D76><size=14>06 / 17 · 雨转晴</size></color>\n<size=29>窗户唱回来的那句话</size>\n\n正文……",
+            20, Hex("F3E8DD"), new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(450, 450),
+            TextAnchor.UpperLeft, FontStyle.Normal);
+        Save(root, path);
+    }
+
+    private static void BuildAchievementRow(string path)
+    {
+        var root = ComponentRoot("AchievementRow", new Vector2(520, 170));
+        var refs = root.AddComponent<AchievementRowView>();
+        refs.background = ImageOn((RectTransform)root.transform, new Color(1, 1, 1, .035f));
+        refs.label = Label(root.transform, "Label", "✓     夜的主人\n<size=15>          在深夜完成一次服务</size>",
+            23, Hex("F3E8DD"), TextAnchor.MiddleLeft, FontStyle.Bold);
         Save(root, path);
     }
 

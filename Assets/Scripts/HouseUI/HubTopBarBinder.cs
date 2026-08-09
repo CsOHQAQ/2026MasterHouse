@@ -34,7 +34,7 @@ namespace MasterHouse
             creditLabel = hud.creditLabel;
             hud.welcomeLabel.text = "WELCOME HOME.\n本周将有 <color=#E22D76>" +
                 GameManager.Instance.VisitorManager.CountRemaining() + "</color> 位访客来访";
-            HouseUIUtil.BindButton(hud.timeButton, () => page.OpenPanelPlaceholder("日历"));
+            HouseUIUtil.BindButton(hud.timeButton, () => page.OpenPanel(EHousePanel.Calendar));
             HouseUIUtil.BindButton(hud.creditButton, () => page.OpenPanelPlaceholder("商城"));
             HouseUIUtil.BindButton(hud.brandButton, page.BackToTitle);
             HouseUIUtil.BindButton(hud.optionsButton, () => page.OpenPanelPlaceholder("设置"));

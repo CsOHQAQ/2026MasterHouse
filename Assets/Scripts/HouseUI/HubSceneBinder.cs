@@ -17,6 +17,7 @@ namespace MasterHouse
         private RawImage sceneArt;
         private Image sceneWash;
         private OutGameHubSceneOverlayView overlay;
+        private OutGameVisitorStage stage;
         private readonly List<(RectTransform rect, Rect viewport)> hotspots =
             new List<(RectTransform, Rect)>();
         private bool panning;
@@ -148,7 +149,7 @@ namespace MasterHouse
                 image.color = Color.clear;
                 var button = hotspot.gameObject.AddComponent<Button>();
                 button.transition = Selectable.Transition.None;
-                button.onClick.AddListener(() => page.OpenPanelPlaceholder("设备图鉴"));
+                button.onClick.AddListener(() => page.OpenPanel(EHousePanel.Device));
 
                 var card = HouseUIRuntime.Panel(hotspot, "Card", new Vector2(.5f, 1),
                     new Vector2(0, 46), new Vector2(250, 76), new Color(.32f, .06f, .18f, .92f));
@@ -185,17 +186,33 @@ namespace MasterHouse
             }
         }
 
+        /// <summary>服务成功 → 演员庆祝并限时停留。</summary>
+        public void NotifyServed(int guestIndex)
+        {
+            if (stage != null) stage.NotifyServed(guestIndex);
+        }
+
+        /// <summary>被拒绝 → 演员直接返回门口离开。</summary>
+        public void NotifyRefused(int guestIndex)
+        {
+            if (stage != null) stage.NotifyRefused(guestIndex);
+        }
+
+        /// <summary>整体重建舞台（周结算/GM 重置后访客重新进场）。</summary>
+        public void RebuildStage() => BuildVisitorStage();
+
         /// <summary>重建场景访客 NPC 层（仅起居室）。舞台只读 VisitorManager 状态，表现不回写业务（§16.4）。</summary>
         private void BuildVisitorStage()
         {
             if (sceneRoot == null) return;
+            stage = null;
             if (page.RoomIndex != 0)
             {
                 var existing = sceneRoot.Find("VisitorStage");
                 if (existing != null) Object.Destroy(existing.gameObject);
                 return;
             }
-            OutGameVisitorStage.Build(sceneRoot, sceneArt, page.OnVisitorClicked);
+            stage = OutGameVisitorStage.Build(sceneRoot, sceneArt, page.OnVisitorClicked);
         }
 
         /// <summary>场景说明卡与设备热点按钮（Prefab 字段可能因手动编辑缺失，逐项判空）。</summary>
@@ -209,7 +226,7 @@ namespace MasterHouse
             var hotspotLabel = page.RoomIndex == 2 ? "手冲咖啡台" : page.RoomIndex == 3 ? "旧书检索机" : "黑胶唱机";
             if (overlay.hotspotTitle != null) overlay.hotspotTitle.text = "＋  " + hotspotLabel + "\n<size=13>查看设备</size>";
             if (overlay.hotspotButton != null)
-                HouseUIUtil.BindButton(overlay.hotspotButton, () => page.OpenPanelPlaceholder("设备图鉴"));
+                HouseUIUtil.BindButton(overlay.hotspotButton, () => page.OpenPanel(EHousePanel.Device));
         }
     }
 }

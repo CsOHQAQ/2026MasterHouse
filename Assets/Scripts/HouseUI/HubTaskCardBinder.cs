@@ -10,7 +10,7 @@ namespace MasterHouse
         {
             view = card;
             page = owner;
-            HouseUIUtil.BindButton(card.button, () => page.OpenPanelPlaceholder("委托"));
+            HouseUIUtil.BindButton(card.button, () => page.OpenPanel(EHousePanel.Tasks));
             Refresh();
         }
 
