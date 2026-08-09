@@ -30,6 +30,9 @@ namespace MasterHouse
         public const string DialogueView = "OutGameUI/Prefabs/DialogueView";
         public const string CalendarPage = "OutGameUI/Prefabs/CalendarPage";
         public const string DeviceCard = "OutGameUI/Prefabs/DeviceCard";
+        public const string MarketPage = "OutGameUI/Prefabs/MarketPage";
+        public const string MarketCard = "OutGameUI/Prefabs/MarketCard";
+        public const string PlaceholderPage = "OutGameUI/Prefabs/PlaceholderPage";
         public const string ArchiveCard = "OutGameUI/Prefabs/ArchiveCard";
         public const string JournalArticle = "OutGameUI/Prefabs/JournalArticle";
         public const string AchievementRow = "OutGameUI/Prefabs/AchievementRow";

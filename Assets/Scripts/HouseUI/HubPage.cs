@@ -116,7 +116,7 @@ namespace MasterHouse
             }
             if (Input.GetKeyDown(KeyCode.LeftArrow)) SelectRoom((RoomIndex + 3) % 4);
             if (Input.GetKeyDown(KeyCode.RightArrow)) SelectRoom((RoomIndex + 1) % 4);
-            if (Input.GetKeyDown(KeyCode.I)) OpenPanelPlaceholder("仓库"); // 仓库占位页归 3.6
+            if (Input.GetKeyDown(KeyCode.I)) OpenPanel(EHousePanel.Inventory);
         }
 
         public override void OnUpdate()
@@ -139,9 +139,13 @@ namespace MasterHouse
             PanelHost.Open(UI, this, panel);
         }
 
-        /// <summary>3.6 面板（商城/设置/仓库/个人/通讯录）迁移前的占位入口。</summary>
-        public void OpenPanelPlaceholder(string panelName) =>
-            UI.ShowToast($"「{panelName}」面板迁移中（3.6）——请暂用旧壳查看");
+        /// <summary>Hub 内设置：复用标题设置 Prefab 的叠加层（§16.8）。</summary>
+        public void OpenSettings()
+        {
+            if (furnitureModeOpen) return;
+            if (immersive) SetImmersive(false);
+            SettingsOverlay.Open(UI);
+        }
 
         public void SelectRoom(int index)
         {

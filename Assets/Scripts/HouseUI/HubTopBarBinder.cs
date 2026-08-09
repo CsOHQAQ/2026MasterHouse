@@ -35,9 +35,9 @@ namespace MasterHouse
             hud.welcomeLabel.text = "WELCOME HOME.\n本周将有 <color=#E22D76>" +
                 GameManager.Instance.VisitorManager.CountRemaining() + "</color> 位访客来访";
             HouseUIUtil.BindButton(hud.timeButton, () => page.OpenPanel(EHousePanel.Calendar));
-            HouseUIUtil.BindButton(hud.creditButton, () => page.OpenPanelPlaceholder("商城"));
+            HouseUIUtil.BindButton(hud.creditButton, () => page.OpenPanel(EHousePanel.Market));
             HouseUIUtil.BindButton(hud.brandButton, page.BackToTitle);
-            HouseUIUtil.BindButton(hud.optionsButton, () => page.OpenPanelPlaceholder("设置"));
+            HouseUIUtil.BindButton(hud.optionsButton, page.OpenSettings);
 
             // 声望与装饰分数值条（流通数值三件套中，货币在顶栏 HOUSE CREDIT 显示）
             var chip = HouseUIRuntime.Panel(chromeRoot, "EconomyChip", new Vector2(.5f, 1),

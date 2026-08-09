@@ -48,6 +48,12 @@ public static class OutGameUIPrefabGenerator
     private const string ArchiveCardPath = Folder + "/ArchiveCard.prefab";
     private const string JournalArticlePath = Folder + "/JournalArticle.prefab";
     private const string AchievementRowPath = Folder + "/AchievementRow.prefab";
+    // 3.6：商城补 Prefab 与统一占位页（§16.8）
+    private const string MarketCardPath = Folder + "/MarketCard.prefab";
+    private const string MarketPanelPath = Folder + "/MarketPanel.prefab";
+    private const string MarketPagePath = Folder + "/MarketPage.prefab";
+    private const string PlaceholderPanelPath = Folder + "/PlaceholderPanel.prefab";
+    private const string PlaceholderPagePath = Folder + "/PlaceholderPage.prefab";
 
     static OutGameUIPrefabGenerator()
     {
@@ -115,6 +121,11 @@ public static class OutGameUIPrefabGenerator
         BuildArchiveCard(ArchiveCardPath);
         BuildJournalArticle(JournalArticlePath);
         BuildAchievementRow(AchievementRowPath);
+        BuildMarketCard(MarketCardPath);
+        BuildMarketPanelContent(MarketPanelPath);
+        BuildPanelPage(MarketPagePath, "MarketPage", "NIGHT MARKET", "经济与商城", "店", MarketPanelPath);
+        BuildPlaceholderPanelContent(PlaceholderPanelPath);
+        BuildPanelPage(PlaceholderPagePath, "PlaceholderPage", "COMING SOON", "尚未开放", "待", PlaceholderPanelPath);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log("[OutGameUI] 默认 Prefab 已显式重建。");
@@ -160,6 +171,11 @@ public static class OutGameUIPrefabGenerator
         if (!File.Exists(ArchiveCardPath)) { BuildArchiveCard(ArchiveCardPath); changed = true; }
         if (!File.Exists(JournalArticlePath)) { BuildJournalArticle(JournalArticlePath); changed = true; }
         if (!File.Exists(AchievementRowPath)) { BuildAchievementRow(AchievementRowPath); changed = true; }
+        if (!File.Exists(MarketCardPath)) { BuildMarketCard(MarketCardPath); changed = true; }
+        if (!File.Exists(MarketPanelPath)) { BuildMarketPanelContent(MarketPanelPath); changed = true; }
+        if (!File.Exists(MarketPagePath)) { BuildPanelPage(MarketPagePath, "MarketPage", "NIGHT MARKET", "经济与商城", "店", MarketPanelPath); changed = true; }
+        if (!File.Exists(PlaceholderPanelPath)) { BuildPlaceholderPanelContent(PlaceholderPanelPath); changed = true; }
+        if (!File.Exists(PlaceholderPagePath)) { BuildPanelPage(PlaceholderPagePath, "PlaceholderPage", "COMING SOON", "尚未开放", "待", PlaceholderPanelPath); changed = true; }
         changed |= RepairExistingPrefabs();
         changed |= RepairButtonFeedback();
         if (!changed) return;
@@ -1243,6 +1259,53 @@ public static class OutGameUIPrefabGenerator
         refs.background = ImageOn((RectTransform)root.transform, new Color(1, 1, 1, .035f));
         refs.label = Label(root.transform, "Label", "✓     夜的主人\n<size=15>          在深夜完成一次服务</size>",
             23, Hex("F3E8DD"), TextAnchor.MiddleLeft, FontStyle.Bold);
+        Save(root, path);
+    }
+
+    private static void BuildMarketCard(string path)
+    {
+        var root = ComponentRoot("MarketCard", new Vector2(220, 215));
+        var refs = root.AddComponent<MarketCardView>();
+        refs.background = ImageOn((RectTransform)root.transform, new Color(.1f, .04f, .09f, .86f));
+        refs.button = root.AddComponent<Button>();
+        refs.button.targetGraphic = refs.background;
+        AddTweenFeedback(refs.button);
+        refs.label = Label(root.transform, "Label", "\n\n\n<size=17>鲸声电话亭</size>\n<color=#E3A869>◈ 480</color>",
+            18, Hex("F3E8DD"), TextAnchor.MiddleCenter, FontStyle.Bold);
+        refs.thumb = Image(root.transform, "Thumb", new Vector2(.5f, 1), new Vector2(.5f, 1),
+            new Vector2(0, -60), new Vector2(130, 95), Color.white);
+        refs.thumb.preserveAspect = true;
+        refs.thumb.raycastTarget = false;
+        Save(root, path);
+    }
+
+    private static void BuildMarketPanelContent(string path)
+    {
+        var root = ComponentRoot("MarketPanel", new Vector2(1180, 830));
+        var refs = root.AddComponent<MarketPanelView>();
+        var wallet = Image(root.transform, "Wallet", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+            new Vector2(-370, 330), new Vector2(400, 130), new Color(.35f, .07f, .22f, .58f));
+        var walletOutline = wallet.gameObject.AddComponent<Outline>();
+        walletOutline.effectColor = new Color(.7f, .2f, .45f, .28f);
+        walletOutline.effectDistance = new Vector2(1, -1);
+        refs.walletText = Label(wallet.transform, "WalletText",
+            "<size=13>流通数值</size>\n<size=28><color=#E3A869>◈ 2,480</color></size>\n<color=#74D8D1>声望 40</color>    <color=#E22D76>装饰分 380</color>",
+            18, Hex("F3E8DD"), TextAnchor.MiddleCenter, FontStyle.Bold);
+        Label(root.transform, "MarketNote",
+            "商城 · 装饰品货架：声望解禁货架（未解禁呈「？」），货币购买；已购家具会出现在「家具摆放」的收纳栏。设备货架待投放方式确定后开放。",
+            16, new Color(1, 1, 1, .66f), new Vector2(.5f, 1), new Vector2(.5f, 1),
+            new Vector2(210, -60), new Vector2(700, 70), TextAnchor.MiddleLeft, FontStyle.Normal);
+        var cards = Rect(root.transform, "Cards", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        refs.cardsRoot = cards;
+        Save(root, path);
+    }
+
+    private static void BuildPlaceholderPanelContent(string path)
+    {
+        var root = ComponentRoot("PlaceholderPanel", new Vector2(1180, 830));
+        Label(root.transform, "Text",
+            "<size=64>尚未开放</size>\n\n<size=20>这个功能会在后续版本加入，敬请期待。</size>",
+            24, new Color(1, 1, 1, .8f), TextAnchor.MiddleCenter, FontStyle.Bold);
         Save(root, path);
     }
 

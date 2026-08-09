@@ -9,19 +9,14 @@ namespace MasterHouse
         {
             var icons = new[] { "器", "记", "录", "集" };
             var labels = new[] { "设备图鉴", "日记", "通讯录", "档案" };
-            // 通讯录降级为占位页（§16.8），归 3.6；其余三个已迁移
-            var panels = new EHousePanel?[] { EHousePanel.Device, EHousePanel.Journal, null, EHousePanel.Archive };
+            // 通讯录为统一占位页（§16.8 明示豁免）
+            var panels = new[] { EHousePanel.Device, EHousePanel.Journal, EHousePanel.Contacts, EHousePanel.Archive };
             for (var i = 0; i < dock.entries.Length && i < labels.Length; i++)
             {
-                var label = labels[i];
                 var panel = panels[i];
                 dock.entries[i].icon.text = icons[i];
-                dock.entries[i].label.text = label;
-                HouseUIUtil.BindButton(dock.entries[i].button, () =>
-                {
-                    if (panel.HasValue) page.OpenPanel(panel.Value);
-                    else page.OpenPanelPlaceholder(label);
-                });
+                dock.entries[i].label.text = labels[i];
+                HouseUIUtil.BindButton(dock.entries[i].button, () => page.OpenPanel(panel));
             }
 
             // 「家具摆放」入口：追加在 dock 下方的运行时按钮（不改动 Hub Prefab 既有布局，与旧壳一致）

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace MasterHouse
 {
-    /// <summary>3.5c 已迁移的系统面板（其余面板归 3.6：商城/设置/仓库/个人/通讯录）。</summary>
+    /// <summary>系统面板。仓库/个人/通讯录为统一占位页（§16.8 明示豁免）；设置走 SettingsOverlay 复用标题设置 Prefab。</summary>
     public enum EHousePanel
     {
         Tasks,
@@ -11,6 +11,10 @@ namespace MasterHouse
         Journal,
         Archive,
         Calendar,
+        Market,
+        Inventory,
+        Profile,
+        Contacts,
     }
 
     /// <summary>
@@ -70,6 +74,10 @@ namespace MasterHouse
                 case EHousePanel.Calendar:
                     CalendarPanelBinder.Bind(instance.GetComponentInChildren<OutGameCalendarPanelView>(true), page);
                     break;
+                case EHousePanel.Market:
+                    MarketPanelBinder.Bind(instance.GetComponentInChildren<MarketPanelView>(true), page);
+                    break;
+                // Inventory/Profile/Contacts：统一占位页，内容烘焙在 Prefab 内，仅外壳头部按 PanelMeta 区分
             }
             HouseUIUtil.ApplyFallbackFont(instance.transform);
             ui.PushOverlay(host);
@@ -132,7 +140,9 @@ namespace MasterHouse
             EHousePanel.Device => OutGamePrefabResourcePaths.DevicePage,
             EHousePanel.Journal => OutGamePrefabResourcePaths.JournalPage,
             EHousePanel.Archive => OutGamePrefabResourcePaths.ArchivePage,
-            _ => OutGamePrefabResourcePaths.CalendarPage,
+            EHousePanel.Calendar => OutGamePrefabResourcePaths.CalendarPage,
+            EHousePanel.Market => OutGamePrefabResourcePaths.MarketPage,
+            _ => OutGamePrefabResourcePaths.PlaceholderPage,
         };
 
         private static (string eyebrow, string title, string mark) PanelMeta(EHousePanel panel) => panel switch
@@ -141,7 +151,11 @@ namespace MasterHouse
             EHousePanel.Device => ("HOUSE INDEX", "设备图鉴", "器"),
             EHousePanel.Journal => ("MEMORY LOG", "日记与成就", "记"),
             EHousePanel.Archive => ("HOUSE ARCHIVE", "叙事资源档案", "集"),
-            _ => ("REAL TIME", "日程与时间", "历"),
+            EHousePanel.Calendar => ("REAL TIME", "日程与时间", "历"),
+            EHousePanel.Market => ("NIGHT MARKET", "经济与商城", "店"),
+            EHousePanel.Inventory => ("STORAGE", "House 仓库", "仓"),
+            EHousePanel.Profile => ("RESIDENT 001", "主角信息", "我"),
+            _ => ("VISITOR FILE", "访客通讯录", "录"),
         };
     }
 }
