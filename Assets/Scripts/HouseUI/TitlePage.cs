@@ -104,9 +104,10 @@ namespace MasterHouse
                 if (i < view.menuHoverImages.Length) feedback.hoverGraphic = view.menuHoverImages[i];
                 var group = HouseUIUtil.Group(button.gameObject, 0);
                 var targetAlpha = item.Enabled ? 1f : .34f;
-                DOTween.Sequence().SetTarget(button.transform).SetUpdate(true)
-                    .AppendInterval(.08f + i * .055f)
-                    .Append(group.DOFade(targetAlpha, .42f).SetEase(Ease.OutCubic));
+                // 错峰淡入以 CanvasGroup 为目标：不能挂在 button.transform 上——
+                // OutGameTweenButton 的 hover/选中逻辑会按 transform 目标 DOKill，会误杀进场动画（不可见但可点击的 bug）
+                group.DOFade(targetAlpha, .42f).SetEase(Ease.OutCubic).SetUpdate(true)
+                    .SetDelay(.08f + i * .055f);
             }
             HouseUIUtil.EnsureLetterSpacing(view.saveState, .65f);
             HouseUIUtil.EnsureLetterSpacing(view.hints, .8f);
