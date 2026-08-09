@@ -12,6 +12,9 @@ namespace MasterHouse
         [Tooltip("同时创建 HouseGmConsole（F1 开关的 GM 面板），冒烟时可用「恢复初始态」")]
         [SerializeField] private bool spawnGmConsole = true;
 
+        [Tooltip("使用重写版 HouseUI 壳（3.5 并行开发中，逐页迁移）；关闭则拉起旧 OutGameUI 作为功能基线")]
+        [SerializeField] private bool useHouseUI;
+
         private void Start()
         {
             // 局外时钟由 GameManager 的全局固定 tick 驱动（§16.4）；测试场景保持只含 Bootstrap（§16.10），
@@ -22,7 +25,9 @@ namespace MasterHouse
                 DontDestroyOnLoad(gm); // 与局外 UI 同寿命（OutGameUI 自身是 DontDestroyOnLoad）
             }
 
-            OutGameUI.Build();
+            // 3.5 期间新旧两壳并行：开关切换对照冒烟；默认旧壳=功能基线，新壳到达等价后由 3.9 切换并清零旧代码
+            if (useHouseUI) HouseUIManager.Build();
+            else OutGameUI.Build();
 
             // 旧分支的 GM 面板与局外 UI 一同自动注入，点亮基线保持同样组合
             if (spawnGmConsole && FindObjectOfType<HouseGmConsole>() == null)
