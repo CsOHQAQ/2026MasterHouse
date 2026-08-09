@@ -102,7 +102,7 @@ namespace MasterHouse
             RaiseChanged();
         }
 
-        /// <summary>导出存档快照（过渡：旧存档 v3 经济段，待定 #9）。列表按 id 排序，序列化结果稳定（§11.2）。</summary>
+        /// <summary>导出存档快照（存档接缝占位，当前无调用方，待定 #9）。列表按 id 排序，序列化结果稳定（§11.2）。</summary>
         public EconomySaveData Capture()
         {
             var data = new EconomySaveData

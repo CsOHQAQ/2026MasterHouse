@@ -7,10 +7,9 @@ using UnityEngine.UI;
 namespace MasterHouse
 {
     /// <summary>
-    /// 局外界面壳（§16.3 HouseUI 模块，取代旧 OutGameUI 的界面框架职责）：
-    /// Canvas 生命周期、整页路由、叠加层栈与 ESC 退栈（先弹栈、再问当前页）、Toast。
-    /// 页面绑定逻辑一页一文件（HousePage 派生类）；本壳不做任何布局搭建（§16.2）。
-    /// 3.5 期间与旧 OutGameUI 并行共存，由 OutGameBootstrap 的开关二选一拉起。
+    /// 局外界面壳（§16.3 HouseUI 模块）：Canvas 生命周期、整页路由、叠加层栈与 ESC 退栈
+    /// （先弹栈、再问当前页）、Toast。页面绑定逻辑一页一文件（HousePage 派生类）；
+    /// 本壳不做任何布局搭建（§16.2）。由 OutGameBootstrap 拉起（3.9 起为局外界面唯一实现）。
     /// </summary>
     public sealed class HouseUIManager : MonoBehaviour
     {

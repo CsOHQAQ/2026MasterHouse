@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using F = MasterHouse.OutGameUIFactory;
+using F = MasterHouse.HouseUIRuntime;
 
 namespace MasterHouse
 {
     /// <summary>
     /// Hub 场景里的访客 NPC 舞台层（纯表现，§16.4）：
-    /// ①业务访客：每帧轮询 VisitorManager 的到访/处理状态生成演员（表现不回写业务），点击转发给 OutGameUI 触发对话；
+    /// ①业务访客：每帧轮询 VisitorManager 的到访/处理状态生成演员（表现不回写业务），点击转发给 HubPage 触发对话；
     /// ②串门邻居（ambient）：随机轮换进场，在门口排队等玩家决定去留，走掉后隔一阵换一只新的进来（无业务后果）；
     /// ③把场景归一化坐标换算成锚点（跟随观景模式的 uvRect 平移缩放，与家具热点同一套换算），并按深度排序前后遮挡。
     /// 只在起居室出现。

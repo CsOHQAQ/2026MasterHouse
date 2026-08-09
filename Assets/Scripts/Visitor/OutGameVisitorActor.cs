@@ -3,7 +3,7 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using F = MasterHouse.OutGameUIFactory;
+using F = MasterHouse.HouseUIRuntime;
 
 namespace MasterHouse
 {

@@ -14,8 +14,8 @@ namespace MasterHouse
     }
 
     /// <summary>
-    /// 流通数值的存档快照。过渡：这是旧局外存档 v3 的经济段，字段名不可改（JsonUtility 按字段名兼容旧档）；
-    /// 待定 #9 统一存档定案后由其取代。
+    /// 流通数值的存档快照。**存档接缝占位（§16.5）**：旧局外存档已随 3.9 退役，本类当前无调用方，
+    /// 保留数据快照能力等待统一存档接入（待定 #9）；届时字段结构按新设计调整，不再受旧档格式约束。
     /// </summary>
     [Serializable]
     public sealed class EconomySaveData

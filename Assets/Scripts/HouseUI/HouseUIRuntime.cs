@@ -16,6 +16,9 @@ namespace MasterHouse
         public static readonly Color Rose = HouseUIUtil.Hex("E22D76");
         public static readonly Color Cyan = HouseUIUtil.Hex("74D8D1");
         public static readonly Color White = HouseUIUtil.White;
+        public static readonly Color Wine = HouseUIUtil.Wine;
+
+        public static Color Hex(string value, float alpha = 1f) => HouseUIUtil.Hex(value, alpha);
 
         private static Sprite whiteSprite;
 
