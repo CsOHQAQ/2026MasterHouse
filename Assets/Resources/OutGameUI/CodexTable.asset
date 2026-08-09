@@ -1,0 +1,168 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: CodexTable
+  m_EditorClassIdentifier: Assembly-CSharp:MasterHouse:CodexTable
+  rooms:
+  - id: living
+    displayName: "\u8D77\u5C45\u5BA4"
+    code: HOME
+    note: "\u5BA2\u4EBA\u4F1A\u5728\u8FD9\u91CC\u7B49\u5F85\u670D\u52A1"
+    artPath: OutGameUI/house-hub-v2
+  - id: bedroom
+    displayName: "\u5367\u5BA4"
+    code: REST
+    note: "\u6062\u590D\u72B6\u6001\u5E76\u63A8\u8FDB\u81F3\u4E0B\u4E00\u5929"
+    artPath: OutGameUI/dream-house
+  - id: kitchen
+    displayName: "\u53A8\u623F"
+    code: MAKE
+    note: "\u4F7F\u7528\u8BBE\u5907\u5236\u4F5C\u8BBF\u5BA2\u9700\u8981\u7684\u7269\u54C1"
+    artPath: OutGameUI/house-hub-v3
+  - id: study
+    displayName: "\u4E66\u623F"
+    code: READ
+    note: "\u89E3\u9501\u914D\u65B9\u4E0E\u5BA2\u4EBA\u7EBF\u7D22"
+    artPath: OutGameUI/study-room-clean
+  devices:
+  - roomId: living
+    displayName: "\u9ED1\u80F6\u5531\u673A"
+    level: 2
+    effect: "\u8212\u7F13\u60C5\u7EEA"
+    owned: 1
+  - roomId: living
+    displayName: "\u65E7\u5F0F\u58C1\u7089"
+    level: 1
+    effect: "\u63D0\u9AD8\u505C\u7559\u65F6\u957F"
+    owned: 1
+  - roomId: bedroom
+    displayName: "\u68A6\u5883\u6355\u6349\u5668"
+    level: 1
+    effect: "\u83B7\u5F97\u8BB0\u5FC6\u788E\u7247"
+    owned: 0
+  - roomId: bedroom
+    displayName: "\u5E8A\u5934\u7559\u58F0\u673A"
+    level: 2
+    effect: "\u6062\u590D\u4E3B\u89D2\u72B6\u6001"
+    owned: 1
+  - roomId: kitchen
+    displayName: "\u624B\u51B2\u5496\u5561\u53F0"
+    level: 3
+    effect: "\u5236\u4F5C\u70ED\u996E"
+    owned: 1
+  - roomId: kitchen
+    displayName: "\u5FAE\u6CE2\u70E4\u7BB1"
+    level: 1
+    effect: "\u5236\u4F5C\u7B80\u9910"
+    owned: 1
+  - roomId: kitchen
+    displayName: "\u73BB\u7483\u836F\u7F50"
+    level: 2
+    effect: "\u5408\u6210\u7279\u6B8A\u914D\u65B9"
+    owned: 0
+  - roomId: study
+    displayName: "\u65E7\u4E66\u68C0\u7D22\u673A"
+    level: 2
+    effect: "\u53D1\u73B0\u7EBF\u7D22"
+    owned: 1
+  - roomId: study
+    displayName: "\u89C2\u661F\u955C"
+    level: 1
+    effect: "\u9884\u6D4B\u7279\u6B8A\u8BBF\u5BA2"
+    owned: 0
+  archives:
+  - category: 0
+    id: whale
+    displayName: "\u9CB8\u58F0\u7535\u8BDD\u4EAD"
+    type: "\u56DE\u5E94\u5BB6\u5177"
+    owner: "\u6D1B\u6069"
+    note: "\u6CA1\u6709\u53F7\u7801\uFF0C\u4E5F\u6CA1\u6709\u63A5\u7EBF\u5458\u3002\u62FF\u8D77\u8BDD\u7B52\uFF0C\u53EA\u4F1A\u542C\u89C1\u5F88\u8FDC\u7684\u9CB8\u9E23\u3002"
+    imagePath: OutGameUI/Furniture/whale-call
+  - category: 0
+    id: strings
+    displayName: "\u7434\u5F26\u7A97\u6237"
+    type: "\u56DE\u5E94\u5BB6\u5177"
+    owner: "\u8D6B\u58A8"
+    note: "\u767D\u5929\u6536\u4E0B\u5C4B\u91CC\u7684\u8BDD\uFF0C\u591C\u665A\u7528\u53E6\u4E00\u79CD\u60C5\u7EEA\u5531\u56DE\u6765\u3002"
+    imagePath: OutGameUI/Furniture/string-window
+  - category: 0
+    id: chimes
+    displayName: "\u5154\u8033\u56DE\u58F0\u98CE\u94C3"
+    type: "\u7EAA\u5FF5\u5BB6\u5177"
+    owner: "\u7C73\u5A05"
+    note: "\u6BCF\u4E00\u5F20\u5782\u7EB8\u90FD\u80FD\u7559\u4E0B\u4E00\u53E5\u6CA1\u6765\u5F97\u53CA\u8BF4\u51FA\u53E3\u7684\u8BDD\u3002"
+    imagePath: OutGameUI/Furniture/wind-chimes
+  - category: 0
+    id: lamp
+    displayName: "\u84B2\u516C\u82F1\u540A\u706F"
+    type: "\u7167\u660E\u5BB6\u5177"
+    owner: "\u970D\u5947"
+    note: "\u706F\u4EAE\u8D77\u65F6\u4F1A\u6709\u79CD\u5B50\u822C\u7684\u5FAE\u5149\u98D8\u5F00\uFF0C\u8BA9\u6C89\u9ED8\u4E5F\u6709\u5B89\u5168\u7684\u4F4D\u7F6E\u3002"
+    imagePath: OutGameUI/Furniture/dandelion-lamp
+  - category: 0
+    id: planter
+    displayName: "\u6708\u7259\u690D\u7269\u53F0"
+    type: "\u7EAA\u5FF5\u5BB6\u5177"
+    owner: "\u6240\u6709\u8BBF\u5BA2"
+    note: "\u5BA2\u4EBA\u7559\u4E0B\u7684\u690D\u7269\u4E0E\u5C0F\u7269\u4F1A\u9010\u5468\u957F\u8FDB\u8FD9\u5F2F\u6708\u4EAE\u91CC\u3002"
+    imagePath: OutGameUI/Furniture/moon-planter
+  - category: 1
+    id: house
+    displayName: "\u96E8\u591C\u4E4B\u5BB6"
+    type: "\u573A\u666F\u6982\u5FF5"
+    owner: HOME NODE
+    note: "\u4E00\u680B\u521A\u6709\u4EBA\u4F4F\u8FDB\u6765\u7684\u8001\u623F\u5B50\uFF1A\u4EC0\u4E48\u90FD\u6709\uFF0C\u5374\u8FD8\u4E0D\u50CF\u4E00\u4E2A\u5BB6\u3002"
+    imagePath: OutGameUI/dream-house
+  - category: 1
+    id: map
+    displayName: "\u6A21\u7CCA\u5B87\u5B99\u8DEF\u7EBF"
+    type: "\u4E16\u754C\u89C2"
+    owner: WORLD MAP
+    note: "\u65C5\u9986\u3001\u661F\u5149\u9152\u5ECA\u4E0E\u5B64\u72EC\u52A0\u6CB9\u7AD9\u7EC4\u6210\u7684\u8FDC\u884C\u8DEF\u7EBF\u3002"
+    imagePath: OutGameUI/World/universe-map
+  - category: 1
+    id: fox-sheet
+    displayName: "\u72D0\u72F8\u8BBF\u5BA2\u8BBE\u5B9A"
+    type: "\u89D2\u8272\u8BBE\u5B9A"
+    owner: CHARACTER 01
+    note: "\u7CBE\u81F4\u3001\u514B\u5236\u3001\u4E60\u60EF\u8BA1\u7B97\uFF0C\u4E5F\u76F8\u4FE1\u6240\u6709\u5173\u7CFB\u90FD\u80FD\u591F\u4EA4\u6362\u3002"
+    imagePath: OutGameUI/World/fox-sheet
+  - category: 1
+    id: owl
+    displayName: "\u732B\u5934\u9E70\u8BBF\u5BA2"
+    type: "\u89D2\u8272\u5019\u9009"
+    owner: FUTURE GUEST
+    note: "\u62B1\u7740\u4E00\u672C\u4E0D\u613F\u8BA9\u4EBA\u7FFB\u5F00\u7684\u65E7\u4E66\uFF0C\u4F3C\u4E4E\u77E5\u9053\u623F\u5B50\u7684\u5386\u53F2\u3002"
+    imagePath: OutGameUI/World/owl
+  achievements:
+  - id: night-master
+    displayName: "\u591C\u7684\u4E3B\u4EBA"
+    note: "\u5728\u6DF1\u591C\u5B8C\u6210\u4E00\u6B21\u670D\u52A1"
+  - id: first-meet
+    displayName: "\u521D\u6B21\u76F8\u8BC6"
+    note: "\u5F55\u5165 3 \u4F4D\u8BBF\u5BA2"
+  - id: home-shape
+    displayName: "\u5BB6\u7684\u8F6E\u5ED3"
+    note: "\u89E3\u9501\u5168\u90E8\u623F\u95F4"
+  - id: unknown
+    displayName: "\u65E0\u4EBA\u77E5\u6653"
+    note: "\u53D1\u73B0\u7279\u6B8A\u8BBF\u5BA2\u7684\u79D8\u5BC6"
+  journalEntries:
+  - id: 0617
+    dateText: "06 / 17 \xB7 \u96E8\u8F6C\u6674"
+    title: "\u7A97\u6237\u5531\u56DE\u6765\u7684\u90A3\u53E5\u8BDD"
+    body: "\u8D6B\u58A8\u8BF4\u201C\u4ECA\u5929\u7CDF\u900F\u4E86\u201D\u3002\u7434\u5F26\u8F7B\u8F7B\u54CD\u4E86\u4E00\u4E0B\uFF0C\u5531\u56DE\uFF1A\u201C\u4F46\u4F60\u8FD8\u662F\u8D70\u5230\u4E86\u8FD9\u91CC\u3002\u201D\n\n\u5173\u952E\u8BCD\uFF1A\u7434\u5F26\u7A97\u6237
+      / \u53CD\u5411\u60C5\u7EEA"
+  - id: 0616
+    dateText: "06 / 16 \xB7 \u9634"
+    title: "\u98CE\u94C3\u4E0B\u7684\u7EB8\u6761"
+    body: "\u7C73\u5A05\u6CA1\u6709\u8BF4\u518D\u89C1\uFF0C\u53EA\u7559\u4E0B\u4E00\u5F20\u753B\u7740\u80E1\u841D\u535C\u7684\u5C0F\u7EB8\u6761\u3002"
