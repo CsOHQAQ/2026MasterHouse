@@ -26,8 +26,8 @@ namespace MasterHouse
 
     public static class FurnitureSceneComposer
     {
-        private const string FurnitureTablePath = "OutGameUI/FurnitureTable";
-        private const string RoomTablePath = "OutGameUI/FurnitureRoomTable";
+        // 家具表并入 Def 体系（§16.7）：统一由 GameManager 加载
+        
 
         private static RenderTexture baked;
         private static bool hasBake;
@@ -50,8 +50,8 @@ namespace MasterHouse
 
         private static Texture Bake()
         {
-            var table = Resources.Load<FurnitureTable>(FurnitureTablePath);
-            var rooms = Resources.Load<FurnitureRoomTable>(RoomTablePath);
+            var table = GameManager.Instance.FurnitureTable;
+            var rooms = GameManager.Instance.FurnitureRoomTable;
             var room = rooms != null && rooms.rooms.Count > 0 ? rooms.rooms[0] : null;
             if (table == null || room == null || room.background == null) return null;
 
@@ -111,8 +111,8 @@ namespace MasterHouse
         public static List<PlacedFurnitureInfo> GetPlacedFurniture()
         {
             var result = new List<PlacedFurnitureInfo>();
-            var table = Resources.Load<FurnitureTable>(FurnitureTablePath);
-            var rooms = Resources.Load<FurnitureRoomTable>(RoomTablePath);
+            var table = GameManager.Instance.FurnitureTable;
+            var rooms = GameManager.Instance.FurnitureRoomTable;
             var room = rooms != null && rooms.rooms.Count > 0 ? rooms.rooms[0] : null;
             if (table == null || room == null) return result;
             foreach (var (entry, _, rect) in Collect(table, room))

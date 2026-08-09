@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
-using F = MasterHouse.OutGameUIFactory;
+using F = MasterHouse.HouseUIRuntime; // §16.7 毒点②已断：不再依赖退役中的 OutGameUIFactory
 
 namespace MasterHouse
 {

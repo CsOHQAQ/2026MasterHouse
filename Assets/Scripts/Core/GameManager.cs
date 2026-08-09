@@ -23,6 +23,10 @@ namespace MasterHouse
         public VisitorTable VisitorTable { get; private set; }
         public CodexTable CodexTable { get; private set; }
 
+        /// <summary>家具配置表（Model，§16.7 并入 Def 体系：统一由此加载，消费方不再散落 Resources.Load）。</summary>
+        public FurnitureTable FurnitureTable { get; private set; }
+        public FurnitureRoomTable FurnitureRoomTable { get; private set; }
+
         [Tooltip("启动时自动加载的小关（可空，便于搭测试场景）")]
         [SerializeField] private LevelDef startLevel;
 
@@ -84,9 +88,14 @@ namespace MasterHouse
             CodexTable = Resources.Load<CodexTable>("OutGameUI/CodexTable");
             if (VisitorTable == null || CodexTable == null)
                 Debug.LogError("局外内容表缺失（Resources/OutGameUI/VisitorTable|CodexTable）：请执行菜单 MasterHouse → 局外内容 → 生成内容表");
+            FurnitureTable = Resources.Load<FurnitureTable>("OutGameUI/FurnitureTable");
+            FurnitureRoomTable = Resources.Load<FurnitureRoomTable>("OutGameUI/FurnitureRoomTable");
+            if (FurnitureTable == null || FurnitureRoomTable == null)
+                Debug.LogError("家具配置表缺失（Resources/OutGameUI/FurnitureTable|FurnitureRoomTable）：请执行菜单 MasterHouse → 家具系统 → 创建配置表");
 
             HouseClockManager = new HouseClockManager();
-            EconomyManager = new EconomyManager(CodexTable); // 纯事件驱动，不进 RunTick（§16.4）；Codex 供装饰分数量统计（§16.7）
+            // Economy 纯事件驱动，不进 RunTick（§16.4）；Codex 供装饰分数量统计（§16.7 毒点①），家具两表供所有权与初始摆放分
+            EconomyManager = new EconomyManager(CodexTable, FurnitureTable, FurnitureRoomTable);
             DialogueService = new DefDialogueService();
             VisitorManager = new VisitorManager(VisitorTable, HouseClockManager, EconomyManager);
         }

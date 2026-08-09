@@ -13,18 +13,20 @@ namespace MasterHouse
     public class EconomyManager
     {
         private const string ConfigPath = "OutGameUI/HouseEconomyConfig";
-        private const string FurnitureTablePath = "OutGameUI/FurnitureTable";
-        private const string RoomTablePath = "OutGameUI/FurnitureRoomTable";
 
         private readonly EconomyConfig config;
+        private readonly FurnitureTable furnitureTable;
+        private readonly FurnitureRoomTable roomTable;
 
         public EconomyData Data { get; } = new EconomyData();
 
         /// <summary>任一数值变化后触发（§2.1：玩家操作产生的离散变化由 Manager 广播，UI 刷新用）。</summary>
         public event Action Changed;
 
-        public EconomyManager(CodexTable codex)
+        public EconomyManager(CodexTable codex, FurnitureTable furnitureTable, FurnitureRoomTable roomTable)
         {
+            this.furnitureTable = furnitureTable;
+            this.roomTable = roomTable;
             var loaded = Resources.Load<EconomyConfig>(ConfigPath);
             if (loaded == null)
             {
@@ -169,29 +171,26 @@ namespace MasterHouse
             Data.Reputation = config.startReputation;
             Data.GmDecorationBonus = 0;
             Data.OwnedFurniture.Clear();
-            var table = AddFreeFurniture();
-            Data.FurnitureDecorScore = ComputeInitialFurnitureDecor(table);
+            AddFreeFurniture();
+            Data.FurnitureDecorScore = ComputeInitialFurnitureDecor();
         }
 
-        /// <summary>把 price<=0 的基础家具补进所有权集合，返回加载到的家具表（可能为 null）。</summary>
-        private FurnitureTable AddFreeFurniture()
+        /// <summary>把 price<=0 的基础家具补进所有权集合。</summary>
+        private void AddFreeFurniture()
         {
-            var table = Resources.Load<FurnitureTable>(FurnitureTablePath);
-            if (table != null)
-                foreach (var entry in table.entries)
-                    if (entry != null && entry.price <= 0) Data.OwnedFurniture.Add(entry.id);
-            return table;
+            if (furnitureTable == null) return;
+            foreach (var entry in furnitureTable.entries)
+                if (entry != null && entry.price <= 0) Data.OwnedFurniture.Add(entry.id);
         }
 
         /// <summary>家具模式尚未打开时，用房间表初始摆放估算装饰品得分基线。</summary>
-        private static int ComputeInitialFurnitureDecor(FurnitureTable table)
+        private int ComputeInitialFurnitureDecor()
         {
-            var rooms = Resources.Load<FurnitureRoomTable>(RoomTablePath);
-            if (table == null || rooms == null || rooms.rooms.Count == 0 || rooms.rooms[0] == null) return 0;
+            if (furnitureTable == null || roomTable == null || roomTable.rooms.Count == 0 || roomTable.rooms[0] == null) return 0;
             var sum = 0;
-            foreach (var placement in rooms.rooms[0].initialPlacements)
+            foreach (var placement in roomTable.rooms[0].initialPlacements)
             {
-                var entry = placement == null ? null : table.Find(placement.furnitureId);
+                var entry = placement == null ? null : furnitureTable.Find(placement.furnitureId);
                 if (entry != null) sum += entry.decorationScore;
             }
             return sum;

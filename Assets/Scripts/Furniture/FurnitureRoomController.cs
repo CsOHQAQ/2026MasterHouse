@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using F = MasterHouse.OutGameUIFactory;
+using F = MasterHouse.HouseUIRuntime; // §16.7 毒点②已断：不再依赖退役中的 OutGameUIFactory
 
 namespace MasterHouse
 {
@@ -14,8 +14,6 @@ namespace MasterHouse
     /// </summary>
     public sealed class FurnitureRoomController : MonoBehaviour
     {
-        private const string FurnitureTablePath = "OutGameUI/FurnitureTable";
-        private const string RoomTablePath = "OutGameUI/FurnitureRoomTable";
         private const float PixelsPerUnit = 100f;
         private const float CameraFov = 25f;
         private const float SnapMarginPx = 50f;
@@ -87,8 +85,9 @@ namespace MasterHouse
         public static bool Open(Action onClosed)
         {
             if (active != null) return true;
-            var furniture = Resources.Load<FurnitureTable>(FurnitureTablePath);
-            var rooms = Resources.Load<FurnitureRoomTable>(RoomTablePath);
+            // 家具表并入 Def 体系（§16.7）：统一由 GameManager 加载
+            var furniture = GameManager.Instance.FurnitureTable;
+            var rooms = GameManager.Instance.FurnitureRoomTable;
             if (furniture == null || rooms == null || rooms.rooms.Count == 0 || rooms.rooms[0] == null)
             {
                 Debug.LogWarning("[Furniture] 配置表缺失，请先执行菜单 MasterHouse → 家具系统 → 创建配置表。");
@@ -762,7 +761,7 @@ namespace MasterHouse
         /// <summary>不打开家具模式也能把布局对应的装饰品得分回写流通服务（读档/新游戏后 Hub 立即显示正确装饰分）。</summary>
         private static void SyncDecorationFromSession()
         {
-            var table = Resources.Load<FurnitureTable>(FurnitureTablePath);
+            var table = GameManager.Instance.FurnitureTable;
             if (table == null) return;
             List<FurniturePlacementConfig> placements;
             if (session != null)
@@ -771,7 +770,7 @@ namespace MasterHouse
             }
             else
             {
-                var rooms = Resources.Load<FurnitureRoomTable>(RoomTablePath);
+                var rooms = GameManager.Instance.FurnitureRoomTable;
                 if (rooms == null || rooms.rooms.Count == 0 || rooms.rooms[0] == null)
                 {
                     Economy.SetFurnitureDecorationScore(0);

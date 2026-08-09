@@ -25,7 +25,7 @@ namespace MasterHouse
             for (var i = view.cardsRoot.childCount - 1; i >= 0; i--)
                 Object.Destroy(view.cardsRoot.GetChild(i).gameObject);
 
-            var table = Resources.Load<FurnitureTable>("OutGameUI/FurnitureTable");
+            var table = GameManager.Instance.FurnitureTable; // 家具表并入 Def 体系（§16.7）：统一由 GameManager 加载
             if (table == null || table.entries.Count == 0)
             {
                 Debug.LogError("[HouseUI] 家具配置表缺失：请执行菜单 MasterHouse → 家具系统 → 创建配置表");
