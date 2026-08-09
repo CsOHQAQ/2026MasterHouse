@@ -2685,7 +2685,8 @@ namespace MasterHouse
             slider.onValueChanged.AddListener(v => onChanged(v));
         }
 
-        private static string DialogueLine(int index)
+        // 过渡：internal 供 3.3 迁移工具读取生成 VisitorTable；消费代码切到资产后本方法删除
+        internal static string DialogueLine(int index)
         {
             return index switch
             {
