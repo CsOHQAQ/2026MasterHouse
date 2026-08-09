@@ -1,8 +1,11 @@
 # 局外 UI Prefab 调整指南
 
+> 2026-08-10 校正：局外重构后，运行时绑定方由已删除的 `OutGameUI` 变为 `HouseUI` 模块（页面 = `HousePage` 派生类，一页一文件；面板 = `PanelHost` + 各 Binder）。
+> **Prefab 缺失现在是报错、不再回退代码布局**（架构设计 §16.2）。
+
 ## 目标
 
-局外 UI 使用“Prefab 管布局，C# 管逻辑”的分层：位置、尺寸、锚点、字号、颜色和层级在 Prefab 中调整；按钮事件、存档数据、页面切换和 DOTween 由 `OutGameUI` 在运行时绑定。
+局外 UI 使用“Prefab 管布局，C# 管逻辑”的分层：位置、尺寸、锚点、字号、颜色和层级在 Prefab 中调整；按钮事件、页面切换和 DOTween 由 `HouseUI` 模块在运行时绑定。
 
 ## Prefab 目录
 
@@ -15,10 +18,13 @@
 | `GalleryPage.prefab` | 画廊完整界面 | 日志/成就页签、日志卡片、成就卡片 |
 | `SettingsPage.prefab` | 标题设置完整界面 | 界面与存档区、保存/读取按钮、游戏性 Toggle |
 | `ExitPage.prefab` | 退出确认完整界面 | 页面说明、返回按钮、退出确认按钮 |
-| `PaperPage.prefab` | 旧版公共纸张外壳 | 仅作为资源缺失时的兼容回退，不再承载正式页面布局 |
-| `SaveSlot.prefab` | 单个存档位 | 编号、状态、信息、操作按钮的内部排版 |
+| `PaperPage.prefab` | 公共纸张外壳 | 当前承载「存档功能重构中」占位页（§16.5） |
+| `SaveSlot.prefab` | 单个存档位 | 编号、状态、信息、操作按钮的内部排版（存档回归前闲置） |
 | `HouseHubPage.prefab` | House 主界面外壳 | Scene、Chrome、Modal 三层及页脚 |
 | `SystemPanel.prefab` | 右侧功能面板外壳 | 遮罩、面板宽度、Header 与 Content 区域 |
+| `MarketPage/MarketPanel/MarketCard.prefab` | 商城整页 / 内容 / 货架卡模板 | 钱包区、说明、卡片排布与三态样式 |
+| `PlaceholderPage/PlaceholderPanel.prefab` | 「尚未开放」统一占位页 | 仓库/个人/通讯录共用（§16.8） |
+| `DeviceCard/ArchiveCard/JournalArticle/AchievementRow.prefab` | 面板内动态列表项模板 | 单条目的排版与配色 |
 
 ## House HUD 组件 Prefab
 
@@ -42,19 +48,23 @@
 2. 在 Project 窗口打开目标 Prefab。
 3. 调整 RectTransform、锚点、字体、颜色或层级。
 4. 保存 Prefab，重新进入 Play 验证。
-5. 不需要修改 `OutGameUI.cs`，已有按钮引用会继续绑定原逻辑。
+5. 不需要修改任何 C# 文件，已有按钮引用会继续绑定原逻辑。
 
 ## 引用保护规则
 
 - 可以移动、缩放和重命名普通子节点；运行时主要使用序列化引用，不依赖名称查找。
-- 不要删除根节点上的 `OutGameTitleView`、`OutGamePaperView`、`OutGameSaveSlotView`、`OutGameHubView` 或 `OutGameSystemPanelView`。
+- 不要删除根节点上的视图组件（字段袋）：`OutGameTitleView`、`OutGamePaperView`、`OutGameSaveSlotView`、`OutGameHubView`、`OutGamePanelPageView`、`MarketPanelView`，以及各列表项模板的 `DeviceCardView` / `ArchiveCardView` / `JournalArticleView` / `AchievementRowView` / `MarketCardView`。它们是 Prefab 与代码之间的唯一契约，删掉后页面会直接报错（不再有代码兜底）。
 - 删除已被引用的按钮、文本或容器后，必须在根组件 Inspector 中重新赋值。
 - 挂在 Prefab 上的每个自定义组件都必须保留其同名独立脚本文件；不要把多个 `MonoBehaviour` 合并进一个 `.cs` 文件。
 - 首页的 `OutGameLetterSpacing` 负责网页字距，`OutGameTweenButton` 负责 DOTween Hover/Press；调整布局时不要删除它们。
 - 所有可点击的 `HubTopBar`、任务卡、访客卡、菜单按钮、房间按钮和热点都必须保留 `OutGameTweenButton`。删除该组件不会影响点击事件，但会让 Hover/Press 动效静默消失。
 - `HouseHubPage.prefab` 中的 HUD 是嵌套 Prefab 实例：调整整个区域位置应修改页面实例的 RectTransform；调整组件内部排版应打开对应 `Hub*.prefab`。
-- `Tools/MasterPotion/OutGame UI/Rebuild Default Prefabs...` 会覆盖手动布局，只用于明确恢复默认值；普通脚本刷新不会覆盖 Prefab。
+- `Tools/MasterHouse/OutGame UI/Rebuild Default Prefabs...` 会覆盖手动布局，只用于明确恢复默认值；普通脚本刷新不会覆盖 Prefab（生成器位于 `Assets/Scripts/HouseUI/Editor/`，自动入口只补缺失）。
 
 ## 当前动态内容边界
 
-标题、存档、画廊、设置和退出均为独立完整 Prefab；新游戏与读取存档只复用 `SavePage.prefab` 的布局，通过代码切换标题、数据和按钮行为。House 中随房间/访客变化的列表，以及系统面板内部的数据卡片仍由控制器填入 `ChromeRoot`/`ContentRoot`；可在 Prefab 中调整这些区域整体的位置和尺寸。后续新增完整页面时必须建立独立 Prefab，重复条目继续拆为子 Prefab，禁止把新的布局坐标写进控制器。
+所有整页界面均为独立完整 Prefab；**面板内的动态列表项一律走「模板 Prefab + 运行时实例化」**（设备卡、档案卡、日记文章、成就行、商城卡各有模板），可直接打开对应模板 Prefab 调整单条目样式，容器区域的位置与尺寸在所属页面 Prefab 中调整。
+
+运行时代码仍会生成的只剩**动态表现件**：Toast、开门过场、房间切换门扇、家具背景热点与悬停卡、经济数值条、档案详情区的上下文按钮——它们没有固定布局归属，由 `HouseUIRuntime` 构建。除此之外禁止把布局坐标写进代码：新增页面必须建独立 Prefab，新增重复条目必须拆模板 Prefab。
+
+例外（原型期遗留，二轮处理）：家具摆放模式的 HUD 与 F1 GM 面板仍是纯代码构建，尚未 Prefab 化（架构设计 §16.7）。
