@@ -20,14 +20,15 @@ namespace MasterHouse.EditorTools
 
         public EMode Mode = EMode.Paint;
         public int CellSize = 20;
-        public int ViewCols = 32;
-        public int ViewRows = 24;
+        public int ViewCols = 25;
+        public int ViewRows = 15;
 
         /// <summary>当前选中的预置节点索引（画布点击摆放的目标），-1 = 未选中。</summary>
         public int SelectedPreset = -1;
 
         bool _dragging;
         bool _dragErase;
+        bool _panning;
         static readonly Vector2Int kNoCell = new Vector2Int(int.MinValue, int.MinValue);
         Vector2Int _lastCell = kNoCell;
 
@@ -80,18 +81,18 @@ namespace MasterHouse.EditorTools
                     maxY = Mathf.Max(maxY, cell.y);
                 }
             }
-            ViewCols = Mathf.Clamp(maxX + 4, 12, 128);
-            ViewRows = Mathf.Clamp(maxY + 4, 12, 128);
+            ViewCols = Mathf.Clamp(maxX + 4, 25, 128);
+            ViewRows = Mathf.Clamp(maxY + 4, 15, 128);
         }
 
-        public void OnGUI(Rect rect, LevelDef def, EditorWindow host)
+        public void OnGUI(Rect rect, LevelDef def, EditorWindow host, ref Vector2 scrollPosition)
         {
             EnsureStyles();
 
             if (Event.current.type == EventType.Repaint)
                 DrawAll(rect, def);
 
-            HandleEvents(rect, def, host);
+            HandleEvents(rect, def, host, ref scrollPosition);
         }
 
         void EnsureStyles()
@@ -193,9 +194,35 @@ namespace MasterHouse.EditorTools
 
         // ==================== 交互 ====================
 
-        void HandleEvents(Rect rect, LevelDef def, EditorWindow host)
+        void HandleEvents(Rect rect, LevelDef def, EditorWindow host, ref Vector2 scrollPosition)
         {
             var e = Event.current;
+
+            // 中键拖动画布。优先于所有编辑操作处理，避免误触绘制、框选或节点摆放。
+            if (e.type == EventType.MouseDown && e.button == 2 && rect.Contains(e.mousePosition))
+            {
+                _panning = true;
+                e.Use();
+                return;
+            }
+
+            if (_panning && e.type == EventType.MouseDrag)
+            {
+                scrollPosition -= e.delta;
+                scrollPosition.x = Mathf.Max(0f, scrollPosition.x);
+                scrollPosition.y = Mathf.Max(0f, scrollPosition.y);
+                e.Use();
+                host.Repaint();
+                return;
+            }
+
+            if (_panning && e.type == EventType.MouseUp && e.button == 2)
+            {
+                _panning = false;
+                e.Use();
+                host.Repaint();
+                return;
+            }
 
             if (e.type == EventType.MouseUp)
             {
@@ -211,10 +238,22 @@ namespace MasterHouse.EditorTools
                 return;
             }
 
-            // Ctrl + 滚轮缩放
-            if (e.type == EventType.ScrollWheel && e.control && rect.Contains(e.mousePosition))
+            // 滚轮直接缩放，并补偿滚动位置，使鼠标指向的画布位置在缩放前后保持不动。
+            if (e.type == EventType.ScrollWheel && rect.Contains(e.mousePosition))
             {
-                CellSize = Mathf.Clamp(CellSize - (int)Mathf.Sign(e.delta.y) * 2, 8, 48);
+                int oldCellSize = CellSize;
+                int newCellSize = Mathf.Clamp(oldCellSize - (int)Mathf.Sign(e.delta.y) * 2, 8, 48);
+                if (newCellSize != oldCellSize)
+                {
+                    Vector2 pointerInContent = e.mousePosition - rect.position;
+                    Vector2 pointerInViewport = pointerInContent - scrollPosition;
+                    float scale = (float)newCellSize / oldCellSize;
+
+                    CellSize = newCellSize;
+                    scrollPosition = pointerInContent * scale - pointerInViewport;
+                    scrollPosition.x = Mathf.Max(0f, scrollPosition.x);
+                    scrollPosition.y = Mathf.Max(0f, scrollPosition.y);
+                }
                 e.Use();
                 host.Repaint();
                 return;

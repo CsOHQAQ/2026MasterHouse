@@ -112,6 +112,11 @@ namespace MasterHouse.EditorTools
             GUILayout.Space(10);
             GUILayout.Label("缩放", EditorStyles.miniLabel);
             _canvas.CellSize = (int)GUILayout.HorizontalSlider(_canvas.CellSize, 8, 48, GUILayout.Width(80));
+            if (GUILayout.Button("适应内容", EditorStyles.toolbarButton))
+            {
+                if (_target != null) _canvas.FitTo(_target);
+                _scrollCanvas = Vector2.zero;
+            }
 
             GUILayout.Space(10);
             using (new EditorGUI.DisabledScope(_target == null))
@@ -138,13 +143,13 @@ namespace MasterHouse.EditorTools
             switch (_canvas.Mode)
             {
                 case LevelCanvas.EMode.Paint:
-                    hint = "逐格绘制：左键拖动绘制；从已有格开始拖动或按右键擦除。Ctrl+滚轮缩放。保存时自动以最左下格为 (0,0)。";
+                    hint = "逐格绘制：左键拖动绘制；从已有格开始拖动或按右键擦除。滚轮缩放，中键拖动画布。保存时自动以最左下格为 (0,0)。";
                     break;
                 case LevelCanvas.EMode.Rect:
-                    hint = "矩形框选：左键拖出矩形松开后整片填充；右键拖出矩形整片擦除。";
+                    hint = "矩形框选：左键拖出矩形松开后整片填充；右键拖出矩形整片擦除。滚轮缩放，中键拖动画布。";
                     break;
                 default:
-                    hint = "摆放节点：右侧列表点 #序号 选中后左键摆放（越界/重叠标红但不阻止）；未选中时左键点节点可选中，右键取消选中。";
+                    hint = "摆放节点：右侧列表点 #序号 选中后左键摆放（越界/重叠标红但不阻止）；未选中时左键点节点可选中，右键取消选中。滚轮缩放，中键拖动画布。";
                     break;
             }
             EditorGUILayout.HelpBox(hint, MessageType.None);
@@ -250,7 +255,7 @@ namespace MasterHouse.EditorTools
             _scrollCanvas = EditorGUILayout.BeginScrollView(_scrollCanvas);
             var rect = GUILayoutUtility.GetRect(_canvas.ContentWidth, _canvas.ContentHeight,
                 GUILayout.ExpandWidth(false), GUILayout.ExpandHeight(false));
-            _canvas.OnGUI(rect, _target, this);
+            _canvas.OnGUI(rect, _target, this, ref _scrollCanvas);
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
         }
