@@ -62,6 +62,7 @@ namespace MasterHouse.EditorTools
 
         void OnEnable()
         {
+            wantsMouseMove = true;
             RefreshList();
             Undo.undoRedoPerformed += Repaint;
         }
@@ -118,6 +119,11 @@ namespace MasterHouse.EditorTools
             GUILayout.Space(10);
             GUILayout.Label("缩放", EditorStyles.miniLabel);
             _canvas.CellSize = (int)GUILayout.HorizontalSlider(_canvas.CellSize, 16, 48, GUILayout.Width(80));
+            if (GUILayout.Button("适应内容", EditorStyles.toolbarButton))
+            {
+                if (_target != null) _canvas.FitTo(_target);
+                _scrollCanvas = Vector2.zero;
+            }
 
             GUILayout.Space(10);
             using (new EditorGUI.DisabledScope(_target == null))
@@ -141,8 +147,8 @@ namespace MasterHouse.EditorTools
         void DrawHintBar()
         {
             string hint = _canvas.Mode == NodeShapeCanvas.EMode.Shape
-                ? "形状模式：左键拖动绘制；从已有格开始拖动或按右键擦除。Ctrl+滚轮缩放。保存时自动以最左下格为 (0,0)。"
-                : "Pin 模式：先在右侧列表点 #序号 选中一个 Pin，左键点击形状内格子摆放，右键切换朝向（自动避开朝向形状内部）。";
+                ? "形状模式：左键拖动绘制；从已有格开始拖动或按右键擦除。滚轮缩放，中键拖动画布。保存时自动以最左下格为 (0,0)。"
+                : "Pin 模式：点击右侧「在画布摆放」，再在形状格上点击；也可直接拖动画布中的 Pin。Esc 取消摆放，右键切换朝向，滚轮缩放，中键拖动画布。";
             EditorGUILayout.HelpBox(hint, MessageType.None);
         }
 
@@ -231,7 +237,7 @@ namespace MasterHouse.EditorTools
                 _scrollCanvas = EditorGUILayout.BeginScrollView(_scrollCanvas);
                 var rect = GUILayoutUtility.GetRect(_canvas.ContentWidth, _canvas.ContentHeight,
                     GUILayout.ExpandWidth(false), GUILayout.ExpandHeight(false));
-                _canvas.OnGUI(rect, _target, this);
+                _canvas.OnGUI(rect, _target, this, ref _scrollCanvas);
                 EditorGUILayout.EndScrollView();
             }
             EditorGUILayout.EndVertical();
@@ -454,7 +460,10 @@ namespace MasterHouse.EditorTools
             bool removable = NodeDefEditUtil.AllowFreePinEdit(_target) || _target is TransitNodeDef;
             bool doRemove = false;
 
+            var oldBackground = GUI.backgroundColor;
+            if (selected) GUI.backgroundColor = new Color(0.65f, 0.82f, 1f, 1f);
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            GUI.backgroundColor = oldBackground;
 
             // 行 1：选中按钮 / 物资色块 / 物资 / 方向 / 删除
             EditorGUILayout.BeginHorizontal();
@@ -495,8 +504,8 @@ namespace MasterHouse.EditorTools
             EditorGUI.BeginChangeCheck();
             GUILayout.Label("速率", GUILayout.Width(28));
             int rate = EditorGUILayout.IntField(pin.MaxRate, GUILayout.Width(36));
-            GUILayout.Label("格", GUILayout.Width(16));
-            var cell = EditorGUILayout.Vector2IntField(GUIContent.none, layout.LocalCell, GUILayout.Width(96));
+            GUILayout.Label(new GUIContent("坐标", "用于精确输入；常规摆放请使用下方按钮或直接拖动画布中的 Pin。"), GUILayout.Width(28));
+            var cell = EditorGUILayout.Vector2IntField(GUIContent.none, layout.LocalCell, GUILayout.Width(84));
             GUILayout.Label("朝向", GUILayout.Width(28));
             int facing = EditorGUILayout.Popup((int)layout.Facing, kFacingNames, GUILayout.Width(38));
             if (EditorGUI.EndChangeCheck())
@@ -511,6 +520,9 @@ namespace MasterHouse.EditorTools
                 GUILayout.Label($"配对 #{pin.PairedPinIndex}", EditorStyles.miniLabel, GUILayout.Width(50));
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
+
+            if (GUILayout.Button(selected ? "✓ 正在画布摆放（也可拖动画布中的 Pin）" : "在画布摆放"))
+                SelectPin(i);
 
             EditorGUILayout.EndVertical();
 

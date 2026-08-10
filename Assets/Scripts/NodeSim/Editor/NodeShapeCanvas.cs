@@ -26,8 +26,12 @@ namespace MasterHouse.EditorTools
 
         bool _dragging;
         bool _dragErase;
+        bool _panning;
+        bool _draggingPin;
         static readonly Vector2Int kNoCell = new Vector2Int(int.MinValue, int.MinValue);
         Vector2Int _lastCell = kNoCell;
+        Vector2Int _hoverCell = kNoCell;
+        Vector2Int _pinDragTarget = kNoCell;
 
         static readonly Color kColBackground = new Color(0.15f, 0.15f, 0.15f);
         static readonly Color kColGridLine = new Color(1f, 1f, 1f, 0.08f);
@@ -60,14 +64,14 @@ namespace MasterHouse.EditorTools
             ViewRows = Mathf.Clamp(maxY + 3, 8, 64);
         }
 
-        public void OnGUI(Rect rect, NodeDef def, EditorWindow host)
+        public void OnGUI(Rect rect, NodeDef def, EditorWindow host, ref Vector2 scrollPosition)
         {
             EnsureStyles();
 
             if (Event.current.type == EventType.Repaint)
                 DrawAll(rect, def);
 
-            HandleEvents(rect, def, host);
+            HandleEvents(rect, def, host, ref scrollPosition);
         }
 
         void EnsureStyles()
@@ -130,16 +134,100 @@ namespace MasterHouse.EditorTools
                 GUI.Label(new Rect(mid.x - 11, mid.y - 8, 22, 16), i.ToString(), _pinLabelStyle);
             }
 
+            DrawPinPreview(rect, def);
+
             if (outOfView > 0)
                 GUI.Label(new Rect(rect.x + 4, rect.y + 2, rect.width - 8, 16),
                     $"⚠ 有 {outOfView} 个格子/Pin 在视野外（负坐标可点「保存（归一化）」拉回原点）", _hintStyle);
         }
 
+        void DrawPinPreview(Rect rect, NodeDef def)
+        {
+            if (Mode != EMode.Pin || SelectedPin < 0 || SelectedPin >= def.Pins.Count) return;
+
+            var cell = _draggingPin ? _pinDragTarget : _hoverCell;
+            if (cell == kNoCell || !InView(cell)) return;
+
+            var pin = def.Pins[SelectedPin];
+            var facing = PreviewFacing(def, pin.Facing, cell);
+            bool legal = IsLegalPinPlacement(def, SelectedPin, cell, facing);
+            var color = legal
+                ? pin.Pin.ItemType != null ? pin.Pin.ItemType.DisplayColor : kColNoItemPin
+                : kColInvalidPin;
+            color.a = 0.65f;
+
+            var cellRect = CellRect(rect, cell);
+            EditorGUI.DrawRect(new Rect(cellRect.x + 2, cellRect.y + 2, cellRect.width - 3, cellRect.height - 3),
+                legal ? new Color(color.r, color.g, color.b, 0.18f) : new Color(color.r, color.g, color.b, 0.28f));
+            CanvasDrawUtil.DrawPinMarker(cellRect, facing, pin.Pin.Direction, color, true);
+
+            string label = legal ? "松开摆放" : "此处不可摆放";
+            GUI.Label(new Rect(cellRect.x + 2, cellRect.y + 1, 80, 14), label, _hintStyle);
+        }
+
         // ==================== 交互 ====================
 
-        void HandleEvents(Rect rect, NodeDef def, EditorWindow host)
+        void HandleEvents(Rect rect, NodeDef def, EditorWindow host, ref Vector2 scrollPosition)
         {
             var e = Event.current;
+
+            // Esc 取消当前 Pin 摆放，但保留 Pin 工具页，避免下一次画布点击误改节点形状。
+            if (Mode == EMode.Pin && e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape
+                && (SelectedPin >= 0 || _draggingPin))
+            {
+                SelectedPin = -1;
+                _draggingPin = false;
+                _pinDragTarget = kNoCell;
+                _hoverCell = kNoCell;
+                GUIUtility.keyboardControl = 0;
+                e.Use();
+                host.Repaint();
+                return;
+            }
+
+            // 中键拖动画布。优先于形状绘制与 Pin 摆放，避免平移时误改节点配置。
+            if (e.type == EventType.MouseDown && e.button == 2 && rect.Contains(e.mousePosition))
+            {
+                _panning = true;
+                e.Use();
+                return;
+            }
+
+            if (_panning && e.type == EventType.MouseDrag)
+            {
+                scrollPosition -= e.delta;
+                scrollPosition.x = Mathf.Max(0f, scrollPosition.x);
+                scrollPosition.y = Mathf.Max(0f, scrollPosition.y);
+                e.Use();
+                host.Repaint();
+                return;
+            }
+
+            if (_panning && e.type == EventType.MouseUp && e.button == 2)
+            {
+                _panning = false;
+                e.Use();
+                host.Repaint();
+                return;
+            }
+
+            if (_draggingPin && e.type == EventType.MouseUp && e.button == 0)
+            {
+                if (_pinDragTarget != kNoCell)
+                {
+                    var facing = PreviewFacing(def, def.Pins[SelectedPin].Facing, _pinDragTarget);
+                    if (IsLegalPinPlacement(def, SelectedPin, _pinDragTarget, facing)
+                        && def.Pins[SelectedPin].LocalCell != _pinDragTarget)
+                    {
+                        NodeDefEditUtil.PlacePin(def, SelectedPin, _pinDragTarget);
+                    }
+                }
+                _draggingPin = false;
+                _pinDragTarget = kNoCell;
+                e.Use();
+                host.Repaint();
+                return;
+            }
 
             if (e.type == EventType.MouseUp)
             {
@@ -148,13 +236,38 @@ namespace MasterHouse.EditorTools
                 return;
             }
 
-            // Ctrl + 滚轮缩放
-            if (e.type == EventType.ScrollWheel && e.control && rect.Contains(e.mousePosition))
+            // 滚轮直接缩放，并补偿滚动位置，使鼠标指向的画布位置在缩放前后保持不动。
+            if (e.type == EventType.ScrollWheel && rect.Contains(e.mousePosition))
             {
-                CellSize = Mathf.Clamp(CellSize - (int)Mathf.Sign(e.delta.y) * 2, 16, 48);
+                int oldCellSize = CellSize;
+                int newCellSize = Mathf.Clamp(oldCellSize - (int)Mathf.Sign(e.delta.y) * 2, 16, 48);
+                if (newCellSize != oldCellSize)
+                {
+                    Vector2 pointerInContent = e.mousePosition - rect.position;
+                    Vector2 pointerInViewport = pointerInContent - scrollPosition;
+                    float scale = (float)newCellSize / oldCellSize;
+
+                    CellSize = newCellSize;
+                    scrollPosition = pointerInContent * scale - pointerInViewport;
+                    scrollPosition.x = Mathf.Max(0f, scrollPosition.x);
+                    scrollPosition.y = Mathf.Max(0f, scrollPosition.y);
+                }
                 e.Use();
                 host.Repaint();
                 return;
+            }
+
+            if (Mode == EMode.Pin && (e.type == EventType.MouseMove || e.type == EventType.MouseDrag))
+            {
+                var hover = rect.Contains(e.mousePosition) ? CellAt(rect, e.mousePosition) : null;
+                var nextHover = hover ?? kNoCell;
+                if (_hoverCell != nextHover)
+                {
+                    _hoverCell = nextHover;
+                    host.Repaint();
+                }
+                if (_draggingPin)
+                    _pinDragTarget = nextHover;
             }
 
             if (e.type != EventType.MouseDown && e.type != EventType.MouseDrag) return;
@@ -185,18 +298,25 @@ namespace MasterHouse.EditorTools
             }
             else // Pin 摆放模式
             {
-                if (e.type != EventType.MouseDown) return;
-                if (SelectedPin < 0 || SelectedPin >= def.Pins.Count) return;
+                if (e.type == EventType.MouseDown && e.button == 0)
+                {
+                    int hit = PinAt(def, cell);
+                    if (hit >= 0) SelectedPin = hit;
+                    if (SelectedPin < 0 || SelectedPin >= def.Pins.Count) return;
 
-                if (e.button == 0)
-                {
-                    // 只能摆在形状内的格子上
-                    if (def.Shape.ContainsDelta(cell))
-                        NodeDefEditUtil.PlacePin(def, SelectedPin, cell);
+                    _draggingPin = true;
+                    _pinDragTarget = cell;
                 }
-                else
+                else if (e.type == EventType.MouseDown && e.button == 1)
                 {
+                    int hit = PinAt(def, cell);
+                    if (hit >= 0) SelectedPin = hit;
+                    if (SelectedPin < 0 || SelectedPin >= def.Pins.Count) return;
                     NodeDefEditUtil.CycleFacing(def, SelectedPin);
+                }
+                else if (!_draggingPin)
+                {
+                    return;
                 }
                 e.Use();
                 host.Repaint();
@@ -224,6 +344,41 @@ namespace MasterHouse.EditorTools
             int y = ViewRows - 1 - yFromTop;
             if (x < 0 || x >= ViewCols || y < 0 || y >= ViewRows) return null;
             return new Vector2Int(x, y);
+        }
+
+        int PinAt(NodeDef def, Vector2Int cell)
+        {
+            if (SelectedPin >= 0 && SelectedPin < def.Pins.Count
+                && def.Pins[SelectedPin].LocalCell == cell)
+                return SelectedPin;
+
+            for (int i = 0; i < def.Pins.Count; i++)
+                if (def.Pins[i].LocalCell == cell)
+                    return i;
+            return -1;
+        }
+
+        static EDirection4 PreviewFacing(NodeDef def, EDirection4 current, Vector2Int cell)
+        {
+            if (!def.Shape.ContainsDelta(cell + Direction4.ToOffset(current))) return current;
+            for (int d = 0; d < 4; d++)
+                if (!def.Shape.ContainsDelta(cell + Direction4.Offsets[d]))
+                    return (EDirection4)d;
+            return current;
+        }
+
+        static bool IsLegalPinPlacement(NodeDef def, int pinIndex, Vector2Int cell, EDirection4 facing)
+        {
+            if (!def.Shape.ContainsDelta(cell)) return false;
+            if (def.Shape.ContainsDelta(cell + Direction4.ToOffset(facing))) return false;
+
+            for (int i = 0; i < def.Pins.Count; i++)
+            {
+                if (i == pinIndex) continue;
+                if (def.Pins[i].LocalCell == cell && def.Pins[i].Facing == facing)
+                    return false;
+            }
+            return true;
         }
 
     }
