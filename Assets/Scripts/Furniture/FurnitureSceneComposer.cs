@@ -4,12 +4,6 @@ using UnityEngine;
 
 namespace MasterHouse
 {
-    /// <summary>
-    /// 家具布局烘焙器：把「干净背景 + 当前摆放家具」合成到 RenderTexture，
-    /// 供 House Hub 的起居室场景图使用——家具摆放完成后，布局变化直接成为背景图。
-    /// 采用 Graphics.DrawTexture 按场景像素坐标同步绘制（URP 下临时相机渲染时序不可控，不走相机）。
-    /// 锚点公式与 FurnitureRoomController 保持一致（基于摆放配置静态计算，不依赖家具模式开启）。
-    /// </summary>
     /// <summary>已摆放家具在场景中的位置信息（供 Hub 背景热点等交互使用）。</summary>
     public readonly struct PlacedFurnitureInfo
     {
@@ -24,44 +18,69 @@ namespace MasterHouse
         }
     }
 
+    /// <summary>
+    /// 家具布局烘焙器：把「房间背景 + 当前摆放家具」合成到 RenderTexture，
+    /// 供 House Hub 的场景图使用——家具摆放完成后，布局变化直接成为背景图。
+    /// **按房间分别烘焙**（家具模式随 Hub 房间动态加载后，各房间布局独立）。
+    /// 采用 Graphics.DrawTexture 按场景像素坐标同步绘制（URP 下临时相机渲染时序不可控，不走相机）。
+    /// 锚点公式与 FurnitureRoomController 保持一致（基于摆放配置静态计算，不依赖家具模式开启）。
+    /// </summary>
     public static class FurnitureSceneComposer
     {
-        // 家具表并入 Def 体系（§16.7）：统一由 GameManager 加载
-        
+        /// <summary>房间 id → 合成图（惰性创建，尺寸随房间场景尺寸）。</summary>
+        private static readonly Dictionary<string, RenderTexture> bakes = new Dictionary<string, RenderTexture>();
 
-        private static RenderTexture baked;
-        private static bool hasBake;
-
-        /// <summary>当前有效的合成背景；null = 尚未烘焙（Hub 回落到原始美术图）。</summary>
-        public static Texture Current => hasBake ? baked : null;
-
-        /// <summary>作废合成图（新游戏 / 读入无布局的存档后，Hub 恢复原始美术图）。</summary>
+        /// <summary>作废全部合成图（新游戏 / 读入无布局的存档后，Hub 恢复原始美术图并按需重烘）。</summary>
         public static void ClearBaked()
         {
-            hasBake = false;
+            foreach (var texture in bakes.Values)
+                if (texture != null) texture.Release();
+            bakes.Clear();
         }
 
-        /// <summary>按当前布局（会话布局，否则房间默认摆放）同步重新合成背景。回调保留异步形式的兼容签名。</summary>
-        public static void RequestBake(Action<Texture> onDone = null)
+        /// <summary>取指定房间的合成图；null = 尚未烘焙。</summary>
+        public static Texture BakedFor(int roomIndex)
         {
-            var result = Bake();
+            var room = RoomAt(roomIndex);
+            return room != null && bakes.TryGetValue(room.id, out var texture) ? texture : null;
+        }
+
+        /// <summary>取指定房间的合成图，缺失时立即烘焙一张（Hub 进场/切房间用：初始摆放直接可见）。</summary>
+        public static Texture EnsureBaked(int roomIndex)
+        {
+            var existing = BakedFor(roomIndex);
+            return existing != null ? existing : Bake(roomIndex);
+        }
+
+        /// <summary>按当前布局（会话布局，否则房间默认摆放）同步重新合成指定房间。回调保留异步形式的兼容签名。</summary>
+        public static void RequestBake(int roomIndex, Action<Texture> onDone = null)
+        {
+            var result = Bake(roomIndex);
             onDone?.Invoke(result);
         }
 
-        private static Texture Bake()
+        private static FurnitureRoomEntry RoomAt(int roomIndex)
+        {
+            var rooms = GameManager.Instance.FurnitureRoomTable;
+            if (rooms == null || rooms.rooms.Count == 0) return null;
+            return roomIndex >= 0 && roomIndex < rooms.rooms.Count ? rooms.rooms[roomIndex] : rooms.rooms[0];
+        }
+
+        private static Texture Bake(int roomIndex)
         {
             var table = GameManager.Instance.FurnitureTable;
-            var rooms = GameManager.Instance.FurnitureRoomTable;
-            var room = rooms != null && rooms.rooms.Count > 0 ? rooms.rooms[0] : null;
+            var room = RoomAt(roomIndex);
             if (table == null || room == null || room.background == null) return null;
 
             var width = Mathf.RoundToInt(room.sceneWidth);
             var height = Mathf.RoundToInt(room.sceneHeight);
+            bakes.TryGetValue(room.id, out var baked);
             if (baked == null || baked.width != width || baked.height != height)
             {
                 if (baked != null) baked.Release();
-                baked = new RenderTexture(width, height, 0) { name = "FurnitureSceneBaked" };
+                baked = new RenderTexture(width, height, 0) { name = "FurnitureSceneBaked_" + room.id };
                 baked.Create();
+                bakes[room.id] = baked;
             }
 
             // 收集绘制项：背景 + 家具（按层级排序后自后向前绘制）
@@ -74,27 +93,25 @@ namespace MasterHouse
             GL.PushMatrix();
             // 像素坐标系（左上原点、Y 向下），与场景像素坐标一一对应
             GL.LoadPixelMatrix(0, width, height, 0);
-            DrawSprite(room.background, new Rect(0, 0, width, height));
-            foreach (var draw in draws) DrawSprite(draw.entry.sprite, draw.rect);
+            DrawSprite(room.background, new Rect(0, 0, width, height), false);
+            foreach (var draw in draws) DrawSprite(draw.entry.sprite, draw.rect, draw.flipped);
             GL.PopMatrix();
             RenderTexture.active = previous;
-
-            hasBake = true;
             return baked;
         }
 
         /// <summary>当前布局中每件家具的场景像素矩形（与合成图一致的锚点数学）。</summary>
-        private static List<(FurnitureEntry entry, int order, Rect rect)> Collect(FurnitureTable table, FurnitureRoomEntry room)
+        private static List<(FurnitureEntry entry, int order, Rect rect, bool flipped)> Collect(FurnitureTable table, FurnitureRoomEntry room)
         {
-            var placements = FurnitureRoomController.CaptureSessionPlacements() ?? room.initialPlacements;
-            var result = new List<(FurnitureEntry, int, Rect)>();
+            var placements = FurnitureRoomController.CaptureSessionPlacements(room.id) ?? room.initialPlacements;
+            var result = new List<(FurnitureEntry, int, Rect, bool)>();
             foreach (var placement in placements)
             {
                 if (placement == null || !string.IsNullOrEmpty(placement.hostFurnitureId)) continue;
                 var entry = table.Find(placement.furnitureId);
                 if (entry == null || entry.sprite == null) continue;
                 if (!BaseAnchor(room, entry, placement, out var left, out var bottom, out var order)) continue;
-                result.Add((entry, order, new Rect(left, bottom - entry.displayHeight, entry.displayWidth, entry.displayHeight)));
+                result.Add((entry, order, new Rect(left, bottom - entry.displayHeight, entry.displayWidth, entry.displayHeight), placement.flipped));
             }
             foreach (var placement in placements)
             {
@@ -102,20 +119,19 @@ namespace MasterHouse
                 var entry = table.Find(placement.furnitureId);
                 if (entry == null || entry.sprite == null) continue;
                 if (!HostedAnchor(room, table, placements, placement, entry, out var left, out var bottom, out var order)) continue;
-                result.Add((entry, order, new Rect(left, bottom - entry.displayHeight, entry.displayWidth, entry.displayHeight)));
+                result.Add((entry, order, new Rect(left, bottom - entry.displayHeight, entry.displayWidth, entry.displayHeight), placement.flipped));
             }
             return result;
         }
 
-        /// <summary>当前布局中每件家具的归一化视口区域（供 Hub 背景热点使用）。</summary>
-        public static List<PlacedFurnitureInfo> GetPlacedFurniture()
+        /// <summary>指定房间当前布局中每件家具的归一化视口区域（供 Hub 背景热点使用）。</summary>
+        public static List<PlacedFurnitureInfo> GetPlacedFurniture(int roomIndex)
         {
             var result = new List<PlacedFurnitureInfo>();
             var table = GameManager.Instance.FurnitureTable;
-            var rooms = GameManager.Instance.FurnitureRoomTable;
-            var room = rooms != null && rooms.rooms.Count > 0 ? rooms.rooms[0] : null;
+            var room = RoomAt(roomIndex);
             if (table == null || room == null) return result;
-            foreach (var (entry, _, rect) in Collect(table, room))
+            foreach (var (entry, _, rect, _) in Collect(table, room))
             {
                 var viewport = new Rect(
                     rect.x / room.sceneWidth,
@@ -127,13 +143,15 @@ namespace MasterHouse
             return result;
         }
 
-        private static void DrawSprite(Sprite sprite, Rect destination)
+        private static void DrawSprite(Sprite sprite, Rect destination, bool flipped)
         {
             var texture = sprite.texture;
             if (texture == null) return;
             var rect = sprite.textureRect;
             var source = new Rect(rect.x / texture.width, rect.y / texture.height,
                 rect.width / texture.width, rect.height / texture.height);
+            if (flipped) // 左右镜像：源 UV 水平反向
+                source = new Rect(source.xMax, source.y, -source.width, source.height);
             Graphics.DrawTexture(destination, texture, source, 0, 0, 0, 0);
         }
 

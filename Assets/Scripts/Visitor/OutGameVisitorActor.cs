@@ -9,10 +9,11 @@ namespace MasterHouse
 {
     /// <summary>
     /// 场景中的单个访客 NPC 表现层演员，分两类：
-    /// ①业务访客（对应 Guests）：进门 → 入口短暂等待 → 屋内游走，点击触发对话；服务成功庆祝并限时停留，被拒绝走回门口消失。
-    /// ②串门邻居（ambient）：进门 → 在门口排队等待，由玩家点击后选择「请进屋 / 请回吧」；请进后游走一段时间自行离开，
-    ///   被赶出或等太久（耐心耗尽）直接离开。点击游走中的邻居会做一个反应动作。
-    /// 只负责表现与点击转发，不持有任何业务结算；位置使用场景归一化坐标（0~1 视口），由舞台层换算成锚点。
+    /// ①业务访客（对应 VisitorInstance）：状态由舞台层按业务实例同步驱动（SyncBusinessState），
+    ///   前台等待 → 接待后进屋 → 服务完成庆祝并闲逛 → 离场；点击触发对话，闲逛台词经句子气泡展示。
+    /// ②串门邻居（ambient）：进门 → 在门口排队等待，由玩家点击后选择「请进屋 / 请回吧」；请进后游走一段时间自行离开。
+    /// 只负责表现与点击转发，不持有任何业务结算（§16.4 表现层豁免：允许 deltaTime 与无种子随机，结果不回写业务）。
+    /// 位置使用场景归一化坐标（0~1 视口），由舞台层换算成锚点。
     /// </summary>
     internal sealed class OutGameVisitorActor : MonoBehaviour
     {
@@ -35,13 +36,14 @@ namespace MasterHouse
         private CanvasGroup cardGroup;
         private Text cardLabel;
         private CanvasGroup choiceGroup;
+        private OutGameVisitorBubble bubble;
         private bool choiceOpen;
         private float choiceTimer;
         private Action onClicked;
         private Action onGone;
 
         private ActorState state = ActorState.Hidden;
-        private bool spawnInside; // 常驻回填：不走进门流程，直接在屋内游走点淡入
+        private bool spawnInside; // 常驻回填：不走进门流程，直接在屋内/前台淡入
         private Vector2 doorPoint;
         private Vector2 waitPoint;
         private Vector2[] waypoints;
@@ -50,11 +52,14 @@ namespace MasterHouse
         private bool facingRight;
         private bool reacting;
         private float walkSpeed;      // 视口单位/秒
-        private float stateTimer;     // 业务访客入口等待 / 游走停顿 / 生成延迟
+        private float stateTimer;     // 游走停顿 / 生成延迟
         private float patienceTimer;  // 邻居在门口的耐心，耗尽自行离开
-        private float departTimer = -1f; // 进屋后的停留倒计时；<0 表示未开始
+        private float departTimer = -1f; // 仅邻居使用：请进屋后的停留倒计时；业务访客离场由业务层驱动
         private float bobPhase;
         private float reactHopTimer;
+
+        /// <summary>业务访客当前同步到的业务状态；-1 = 尚未同步/氛围邻居。</summary>
+        private int businessState = -1;
 
         /// <summary>场景归一化坐标（0~1，相对整幅背景图），供舞台层换算锚点与深度排序。</summary>
         public Vector2 ScenePosition { get; private set; }
@@ -63,6 +68,9 @@ namespace MasterHouse
 
         /// <summary>邻居是否还在门口排队（含正走向排队点的路上），供舞台层动态分配队位。</summary>
         public bool IsQueuingAtDoor => ambient && (state == ActorState.Arriving || state == ActorState.Waiting);
+
+        /// <summary>是否已进入离场流程（舞台层判重用）。</summary>
+        public bool IsLeaving => state == ActorState.Leaving || state == ActorState.Gone;
 
         public static OutGameVisitorActor Create(Transform parent, string actorId, string actorName, string sheetBase,
             bool isAmbient, float spawnDelay, Vector2 door, Vector2 wait, Vector2[] wanderPoints,
@@ -114,8 +122,8 @@ namespace MasterHouse
             button.transition = Selectable.Transition.None;
             button.onClick.AddListener(OnClickSelf);
 
-            // 情绪气泡（在名牌卡之前创建，悬停时名牌盖在气泡上）
-            OutGameVisitorBubble.Create(transform, new Vector2(30, 24), ProvideEmote);
+            // 情绪/台词气泡（在名牌卡之前创建，悬停时名牌盖在气泡上）
+            bubble = OutGameVisitorBubble.Create(transform, new Vector2(30, 24), ProvideEmote);
 
             // 头顶悬停卡：访客名 + 当前状态
             var card = F.Panel(transform, "Card", new Vector2(.5f, 1), new Vector2(.5f, 1),
@@ -223,12 +231,61 @@ namespace MasterHouse
             if (choiceGroup != null) choiceGroup.DOKill();
         }
 
-        /// <summary>服务成功（业务访客）：播放一次庆祝动作，然后继续游走，停留倒计时结束后离开。</summary>
-        public void NotifyServed()
+        /// <summary>
+        /// 业务访客状态同步（舞台层每帧调用，只读业务不回写，§16.4）：
+        /// 前台等待 → 服务中（进屋）→ 闲逛（庆祝后游走）；实例离场时舞台层调 BeginDepart。
+        /// </summary>
+        public void SyncBusinessState(EVisitorState next)
         {
-            if (ambient || state == ActorState.Leaving || state == ActorState.Gone) return;
+            if (ambient || IsLeaving) return;
+            if (businessState == (int)next) return;
+            var first = businessState < 0;
+            businessState = (int)next;
+            if (state == ActorState.Hidden)
+            {
+                UpdateStatusCard();
+                return; // 尚未进场：出场时 BeginInside/BeginArrive 按业务状态落位
+            }
+            switch (next)
+            {
+                case EVisitorState.FrontDesk:
+                    break; // 初始状态：进门 → 前台等待，由 Arriving→Waiting 流程呈现
+                case EVisitorState.Serving:
+                    EnterWandering(.2f); // 接待成功：走进屋内（单房间阶段以游走区代表房间，§9）
+                    break;
+                case EVisitorState.Wandering:
+                    if (first) EnterWandering(.3f); // 重建舞台时已在闲逛：直接游走，不补庆祝
+                    else Celebrate();              // 完成服务：庆祝一次，然后继续闲逛
+                    break;
+            }
+            UpdateStatusCard();
+        }
+
+        /// <summary>业务访客离场（拒绝/超时/闲逛结束/日结清场共用）：走向门口消失。</summary>
+        public void BeginDepart()
+        {
+            if (IsLeaving) return;
+            if (state == ActorState.Hidden)
+            {
+                onGone?.Invoke();
+                Destroy(gameObject);
+                return;
+            }
+            walkSpeed *= 1.25f;
+            EnterLeaving();
+        }
+
+        /// <summary>闲逛台词冒泡（§9：扩展既有气泡显示句子，不新建第二套气泡）。</summary>
+        public void ShowLine(string text, float holdSeconds)
+        {
+            if (bubble != null && !string.IsNullOrEmpty(text))
+                bubble.ShowSentence(text, holdSeconds);
+        }
+
+        /// <summary>完成服务：播放一次庆祝动作，然后继续游走。</summary>
+        private void Celebrate()
+        {
             moving = false;
-            departTimer = UnityEngine.Random.Range(10f, 16f);
             if (celebrateSheet != null)
             {
                 state = ActorState.Celebrating;
@@ -243,14 +300,6 @@ namespace MasterHouse
                 EnterWandering(.5f);
             }
             UpdateStatusCard();
-        }
-
-        /// <summary>被拒绝（业务访客）：直接返回门口离开。</summary>
-        public void NotifyRefused()
-        {
-            if (ambient || state == ActorState.Leaving || state == ActorState.Gone) return;
-            walkSpeed *= 1.3f;
-            EnterLeaving();
         }
 
         private void Update()
@@ -272,12 +321,11 @@ namespace MasterHouse
                     }
                     break;
                 case ActorState.Arriving:
-                    moveTarget = waitPoint; // 队位可能被舞台层实时调整
+                    moveTarget = waitPoint; // 队位/前台位可能被舞台层实时调整
                     if (MoveTowards(dt))
                     {
                         state = ActorState.Waiting;
-                        stateTimer = UnityEngine.Random.Range(9f, 15f);
-                        patienceTimer = UnityEngine.Random.Range(45f, 75f);
+                        if (ambient) patienceTimer = UnityEngine.Random.Range(45f, 75f);
                         UpdateStatusCard();
                     }
                     break;
@@ -288,14 +336,10 @@ namespace MasterHouse
                         patienceTimer -= dt;
                         if (patienceTimer <= 0f) { ToggleChoice(false); EnterLeaving(); } // 等太久，自己走了
                     }
-                    else
-                    {
-                        stateTimer -= dt;
-                        if (stateTimer <= 0f) EnterWandering(0f);
-                    }
+                    // 业务访客：在前台一直等（是否超时由业务层判定，表现不自作主张）
                     break;
                 case ActorState.Wandering:
-                    if (departTimer > 0f)
+                    if (ambient && departTimer > 0f)
                     {
                         departTimer -= dt;
                         if (departTimer <= 0f) { EnterLeaving(); break; }
@@ -345,13 +389,20 @@ namespace MasterHouse
             UpdateStatusCard();
         }
 
-        /// <summary>常驻回填：读档/切房间回来时访客早已在屋内，直接在随机游走点淡入并继续游走。</summary>
+        /// <summary>常驻回填：重建舞台时访客已在场，按业务状态直接落位淡入（前台位或屋内游走点）。</summary>
         private void BeginInside()
         {
+            group.DOFade(1f, .4f).SetTarget(this).SetUpdate(true);
+            if (!ambient && businessState == (int)EVisitorState.FrontDesk)
+            {
+                ScenePosition = waitPoint;
+                state = ActorState.Waiting;
+                UpdateStatusCard();
+                return;
+            }
             ScenePosition = waypoints != null && waypoints.Length > 0
                 ? waypoints[UnityEngine.Random.Range(0, waypoints.Length)]
                 : waitPoint;
-            group.DOFade(1f, .4f).SetTarget(this).SetUpdate(true);
             EnterWandering(UnityEngine.Random.Range(.5f, 3f));
         }
 
@@ -457,15 +508,28 @@ namespace MasterHouse
         /// <summary>情绪气泡内容：随状态给出随机符号，返回空串表示当前不冒泡。</summary>
         private string ProvideEmote()
         {
-            string[] pool = state switch
+            string[] pool;
+            if (ambient)
             {
-                ActorState.Waiting => ambient ? new[] { "？", "！", "…" } : new[] { "？", "…" },
-                ActorState.Wandering => departTimer > 0f ? new[] { "♥", "♪", "★" } : new[] { "♪", "…", "★" },
-                ActorState.Celebrating => new[] { "♥", "！" },
-                ActorState.Leaving => new[] { "…" },
-                _ => null,
-            };
-            if (pool == null || choiceOpen) return "";
+                pool = state switch
+                {
+                    ActorState.Waiting => new[] { "？", "！", "…" },
+                    ActorState.Wandering => new[] { "♪", "…", "★" },
+                    ActorState.Leaving => new[] { "…" },
+                    _ => null,
+                };
+            }
+            else
+            {
+                pool = businessState switch
+                {
+                    (int)EVisitorState.FrontDesk => new[] { "？", "…" },
+                    (int)EVisitorState.Serving => new[] { "！", "…" },
+                    (int)EVisitorState.Wandering => new[] { "♥", "♪", "★" },
+                    _ => state == ActorState.Leaving ? new[] { "…" } : null,
+                };
+            }
+            if (pool == null || choiceOpen || state == ActorState.Hidden) return "";
             return pool[UnityEngine.Random.Range(0, pool.Length)];
         }
 
@@ -484,16 +548,22 @@ namespace MasterHouse
                     _ => "",
                 };
             }
+            else if (state == ActorState.Leaving || state == ActorState.Gone)
+            {
+                status = "正在离开";
+            }
+            else if (state == ActorState.Celebrating)
+            {
+                status = "服务完成！";
+            }
             else
             {
-                status = state switch
+                status = businessState switch
                 {
-                    ActorState.Arriving => "刚刚进门",
-                    ActorState.Waiting => "在入口等待接待 · 点击交谈",
-                    ActorState.Wandering => departTimer > 0f ? "心满意足 · 即将离开" : "在屋内游走 · 点击交谈",
-                    ActorState.Celebrating => "服务完成！",
-                    ActorState.Leaving => "正在离开",
-                    _ => "",
+                    (int)EVisitorState.FrontDesk => "在前台等待接待 · 点击交谈",
+                    (int)EVisitorState.Serving => "等待服务 · 点击递上物品",
+                    (int)EVisitorState.Wandering => "心满意足 · 屋内闲逛中",
+                    _ => "刚刚进门",
                 };
             }
             cardLabel.text = displayName + "\n<size=13>" + status + "</size>";

@@ -13,71 +13,559 @@ MonoBehaviour:
   m_Name: FurnitureTable
   m_EditorClassIdentifier: 
   entries:
-  - id: table
-    displayName: "\u5706\u6728\u8336\u51E0"
-    surface: 0
-    cols: 4
+  - id: 002
+    displayName: red armchair
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    cols: 3
     rows: 2
-    displayWidth: 282
+    displayWidth: 185
+    displayHeight: 174
+    price: 0
+    unlockReputation: 0
+    decorationScore: 32
+    sprite: {fileID: 21300000, guid: 403aacb143bd90c43b1ae7d0b1dc85b3, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 003
+    displayName: floor lamp
+    category: "\u706F\u5177"
+    description: 
+    surfaces: 00000000
+    cols: 1
+    rows: 2
+    displayWidth: 77
+    displayHeight: 194
+    price: 100
+    unlockReputation: 0
+    decorationScore: 15
+    sprite: {fileID: 21300000, guid: 6fd2604882f672444b3e4f4f30322816, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 004
+    displayName: decorated bookcase
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    cols: 2
+    rows: 2
+    displayWidth: 153
+    displayHeight: 255
+    price: 0
+    unlockReputation: 0
+    decorationScore: 39
+    sprite: {fileID: 21300000, guid: 4d23a03f099327c43bbc880dfc691432, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 005
+    displayName: wood coffee table
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    cols: 4
+    rows: 1
+    displayWidth: 252
+    displayHeight: 110
+    price: 0
+    unlockReputation: 0
+    decorationScore: 28
+    sprite: {fileID: 21300000, guid: 1bc23b147c9527943a464c505be37b20, type: 3}
+    tableSurface:
+      enabled: 1
+      cols: 2
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 88
+  - id: 006
+    displayName: blue pedestal table
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    cols: 1
+    rows: 1
+    displayWidth: 94
+    displayHeight: 113
+    price: 70
+    unlockReputation: 0
+    decorationScore: 11
+    sprite: {fileID: 21300000, guid: 9859e757e7ad85a4aa9d51f74ff36695, type: 3}
+    tableSurface:
+      enabled: 1
+      cols: 1
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 90
+  - id: 007
+    displayName: hanging plant 1
+    category: "\u58C1\u6302"
+    description: 
+    surfaces: 02000000
+    cols: 1
+    rows: 3
+    displayWidth: 86
+    displayHeight: 188
+    price: 0
+    unlockReputation: 0
+    decorationScore: 16
+    sprite: {fileID: 21300000, guid: 7221268e2147cf246bfc3d52515e1da9, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 008
+    displayName: hanging plant 2
+    category: "\u58C1\u6302"
+    description: 
+    surfaces: 02000000
+    cols: 1
+    rows: 2
+    displayWidth: 76
+    displayHeight: 137
+    price: 70
+    unlockReputation: 0
+    decorationScore: 10
+    sprite: {fileID: 21300000, guid: e3c494522300fa143b7258c3bded3071, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 010
+    displayName: hanging plant 4
+    category: "\u58C1\u6302"
+    description: 
+    surfaces: 02000000
+    cols: 2
+    rows: 2
+    displayWidth: 90
+    displayHeight: 124
+    price: 70
+    unlockReputation: 0
+    decorationScore: 11
+    sprite: {fileID: 21300000, guid: ea40e911d19ff804da46fdaac87cc479, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 011
+    displayName: open cardboard box
+    category: "\u6446\u4EF6"
+    description: 
+    surfaces: 0000000001000000
+    cols: 2
+    rows: 1
+    displayWidth: 131
+    displayHeight: 84
+    price: 70
+    unlockReputation: 0
+    decorationScore: 11
+    sprite: {fileID: 21300000, guid: e1ba5871266aa024a975ba256c71c0de, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 012
+    displayName: closed cardboard box
+    category: "\u6446\u4EF6"
+    description: 
+    surfaces: 0000000001000000
+    cols: 1
+    rows: 1
+    displayWidth: 91
+    displayHeight: 76
+    price: 0
+    unlockReputation: 0
+    decorationScore: 7
+    sprite: {fileID: 21300000, guid: 358c039738646c64caf38c259e17bcf7, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 013
+    displayName: potted monstera 1
+    category: "\u76C6\u683D"
+    description: 
+    surfaces: 00000000
+    cols: 2
+    rows: 2
+    displayWidth: 124
+    displayHeight: 160
+    price: 0
+    unlockReputation: 0
+    decorationScore: 20
+    sprite: {fileID: 21300000, guid: 0745cb24dd955cd45836b405fdd3d90e, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 014
+    displayName: potted monstera 2
+    category: "\u76C6\u683D"
+    description: 
+    surfaces: 00000000
+    cols: 1
+    rows: 1
+    displayWidth: 102
+    displayHeight: 119
+    price: 80
+    unlockReputation: 0
+    decorationScore: 12
+    sprite: {fileID: 21300000, guid: d16f1b95b3f6db34baf4f4301f1a2b2c, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 016
+    displayName: mountain poster
+    category: "\u58C1\u6302"
+    description: 
+    surfaces: 02000000
+    cols: 2
+    rows: 2
+    displayWidth: 94
+    displayHeight: 115
+    price: 0
+    unlockReputation: 0
+    decorationScore: 11
+    sprite: {fileID: 21300000, guid: f24e9d06ae333024990ca73067d5d94d, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 017
+    displayName: wall clock
+    category: "\u58C1\u6302"
+    description: 
+    surfaces: 02000000
+    cols: 1
+    rows: 1
+    displayWidth: 75
+    displayHeight: 81
+    price: 0
+    unlockReputation: 0
+    decorationScore: 6
+    sprite: {fileID: 21300000, guid: aa9ba5b275350804fb42799b4e91830c, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 018
+    displayName: wall calendar
+    category: "\u58C1\u6302"
+    description: 
+    surfaces: 02000000
+    cols: 1
+    rows: 1
+    displayWidth: 64
+    displayHeight: 72
+    price: 0
+    unlockReputation: 0
+    decorationScore: 5
+    sprite: {fileID: 21300000, guid: cd3bd2c36c7a1ec4bb6298de097dd943, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 020
+    displayName: green tag
+    category: "\u58C1\u6302"
+    description: 
+    surfaces: 02000000
+    cols: 1
+    rows: 1
+    displayWidth: 52
+    displayHeight: 38
+    price: 40
+    unlockReputation: 0
+    decorationScore: 5
+    sprite: {fileID: 21300000, guid: 935fd1be942895a4da0eb258d3bfc229, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 021
+    displayName: purple tag
+    category: "\u58C1\u6302"
+    description: 
+    surfaces: 02000000
+    cols: 1
+    rows: 1
+    displayWidth: 51
+    displayHeight: 38
+    price: 40
+    unlockReputation: 0
+    decorationScore: 5
+    sprite: {fileID: 21300000, guid: 4c2bf5088826ccb4e8bfc2e0c86686a3, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 023
+    displayName: hanging plant
+    category: "\u58C1\u6302"
+    description: 
+    surfaces: 02000000
+    cols: 2
+    rows: 3
+    displayWidth: 95
+    displayHeight: 209
+    price: 130
+    unlockReputation: 0
+    decorationScore: 20
+    sprite: {fileID: 21300000, guid: d41d8d1b5eaff5448ae5b274cb93ec87, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 024
+    displayName: blue sofa
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    cols: 5
+    rows: 1
+    displayWidth: 316
+    displayHeight: 138
+    price: 0
+    unlockReputation: 0
+    decorationScore: 44
+    sprite: {fileID: 21300000, guid: 3e94d9487faa4e64a9eacfaf68cf0dca, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 032
+    displayName: open cardboard box
+    category: "\u6446\u4EF6"
+    description: 
+    surfaces: 0000000001000000
+    cols: 2
+    rows: 1
+    displayWidth: 111
+    displayHeight: 95
+    price: 70
+    unlockReputation: 0
+    decorationScore: 11
+    sprite: {fileID: 21300000, guid: 058ea7091fbc8bf48b0a4be9b7085c91, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 035
+    displayName: book file holder
+    category: "\u6446\u4EF6"
+    description: 
+    surfaces: 00000000
+    cols: 1
+    rows: 1
+    displayWidth: 92
+    displayHeight: 72
+    price: 40
+    unlockReputation: 0
+    decorationScore: 7
+    sprite: {fileID: 21300000, guid: c4f525f5a83a5984090232bc99146412, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 036
+    displayName: round pod chair
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    cols: 2
+    rows: 2
+    displayWidth: 173
+    displayHeight: 195
+    price: 0
+    unlockReputation: 0
+    decorationScore: 34
+    sprite: {fileID: 21300000, guid: e018e42944361b841a7e9b21c82fbfb4, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 037
+    displayName: organic wall mirror
+    category: "\u58C1\u6302"
+    description: 
+    surfaces: 02000000
+    cols: 2
+    rows: 2
+    displayWidth: 96
+    displayHeight: 131
+    price: 0
+    unlockReputation: 0
+    decorationScore: 13
+    sprite: {fileID: 21300000, guid: f959f840dfa93d94ca1b98a21218f148, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 038
+    displayName: orb floor lamp
+    category: "\u706F\u5177"
+    description: 
+    surfaces: 00000000
+    cols: 1
+    rows: 2
+    displayWidth: 85
+    displayHeight: 165
+    price: 90
+    unlockReputation: 0
+    decorationScore: 14
+    sprite: {fileID: 21300000, guid: ecc70caa0ed483847a6da792cafcc1ec, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 040
+    displayName: jellyfish aquarium console
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    cols: 2
+    rows: 2
+    displayWidth: 158
+    displayHeight: 187
+    price: 200
+    unlockReputation: 0
+    decorationScore: 30
+    sprite: {fileID: 21300000, guid: 7241903ce71a4c744a87b3bf4b21615c, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 041
+    displayName: lava lamp
+    category: "\u706F\u5177"
+    description: 
+    surfaces: 00000000
+    cols: 1
+    rows: 2
+    displayWidth: 60
+    displayHeight: 183
+    price: 70
+    unlockReputation: 0
+    decorationScore: 11
+    sprite: {fileID: 21300000, guid: 5e03d7e7337b41a4c8abab133b596676, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 043
+    displayName: retro dining set
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    cols: 5
+    rows: 2
+    displayWidth: 369
     displayHeight: 184
     price: 0
     unlockReputation: 0
-    decorationScore: 40
-    sprite: {fileID: 21300000, guid: bcad70b3ad9f4584da0439a876cc60e2, type: 3}
+    decorationScore: 60
+    sprite: {fileID: 21300000, guid: ccab81b10a3e3bc48b44d46913318b39, type: 3}
     tableSurface:
       enabled: 1
       cols: 3
       cellWidth: 64
       cellHeight: 56
       offsetX: 50
-      surfaceHeight: 146
-  - id: pouf
-    displayName: "\u9EC4\u7ED2\u84B2\u56E2"
-    surface: 0
-    cols: 3
-    rows: 1
-    displayWidth: 180
-    displayHeight: 100
-    price: 0
-    unlockReputation: 0
-    decorationScore: 15
-    sprite: {fileID: 21300000, guid: de4271a93f2420a4d9302445122d5011, type: 3}
-    tableSurface:
-      enabled: 0
-      cols: 3
-      cellWidth: 64
-      cellHeight: 56
-      offsetX: 50
-      surfaceHeight: 146
-  - id: vase
-    displayName: "\u767D\u82B1\u82B1\u74F6"
-    surface: 1
+      surfaceHeight: 147
+  - id: 049
+    displayName: cactus lamp
+    category: "\u706F\u5177"
+    description: 
+    surfaces: 00000000
     cols: 1
     rows: 1
-    displayWidth: 117
-    displayHeight: 186
-    price: 0
-    unlockReputation: 0
-    decorationScore: 10
-    sprite: {fileID: 21300000, guid: 7dc98a507afcbcc4199948eb546b06a1, type: 3}
-    tableSurface:
-      enabled: 0
-      cols: 3
-      cellWidth: 64
-      cellHeight: 56
-      offsetX: 50
-      surfaceHeight: 146
-  - id: cups
-    displayName: "\u8336\u676F\u4E0E\u4E66"
-    surface: 1
-    cols: 1
-    rows: 1
-    displayWidth: 116
-    displayHeight: 84
-    price: 0
+    displayWidth: 70
+    displayHeight: 121
+    price: 60
     unlockReputation: 0
     decorationScore: 8
-    sprite: {fileID: 21300000, guid: 12bc324373e57464cb472b76bd610357, type: 3}
+    sprite: {fileID: 21300000, guid: ca12aca76629a674cbe7d6e021ce73ec, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -85,53 +573,19 @@ MonoBehaviour:
       cellHeight: 56
       offsetX: 50
       surfaceHeight: 146
-  - id: lamp
-    displayName: "\u7EA2\u7F69\u53F0\u706F"
-    surface: 1
-    cols: 1
-    rows: 1
-    displayWidth: 84
-    displayHeight: 112
-    price: 150
-    unlockReputation: 60
-    decorationScore: 12
-    sprite: {fileID: 21300000, guid: 62d77a06e44d3844bb0fefa98afdf881, type: 3}
-    tableSurface:
-      enabled: 0
-      cols: 3
-      cellWidth: 64
-      cellHeight: 56
-      offsetX: 50
-      surfaceHeight: 146
-  - id: picture
-    displayName: "\u5C71\u6708\u6302\u753B"
-    surface: 2
-    cols: 1
-    rows: 2
-    displayWidth: 86
-    displayHeight: 118
-    price: 0
-    unlockReputation: 0
-    decorationScore: 18
-    sprite: {fileID: 21300000, guid: 211e32c72a2d4ce49a39e84cb458dd0c, type: 3}
-    tableSurface:
-      enabled: 0
-      cols: 3
-      cellWidth: 64
-      cellHeight: 56
-      offsetX: 50
-      surfaceHeight: 146
-  - id: hangplant
-    displayName: "\u60AC\u6302\u7EFF\u690D"
-    surface: 2
+  - id: 051
+    displayName: round bar shelf
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
     cols: 2
-    rows: 3
-    displayWidth: 118
-    displayHeight: 162
-    price: 0
+    rows: 2
+    displayWidth: 124
+    displayHeight: 163
+    price: 130
     unlockReputation: 0
     decorationScore: 20
-    sprite: {fileID: 21300000, guid: 99538513bab3c8d4fb6e68f48d236e41, type: 3}
+    sprite: {fileID: 21300000, guid: 8ec509d189b214e4c82fbf843bb0f254, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -139,17 +593,19 @@ MonoBehaviour:
       cellHeight: 56
       offsetX: 50
       surfaceHeight: 146
-  - id: bag
-    displayName: "\u5E06\u5E03\u6302\u5305"
-    surface: 2
-    cols: 1
-    rows: 2
-    displayWidth: 82
-    displayHeight: 138
-    price: 300
-    unlockReputation: 80
-    decorationScore: 10
-    sprite: {fileID: 21300000, guid: fc6388732e38a2e44827e3b6a8f64903, type: 3}
+  - id: 053
+    displayName: potted palm
+    category: "\u76C6\u683D"
+    description: 
+    surfaces: 00000000
+    cols: 2
+    rows: 3
+    displayWidth: 130
+    displayHeight: 301
+    price: 0
+    unlockReputation: 0
+    decorationScore: 39
+    sprite: {fileID: 21300000, guid: ec8b86f3b0bab684c8d1b9376b4f8f8a, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -157,35 +613,19 @@ MonoBehaviour:
       cellHeight: 56
       offsetX: 50
       surfaceHeight: 146
-  - id: whale-call
-    displayName: "\u9CB8\u58F0\u7535\u8BDD\u4EAD"
-    surface: 0
-    cols: 4
-    rows: 2
-    displayWidth: 250
-    displayHeight: 290
-    price: 500
-    unlockReputation: 200
-    decorationScore: 80
-    sprite: {fileID: 21300000, guid: ab7e66ff3a9d7b249896dd2832714756, type: 3}
-    tableSurface:
-      enabled: 0
-      cols: 3
-      cellWidth: 64
-      cellHeight: 56
-      offsetX: 50
-      surfaceHeight: 146
-  - id: moon-planter
-    displayName: "\u6708\u4EAE\u82B1\u67B6"
-    surface: 0
+  - id: 054
+    displayName: blue beanbag
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
     cols: 2
     rows: 1
-    displayWidth: 130
-    displayHeight: 150
-    price: 260
-    unlockReputation: 120
-    decorationScore: 45
-    sprite: {fileID: 21300000, guid: c1272225bf6a6f447a8066d8a50c1873, type: 3}
+    displayWidth: 140
+    displayHeight: 112
+    price: 100
+    unlockReputation: 0
+    decorationScore: 16
+    sprite: {fileID: 21300000, guid: ab992e58d10fd57489b5f9c3ec43602d, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -193,17 +633,19 @@ MonoBehaviour:
       cellHeight: 56
       offsetX: 50
       surfaceHeight: 146
-  - id: dandelion-lamp
-    displayName: "\u84B2\u516C\u82F1\u706F"
-    surface: 1
-    cols: 1
+  - id: 055
+    displayName: space rug
+    category: "\u6446\u4EF6"
+    description: 
+    surfaces: 00000000
+    cols: 3
     rows: 1
-    displayWidth: 80
-    displayHeight: 95
-    price: 180
-    unlockReputation: 100
-    decorationScore: 30
-    sprite: {fileID: 21300000, guid: 8241c1d00e1c7d84e8cc0ed43835d455, type: 3}
+    displayWidth: 194
+    displayHeight: 79
+    price: 100
+    unlockReputation: 0
+    decorationScore: 15
+    sprite: {fileID: 21300000, guid: b6fa0d471928f574bb43a0e9b9a5e566, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -211,17 +653,99 @@ MonoBehaviour:
       cellHeight: 56
       offsetX: 50
       surfaceHeight: 146
-  - id: wind-chimes
-    displayName: "\u5154\u8033\u98CE\u94C3"
-    surface: 2
+  - id: 056
+    displayName: cloud coffee table
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    cols: 4
+    rows: 1
+    displayWidth: 275
+    displayHeight: 119
+    price: 220
+    unlockReputation: 0
+    decorationScore: 33
+    sprite: {fileID: 21300000, guid: 6f9591961231cee419654d526084f37b, type: 3}
+    tableSurface:
+      enabled: 1
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 95
+  - id: 057
+    displayName: glass media console
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    cols: 4
+    rows: 1
+    displayWidth: 303
+    displayHeight: 136
+    price: 0
+    unlockReputation: 0
+    decorationScore: 41
+    sprite: {fileID: 21300000, guid: eb6a0ebb68f1b9e48bde8ee29d374dbf, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 059
+    displayName: crescent aquarium lamp
+    category: "\u706F\u5177"
+    description: 
+    surfaces: 00000000
+    cols: 2
+    rows: 2
+    displayWidth: 114
+    displayHeight: 160
+    price: 120
+    unlockReputation: 0
+    decorationScore: 18
+    sprite: {fileID: 21300000, guid: d1071e6e344400c40b5eebd31f75b17c, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 060
+    displayName: retro space tv
+    category: "\u6446\u4EF6"
+    description: 
+    surfaces: 00000000
+    cols: 2
+    rows: 2
+    displayWidth: 148
+    displayHeight: 140
+    price: 140
+    unlockReputation: 0
+    decorationScore: 21
+    sprite: {fileID: 21300000, guid: e83c74f2a2765a447bbf531c96621e6e, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 063
+    displayName: lava lamp
+    category: "\u706F\u5177"
+    description: 
+    surfaces: 00000000
     cols: 1
     rows: 2
-    displayWidth: 90
-    displayHeight: 130
-    price: 220
-    unlockReputation: 90
-    decorationScore: 35
-    sprite: {fileID: 21300000, guid: 0db379d78964b65488adac99bdc6cbb4, type: 3}
+    displayWidth: 65
+    displayHeight: 181
+    price: 80
+    unlockReputation: 0
+    decorationScore: 12
+    sprite: {fileID: 21300000, guid: 0cd655c153c77d6408600f7281ee3977, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -229,17 +753,59 @@ MonoBehaviour:
       cellHeight: 56
       offsetX: 50
       surfaceHeight: 146
-  - id: string-window
-    displayName: "\u7434\u5F26\u7A97\u6237"
-    surface: 2
-    cols: 3
+  - id: 064
+    displayName: tall bubble aquarium
+    category: "\u6446\u4EF6"
+    description: 
+    surfaces: 00000000
+    cols: 1
+    rows: 2
+    displayWidth: 62
+    displayHeight: 208
+    price: 90
+    unlockReputation: 0
+    decorationScore: 13
+    sprite: {fileID: 21300000, guid: 14b6b22d829086742b37c108b40daf1d, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 075
+    displayName: washing machine
+    category: "\u6446\u4EF6"
+    description: 
+    surfaces: 00000000
+    cols: 2
+    rows: 2
+    displayWidth: 161
+    displayHeight: 188
+    price: 200
+    unlockReputation: 0
+    decorationScore: 30
+    sprite: {fileID: 21300000, guid: d5160ece572442049a44adc97f5071d5, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: 077
+    displayName: bathtub table set
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    cols: 5
     rows: 3
-    displayWidth: 185
-    displayHeight: 160
-    price: 420
-    unlockReputation: 160
+    displayWidth: 363
+    displayHeight: 294
+    price: 600
+    unlockReputation: 0
     decorationScore: 60
-    sprite: {fileID: 21300000, guid: 4425ec5d41289a0479707eb78d0fbeeb, type: 3}
+    sprite: {fileID: 21300000, guid: c3ebdb8ef5334ad43a772ea4dca4bc9b, type: 3}
     tableSurface:
       enabled: 0
       cols: 3

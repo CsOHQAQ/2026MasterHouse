@@ -31,15 +31,27 @@ namespace MasterHouse
         /// <summary>当前房间下标（列表顺序 = 导航顺序）。</summary>
         public int RoomIndex { get; private set; }
 
-        /// <summary>当前选中的访客下标（任务卡与对话层共用）。</summary>
-        public int GuestIndex { get; private set; }
+        /// <summary>当前选中的访客实例 id（任务卡与对话层共用；-1 = 未选中）。</summary>
+        public int SelectedInstanceId { get; private set; } = -1;
 
         /// <summary>对话快捷栏/档案「放入房间」共用的会话级摆放选择（纯表现，与真实家具布局无数据联系）。</summary>
         internal static string PlacedFurnitureId = "whale";
 
-        public HubPage(string notice = "欢迎回家。本周有 4 位访客。")
+        public HubPage(string notice = "欢迎回家。")
         {
             this.notice = notice;
+        }
+
+        /// <summary>当前选中的访客实例；未选中或已离场时回落到首位在场实例（可为 null）。</summary>
+        public VisitorInstance SelectedInstance
+        {
+            get
+            {
+                var visitor = GameManager.Instance.VisitorManager;
+                var selected = visitor.Find(SelectedInstanceId);
+                if (selected != null) return selected;
+                return visitor.Data.Instances.Count > 0 ? visitor.Data.Instances[0] : null;
+            }
         }
 
         protected override void OnEnter()
@@ -69,14 +81,40 @@ namespace MasterHouse
             // 时间只在 Hub 内流动（§16.4 闸门）：进场开、退场关；家具模式不退页，时钟照走
             GameManager.Instance.HouseClockManager.SetRunning(true);
             HouseGmConsole.FullResetRequested += OnGmFullReset;
+            // 访客实例动态增删（§9）：进离场/状态变化时刷新访客卡与任务卡；被拒绝/完成服务的台词以 Toast 临时展示（§8 debug 许可）
+            var visitor = GameManager.Instance.VisitorManager;
+            visitor.InstanceSpawned += OnVisitorListChanged;
+            visitor.InstanceChanged += OnVisitorListChanged;
+            visitor.InstanceDeparted += OnVisitorListChanged;
+            visitor.DialogueRequested += OnVisitorDialogue;
             UI.ShowToast(notice);
         }
 
         protected override void OnExit()
         {
+            var visitor = GameManager.Instance.VisitorManager;
+            visitor.InstanceSpawned -= OnVisitorListChanged;
+            visitor.InstanceChanged -= OnVisitorListChanged;
+            visitor.InstanceDeparted -= OnVisitorListChanged;
+            visitor.DialogueRequested -= OnVisitorDialogue;
             HouseGmConsole.FullResetRequested -= OnGmFullReset;
             GameManager.Instance.HouseClockManager.SetRunning(false);
             topBar.Dispose();
+        }
+
+        private void OnVisitorListChanged(VisitorInstance instance)
+        {
+            if (view == null) return;
+            guestRail.Refresh();
+            taskCard.Refresh();
+        }
+
+        /// <summary>对话触发点的临时展示（§8）：对话系统未落地期间，被拒绝（含两段超时）的台词走 Toast。</summary>
+        private void OnVisitorDialogue(VisitorInstance instance, EVisitorDialogueTrigger trigger, string line)
+        {
+            if (view == null) return;
+            if (trigger == EVisitorDialogueTrigger.Rejected)
+                Toast($"{instance.DisplayName} 离开了：「{line}」 · 声望 -{GameManager.Instance.EconomyManager.RefuseReputationPenalty}");
         }
 
         /// <summary>GM「恢复初始态」：面板本体已重置经济与家具会话，这里补访客/时钟归零与表现重建。</summary>
@@ -85,7 +123,7 @@ namespace MasterHouse
             var gm = GameManager.Instance;
             gm.VisitorManager.ResetNew();
             gm.HouseClockManager.ResetNew();
-            GuestIndex = 0;
+            SelectedInstanceId = -1;
             if (view == null) return;
             scene.RefreshAfterFurniture();
             scene.RebuildStage();
@@ -185,83 +223,87 @@ namespace MasterHouse
                 });
         }
 
-        public void SelectGuest(int index)
+        /// <summary>选中在场访客并打开事务对话层（对话系统未落地期间为 debug 驱动层，§8 明示许可）。</summary>
+        public void SelectGuest(int instanceId)
         {
-            var visitor = GameManager.Instance.VisitorManager;
-            var visitors = GameManager.Instance.VisitorTable.visitors;
-            if (visitor.Data.States[index].Served)
+            var instance = GameManager.Instance.VisitorManager.Find(instanceId);
+            if (instance == null)
             {
-                Toast(visitors[index].displayName + " 已完成接待并离开旅店");
+                Toast("这位访客已经离开了");
                 return;
             }
-            // 服务时间窗口由 VisitorManager 整数分钟判定（§16.4）；窗口外访客留在屋内，暂不开放服务
-            if (!visitor.CanServe(index))
-            {
-                var guest = visitors[index];
-                var clock = GameManager.Instance.HouseClockManager.Data;
-                Toast($"{guest.displayName} 的可服务时间是 {guest.ServiceWindowText} · 现在 {clock.TimeText}，TA 先在屋里歇着");
-                return;
-            }
-            GuestIndex = index;
+            SelectedInstanceId = instanceId;
             taskCard.Refresh();
             DialogueOverlay.Open(UI, this);
         }
 
-        /// <summary>对话层内切换本周访客：关当前层重开（选中语义与旧壳一致）。</summary>
-        public void SwitchDialogueGuest(int index)
+        /// <summary>对话层内切换在场访客：关当前层重开（选中语义与旧壳一致）。</summary>
+        public void SwitchDialogueGuest(int instanceId)
         {
-            GuestIndex = index;
+            SelectedInstanceId = instanceId;
             taskCard.Refresh();
             UI.PopOverlay();
             DialogueOverlay.Open(UI, this);
         }
 
-        /// <summary>完成服务：业务结算归 VisitorManager，这里只做表现刷新与提示（存档移除，§16.5）。</summary>
-        public void ServeSelectedGuest()
+        /// <summary>接待选中访客（对话事件 → VisitorManager.Accept，§8）；成功后重开对话层进入提交物品阶段。</summary>
+        public void AcceptSelectedGuest()
         {
             var gm = GameManager.Instance;
-            if (!gm.VisitorManager.Serve(GuestIndex)) return;
-            var name = gm.VisitorTable.visitors[GuestIndex].displayName;
-            scene.NotifyServed(GuestIndex);
+            var instance = gm.VisitorManager.Find(SelectedInstanceId);
+            if (instance == null || !gm.VisitorManager.Accept(SelectedInstanceId)) return;
             UI.PopOverlay();
-            guestRail.Refresh();
-            taskCard.Refresh();
-            Toast($"{name} 的服务已完成 · ◈ +{gm.EconomyManager.ServiceCurrencyReward} · 声望 +{gm.EconomyManager.ServiceReputationReward}");
+            DialogueOverlay.Open(UI, this); // 重开以按「服务中」状态重绑（需求句 + 物品提交栏）
         }
 
-        /// <summary>拒绝接待：业务结算归 VisitorManager。</summary>
+        /// <summary>拒绝选中访客（前台等待/服务中都可用，§5）；结算与台词展示由 VisitorManager 事件驱动。</summary>
         public void RefuseSelectedGuest()
         {
             var gm = GameManager.Instance;
-            if (!gm.VisitorManager.Refuse(GuestIndex)) return;
-            var name = gm.VisitorTable.visitors[GuestIndex].displayName;
-            scene.NotifyRefused(GuestIndex);
+            if (!gm.VisitorManager.Reject(SelectedInstanceId)) return;
             UI.PopOverlay();
-            guestRail.Refresh();
-            taskCard.Refresh();
-            Toast($"已婉拒 {name} 的委托 · 声望 -{gm.EconomyManager.RefuseReputationPenalty}");
         }
 
-        /// <summary>周结算：业务（扣声望/清状态/时钟跳次日）整体归 VisitorManager；表现整体刷新。</summary>
-        public void EndWeek()
+        /// <summary>提交物品并结算（对话事件 → VisitorManager.Submit，§8）。</summary>
+        public void SubmitItemToSelectedGuest(ItemDef item)
         {
             var gm = GameManager.Instance;
-            var missed = gm.VisitorManager.EndWeek();
+            var instance = gm.VisitorManager.Find(SelectedInstanceId);
+            if (instance == null) return;
+            var name = instance.DisplayName;
+            if (!gm.VisitorManager.Submit(SelectedInstanceId, item)) return;
             UI.PopOverlay();
+            var reward = gm.EconomyManager.RewardFor(instance.Satisfaction);
+            Toast($"{name} 对「{item.DisplayName}」的评价：{ServeSatisfactionText.NameOf(instance.Satisfaction)}" +
+                  $" · ◈ +{reward.currency} · 声望 +{reward.reputation}");
+        }
+
+        /// <summary>
+        /// 结束今天（§7 日结）：场上有未处理访客（前台/服务中）时不可用，须逐个处理；闲逛中的不阻塞。
+        /// 成功后弹当日结算面板（只展示不惩罚），时间已跳到次日开门时刻。
+        /// </summary>
+        public void TryEndDay()
+        {
+            var gm = GameManager.Instance;
+            if (gm.VisitorManager.HasBlockingVisitors)
+            {
+                Toast("还有访客在等待接待或服务中 · 请逐个完成服务或拒绝后再结束今天");
+                return;
+            }
+            var endedDay = gm.HouseClockManager.Data.Day;
+            var summary = gm.VisitorManager.EndDay();
+            if (summary == null) return;
             guestRail.Refresh();
             taskCard.Refresh();
-            scene.RebuildStage(); // 新的一周 → 访客整体刷新，重新从大门进场
-            Toast(missed > 0
-                ? $"本周结束 · {missed} 项服务未完成，声望 -{missed * gm.EconomyManager.FailReputationPenalty}"
-                : "本周结束 · 所有访客服务全部完成！新的一周开始了");
+            DaySettleOverlay.Open(UI, endedDay, summary);
         }
 
         /// <summary>点击场景中的访客 NPC（观景模式下先展开界面）。</summary>
-        public void OnVisitorClicked(int index)
+        public void OnVisitorClicked(int instanceId)
         {
             if (furnitureModeOpen || roomTransitioning) return;
             if (immersive) SetImmersive(false);
-            SelectGuest(index);
+            SelectGuest(instanceId);
         }
 
         /// <summary>家具模式：世界空间独立舞台，打开期间禁用整个壳 Canvas，退出回调恢复并重烘焙背景。</summary>
@@ -270,7 +312,7 @@ namespace MasterHouse
             if (furnitureModeOpen) return;
             furnitureModeOpen = true;
             UI.Canvas.enabled = false;
-            var opened = FurnitureRoomController.Open(() =>
+            var opened = FurnitureRoomController.Open(RoomIndex, () => // 家具模式随 Hub 当前房间动态加载
             {
                 furnitureModeOpen = false;
                 UI.Canvas.enabled = true;
@@ -335,6 +377,7 @@ namespace MasterHouse
                 return;
             }
             HouseUIUtil.BindButton(toggleView.button, () => SetImmersive(!immersive));
+            HouseUIUtil.ApplyPanelSkin(toggleView.button.targetGraphic as UnityEngine.UI.Image, .8f, 2.5f); // 收起界面按钮换 common 框
             immersiveLabel = toggleView.label;
             HouseUIUtil.ApplyFallbackFont(instance.transform);
         }

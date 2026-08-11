@@ -1,0 +1,238 @@
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEngine;
+
+namespace MasterHouse.EditorTools
+{
+    /// <summary>
+    /// MasterHouse 配置中心：全工程策划配置资产的统一入口。
+    /// 左侧分组列出全部配置 SO——单资产配置可直接展开内嵌编辑，多资产内容（种族/标签/物资）列表化并支持一键新建；
+    /// 资产缺失时给出红字提示与补齐按钮（调用各模块既有的生成器，只补缺失不覆盖手调）。
+    /// 本窗口只是「入口」，不承载任何业务逻辑与默认值——权威数据仍在各资产本身（§16.6）。
+    /// </summary>
+    public sealed class ConfigHubWindow : EditorWindow
+    {
+        private const string GameConfigPath = "Assets/Resources/GameConfig/游戏设置.asset";
+        private const string TuningPath = "Assets/Resources/OutGameUI/VisitorTuningConfig.asset";
+        private const string SchedulePath = "Assets/Resources/OutGameUI/VisitorScheduleTable.asset";
+        private const string EconomyPath = "Assets/Resources/OutGameUI/HouseEconomyConfig.asset";
+        private const string CodexPath = "Assets/Resources/OutGameUI/CodexTable.asset";
+        private const string FurniturePath = "Assets/Resources/OutGameUI/FurnitureTable.asset";
+        private const string FurnitureRoomPath = "Assets/Resources/OutGameUI/FurnitureRoomTable.asset";
+        private const string RaceDir = "Assets/Resources/OutGameUI/VisitorRaces";
+        private const string TagDir = "Assets/GameData/Tags";
+        private const string ItemDir = "Assets/GameData/Items";
+
+        private Vector2 scroll;
+        private readonly Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
+        private readonly Dictionary<Object, Editor> inlineEditors = new Dictionary<Object, Editor>();
+
+        [MenuItem("MasterHouse/配置中心 %#m")]
+        public static void Open()
+        {
+            var window = GetWindow<ConfigHubWindow>("配置中心");
+            window.minSize = new Vector2(420, 500);
+        }
+
+        private void OnDisable()
+        {
+            foreach (var editor in inlineEditors.Values)
+                if (editor != null) DestroyImmediate(editor);
+            inlineEditors.Clear();
+        }
+
+        private void OnGUI()
+        {
+            scroll = EditorGUILayout.BeginScrollView(scroll);
+            EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField("改数值 = 改 Inspector；加内容 = 加资产行。本窗口只是入口，不存任何数据。", EditorStyles.miniLabel);
+
+            Section("全局（局内局外共用）", () =>
+            {
+                InlineAsset<GameConfig>(GameConfigPath, "游戏设置",
+                    "tick 频率 / 局外时间倍率 / 链接默认参数", null);
+            });
+
+            Section("访客", () =>
+            {
+                InlineAsset<VisitorTuningConfig>(TuningPath, "调参配置",
+                    "营业时段（开门/打烊）/ 闲逛冒泡节奏 / 氛围邻居名册", FixVisitorAssets);
+                InlineAsset<VisitorScheduleTable>(SchedulePath, "日程表",
+                    "谁在第几天几点出现。注意：已有条目别重排别插行（下标是需求随机的种子键），加内容追加表尾", FixVisitorAssets);
+                AssetList<VisitorRaceDef>(RaceDir, "种族模板",
+                    "性格数值（tick）/ 需求权重 / 立绘差分 / 序列帧",
+                    () => CreateAsset<VisitorRaceDef>(RaceDir, "Race_新种族"));
+            });
+
+            Section("标签森林（需求匹配，局内局外共用）", () =>
+            {
+                AssetList<TagDef>(TagDir, "标签",
+                    "单亲父链构成轴；物品只挂最具体的叶子，需求命中任意祖先",
+                    () => CreateAsset<TagDef>(TagDir, "Tag_新标签"));
+                if (GUILayout.Button("校验标签森林（成环/跨轴同名）", GUILayout.Height(22)))
+                    TagDefValidator.ValidateAll();
+            });
+
+            Section("经济", () =>
+            {
+                InlineAsset<EconomyConfig>(EconomyPath, "流通数值配置",
+                    "初始值 / 满意度四档奖励 + 阈值A / 拒绝扣声望 / 装饰分权重", null);
+            });
+
+            Section("局内物资", () =>
+            {
+                AssetList<ItemDef>(ItemDir, "物资",
+                    "带 tags 字段（访客需求匹配）；节点/配方在 Assets/GameData 对应目录",
+                    () => CreateAsset<ItemDef>(ItemDir, "新物资"));
+            });
+
+            Section("图鉴与家具", () =>
+            {
+                InlineAsset<CodexTable>(CodexPath, "图鉴内容表", "房间/设备/档案/成就/日记", null);
+                InlineAsset<FurnitureTable>(FurniturePath, "家具表", "占格/价格/解禁声望/装饰分", FixFurnitureAssets);
+                InlineAsset<FurnitureRoomTable>(FurnitureRoomPath, "家具房间表", "三层背景/网格/初始摆放", FixFurnitureAssets);
+                // 家具两表走 Excel 导表流程：编辑 Excel/*.xlsx → Tools/导表/export_config.bat 出 Assets/Configs/*.csv → 自动导入
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Excel 导表（编辑 xlsx → export_config.bat → 自动导入）", GUILayout.MinWidth(120));
+                if (GUILayout.Button("从 CSV 导入", GUILayout.Width(90))) FurnitureCsvImporter.ImportAll();
+                if (GUILayout.Button("导出到 CSV", GUILayout.Width(90))) FurnitureCsvImporter.ExportAll();
+                if (GUILayout.Button("Excel目录", GUILayout.Width(70)))
+                    EditorUtility.RevealInFinder(System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Excel"));
+                EditorGUILayout.EndHorizontal();
+            });
+
+            EditorGUILayout.Space(8);
+            EditorGUILayout.LabelField("提示：设置项（音量/窗口模式）不在资产里，存 persistentDataPath/house-settings.json（§16.5）。",
+                EditorStyles.miniLabel);
+            EditorGUILayout.EndScrollView();
+        }
+
+        // ── 绘制原语 ──
+
+        private void Section(string title, System.Action body)
+        {
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField(title, EditorStyles.boldLabel);
+            EditorGUILayout.BeginVertical("HelpBox");
+            body();
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>单资产配置行：标题 + 选中按钮 + 可展开的内嵌 Inspector；缺失时红字 + 补齐按钮。</summary>
+        private void InlineAsset<T>(string path, string label, string hint, System.Action fixAction) where T : Object
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            EditorGUILayout.BeginHorizontal();
+            if (asset == null)
+            {
+                EditorGUILayout.LabelField($"✗ {label}（缺失）", ErrorStyle, GUILayout.MinWidth(120));
+                if (fixAction != null && GUILayout.Button("补齐", GUILayout.Width(50))) fixAction();
+                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.LabelField("　" + path, EditorStyles.miniLabel);
+                return;
+            }
+            var open = GetFoldout(path);
+            var next = EditorGUILayout.Foldout(open, label + "　—　" + hint, true);
+            if (next != open) foldouts[path] = next;
+            if (GUILayout.Button("选中", GUILayout.Width(50))) Ping(asset);
+            EditorGUILayout.EndHorizontal();
+            if (!next) return;
+            EditorGUI.indentLevel++;
+            GetInlineEditor(asset).OnInspectorGUI(); // 直接编辑资产本体，Undo/存盘走 Unity 默认序列化
+            EditorGUI.indentLevel--;
+            EditorGUILayout.Space(4);
+        }
+
+        /// <summary>多资产内容列表：逐个列出 + 选中，底部一键新建。</summary>
+        private void AssetList<T>(string dir, string label, string hint, System.Action createAction) where T : Object
+        {
+            var open = GetFoldout(dir);
+            var assets = FindAssets<T>(dir);
+            EditorGUILayout.BeginHorizontal();
+            var next = EditorGUILayout.Foldout(open, $"{label} ×{assets.Count}　—　{hint}", true);
+            if (next != open) foldouts[dir] = next;
+            if (GUILayout.Button("目录", GUILayout.Width(50)))
+                Ping(AssetDatabase.LoadAssetAtPath<Object>(dir));
+            EditorGUILayout.EndHorizontal();
+            if (!next) return;
+            EditorGUI.indentLevel++;
+            foreach (var asset in assets)
+            {
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField(asset.name, GUILayout.MinWidth(100));
+                if (GUILayout.Button("选中", GUILayout.Width(50))) Ping(asset);
+                EditorGUILayout.EndHorizontal();
+            }
+            if (createAction != null && GUILayout.Button("＋ 新建" + label, GUILayout.Height(20)))
+                createAction();
+            EditorGUI.indentLevel--;
+        }
+
+        // ── 工具 ──
+
+        private static void Ping(Object asset)
+        {
+            if (asset == null) return;
+            Selection.activeObject = asset;
+            EditorGUIUtility.PingObject(asset);
+        }
+
+        private static List<T> FindAssets<T>(string dir) where T : Object
+        {
+            var result = new List<T>();
+            if (!AssetDatabase.IsValidFolder(dir)) return result;
+            foreach (var guid in AssetDatabase.FindAssets($"t:{typeof(T).Name}", new[] { dir }))
+            {
+                var asset = AssetDatabase.LoadAssetAtPath<T>(AssetDatabase.GUIDToAssetPath(guid));
+                if (asset != null) result.Add(asset);
+            }
+            result.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            return result;
+        }
+
+        private static void CreateAsset<T>(string dir, string defaultName) where T : Object
+        {
+            if (!AssetDatabase.IsValidFolder(dir))
+            {
+                Debug.LogError($"[配置中心] 目录不存在：{dir}，请先用对应模块的「创建示例资产」补齐目录");
+                return;
+            }
+            var path = AssetDatabase.GenerateUniqueAssetPath($"{dir}/{defaultName}.asset");
+            var asset = ScriptableObject.CreateInstance(typeof(T));
+            AssetDatabase.CreateAsset(asset, path);
+            AssetDatabase.SaveAssets();
+            Ping(asset);
+        }
+
+        private static void FixVisitorAssets() => VisitorConfigSetupUtility.CreateIfMissing();
+        private static void FixFurnitureAssets() => FurnitureConfigSetupUtility.CreateIfMissing();
+
+        private bool GetFoldout(string key)
+        {
+            foldouts.TryGetValue(key, out var open);
+            return open;
+        }
+
+        private Editor GetInlineEditor(Object asset)
+        {
+            if (inlineEditors.TryGetValue(asset, out var editor) && editor != null) return editor;
+            editor = Editor.CreateEditor(asset);
+            inlineEditors[asset] = editor;
+            return editor;
+        }
+
+        private static GUIStyle errorStyle;
+        private static GUIStyle ErrorStyle
+        {
+            get
+            {
+                if (errorStyle == null)
+                {
+                    errorStyle = new GUIStyle(EditorStyles.label);
+                    errorStyle.normal.textColor = new Color(.95f, .35f, .3f);
+                }
+                return errorStyle;
+            }
+        }
+    }
+}

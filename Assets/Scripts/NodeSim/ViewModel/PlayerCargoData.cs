@@ -26,6 +26,19 @@ namespace MasterHouse
             return count;
         }
 
+        /// <summary>
+        /// 消费出口（访客交付说明 §4.2：招待访客就是 PlayerCargo 的消费出口，待定 #15 的「v1 只进不出」在此打破）。
+        /// 存量不足时整单失败并返回 false，不做部分扣减。
+        /// </summary>
+        public bool TryConsume(ItemDef item, long count)
+        {
+            if (item == null || count <= 0) return false;
+            items.TryGetValue(item, out var current);
+            if (current < count) return false;
+            items[item] = current - count;
+            return true;
+        }
+
         /// <summary>导出快照（UI 展示用）：按物资资产名排序后填入 result，枚举顺序稳定（§11.2）。</summary>
         public void GetSnapshot(List<KeyValuePair<ItemDef, long>> result)
         {

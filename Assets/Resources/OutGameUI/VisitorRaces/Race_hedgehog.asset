@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e00d48d5ec268ef49881228cccec109e, type: 3}
+  m_Name: Race_hedgehog
+  m_EditorClassIdentifier: 
+  raceId: hedgehog
+  displayName: "\u732C\u65CF"
+  waitTalkTimeoutTicks: 2400
+  waitDeliverTimeoutTicks: 4800
+  wanderMaxTicks: 3000
+  stayOvernightPercent: 20
+  needTagWeights:
+  - tag: {fileID: 11400000, guid: 395e88c8eb2fed74f8a980a94f822c33, type: 2}
+    weight: 4
+    required: 1
+  - tag: {fileID: 11400000, guid: 5a4dbe3da6ed61548bcd15c105b89207, type: 2}
+    weight: 3
+    required: 0
+  needCountMin: 1
+  needCountMax: 2
+  portraits:
+  - expression: 0
+    portraitPath: OutGameUI/Guests/hedgehog
+  sheetPath: OutGameUI/Visitors/wangcai
+  dialoguePool: {fileID: 0}

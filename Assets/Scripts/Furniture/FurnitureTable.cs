@@ -22,7 +22,10 @@ namespace MasterHouse
     {
         [Tooltip("唯一 id，摆放与存档都用它引用")] public string id;
         [Tooltip("显示名称")] public string displayName;
-        [Tooltip("表面类型：限制该家具能吸附的网格")] public FurnitureSurfaceType surface;
+        [Tooltip("商店分类（盆栽/摆件/桌椅/壁挂/灯具，商店页签用）")] public string category;
+        [Tooltip("商店描述文案")] public string description;
+        [Tooltip("可吸附的表面类型（可多选：如纸箱既可地面也可桌面；表格里用 / 分隔）")]
+        public List<FurnitureSurfaceType> surfaces = new List<FurnitureSurfaceType> { FurnitureSurfaceType.Floor };
         [Tooltip("占格：列数")] public int cols = 1;
         [Tooltip("占格：行数")] public int rows = 1;
         [Tooltip("显示宽度（场景像素）")] public float displayWidth = 100f;
@@ -32,6 +35,9 @@ namespace MasterHouse
         [Tooltip("摆放后对 House 装饰分的贡献")] public int decorationScore = 10;
         [Tooltip("家具精灵（Assets/Resources/OutGameUI/Furniture）")] public Sprite sprite;
         [Tooltip("桌面格配置（仅地面家具生效）")] public FurnitureTableSurfaceConfig tableSurface = new FurnitureTableSurfaceConfig();
+
+        /// <summary>是否可吸附到指定表面类型的网格。</summary>
+        public bool Supports(FurnitureSurfaceType surface) => surfaces != null && surfaces.Contains(surface);
     }
 
     /// <summary>

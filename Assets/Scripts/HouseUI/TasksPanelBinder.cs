@@ -1,14 +1,26 @@
 namespace MasterHouse
 {
-    /// <summary>委托面板绑定：焦点委托展示当前选中访客；三条假任务是 P2 委托系统的占位内容（3.3 决策不建 Def）。</summary>
+    /// <summary>委托面板绑定：焦点委托展示当前选中访客的状态与需求；三条假任务是 P2 委托系统的占位内容（3.3 决策不建 Def）。</summary>
     public static class TasksPanelBinder
     {
         public static void Bind(OutGameTasksPanelView view, HubPage page)
         {
             if (view == null) return;
-            var guest = GameManager.Instance.VisitorTable.visitors[page.GuestIndex];
+            var instance = page.SelectedInstance;
             if (view.focusText != null)
-                view.focusText.text = $"<color=#E22D76>●  MAIN / {guest.type}</color>\n<size=28>{guest.displayName} · {guest.need}</size>\n<size=17>{guest.hint} 推荐使用「{guest.solution}」，完成后可能留下「{guest.gift}」。</size>";
+            {
+                if (instance == null)
+                {
+                    view.focusText.text = "<color=#E22D76>●  MAIN / 访客接待</color>\n<size=28>暂无访客在场</size>\n<size=17>访客会按日程表在营业时段到访，接待后会说出需求。</size>";
+                }
+                else
+                {
+                    var needLine = instance.State == EVisitorState.FrontDesk
+                        ? "接待后才会说出需求。"
+                        : instance.BuildNeedSentence();
+                    view.focusText.text = $"<color=#E22D76>●  MAIN / 访客接待</color>\n<size=28>{instance.DisplayName}</size>\n<size=17>{needLine}</size>";
+                }
+            }
             var tasks = new[] { "为赫墨制造琴弦窗户", "把米娅的纸条挂上风铃", "检查明日访客预告" };
             for (var i = 0; i < tasks.Length; i++)
             {

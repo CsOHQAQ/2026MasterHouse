@@ -14,3 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DisplayName: "\u7535\u529B"
   DisplayColor: {r: 0, g: 0.6425376, b: 1, a: 1}
+  tags:
+  - {fileID: 11400000, guid: 395e88c8eb2fed74f8a980a94f822c33, type: 2}

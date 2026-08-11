@@ -1,13 +1,16 @@
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.UI;
 
 namespace MasterHouse
 {
     /// <summary>
-    /// 访客事务对话层（叠加层）：台词读 VisitorDef.transactionLine——这里就是 3.7 对话接缝的落点，
-    /// 自研对话系统进场时替换「取内容/走流程」的实现，不动访客业务与本层壳。
-    /// 服务/拒绝/周结算动作转发给 HubPage（业务在 VisitorManager）。Prefab 缺失是报错（§16.2）。
+    /// 访客事务对话层（GVN/视觉小说式，布局与美术烘在 DialogueView Prefab，§16.2）。
+    /// **对话系统未落地期间的临时 debug 驱动层（访客交付说明 §8 明示许可）**：
+    /// 台词经对话接缝取单句；右侧选项列按访客状态生成——接待/拒绝/提交物品/结束今天，
+    /// 直接调 VisitorManager 的公开方法验证状态机；对话系统接入时替换选项生成与台词流程，保留壳与 Prefab。
     /// </summary>
     public sealed class DialogueOverlay : IHouseOverlay
     {
@@ -32,7 +35,7 @@ namespace MasterHouse
             var view = instance.GetComponent<OutGameDialogueView>();
             if (view == null)
             {
-                Debug.LogError("[HouseUI] 对话层 Prefab 缺少视图组件：OutGameDialogueView");
+                Debug.LogError("[HouseUI] 对话层 Prefab 缺少视图组件：OutGameDialogueView（旧版 Prefab 请删除后由生成器重建）");
                 Object.Destroy(instance);
                 return;
             }
@@ -42,18 +45,20 @@ namespace MasterHouse
             BindContent(view, ui, page);
             HouseUIUtil.ApplyFallbackFont(instance.transform);
 
-            // 入场动效：整层淡入 + 立绘/对话框滑入（Tween 目标避开按钮 transform）
+            // 入场动效：整层淡入 + 对话条上滑 + 立绘左滑（Tween 目标避开按钮 transform）
             var group = HouseUIUtil.Group(rect.gameObject, 0);
             group.DOFade(1, .28f).SetUpdate(true);
-            if (view.characterCard != null)
+            if (view.dialogueBar != null)
             {
-                view.characterCard.anchoredPosition = new Vector2(330, 40);
-                view.characterCard.DOAnchorPosX(390, .55f).SetEase(Ease.OutCubic).SetUpdate(true);
+                var resting = view.dialogueBar.anchoredPosition;
+                view.dialogueBar.anchoredPosition = resting + new Vector2(0, -70);
+                view.dialogueBar.DOAnchorPos(resting, .45f).SetEase(Ease.OutCubic).SetUpdate(true);
             }
-            if (view.dialogueBox != null)
+            if (view.portrait != null)
             {
-                view.dialogueBox.anchoredPosition = new Vector2(80, 110);
-                view.dialogueBox.DOAnchorPosY(190, .5f).SetEase(Ease.OutCubic).SetUpdate(true);
+                var resting = view.portrait.rectTransform.anchoredPosition;
+                view.portrait.rectTransform.anchoredPosition = resting + new Vector2(-90, 0);
+                view.portrait.rectTransform.DOAnchorPos(resting, .5f).SetEase(Ease.OutCubic).SetUpdate(true);
             }
             ui.PushOverlay(overlay);
         }
@@ -74,86 +79,87 @@ namespace MasterHouse
 
         private static void BindContent(OutGameDialogueView view, HouseUIManager ui, HubPage page)
         {
-            var visitors = GameManager.Instance.VisitorTable.visitors;
-            var states = GameManager.Instance.VisitorManager.Data.States;
-            var guest = visitors[page.GuestIndex];
+            var gm = GameManager.Instance;
+            var visitor = gm.VisitorManager;
+            var guest = page.SelectedInstance;
 
-            if (view.sceneArt != null)
-            {
-                var baked = FurnitureSceneComposer.Current;
-                view.sceneArt.texture = baked != null ? (Texture)baked : Resources.Load<Texture2D>("OutGameUI/house-hub-v2");
-            }
+            // 场景/立绘/GUEST 标题为 Prefab 烘焙的静态美术；此处只绑文本与选项
             if (view.closeButton != null) HouseUIUtil.BindButton(view.closeButton, ui.PopOverlay);
-            if (view.portrait != null) view.portrait.texture = Resources.Load<Texture2D>(guest.portraitPath);
-            if (view.portraitTag != null)
-                view.portraitTag.text = "VISITOR / " + (guest.special ? "SPECIAL" : "WEEK 01");
 
-            for (var i = 0; i < visitors.Count; i++)
+            string speaker;
+            string line;
+            if (guest == null)
             {
-                var index = i;
-                var item = visitors[i];
-                if (view.weekGuestLabels != null && i < view.weekGuestLabels.Length && view.weekGuestLabels[i] != null)
-                    view.weekGuestLabels[i].text = item.displayName + "\n<size=13>" + (item.special ? "特殊事件 · 可打断" : "一般事件 · 无先后") + "</size>";
-                if (view.weekGuestBackgrounds != null && i < view.weekGuestBackgrounds.Length && view.weekGuestBackgrounds[i] != null)
-                    view.weekGuestBackgrounds[i].color = i == page.GuestIndex ? new Color(.45f, .08f, .28f, .75f) : new Color(1, 1, 1, .035f);
-                if (view.weekGuestButtons != null && i < view.weekGuestButtons.Length && view.weekGuestButtons[i] != null)
-                    HouseUIUtil.BindButton(view.weekGuestButtons[i], () => page.SwitchDialogueGuest(index));
+                speaker = string.Empty;
+                line = "现在没有访客在场。访客会按日程表在营业时段到访。";
             }
-
-            if (view.dialogueText != null)
-                view.dialogueText.text = $"<size=15>{guest.type}{(guest.special ? " · 硬植入事件" : " · 无接待顺序")}</size>\n<size=31>{guest.displayName}</size>     <size=15>信赖 {guest.affinity}%</size>\n\n{GameManager.Instance.DialogueService.GetVisitorLine(guest)}";
-            if (view.needButton != null)
-                HouseUIUtil.BindButton(view.needButton, () =>
+            else
+            {
+                speaker = guest.DisplayName;
+                line = guest.State switch
                 {
-                    ui.PopOverlay();
-                    PanelHost.Open(ui, page, EHousePanel.Archive);
-                });
-
-            var served = states[page.GuestIndex].Served;
-            if (view.serveButton != null)
-            {
-                if (view.serveLabel != null) view.serveLabel.text = served ? "事件已完成" : "回应访客事件";
-                HouseUIUtil.BindButton(view.serveButton, page.ServeSelectedGuest);
-                view.serveButton.interactable = !served;
+                    // 初次见面（§8）：玩家交互「前台等待」访客时触发，状态不变
+                    EVisitorState.FrontDesk => visitor.RequestFirstMeeting(guest.InstanceId),
+                    EVisitorState.Serving => guest.BuildNeedSentence(),
+                    _ => "（哼着歌在屋里闲逛……）",
+                };
             }
-            if (view.refuseButton != null)
-            {
-                if (view.refuseLabel != null)
-                    view.refuseLabel.text = $"拒绝接待 <size=13>声望 -{GameManager.Instance.EconomyManager.RefuseReputationPenalty}</size>";
-                HouseUIUtil.BindButton(view.refuseButton, page.RefuseSelectedGuest);
-                view.refuseButton.interactable = !served;
-            }
+            if (view.speakerName != null) view.speakerName.text = speaker;
+            if (view.dialogueText != null) view.dialogueText.text = line;
+            if (view.guestTitle != null) view.guestTitle.text = "GUEST";
+            if (view.escHint != null) view.escHint.text = "ESC  返回";
 
-            // 家具快捷栏：与真实家具布局无数据联系（纯表现，旧壳已知状态），内容读档案 Def
-            var furnitureArchives = new List<CodexEntryDef>();
-            GameManager.Instance.CodexTable.GetArchives(ECodexArchiveCategory.NarrativeFurniture, furnitureArchives);
-            for (var i = 0; i < furnitureArchives.Count && i < 5; i++)
+            BindOptions(view, page, guest);
+        }
+
+        /// <summary>
+        /// 右侧选项列（debug 驱动，§8）：按访客状态生成——
+        /// 前台等待：接待 / 查看需求 / 拒绝；服务中：递上仓库物品（前 4 项）/ 拒绝。
+        /// </summary>
+        private static void BindOptions(OutGameDialogueView view, HubPage page, VisitorInstance guest)
+        {
+            var gm = GameManager.Instance;
+            var options = new List<(string label, UnityAction action)>();
+
+            if (guest != null && guest.State == EVisitorState.FrontDesk)
             {
-                var item = furnitureArchives[i];
-                if (view.furnitureLabels != null && i < view.furnitureLabels.Length && view.furnitureLabels[i] != null)
-                    view.furnitureLabels[i].text = item.displayName;
-                if (view.furnitureBackgrounds != null && i < view.furnitureBackgrounds.Length && view.furnitureBackgrounds[i] != null)
-                    view.furnitureBackgrounds[i].color = HubPage.PlacedFurnitureId == item.id
-                        ? new Color(.48f, .08f, .28f, .72f)
-                        : new Color(1, 1, 1, .035f);
-                if (view.furnitureButtons != null && i < view.furnitureButtons.Length && view.furnitureButtons[i] != null)
+                options.Add(("接待（开始服务）", page.AcceptSelectedGuest));
+                options.Add(("查看需求家具", () => page.Toast("接待后才会说出需求。")));
+                options.Add(($"拒绝接待  声望 -{gm.EconomyManager.RefuseReputationPenalty}", page.RefuseSelectedGuest));
+            }
+            else if (guest != null && guest.State == EVisitorState.Serving)
+            {
+                // 仓库物品提交（debug：取存量前 4 项；服务一次性、交错照扣，§5）
+                var snapshot = new List<KeyValuePair<ItemDef, long>>();
+                gm.PlayerCargo.GetSnapshot(snapshot);
+                var listed = 0;
+                foreach (var pair in snapshot)
                 {
-                    var itemId = item.id;
-                    var itemName = item.displayName;
-                    var backgrounds = view.furnitureBackgrounds;
-                    HouseUIUtil.BindButton(view.furnitureButtons[i], () =>
-                    {
-                        HubPage.PlacedFurnitureId = itemId;
-                        for (var j = 0; j < furnitureArchives.Count && j < backgrounds.Length; j++)
-                            if (backgrounds[j] != null)
-                                backgrounds[j].color = furnitureArchives[j].id == itemId
-                                    ? new Color(.48f, .08f, .28f, .72f)
-                                    : new Color(1, 1, 1, .035f);
-                        page.Toast("已摆放：" + itemName);
-                    });
+                    if (pair.Value <= 0 || listed >= 4) continue;
+                    var item = pair.Key;
+                    options.Add(($"递上「{item.DisplayName}」×{pair.Value}", () => page.SubmitItemToSelectedGuest(item)));
+                    listed++;
                 }
+                if (listed == 0)
+                    options.Add(("（仓库里没有可递上的物品）", () => page.Toast("仓库是空的——GM 面板（F1）可注入物资")));
+                options.Add(($"拒绝接待  声望 -{gm.EconomyManager.RefuseReputationPenalty}", page.RefuseSelectedGuest));
             }
-            if (view.endWeekButton != null) HouseUIUtil.BindButton(view.endWeekButton, page.EndWeek);
+            // 「结束今天」不进对话选项：日结入口在 Hub 右侧 dock（对话里出现打断演出且语义不属于访客交谈）
+
+            for (var i = 0; i < view.optionButtons.Length; i++)
+            {
+                var button = view.optionButtons[i];
+                if (button == null) continue;
+                if (i >= options.Count)
+                {
+                    button.gameObject.SetActive(false);
+                    continue;
+                }
+                button.gameObject.SetActive(true);
+                if (view.optionLabels != null && i < view.optionLabels.Length && view.optionLabels[i] != null)
+                    view.optionLabels[i].text = options[i].label;
+                HouseUIUtil.BindButton(button, options[i].action);
+            }
         }
     }
 }

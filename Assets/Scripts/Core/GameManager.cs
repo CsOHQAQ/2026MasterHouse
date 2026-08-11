@@ -20,7 +20,8 @@ namespace MasterHouse
         public IDialogueService DialogueService { get; private set; }
 
         /// <summary>局外内容表（Model，运行时只读，§16.6）。缺失是报错不是回退。</summary>
-        public VisitorTable VisitorTable { get; private set; }
+        public VisitorScheduleTable VisitorSchedule { get; private set; }
+        public VisitorTuningConfig VisitorTuning { get; private set; }
         public CodexTable CodexTable { get; private set; }
 
         /// <summary>家具配置表（Model，§16.7 并入 Def 体系：统一由此加载，消费方不再散落 Resources.Load）。</summary>
@@ -67,7 +68,10 @@ namespace MasterHouse
         /// 局外内部时钟先走、访客后判（用刚推进的时间做整数比较）。</summary>
         private void RunTick()
         {
-            LevelManager.TickAll();
+            // 打烊闸门（§16.4/访客交付说明 §7）：到达打烊时刻后局内生产节点停 tick，堵死「不结束今天、挂机刷资源」；
+            // 局内测试场景中时钟从不运行、永不打烊，产线照常推进（待定 #19 联通前的隔离态）
+            if (!HouseClockManager.IsClosedForToday)
+                LevelManager.TickAll();
             HouseClockManager.Tick();
             VisitorManager.Tick();
         }
@@ -84,21 +88,25 @@ namespace MasterHouse
             PlayerCargo = new PlayerCargoData();
             LinkManager = new LinkManager();
             LevelManager = new LevelManager(LinkManager, PlayerCargo);
-            VisitorTable = Resources.Load<VisitorTable>("OutGameUI/VisitorTable");
+            VisitorSchedule = Resources.Load<VisitorScheduleTable>("OutGameUI/VisitorScheduleTable");
+            VisitorTuning = Resources.Load<VisitorTuningConfig>("OutGameUI/VisitorTuningConfig");
             CodexTable = Resources.Load<CodexTable>("OutGameUI/CodexTable");
-            if (VisitorTable == null || CodexTable == null)
-                Debug.LogError("局外内容表缺失或损坏（Resources/OutGameUI/VisitorTable|CodexTable）：" +
-                               "内容资产是权威数据源，请从版本库恢复；若资产存在却加载不到，检查其 m_Script 引用是否指向 VisitorTable.cs / CodexTable.cs");
+            if (VisitorSchedule == null || VisitorTuning == null || CodexTable == null)
+                Debug.LogError("局外内容表缺失或损坏（Resources/OutGameUI/VisitorScheduleTable|VisitorTuningConfig|CodexTable）：" +
+                               "内容资产是权威数据源，缺失请执行菜单 MasterHouse → 访客系统 → 创建示例资产（补齐缺失）或从版本库恢复；" +
+                               "若资产存在却加载不到，检查其 m_Script 引用是否指向同名 .cs");
             FurnitureTable = Resources.Load<FurnitureTable>("OutGameUI/FurnitureTable");
             FurnitureRoomTable = Resources.Load<FurnitureRoomTable>("OutGameUI/FurnitureRoomTable");
             if (FurnitureTable == null || FurnitureRoomTable == null)
                 Debug.LogError("家具配置表缺失（Resources/OutGameUI/FurnitureTable|FurnitureRoomTable）：请执行菜单 MasterHouse → 家具系统 → 创建配置表");
 
-            HouseClockManager = new HouseClockManager();
+            HouseClockManager = new HouseClockManager(VisitorTuning); // 营业时段迁入 VisitorTuningConfig（§4.5）
             // Economy 纯事件驱动，不进 RunTick（§16.4）；Codex 供装饰分数量统计（§16.7 毒点①），家具两表供所有权与初始摆放分
             EconomyManager = new EconomyManager(CodexTable, FurnitureTable, FurnitureRoomTable);
             DialogueService = new DefDialogueService();
-            VisitorManager = new VisitorManager(VisitorTable, HouseClockManager, EconomyManager);
+            // runSeed 由 VisitorManager 内部注入固定默认常量（§6.1，待定 #9），GM 面板可改写
+            VisitorManager = new VisitorManager(VisitorSchedule, VisitorTuning, HouseClockManager,
+                EconomyManager, PlayerCargo, DialogueService);
         }
 
         private void Start()

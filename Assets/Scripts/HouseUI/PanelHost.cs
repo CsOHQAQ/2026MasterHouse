@@ -37,6 +37,11 @@ namespace MasterHouse
 
         public static void Open(HouseUIManager ui, HubPage page, EHousePanel panel)
         {
+            if (panel == EHousePanel.Market)
+            {
+                StoreOverlay.Open(ui); // 商店重做为全屏 STORE 叠加层（2026-08-11），不走面板外壳
+                return;
+            }
             var path = PagePrefabPath(panel);
             var prefab = Resources.Load<GameObject>(path);
             if (prefab == null)
@@ -74,9 +79,6 @@ namespace MasterHouse
                 case EHousePanel.Calendar:
                     CalendarPanelBinder.Bind(instance.GetComponentInChildren<OutGameCalendarPanelView>(true), page);
                     break;
-                case EHousePanel.Market:
-                    MarketPanelBinder.Bind(instance.GetComponentInChildren<MarketPanelView>(true), page);
-                    break;
                 // Inventory/Profile/Contacts：统一占位页，内容烘焙在 Prefab 内，仅外壳头部按 PanelMeta 区分
             }
             HouseUIUtil.ApplyFallbackFont(instance.transform);
@@ -111,6 +113,7 @@ namespace MasterHouse
         private void BindShell(EHousePanel panel)
         {
             var meta = PanelMeta(panel);
+            HouseUIUtil.ApplyPanelSkin(view.panel); // 全局面板底图（Secondary-bg，9 宫格）
             if (view.headerTitle != null) view.headerTitle.text = $"<size=14>{meta.eyebrow}</size>\n{meta.title}";
             if (view.headerMark != null) view.headerMark.text = meta.mark;
             if (view.backButton != null) HouseUIUtil.BindButton(view.backButton, ui.PopOverlay);
@@ -141,7 +144,6 @@ namespace MasterHouse
             EHousePanel.Journal => OutGamePrefabResourcePaths.JournalPage,
             EHousePanel.Archive => OutGamePrefabResourcePaths.ArchivePage,
             EHousePanel.Calendar => OutGamePrefabResourcePaths.CalendarPage,
-            EHousePanel.Market => OutGamePrefabResourcePaths.MarketPage,
             _ => OutGamePrefabResourcePaths.PlaceholderPage,
         };
 

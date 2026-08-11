@@ -121,7 +121,19 @@ namespace MasterHouse
             toastRoot.anchorMin = toastRoot.anchorMax = new Vector2(.5f, 1);
             toastRoot.anchoredPosition = new Vector2(0, -168);
             toastRoot.sizeDelta = new Vector2(470, 58);
-            go.GetComponent<Image>().color = new Color(.12f, .035f, .1f, .94f);
+            // 美术皮肤（PC ui/common/Toast）：缺失时回退旧底色
+            var toastImage = go.GetComponent<Image>();
+            var toastSkin = Resources.Load<Sprite>("OutGameUI/common/Toast");
+            if (toastSkin != null)
+            {
+                toastImage.sprite = toastSkin;
+                toastImage.color = Color.white;
+                toastRoot.sizeDelta = new Vector2(640, 52); // 贴合素材长条比例
+            }
+            else
+            {
+                toastImage.color = new Color(.12f, .035f, .1f, .94f);
+            }
 
             var labelGo = new GameObject("ToastText", typeof(RectTransform), typeof(Text));
             labelGo.layer = 5;

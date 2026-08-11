@@ -169,4 +169,4 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u2713     \u591C\u7684\u4E3B\u4EBA\n<size=15>          \u5728\u6DF1\u591C\u5B8C\u6210\u4E00\u6B21\u670D\u52A1</size>"
+  m_Text: "\t\u2713     \u591C\u7684\u4E3B\u4EBA\n\t<size=15>          \t\u5728\u6DF1\u591C\u5B8C\u6210\u4E00\u6B21\u670D\u52A1</size>"

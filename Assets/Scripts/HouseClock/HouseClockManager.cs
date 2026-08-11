@@ -3,15 +3,23 @@ using UnityEngine;
 namespace MasterHouse
 {
     /// <summary>
-    /// 局外游戏时钟逻辑（§16.4）：由 GameManager 的全局固定 tick 驱动，取代旧 OutGameClock 的帧驱动 float 分钟。
-    /// 体验节奏沿用「现实 1 秒 = 游戏 1 分钟」，以 tick 表达：10 tick/秒 ÷ 每游戏分钟 10 tick（倍率见 GameConfig，待定 #18）。
+    /// 局外游戏时钟逻辑（§16.4）：由 GameManager 的全局固定 tick 驱动。
+    /// 营业时段（开门/打烊时刻）配置在 VisitorTuningConfig（访客交付说明 §4.5），代码不留营业时间魔数——
+    /// 旧 DayStartMinute 常量已迁入配置。
+    /// 打烊闸门（§7）：到达打烊时刻后时钟停走（IsClosedForToday），一切 tick 业务统一冻结；
+    /// 解冻由玩家【结束今天】显式触发（VisitorManager.EndDay → NextDay 跳次日开门时刻）。
     /// </summary>
     public class HouseClockManager
     {
-        /// <summary>新一天的起始时间（08:00），以当天分钟数表达。</summary>
-        public const int DayStartMinute = 8 * 60;
+        private readonly VisitorTuningConfig tuning;
 
         public HouseClockData Data { get; } = new HouseClockData();
+
+        /// <summary>开门时刻（当天分钟数）。配置缺失时回落 8:00 并已在构造处报错。</summary>
+        public int OpenMinute => tuning != null ? tuning.openMinute : 8 * 60;
+
+        /// <summary>打烊时刻（当天分钟数）。配置缺失时回落 22:00。</summary>
+        public int CloseMinute => tuning != null ? tuning.closeMinute : 22 * 60;
 
         /// <summary>
         /// 时钟闸门：时间只在 Hub 期间流动（标题页/开门过场暂停，家具模式继续走）。
@@ -19,32 +27,35 @@ namespace MasterHouse
         /// </summary>
         public bool IsRunning { get; private set; }
 
-        public void SetRunning(bool running) => IsRunning = running;
+        /// <summary>打烊闸门（§7）：当天时间已到打烊时刻，一切 tick 业务冻结，等玩家【结束今天】。整数比较（§11.3）。</summary>
+        public bool IsClosedForToday => Data.TickOfDay >= CloseMinute * HouseClockData.TicksPerMinute;
 
-        /// <summary>每全局 tick 调用一次（GameManager 驱动），推进 1 tick 并处理跨天进位。</summary>
-        public void Tick()
+        public HouseClockManager(VisitorTuningConfig tuning)
         {
-            if (!IsRunning) return;
-            Data.TickOfDay++;
-            if (Data.TickOfDay >= HouseClockData.DayTicks)
-            {
-                Data.TickOfDay -= HouseClockData.DayTicks;
-                Data.Day++;
-            }
+            this.tuning = tuning;
         }
 
-        /// <summary>跳到下一天早晨（周结算用）。</summary>
+        public void SetRunning(bool running) => IsRunning = running;
+
+        /// <summary>每全局 tick 调用一次（GameManager 驱动）。打烊后停走（跨天只经 NextDay，不再有 tick 进位）。</summary>
+        public void Tick()
+        {
+            if (!IsRunning || IsClosedForToday) return;
+            Data.TickOfDay++;
+        }
+
+        /// <summary>跳到下一天开门时刻（日结用，§7）。</summary>
         public void NextDay()
         {
             Data.Day++;
-            Data.TickOfDay = DayStartMinute * HouseClockData.TicksPerMinute;
+            Data.TickOfDay = OpenMinute * HouseClockData.TicksPerMinute;
         }
 
-        /// <summary>回到第 1 天早晨（新游戏/GM 重置）。</summary>
+        /// <summary>回到第 1 天开门时刻（新游戏/GM 重置）。</summary>
         public void ResetNew()
         {
             Data.Day = 1;
-            Data.TickOfDay = DayStartMinute * HouseClockData.TicksPerMinute;
+            Data.TickOfDay = OpenMinute * HouseClockData.TicksPerMinute;
         }
 
         /// <summary>

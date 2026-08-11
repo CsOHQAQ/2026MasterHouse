@@ -60,11 +60,11 @@ namespace MasterHouse
             BindOverlay();
         }
 
-        /// <summary>起居室优先使用家具布局合成图：摆放完成后布局直接成为背景图。</summary>
+        /// <summary>房间背景优先使用家具布局合成图（背景+当前摆放；缺失时立即烘焙——一进游戏默认家具就可见）。</summary>
         public void ApplySceneArt()
         {
-            if (sceneArt == null || page.RoomIndex != 0) return;
-            var baked = FurnitureSceneComposer.Current;
+            if (sceneArt == null) return;
+            var baked = FurnitureSceneComposer.EnsureBaked(page.RoomIndex);
             if (baked != null) sceneArt.texture = baked;
         }
 
@@ -118,26 +118,25 @@ namespace MasterHouse
             UpdateHotspotAnchors();
         }
 
-        /// <summary>家具摆放退出后：重新烘焙背景并重建热点。</summary>
+        /// <summary>家具摆放退出后：重新烘焙当前房间背景并重建热点。</summary>
         public void RefreshAfterFurniture()
         {
-            FurnitureSceneComposer.RequestBake(_ =>
+            FurnitureSceneComposer.RequestBake(page.RoomIndex, _ =>
             {
                 ApplySceneArt();
                 BuildHotspots();
             });
         }
 
-        /// <summary>背景中的已摆放家具热点：悬停弹提示卡，点击暂接设备面板（3.5c）。仅起居室。</summary>
+        /// <summary>背景中的已摆放家具热点：悬停弹提示卡，点击暂接设备面板（3.5c）。按当前房间取布局。</summary>
         private void BuildHotspots()
         {
             if (sceneRoot == null) return;
             var existing = sceneRoot.Find("FurnitureHotspots");
             if (existing != null) Object.Destroy(existing.gameObject);
             hotspots.Clear();
-            if (page.RoomIndex != 0) return;
             var root = HouseUIRuntime.Stretch(sceneRoot, "FurnitureHotspots");
-            foreach (var info in FurnitureSceneComposer.GetPlacedFurniture())
+            foreach (var info in FurnitureSceneComposer.GetPlacedFurniture(page.RoomIndex))
             {
                 var viewport = info.ViewportRect;
                 var hotspot = HouseUIRuntime.Rect(root, "Hotspot_" + info.Entry.id,
@@ -186,19 +185,7 @@ namespace MasterHouse
             }
         }
 
-        /// <summary>服务成功 → 演员庆祝并限时停留。</summary>
-        public void NotifyServed(int guestIndex)
-        {
-            if (stage != null) stage.NotifyServed(guestIndex);
-        }
-
-        /// <summary>被拒绝 → 演员直接返回门口离开。</summary>
-        public void NotifyRefused(int guestIndex)
-        {
-            if (stage != null) stage.NotifyRefused(guestIndex);
-        }
-
-        /// <summary>整体重建舞台（周结算/GM 重置后访客重新进场）。</summary>
+        /// <summary>整体重建舞台（GM 重置后访客重新进场）。庆祝/离场等状态表现由舞台层轮询实例状态自驱（§9）。</summary>
         public void RebuildStage() => BuildVisitorStage();
 
         /// <summary>重建场景访客 NPC 层（仅起居室）。舞台只读 VisitorManager 状态，表现不回写业务（§16.4）。</summary>
