@@ -102,7 +102,7 @@ namespace MasterHouse.EditorTools
             {
                 id = id,
                 displayName = name,
-                surface = surface,
+                surfaces = new List<FurnitureSurfaceType> { surface },
                 cols = cols,
                 rows = rows,
                 displayWidth = width,

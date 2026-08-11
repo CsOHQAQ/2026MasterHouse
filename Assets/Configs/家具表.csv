@@ -1,0 +1,41 @@
+﻿id,显示名,分类,描述,表面类型,占格列,占格行,显示宽,显示高,价格,解禁声望,装饰分,精灵图,桌面格启用,桌面格列数,桌面格宽,桌面格高,桌面格偏移X,桌面高度
+002,red armchair,桌椅,,地面,3,2,185,174,0,0,32,Assets/PC ui/Scene/furniture/002_red_armchair 1.png,否,3,64,56,50,146
+003,floor lamp,灯具,,地面,1,2,77,194,100,0,15,Assets/PC ui/Scene/furniture/003_floor_lamp 4.png,否,3,64,56,50,146
+004,decorated bookcase,桌椅,,地面,2,2,153,255,0,0,39,Assets/PC ui/Scene/furniture/004_decorated_bookcase 1.png,否,3,64,56,50,146
+005,wood coffee table,桌椅,,地面,4,1,252,110,0,0,28,Assets/PC ui/Scene/furniture/005_wood_coffee_table 1.png,是,2,64,56,50,88
+006,blue pedestal table,桌椅,,地面,1,1,94,113,70,0,11,Assets/PC ui/Scene/furniture/006_blue_pedestal_table 3.png,是,1,64,56,50,90
+007,hanging plant 1,壁挂,,壁挂,1,3,86,188,0,0,16,Assets/PC ui/Scene/furniture/007_hanging_plant_1 4.png,否,3,64,56,50,146
+008,hanging plant 2,壁挂,,壁挂,1,2,76,137,70,0,10,Assets/PC ui/Scene/furniture/008_hanging_plant_2 3.png,否,3,64,56,50,146
+010,hanging plant 4,壁挂,,壁挂,2,2,90,124,70,0,11,Assets/PC ui/Scene/furniture/010_hanging_plant_4 2.png,否,3,64,56,50,146
+011,open cardboard box,摆件,,地面/桌面,2,1,131,84,70,0,11,Assets/PC ui/Scene/furniture/011_open_cardboard_box 1.png,否,3,64,56,50,146
+012,closed cardboard box,摆件,,地面/桌面,1,1,91,76,0,0,7,Assets/PC ui/Scene/furniture/012_closed_cardboard_box 1.png,否,3,64,56,50,146
+013,potted monstera 1,盆栽,,地面,2,2,124,160,0,0,20,Assets/PC ui/Scene/furniture/013_potted_monstera_1 5.png,否,3,64,56,50,146
+014,potted monstera 2,盆栽,,地面,1,1,102,119,80,0,12,Assets/PC ui/Scene/furniture/014_potted_monstera_2 4.png,否,3,64,56,50,146
+016,mountain poster,壁挂,,壁挂,2,2,94,115,0,0,11,Assets/PC ui/Scene/furniture/016_mountain_poster 3.png,否,3,64,56,50,146
+017,wall clock,壁挂,,壁挂,1,1,75,81,0,0,6,Assets/PC ui/Scene/furniture/017_wall_clock 2.png,否,3,64,56,50,146
+018,wall calendar,壁挂,,壁挂,1,1,64,72,0,0,5,Assets/PC ui/Scene/furniture/018_wall_calendar 2.png,否,3,64,56,50,146
+020,green tag,壁挂,,壁挂,1,1,52,38,40,0,5,Assets/PC ui/Scene/furniture/020_green_tag 1.png,否,3,64,56,50,146
+021,purple tag,壁挂,,壁挂,1,1,51,38,40,0,5,Assets/PC ui/Scene/furniture/021_purple_tag 1.png,否,3,64,56,50,146
+023,hanging plant,壁挂,,壁挂,2,3,95,209,130,0,20,Assets/PC ui/Scene/furniture/023_hanging_plant 3.png,否,3,64,56,50,146
+024,blue sofa,桌椅,,地面,5,1,316,138,0,0,44,Assets/PC ui/Scene/furniture/024_blue_sofa 2.png,否,3,64,56,50,146
+032,open cardboard box,摆件,,地面/桌面,2,1,111,95,70,0,11,Assets/PC ui/Scene/furniture/032_open_cardboard_box 1.png,否,3,64,56,50,146
+035,book file holder,摆件,,地面,1,1,92,72,40,0,7,Assets/PC ui/Scene/furniture/035_book_file_holder 2.png,否,3,64,56,50,146
+036,round pod chair,桌椅,,地面,2,2,173,195,0,0,34,Assets/PC ui/Scene/furniture/036_round_pod_chair 1.png,否,3,64,56,50,146
+037,organic wall mirror,壁挂,,壁挂,2,2,96,131,0,0,13,Assets/PC ui/Scene/furniture/037_organic_wall_mirror 2.png,否,3,64,56,50,146
+038,orb floor lamp,灯具,,地面,1,2,85,165,90,0,14,Assets/PC ui/Scene/furniture/038_orb_floor_lamp 4.png,否,3,64,56,50,146
+040,jellyfish aquarium console,桌椅,,地面,2,2,158,187,200,0,30,Assets/PC ui/Scene/furniture/040_jellyfish_aquarium_console 2.png,否,3,64,56,50,146
+041,lava lamp,灯具,,地面,1,2,60,183,70,0,11,Assets/PC ui/Scene/furniture/041_lava_lamp 3.png,否,3,64,56,50,146
+043,retro dining set,桌椅,,地面,5,2,369,184,0,0,60,Assets/PC ui/Scene/furniture/043_retro_dining_set 4.png,是,3,64,56,50,147
+049,cactus lamp,灯具,,地面,1,1,70,121,60,0,8,Assets/PC ui/Scene/furniture/049_cactus_lamp 3.png,否,3,64,56,50,146
+051,round bar shelf,桌椅,,地面,2,2,124,163,130,0,20,Assets/PC ui/Scene/furniture/051_round_bar_shelf 2.png,否,3,64,56,50,146
+053,potted palm,盆栽,,地面,2,3,130,301,0,0,39,Assets/PC ui/Scene/furniture/053_potted_palm 3.png,否,3,64,56,50,146
+054,blue beanbag,桌椅,,地面,2,1,140,112,100,0,16,Assets/PC ui/Scene/furniture/054_blue_beanbag 1.png,否,3,64,56,50,146
+055,space rug,摆件,,地面,3,1,194,79,100,0,15,Assets/PC ui/Scene/furniture/055_space_rug 2.png,否,3,64,56,50,146
+056,cloud coffee table,桌椅,,地面,4,1,275,119,220,0,33,Assets/PC ui/Scene/furniture/056_cloud_coffee_table 1.png,是,3,64,56,50,95
+057,glass media console,桌椅,,地面,4,1,303,136,0,0,41,Assets/PC ui/Scene/furniture/057_glass_media_console 2.png,否,3,64,56,50,146
+059,crescent aquarium lamp,灯具,,地面,2,2,114,160,120,0,18,Assets/PC ui/Scene/furniture/059_crescent_aquarium_lamp 3.png,否,3,64,56,50,146
+060,retro space tv,摆件,,地面,2,2,148,140,140,0,21,Assets/PC ui/Scene/furniture/060_retro_space_tv 2.png,否,3,64,56,50,146
+063,lava lamp,灯具,,地面,1,2,65,181,80,0,12,Assets/PC ui/Scene/furniture/063_lava_lamp 1.png,否,3,64,56,50,146
+064,tall bubble aquarium,摆件,,地面,1,2,62,208,90,0,13,Assets/PC ui/Scene/furniture/064_tall_bubble_aquarium 1.png,否,3,64,56,50,146
+075,washing machine,摆件,,地面,2,2,161,188,200,0,30,Assets/PC ui/Scene/furniture/075_washing_machine 1.png,否,3,64,56,50,146
+077,bathtub table set,桌椅,,地面,5,3,363,294,600,0,60,Assets/PC ui/Scene/furniture/077_bathtub_table_set 1.png,否,3,64,56,50,146

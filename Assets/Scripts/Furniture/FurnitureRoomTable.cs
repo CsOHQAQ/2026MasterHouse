@@ -36,6 +36,7 @@ namespace MasterHouse
         [Tooltip("宿主家具 id（桌面家具）")] public string hostFurnitureId;
         public int col;
         public int row;
+        [Tooltip("左右镜像摆放")] public bool flipped;
     }
 
     /// <summary>房间配置表中的一行。</summary>

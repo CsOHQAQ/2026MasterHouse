@@ -17,154 +17,197 @@ MonoBehaviour:
     displayName: "\u8D77\u5C45\u5BA4"
     sceneWidth: 1672
     sceneHeight: 941
-    background: {fileID: 21300000, guid: 6a72d20445b1ec2478f5cc6c7c0e6cbd, type: 3}
-    depthBlurOverlay: {fileID: 21300000, guid: 227c9f04e766d8f40bd8d0a61cbbb382, type: 3}
-    focusBlurOverlay: {fileID: 21300000, guid: a624fffe906b8904ebdd27c388b3efca, type: 3}
+    background: {fileID: 21300000, guid: 34f9bbefb390a7d4ab0198896cba191e, type: 3}
+    depthBlurOverlay: {fileID: 0}
+    focusBlurOverlay: {fileID: 0}
     startCredit: 2480
     grids:
+    - id: wall
+      surface: 2
+      cols: 27
+      rows: 9
+      cellWidth: 60
+      cellHeight: 60
+      x: 26
+      y: 20
     - id: floor
       surface: 0
-      cols: 14
-      rows: 4
+      cols: 27
+      rows: 8
       cellWidth: 60
       cellHeight: 45
-      x: 400
-      y: 610
-    - id: wallL
-      surface: 2
-      cols: 6
-      rows: 3
-      cellWidth: 60
-      cellHeight: 60
-      x: 90
-      y: 290
-    - id: wallR
-      surface: 2
-      cols: 4
-      rows: 3
-      cellWidth: 60
-      cellHeight: 60
-      x: 1290
-      y: 260
-    blockedCells:
-    - gridId: floor
-      col: 8
-      row: 0
-    - gridId: floor
-      col: 8
-      row: 1
-    - gridId: floor
-      col: 8
-      row: 2
-    - gridId: floor
-      col: 8
-      row: 3
-    - gridId: floor
-      col: 9
-      row: 0
-    - gridId: floor
-      col: 9
-      row: 1
-    - gridId: floor
-      col: 9
-      row: 2
-    - gridId: floor
-      col: 9
-      row: 3
-    - gridId: floor
-      col: 10
-      row: 0
-    - gridId: floor
-      col: 10
-      row: 1
-    - gridId: floor
-      col: 10
-      row: 2
-    - gridId: floor
-      col: 10
-      row: 3
-    - gridId: floor
-      col: 11
-      row: 0
-    - gridId: floor
-      col: 11
-      row: 1
-    - gridId: floor
-      col: 11
-      row: 2
-    - gridId: floor
-      col: 11
-      row: 3
-    - gridId: floor
-      col: 12
-      row: 0
-    - gridId: floor
-      col: 12
-      row: 1
-    - gridId: floor
-      col: 12
-      row: 2
-    - gridId: floor
-      col: 12
-      row: 3
-    - gridId: floor
-      col: 13
-      row: 0
-    - gridId: floor
-      col: 13
-      row: 1
-    - gridId: floor
-      col: 13
-      row: 2
-    - gridId: floor
-      col: 13
-      row: 3
-    - gridId: floor
-      col: 0
-      row: 0
-    - gridId: floor
-      col: 1
-      row: 0
-    - gridId: floor
-      col: 0
-      row: 1
-    - gridId: floor
-      col: 1
-      row: 1
-    - gridId: floor
-      col: 3
-      row: 0
-    - gridId: floor
-      col: 4
-      row: 0
+      x: 26
+      y: 581
+    blockedCells: []
     initialPlacements:
-    - furnitureId: table
+    - furnitureId: 016
+      gridId: wall
+      hostFurnitureId: 
+      col: 9
+      row: 3
+      flipped: 0
+    - furnitureId: 007
+      gridId: wall
+      hostFurnitureId: 
+      col: 16
+      row: 6
+      flipped: 0
+    - furnitureId: 002
       gridId: floor
       hostFurnitureId: 
-      col: 4
+      col: 9
       row: 2
-    - furnitureId: pouf
+      flipped: 0
+    - furnitureId: 005
       gridId: floor
       hostFurnitureId: 
-      col: 1
+      col: 13
       row: 2
-    - furnitureId: picture
-      gridId: wallL
+      flipped: 0
+  - id: bedroom
+    displayName: "\u5367\u5BA4"
+    sceneWidth: 1672
+    sceneHeight: 941
+    background: {fileID: 21300000, guid: d93ecc63c2130974c87a60ff949daace, type: 3}
+    depthBlurOverlay: {fileID: 0}
+    focusBlurOverlay: {fileID: 0}
+    startCredit: 2480
+    grids:
+    - id: wall
+      surface: 2
+      cols: 27
+      rows: 9
+      cellWidth: 60
+      cellHeight: 60
+      x: 26
+      y: 20
+    - id: floor
+      surface: 0
+      cols: 27
+      rows: 8
+      cellWidth: 60
+      cellHeight: 45
+      x: 26
+      y: 581
+    blockedCells: []
+    initialPlacements:
+    - furnitureId: 018
+      gridId: wall
       hostFurnitureId: 
-      col: 4
-      row: 0
-    - furnitureId: hangplant
-      gridId: wallR
+      col: 5
+      row: 7
+      flipped: 0
+    - furnitureId: 024
+      gridId: floor
       hostFurnitureId: 
-      col: 1
+      col: 5
+      row: 2
+      flipped: 0
+    - furnitureId: 036
+      gridId: floor
+      hostFurnitureId: 
+      col: 15
+      row: 1
+      flipped: 0
+    - furnitureId: 013
+      gridId: floor
+      hostFurnitureId: 
+      col: 23
+      row: 1
+      flipped: 0
+  - id: kitchen
+    displayName: "\u53A8\u623F"
+    sceneWidth: 1672
+    sceneHeight: 941
+    background: {fileID: 21300000, guid: 518657f7cd27e9748a2ff9361ea5d3e6, type: 3}
+    depthBlurOverlay: {fileID: 0}
+    focusBlurOverlay: {fileID: 0}
+    startCredit: 2480
+    grids:
+    - id: wall
+      surface: 2
+      cols: 27
+      rows: 9
+      cellWidth: 60
+      cellHeight: 60
+      x: 26
+      y: 20
+    - id: floor
+      surface: 0
+      cols: 27
+      rows: 8
+      cellWidth: 60
+      cellHeight: 45
+      x: 26
+      y: 581
+    blockedCells: []
+    initialPlacements:
+    - furnitureId: 017
+      gridId: wall
+      hostFurnitureId: 
+      col: 10
+      row: 6
+      flipped: 0
+    - furnitureId: 043
+      gridId: floor
+      hostFurnitureId: 
+      col: 9
+      row: 2
+      flipped: 0
+    - furnitureId: 012
+      gridId: floor
+      hostFurnitureId: 
+      col: 21
+      row: 2
+      flipped: 0
+  - id: study
+    displayName: "\u4E66\u623F"
+    sceneWidth: 1672
+    sceneHeight: 941
+    background: {fileID: 21300000, guid: d64c5844519fc064fa15388d83193f79, type: 3}
+    depthBlurOverlay: {fileID: 0}
+    focusBlurOverlay: {fileID: 0}
+    startCredit: 2480
+    grids:
+    - id: wall
+      surface: 2
+      cols: 27
+      rows: 9
+      cellWidth: 60
+      cellHeight: 60
+      x: 26
+      y: 20
+    - id: floor
+      surface: 0
+      cols: 27
+      rows: 8
+      cellWidth: 60
+      cellHeight: 45
+      x: 26
+      y: 581
+    blockedCells: []
+    initialPlacements:
+    - furnitureId: 057
+      gridId: floor
+      hostFurnitureId: 
+      col: 0
+      row: 2
+      flipped: 0
+    - furnitureId: 053
+      gridId: floor
+      hostFurnitureId: 
+      col: 5
       row: 0
-    - furnitureId: vase
-      gridId: 
-      hostFurnitureId: table
-      col: 1
-      row: 0
-    - furnitureId: cups
-      gridId: 
-      hostFurnitureId: table
-      col: 2
-      row: 0
+      flipped: 0
+    - furnitureId: 037
+      gridId: wall
+      hostFurnitureId: 
+      col: 15
+      row: 7
+      flipped: 0
+    - furnitureId: 004
+      gridId: floor
+      hostFurnitureId: 
+      col: 18
+      row: 1
+      flipped: 0
