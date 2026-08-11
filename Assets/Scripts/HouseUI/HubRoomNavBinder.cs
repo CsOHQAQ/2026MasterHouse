@@ -29,7 +29,8 @@ namespace MasterHouse
                 item.icon.text = RoomIcon(i);
                 item.roomName.text = room.displayName;
                 item.state.text = selected ? "CURRENT" : string.Empty;
-                item.background.color = selected ? new Color(.45f, .08f, .3f, .77f) : new Color(1, 1, 1, .015f);
+                // common 框换肤：选中/未选用透明度区分（选中不透明、未选更透）
+                HouseUIUtil.ApplyPanelSkin(item.background, selected ? .95f : .45f, 2.5f);
                 var color = selected ? HouseUIUtil.White : new Color(1, 1, 1, .72f);
                 item.code.color = item.icon.color = item.roomName.color = color;
                 HouseUIUtil.BindButton(item.button, () => page.SelectRoom(index));
@@ -39,7 +40,7 @@ namespace MasterHouse
             locked.icon.text = "▣";
             locked.roomName.text = "地下仓库";
             locked.state.text = string.Empty;
-            locked.background.color = Color.clear;
+            HouseUIUtil.ApplyPanelSkin(locked.background, .25f, 2.5f);
             locked.code.color = locked.icon.color = locked.roomName.color = new Color(1, 1, 1, .3f);
             HouseUIUtil.BindButton(locked.button, () => page.Toast("仓库房间将在 House LV.04 解锁"));
         }

@@ -33,19 +33,33 @@ namespace MasterHouse
             phaseLabel = hud.weekDatePhase;
             phaseRangeLabel = hud.phaseRange;
             phaseShown = Clock.Day * 10 + phase;
-            creditLabel = hud.creditLabel;
+            // 金币数字节点：优先取用户在 Prefab 里新加的 Credit/CreditLabel（Label 为静态文案），找不到再退回视图字段
+            var creditNode = hud.creditButton != null ? hud.creditButton.transform.Find("CreditLabel") : null;
+            creditLabel = creditNode != null ? creditNode.GetComponent<Text>() : hud.creditLabel;
             welcomeLabel = hud.welcomeLabel;
             RefreshWelcome();
             HouseUIUtil.BindButton(hud.timeButton, () => page.OpenPanel(EHousePanel.Calendar));
             HouseUIUtil.BindButton(hud.creditButton, () => page.OpenPanel(EHousePanel.Market));
             HouseUIUtil.BindButton(hud.brandButton, page.BackToTitle);
             HouseUIUtil.BindButton(hud.optionsButton, page.OpenSettings);
+            // 顶栏卡片统一 common 框（半透明；小件边框缩细）；商店卡样式以手调 Prefab 为准，不换肤
+            HouseUIUtil.ApplyPanelSkin(hud.timeButton.targetGraphic as Image, .8f, 2f);
+            HouseUIUtil.ApplyPanelSkin(hud.optionsButton.targetGraphic as Image, .8f, 2.5f);
 
-            // 声望与装饰分数值条（流通数值三件套中，货币在顶栏 HOUSE CREDIT 显示）
-            var chip = HouseUIRuntime.Panel(chromeRoot, "EconomyChip", new Vector2(.5f, 1),
-                new Vector2(-233, -160), new Vector2(400, 50), new Color(.025f, .025f, .045f, .77f));
-            economyChipLabel = HouseUIRuntime.StretchLabel(chip.transform, "Value", string.Empty, 18,
-                HouseUIUtil.White, TextAnchor.MiddleCenter, FontStyle.Bold);
+            // 声望与装饰分数值条：已收编进 HubTopBar Prefab（2026-08-11，可在 Prefab 模式调整）；
+            // 旧版 Prefab 尚未经生成器修复时回退运行时生成
+            if (hud.economyChipLabel != null)
+            {
+                economyChipLabel = hud.economyChipLabel;
+                HouseUIUtil.ApplyPanelSkin(hud.economyChipLabel.transform.parent.GetComponent<Image>(), .8f, 2.5f);
+            }
+            else
+            {
+                var chip = HouseUIRuntime.Panel(chromeRoot, "EconomyChip", new Vector2(.5f, 1),
+                    new Vector2(-233, -160), new Vector2(400, 50), new Color(.025f, .025f, .045f, .77f));
+                economyChipLabel = HouseUIRuntime.StretchLabel(chip.transform, "Value", string.Empty, 18,
+                    HouseUIUtil.White, TextAnchor.MiddleCenter, FontStyle.Bold);
+            }
 
             Economy.Changed += RefreshEconomy;
             RefreshEconomy();
@@ -77,8 +91,9 @@ namespace MasterHouse
 
         public void RefreshEconomy()
         {
+            // 商店卡版式归手调 Prefab：Label=「商店」静态；CreditLabel=金币数字，运行时只刷新这一段（2026-08-11）
             if (creditLabel != null)
-                creditLabel.text = $"<size=13>HOUSE CREDIT</size>\n◈ {Economy.Data.Currency:N0}     ＋";
+                creditLabel.text = $"金币 ◈ {Economy.Data.Currency:N0}  ＋";
             if (economyChipLabel != null)
                 economyChipLabel.text =
                     $"<color=#74D8D1>声望 {Economy.Data.Reputation}</color>      <color=#E22D76>装饰分 {Economy.DecorationScore}</color>";

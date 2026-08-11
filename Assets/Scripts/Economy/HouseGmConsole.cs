@@ -59,6 +59,7 @@ namespace MasterHouse
 
             var panel = F.Panel(panelRoot.transform, "Body", new Vector2(0, .5f), new Vector2(0, .5f),
                 new Vector2(190, 0), new Vector2(330, 650), new Color(.04f, .05f, .07f, .93f));
+            HouseUIUtil.ApplyPanelSkin(panel); // 全局面板底图（Secondary-bg）
             F.Outline(panel.gameObject, new Color(.45f, .85f, .8f, .5f), new Vector2(1, -1));
             F.Label(panel.transform, "Title", "GM 面板  <size=13>F1 开关</size>", 22, F.Cyan,
                 new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -30), new Vector2(290, 34),

@@ -44,7 +44,7 @@ namespace MasterHouse
                 card.guestName.text = instance.DisplayName;
                 card.status.text = StatusText(instance.State);
                 card.typeLabel.text = TypeMark(instance.State);
-                card.background.color = new Color(.025f, .025f, .045f, .83f);
+                HouseUIUtil.ApplyPanelSkin(card.background, .8f, 2.5f); // 访客卡换 common 框（半透明）
                 card.eventLabel.color = card.guestName.color = card.status.color = HouseUIUtil.White;
                 HouseUIUtil.BindButton(card.button, () => page.SelectGuest(instanceId));
             }

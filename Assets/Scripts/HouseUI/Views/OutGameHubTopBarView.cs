@@ -16,5 +16,7 @@ namespace MasterHouse
         public Text welcomeLabel;
         public Button optionsButton;
         public Text optionsLabel;
+        [Tooltip("声望/装饰分数值条（2026-08-11 自运行时动态件收编进 Prefab，可在 Prefab 模式调整）")]
+        public Text economyChipLabel;
     }
 }

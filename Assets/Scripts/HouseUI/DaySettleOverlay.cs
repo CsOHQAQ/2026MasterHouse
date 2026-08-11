@@ -39,6 +39,7 @@ namespace MasterHouse
             rect.SetAsLastSibling();
             var overlay = new DaySettleOverlay(rect);
 
+            if (view.panel != null) HouseUIUtil.ApplyPanelSkin(view.panel.GetComponent<UnityEngine.UI.Image>());
             if (view.title != null) view.title.text = $"DAY {endedDay:00} 结算";
             if (view.body != null) view.body.text = BuildBody(summary);
             if (view.confirmLabel != null) view.confirmLabel.text = "开始新的一天 →";

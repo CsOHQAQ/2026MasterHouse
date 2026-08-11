@@ -312,7 +312,7 @@ namespace MasterHouse
             if (furnitureModeOpen) return;
             furnitureModeOpen = true;
             UI.Canvas.enabled = false;
-            var opened = FurnitureRoomController.Open(() =>
+            var opened = FurnitureRoomController.Open(RoomIndex, () => // 家具模式随 Hub 当前房间动态加载
             {
                 furnitureModeOpen = false;
                 UI.Canvas.enabled = true;
@@ -377,6 +377,7 @@ namespace MasterHouse
                 return;
             }
             HouseUIUtil.BindButton(toggleView.button, () => SetImmersive(!immersive));
+            HouseUIUtil.ApplyPanelSkin(toggleView.button.targetGraphic as UnityEngine.UI.Image, .8f, 2.5f); // 收起界面按钮换 common 框
             immersiveLabel = toggleView.label;
             HouseUIUtil.ApplyFallbackFont(instance.transform);
         }

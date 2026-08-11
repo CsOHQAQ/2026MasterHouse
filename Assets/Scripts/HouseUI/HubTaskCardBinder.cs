@@ -14,6 +14,7 @@ namespace MasterHouse
             view = card;
             page = owner;
             HouseUIUtil.BindButton(card.button, () => page.OpenPanel(EHousePanel.Tasks));
+            HouseUIUtil.ApplyPanelSkin(card.GetComponent<UnityEngine.UI.Image>(), .8f); // 任务卡换 common 框（半透明）
             Refresh();
         }
 
