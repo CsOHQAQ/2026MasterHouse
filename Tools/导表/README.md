@@ -1,5 +1,7 @@
 # 家具导表流程（仿 CatVsDog export_config.bat）
 
+> 完整文档（表格规范、字段说明、扩展新表、故障排查）见 `Docs/导表工具说明.md`；本文件是快速参考。
+
 ```
 Excel/家具表.xlsx、家具房间表.xlsx    ← 策划在这里编辑（唯一数据源）
         │  双击 Tools/导表/export_config.bat
