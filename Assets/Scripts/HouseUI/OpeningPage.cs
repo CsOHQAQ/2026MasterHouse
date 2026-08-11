@@ -43,7 +43,7 @@ namespace MasterHouse
                 .Join(light.rectTransform.DOSizeDelta(new Vector2(500, 1080), 1.15f).SetEase(Ease.InQuad))
                 .Join(light.DOFade(0, 1.15f).SetEase(Ease.InQuad))
                 .Insert(.55f, welcomeGroup.DOFade(1, .45f))
-                .AppendCallback(() => UI.ShowPage(new HubPage("新的一周开始了 · 欢迎回家")));
+                .AppendCallback(() => UI.ShowPage(new HubPage("新的一天开始了 · 欢迎回家")));
         }
     }
 }

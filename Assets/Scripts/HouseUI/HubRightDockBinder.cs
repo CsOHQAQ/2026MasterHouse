@@ -23,6 +23,11 @@ namespace MasterHouse
             HouseUIRuntime.Button(chromeRoot, "FurnitureMode", "家    家具摆放", page.OpenFurnitureMode,
                 new Vector2(1, .5f), new Vector2(-120, -262), new Vector2(205, 78),
                 new Color(.32f, .06f, .18f, .86f), HouseUIUtil.White, 20, TextAnchor.MiddleLeft);
+
+            // 「结束今天」入口（§7 日结，周制退役）：常驻可点，可用性（场上无未处理访客）在 HubPage.TryEndDay 校验
+            HouseUIRuntime.Button(chromeRoot, "EndDay", "结    结束今天", page.TryEndDay,
+                new Vector2(1, .5f), new Vector2(-120, -350), new Vector2(205, 78),
+                new Color(.06f, .18f, .32f, .86f), HouseUIUtil.White, 20, TextAnchor.MiddleLeft);
         }
     }
 }

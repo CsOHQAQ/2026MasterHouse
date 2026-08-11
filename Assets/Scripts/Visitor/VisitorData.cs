@@ -1,30 +1,98 @@
+using System;
 using System.Collections.Generic;
 
 namespace MasterHouse
 {
-    /// <summary>单个业务访客的运行时状态。只能被 VisitorManager 修改（§11.4）。</summary>
-    public sealed class VisitorState
+    /// <summary>
+    /// 当日结算累计（访客交付说明 §7）：惩罚/奖励在超时、拒绝、提交当时逐次结清，
+    /// 本类只做同口径累计，日结面板**只展示不惩罚**、不重复扣。
+    /// </summary>
+    public sealed class VisitorDaySummary
     {
-        /// <summary>已到访（到点进场后常驻屋内，跨天保留，直到本周处理完毕或周结算清空）。</summary>
-        public bool Arrived;
+        /// <summary>各满意度档完成数（下标 = (int)EServeSatisfaction）。</summary>
+        public readonly int[] ServedBySatisfaction = new int[4];
 
-        /// <summary>本周已处理完毕（完成服务或被拒绝后不再出现）。</summary>
-        public bool Served;
+        /// <summary>拒绝口径合计：玩家拒绝 + 等搭话超时 + 等交货超时（同口径，§5）。</summary>
+        public int RefusedCount;
 
-        /// <summary>被拒绝（Served 的子集；当前无 UI 展示，随存档保留）。</summary>
-        public bool Refused;
+        /// <summary>闲逛后自行离场数。</summary>
+        public int WanderDepartCount;
+
+        /// <summary>跨天留宿数（日结时 roll 中）。</summary>
+        public int StayOvernightCount;
+
+        public int CurrencyEarned;
+        public int ReputationEarned;
+        public int ReputationLost;
+
+        public int ServedTotal
+        {
+            get
+            {
+                var total = 0;
+                foreach (var count in ServedBySatisfaction) total += count;
+                return total;
+            }
+        }
+
+        public void Reset()
+        {
+            Array.Clear(ServedBySatisfaction, 0, ServedBySatisfaction.Length);
+            RefusedCount = 0;
+            WanderDepartCount = 0;
+            StayOvernightCount = 0;
+            CurrencyEarned = 0;
+            ReputationEarned = 0;
+            ReputationLost = 0;
+        }
+
+        public VisitorDaySummary Clone()
+        {
+            var copy = new VisitorDaySummary
+            {
+                RefusedCount = RefusedCount,
+                WanderDepartCount = WanderDepartCount,
+                StayOvernightCount = StayOvernightCount,
+                CurrencyEarned = CurrencyEarned,
+                ReputationEarned = ReputationEarned,
+                ReputationLost = ReputationLost,
+            };
+            Array.Copy(ServedBySatisfaction, copy.ServedBySatisfaction, ServedBySatisfaction.Length);
+            return copy;
+        }
     }
 
     /// <summary>
-    /// 访客运行时数据（§16.3）：下标与 VisitorTable.visitors 对齐（旧存档按下标序列化，待定 #9 统一存档时改 id 键）。
+    /// 访客运行时数据（访客交付说明 §3）：当前在场实例集合 + 日程游标。
+    /// 只能由 VisitorManager 修改（§11.4）。
     /// </summary>
     public class VisitorData
     {
-        public readonly List<VisitorState> States = new List<VisitorState>();
+        /// <summary>
+        /// 派生种子的根（§6.1）。存档系统未落地期间（待定 #9）由启动层注入固定默认常量、GM 面板可改写；
+        /// 存档接入后改为存档字段——过渡期也不存在无种子随机（§11.1）。
+        /// </summary>
+        public long RunSeed;
 
-        public VisitorData(int visitorCount)
-        {
-            for (var i = 0; i < visitorCount; i++) States.Add(new VisitorState());
-        }
+        /// <summary>
+        /// 访客业务时间轴：营业中每全局 tick +1；标题冻结与打烊闸门期间停表（§7），
+        /// 因此各实例的超时/冒泡计时天然「停表」，无需逐个暂停。
+        /// </summary>
+        public long BusinessTick;
+
+        /// <summary>实例 id 计数器（稳定自增，随存档序列化，§11.5）。</summary>
+        public int NextInstanceId = 1;
+
+        /// <summary>日程游标：指向稳定排序后（day, 出现时刻, 下标）的下一条待消费条目（§4.4）。</summary>
+        public int ScheduleCursor;
+
+        /// <summary>「日程已跑完」Warning 只打一次的标记（§4.4 待确认默认实现）。</summary>
+        public bool ScheduleExhaustedWarned;
+
+        /// <summary>当前在场实例，按 InstanceId 升序（生成顺序即 id 顺序，§11.2）。</summary>
+        public readonly List<VisitorInstance> Instances = new List<VisitorInstance>();
+
+        /// <summary>当日结算累计（日结面板展示源）。</summary>
+        public readonly VisitorDaySummary Today = new VisitorDaySummary();
     }
 }

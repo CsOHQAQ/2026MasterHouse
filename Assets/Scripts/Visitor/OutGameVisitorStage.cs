@@ -8,16 +8,25 @@ namespace MasterHouse
 {
     /// <summary>
     /// Hub 场景里的访客 NPC 舞台层（纯表现，§16.4）：
-    /// ①业务访客：每帧轮询 VisitorManager 的到访/处理状态生成演员（表现不回写业务），点击转发给 HubPage 触发对话；
-    /// ②串门邻居（ambient）：随机轮换进场，在门口排队等玩家决定去留，走掉后隔一阵换一只新的进来（无业务后果）；
-    /// ③把场景归一化坐标换算成锚点（跟随观景模式的 uvRect 平移缩放，与家具热点同一套换算），并按深度排序前后遮挡。
+    /// ①业务访客：每帧轮询 VisitorManager 的在场实例列表生成/回收演员（实例动态增删，§9），
+    ///   演员状态随实例业务状态同步（表现不回写业务），点击转发 instanceId 给 HubPage 触发对话；
+    ///   闲逛台词经 DialogueRequested 事件推给对应演员的句子气泡。
+    /// ②串门邻居（ambient）：随机轮换进场，在门口排队等玩家决定去留（名册在 VisitorTuningConfig）。
+    /// ③把场景归一化坐标换算成锚点（跟随观景模式的 uvRect 平移缩放），并按深度排序前后遮挡。
     /// 只在起居室出现。
     /// </summary>
     internal sealed class OutGameVisitorStage : MonoBehaviour
     {
         // 起居室的入口大门与门前地面（场景归一化坐标，左下为原点）
         private static readonly Vector2 DoorPoint = new Vector2(.115f, .32f);
-        private static readonly Vector2 EntrancePoint = new Vector2(.16f, .235f);
+        // 前台站位区（访客接待前待在这里，§9）：按同样的手摆方式补的门厅前台坐标，多房间随家具二轮再说（§16.7）
+        private static readonly Vector2[] FrontDeskPoints =
+        {
+            new Vector2(.20f, .26f),
+            new Vector2(.155f, .21f),
+            new Vector2(.245f, .215f),
+            new Vector2(.115f, .16f),
+        };
         // 邻居在门口的排队点（同时最多 MaxAmbient 只，队伍前移时依次补位）
         private static readonly Vector2[] QueuePoints =
         {
@@ -38,27 +47,28 @@ namespace MasterHouse
         };
         private const int MaxAmbient = 3;
 
-        /// <summary>访客内容表（Model 只读，§16.6）。</summary>
-        private static VisitorTable Visitors => GameManager.Instance.VisitorTable;
-
         /// <summary>访客业务状态（只读轮询，§2.1；表现结果不回写业务，§16.4）。</summary>
         private static VisitorManager Visitor => GameManager.Instance.VisitorManager;
+
+        /// <summary>氛围邻居名册（调参配置，§4.5）。</summary>
+        private static VisitorTuningConfig Tuning => GameManager.Instance.VisitorTuning;
 
         private RawImage sceneArt;
         private RectTransform layerRoot;
         private Action<int> onGuestClicked;
-        private readonly bool[] guestSpawned = new bool[4];
+        private bool initialSpawnDone;
+        private int frontDeskSlot;
         private readonly List<OutGameVisitorActor> actors = new List<OutGameVisitorActor>();
-        private readonly OutGameVisitorActor[] byGuest = new OutGameVisitorActor[4];
+        /// <summary>业务演员：instanceId → 演员。</summary>
+        private readonly Dictionary<int, OutGameVisitorActor> businessActors = new Dictionary<int, OutGameVisitorActor>();
+        private readonly List<int> departKeys = new List<int>();
         // 邻居按进场顺序单独记录（actors 每帧按深度重排，不能用它当队伍顺序）
         private readonly List<OutGameVisitorActor> ambientOrder = new List<OutGameVisitorActor>();
         private readonly HashSet<int> activeAmbient = new HashSet<int>();
         private readonly List<float> respawnTimers = new List<float>();
 
-        /// <summary>
-        /// 在场景根下创建访客层。业务访客按 VisitorManager 的状态生成：已到访 → 常驻屋内（读档/切房间回来直接在屋里）；
-        /// 未到访 → 由 Update 轮询业务状态，到点从大门走进来。已处理完毕（Served）的业务访客不再出现。
-        /// </summary>
+        /// <summary>在场景根下创建访客层。业务访客按 VisitorManager 的在场实例生成：建层时已在场 → 按状态直接落位；
+        /// 此后新实例由 Update 轮询捕捉，从大门走进前台。</summary>
         public static OutGameVisitorStage Build(RectTransform sceneRoot, RawImage art, Action<int> onGuestClicked)
         {
             var existing = sceneRoot.Find("VisitorStage");
@@ -69,47 +79,66 @@ namespace MasterHouse
             stage.sceneArt = art;
             stage.layerRoot = root;
             stage.onGuestClicked = onGuestClicked;
+            // 建层时已在场的实例：直接落位淡入（错峰）
             var spawned = 0;
-            for (var i = 0; i < Visitors.visitors.Count && i < stage.guestSpawned.Length; i++)
+            foreach (var instance in Visitor.Data.Instances)
             {
-                var state = Visitor.Data.States[i];
-                if (state.Served)
-                {
-                    stage.guestSpawned[i] = true; // 已完成/已拒绝：本周不再出现
-                    continue;
-                }
-                if (!state.Arrived) continue; // 还没到拜访时间，Update 里等业务层判定
-                // 建层时已到访 → 直接出现在屋内游走点；「从大门走进来」只发生在 Update 捕捉到的实时到访
-                stage.SpawnGuest(i, walkIn: false, delay: .3f + spawned * .6f + UnityEngine.Random.Range(0f, .5f));
+                stage.SpawnBusiness(instance, walkIn: false, delay: .3f + spawned * .6f + UnityEngine.Random.Range(0f, .5f));
                 spawned++;
             }
+            stage.initialSpawnDone = true;
             // 邻居首发阵容：随机挑几只错峰进场
-            var roster = Visitors.ambientVisitors;
-            var order = new List<int>();
-            for (var i = 0; i < roster.Count; i++) order.Insert(UnityEngine.Random.Range(0, order.Count + 1), i);
-            for (var k = 0; k < Mathf.Min(MaxAmbient, order.Count); k++)
-                stage.SpawnAmbient(order[k], 5f + k * 3.5f + UnityEngine.Random.Range(0f, 2f));
+            var roster = Tuning != null ? Tuning.ambientVisitors : null;
+            if (roster != null)
+            {
+                var order = new List<int>();
+                for (var i = 0; i < roster.Count; i++) order.Insert(UnityEngine.Random.Range(0, order.Count + 1), i);
+                for (var k = 0; k < Mathf.Min(MaxAmbient, order.Count); k++)
+                    stage.SpawnAmbient(order[k], 5f + k * 3.5f + UnityEngine.Random.Range(0f, 2f));
+            }
+            Visitor.DialogueRequested += stage.OnDialogueRequested;
             return stage;
         }
 
-        /// <summary>生成一位业务访客。walkIn=true 从大门走到入口再进屋；false 直接淡入屋内游走点（常驻回填）。</summary>
-        private void SpawnGuest(int index, bool walkIn, float delay)
+        private void OnDestroy()
         {
-            guestSpawned[index] = true;
-            var guest = Visitors.visitors[index];
-            var actor = OutGameVisitorActor.Create(layerRoot, guest.id, guest.displayName, guest.sheetPath,
-                isAmbient: false, spawnDelay: delay,
-                DoorPoint, EntrancePoint, WanderPoints,
-                () => onGuestClicked?.Invoke(index), null,
+            if (GameManager.Instance != null && GameManager.Instance.VisitorManager != null)
+                GameManager.Instance.VisitorManager.DialogueRequested -= OnDialogueRequested;
+        }
+
+        /// <summary>闲逛台词冒泡（§8 满意后闲逛触发点）：推给对应演员的句子气泡展示。</summary>
+        private void OnDialogueRequested(VisitorInstance instance, EVisitorDialogueTrigger trigger, string line)
+        {
+            if (trigger != EVisitorDialogueTrigger.WanderChat) return;
+            if (!businessActors.TryGetValue(instance.InstanceId, out var actor) || actor == null) return;
+            // 气泡停留时长按 tick 配置（§4.5），表现层换算成秒（表现层豁免，§16.4）
+            var ticksPerSecond = GameConfig.Instance != null ? Mathf.Max(1, GameConfig.Instance.TicksPerSecond) : 10;
+            var holdTicks = Tuning != null ? Tuning.bubbleHoldTicks : 40;
+            actor.ShowLine(line, holdTicks / (float)ticksPerSecond);
+        }
+
+        /// <summary>生成一位业务访客演员。walkIn=true 从大门走到前台；false 按业务状态直接落位淡入（建层回填）。</summary>
+        private void SpawnBusiness(VisitorInstance instance, bool walkIn, float delay = 0f)
+        {
+            var race = instance.Race;
+            var frontPoint = FrontDeskPoints[frontDeskSlot % FrontDeskPoints.Length];
+            frontDeskSlot++;
+            var instanceId = instance.InstanceId;
+            var actor = OutGameVisitorActor.Create(layerRoot, "i" + instanceId, instance.DisplayName,
+                race != null ? race.sheetPath : string.Empty,
+                isAmbient: false, spawnDelay: walkIn ? UnityEngine.Random.Range(0f, .6f) : delay,
+                DoorPoint, frontPoint, WanderPoints,
+                () => onGuestClicked?.Invoke(instanceId), null,
                 spawnInside: !walkIn);
             if (actor == null) return;
+            actor.SyncBusinessState(instance.State);
             actors.Add(actor);
-            byGuest[index] = actor;
+            businessActors[instanceId] = actor;
         }
 
         private void SpawnAmbient(int rosterIndex, float delay)
         {
-            var neighbor = Visitors.ambientVisitors[rosterIndex];
+            var neighbor = Tuning.ambientVisitors[rosterIndex];
             var actor = OutGameVisitorActor.Create(layerRoot, "neighbor_" + neighbor.id,
                 neighbor.displayName, neighbor.sheetPath,
                 isAmbient: true, spawnDelay: delay,
@@ -128,47 +157,47 @@ namespace MasterHouse
             respawnTimers.Add(UnityEngine.Random.Range(8f, 16f));
         }
 
-        /// <summary>服务成功 → 演员庆祝并进入限时停留；到点自行走向门口消失。</summary>
-        public void NotifyServed(int guestIndex)
-        {
-            var actor = ActorOf(guestIndex);
-            if (actor != null) actor.NotifyServed();
-        }
-
-        /// <summary>拒绝接待 → 演员直接返回门口离开。</summary>
-        public void NotifyRefused(int guestIndex)
-        {
-            var actor = ActorOf(guestIndex);
-            if (actor != null) actor.NotifyRefused();
-        }
-
-        private OutGameVisitorActor ActorOf(int guestIndex) =>
-            guestIndex >= 0 && guestIndex < byGuest.Length ? byGuest[guestIndex] : null;
-
         private void Update()
         {
-            // 业务访客到点进场（轮询 VisitorManager 的到访判定；实时到访 → 从大门走进来）
-            for (var i = 0; i < guestSpawned.Length && i < Visitor.Data.States.Count; i++)
+            // ①业务实例 → 演员 同步（只读轮询，§2.1）：新实例进场、状态推进、离场回收
+            var instances = Visitor.Data.Instances;
+            foreach (var instance in instances)
             {
-                if (guestSpawned[i]) continue;
-                var state = Visitor.Data.States[i];
-                if (state.Served) { guestSpawned[i] = true; continue; }
-                if (state.Arrived)
-                    SpawnGuest(i, walkIn: true, delay: UnityEngine.Random.Range(0f, 1f));
+                if (businessActors.TryGetValue(instance.InstanceId, out var actor) && actor != null)
+                {
+                    actor.SyncBusinessState(instance.State);
+                }
+                else
+                {
+                    SpawnBusiness(instance, walkIn: initialSpawnDone);
+                }
             }
-            // 邻居刷新循环
+            departKeys.Clear();
+            foreach (var pair in businessActors)
+            {
+                if (pair.Value == null) { departKeys.Add(pair.Key); continue; }
+                if (Visitor.Find(pair.Key) == null)
+                {
+                    pair.Value.BeginDepart(); // 实例已离场（拒绝/超时/闲逛结束/日结清场）→ 走向门口消失
+                    departKeys.Add(pair.Key);
+                }
+            }
+            foreach (var key in departKeys) businessActors.Remove(key);
+
+            // ②邻居刷新循环
             for (var i = respawnTimers.Count - 1; i >= 0; i--)
             {
                 respawnTimers[i] -= Time.unscaledDeltaTime;
                 if (respawnTimers[i] > 0f) continue;
                 respawnTimers.RemoveAt(i);
+                if (Tuning == null) continue;
                 var candidates = new List<int>();
-                for (var r = 0; r < Visitors.ambientVisitors.Count; r++)
+                for (var r = 0; r < Tuning.ambientVisitors.Count; r++)
                     if (!activeAmbient.Contains(r)) candidates.Add(r);
                 if (candidates.Count > 0)
                     SpawnAmbient(candidates[UnityEngine.Random.Range(0, candidates.Count)], 0f);
             }
-            // 门口队位动态分配：还在排队的邻居按进场顺序占 QueuePoints，前面走了后面补位
+            // ③门口队位动态分配：还在排队的邻居按进场顺序占 QueuePoints，前面走了后面补位
             ambientOrder.RemoveAll(actor => actor == null);
             var slot = 0;
             foreach (var actor in ambientOrder)

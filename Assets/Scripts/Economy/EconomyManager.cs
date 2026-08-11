@@ -49,31 +49,28 @@ namespace MasterHouse
             Data.RoomCount * config.decorScorePerRoom + Data.DeviceCount * config.decorScorePerDevice
             + Data.FurnitureDecorScore + Data.GmDecorationBonus;
 
-        public int ServiceCurrencyReward => config.serviceCurrencyReward;
-        public int ServiceReputationReward => config.serviceReputationReward;
         public int RefuseReputationPenalty => config.refuseReputationPenalty;
-        public int FailReputationPenalty => config.failReputationPenalty;
 
-        /// <summary>货币+声望来源：完成一次客人服务。</summary>
-        public void CompleteGuestService()
+        /// <summary>评分阈值A（§6.2）：加分项命中比例分档用，供 VisitorManager 读取。</summary>
+        public int SatisfactionThresholdPercent => config.satisfactionThresholdPercent;
+
+        /// <summary>按满意度档取奖励配置（UI 预览展示用）。</summary>
+        public SatisfactionReward RewardFor(EServeSatisfaction satisfaction) => config.RewardFor(satisfaction);
+
+        /// <summary>货币+声望来源：完成一次客人服务，按满意度四档结算（§6.2）。返回实际入账值（结算文案用）。</summary>
+        public (int currency, int reputation) CompleteGuestService(EServeSatisfaction satisfaction)
         {
-            Data.Currency += config.serviceCurrencyReward;
-            Data.Reputation += config.serviceReputationReward;
+            var reward = config.RewardFor(satisfaction);
+            Data.Currency += reward.currency;
+            Data.Reputation += reward.reputation;
             RaiseChanged();
+            return (reward.currency, reward.reputation);
         }
 
-        /// <summary>声望去处：拒绝服务客人。</summary>
+        /// <summary>声望去处：拒绝服务客人（玩家拒绝与两段超时同口径，§5）。</summary>
         public void RefuseGuestService()
         {
             Data.Reputation = Mathf.Max(0, Data.Reputation - config.refuseReputationPenalty);
-            RaiseChanged();
-        }
-
-        /// <summary>声望去处：周结算时未完成的客人服务。</summary>
-        public void FailGuestServices(int count)
-        {
-            if (count <= 0) return;
-            Data.Reputation = Mathf.Max(0, Data.Reputation - config.failReputationPenalty * count);
             RaiseChanged();
         }
 

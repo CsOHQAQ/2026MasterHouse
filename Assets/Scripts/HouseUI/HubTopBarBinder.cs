@@ -14,8 +14,10 @@ namespace MasterHouse
         private Text phaseLabel;
         private Text phaseRangeLabel;
         private Text creditLabel;
+        private Text welcomeLabel;
         private Text economyChipLabel;
         private int phaseShown = -1;
+        private int onStageShown = -1;
 
         private static HouseClockData Clock => GameManager.Instance.HouseClockManager.Data;
         private static EconomyManager Economy => GameManager.Instance.EconomyManager;
@@ -32,8 +34,8 @@ namespace MasterHouse
             phaseRangeLabel = hud.phaseRange;
             phaseShown = Clock.Day * 10 + phase;
             creditLabel = hud.creditLabel;
-            hud.welcomeLabel.text = "WELCOME HOME.\n本周将有 <color=#E22D76>" +
-                GameManager.Instance.VisitorManager.CountRemaining() + "</color> 位访客来访";
+            welcomeLabel = hud.welcomeLabel;
+            RefreshWelcome();
             HouseUIUtil.BindButton(hud.timeButton, () => page.OpenPanel(EHousePanel.Calendar));
             HouseUIUtil.BindButton(hud.creditButton, () => page.OpenPanel(EHousePanel.Market));
             HouseUIUtil.BindButton(hud.brandButton, page.BackToTitle);
@@ -49,10 +51,11 @@ namespace MasterHouse
             RefreshEconomy();
         }
 
-        /// <summary>每帧：时钟走字；时段/跨天时刷新 DAY 文案。</summary>
+        /// <summary>每帧：时钟走字；时段/跨天时刷新 DAY 文案；在场访客数变化时刷新欢迎语。</summary>
         public void Tick()
         {
             if (clockLabel != null) clockLabel.text = Clock.TimeText;
+            RefreshWelcome();
             if (phaseLabel == null) return;
             var phase = (int)Clock.CurrentPhase;
             var key = Clock.Day * 10 + phase; // 跨天时 DAY 文案也要刷新
@@ -60,6 +63,16 @@ namespace MasterHouse
             phaseShown = key;
             phaseLabel.text = $"<size=14>GAME TIME · 加速时间</size>\n<size=31>DAY {Clock.Day:00}</size>    {HousePhaseText.Names[phase]}";
             if (phaseRangeLabel != null) phaseRangeLabel.text = HousePhaseText.Ranges[phase];
+        }
+
+        /// <summary>欢迎语：「当前在场访客」语义（访客交付说明 §10，周制退役）；数值变化时才重建字符串。</summary>
+        private void RefreshWelcome()
+        {
+            if (welcomeLabel == null) return;
+            var onStage = GameManager.Instance.VisitorManager.CountOnStage;
+            if (onStage == onStageShown) return;
+            onStageShown = onStage;
+            welcomeLabel.text = "WELCOME HOME.\n当前在场 <color=#E22D76>" + onStage + "</color> 位访客";
         }
 
         public void RefreshEconomy()

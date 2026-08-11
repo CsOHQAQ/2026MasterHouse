@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e00d48d5ec268ef49881228cccec109e, type: 3}
+  m_Name: Race_crow
+  m_EditorClassIdentifier: 
+  raceId: crow
+  displayName: "\u9E26\u65CF"
+  waitTalkTimeoutTicks: 1800
+  waitDeliverTimeoutTicks: 3600
+  wanderMaxTicks: 2400
+  stayOvernightPercent: 10
+  needTagWeights:
+  - tag: {fileID: 11400000, guid: 71599718a92d7264ebb345c47b9d2dfd, type: 2}
+    weight: 4
+    required: 1
+  - tag: {fileID: 11400000, guid: 5a4dbe3da6ed61548bcd15c105b89207, type: 2}
+    weight: 4
+    required: 0
+  - tag: {fileID: 11400000, guid: 395e88c8eb2fed74f8a980a94f822c33, type: 2}
+    weight: 2
+    required: 0
+  needCountMin: 2
+  needCountMax: 3
+  portraits:
+  - expression: 0
+    portraitPath: OutGameUI/Guests/crow
+  sheetPath: OutGameUI/Visitors/rottweiler
+  dialoguePool: {fileID: 0}

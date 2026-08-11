@@ -7,11 +7,16 @@ using F = MasterHouse.HouseUIRuntime;
 namespace MasterHouse
 {
     /// <summary>
-    /// 访客头顶的小情绪气泡：随机间隔浮现一个符号（♪ ？ ！ … ♥ 等），上飘一小段后消失，循环播放。
-    /// 挂在演员节点下自动跟随移动；内容由外部提供（随演员状态变化），返回空串表示本轮跳过。
+    /// 访客头顶气泡（§9：单套气泡两种内容，不新建第二套）：
+    /// ①情绪符号：随机间隔浮现一个符号（♪ ？ ！ … ♥ 等），上飘一小段后消失，循环播放；
+    /// ②闲逛台词句子：由业务层冒泡调度器触发（ShowSentence），气泡加宽显示整句并按配置时长停留。
+    /// 挂在演员节点下自动跟随移动；符号内容由外部提供（随演员状态变化），返回空串表示本轮跳过。
     /// </summary>
     internal sealed class OutGameVisitorBubble : MonoBehaviour
     {
+        private const float EmoteWidth = 46f;
+        private const float SentenceMaxWidth = 320f;
+
         private Func<string> emoteProvider;
         private CanvasGroup group;
         private Text label;
@@ -23,7 +28,7 @@ namespace MasterHouse
         public static OutGameVisitorBubble Create(Transform parent, Vector2 anchoredPosition, Func<string> emoteProvider)
         {
             var panel = F.Panel(parent, "Bubble", new Vector2(.5f, 1), new Vector2(.5f, 1),
-                anchoredPosition, new Vector2(46, 42), new Color(.97f, .94f, .88f, .95f));
+                anchoredPosition, new Vector2(EmoteWidth, 42), new Color(.97f, .94f, .88f, .95f));
             panel.raycastTarget = false;
             F.Outline(panel.gameObject, new Color(.25f, .12f, .18f, .35f), new Vector2(1, -1));
             var bubble = panel.gameObject.AddComponent<OutGameVisitorBubble>();
@@ -39,6 +44,19 @@ namespace MasterHouse
             return bubble;
         }
 
+        /// <summary>显示一整句台词（闲逛冒泡，业务层触发）；打断当前符号气泡，宽度按文字长度自适应。</summary>
+        public void ShowSentence(string text, float holdSeconds)
+        {
+            if (label == null || string.IsNullOrEmpty(text)) return;
+            label.text = text;
+            label.fontSize = 16;
+            var width = Mathf.Clamp(34f + text.Length * 17f, EmoteWidth, SentenceMaxWidth);
+            rect.sizeDelta = new Vector2(width, 42f);
+            showing = true;
+            timer = Mathf.Max(1f, holdSeconds);
+            Pop(timer);
+        }
+
         private void Update()
         {
             timer -= Time.unscaledDeltaTime;
@@ -52,15 +70,12 @@ namespace MasterHouse
                     return;
                 }
                 label.text = emote;
+                label.fontSize = 22;
+                rect.sizeDelta = new Vector2(EmoteWidth, 42f);
                 showing = true;
                 var hold = UnityEngine.Random.Range(1.6f, 2.4f);
                 timer = hold;
-                group.DOKill();
-                rect.DOKill();
-                rect.anchoredPosition = basePosition;
-                group.DOFade(1f, .22f).SetTarget(this).SetUpdate(true);
-                rect.DOAnchorPos(basePosition + new Vector2(0, 14f), hold + .3f)
-                    .SetEase(Ease.OutSine).SetTarget(this).SetUpdate(true);
+                Pop(hold);
             }
             else
             {
@@ -69,6 +84,17 @@ namespace MasterHouse
                 group.DOKill();
                 group.DOFade(0f, .3f).SetTarget(this).SetUpdate(true);
             }
+        }
+
+        /// <summary>淡入 + 上飘动效（符号与句子共用）。</summary>
+        private void Pop(float hold)
+        {
+            group.DOKill();
+            rect.DOKill();
+            rect.anchoredPosition = basePosition;
+            group.DOFade(1f, .22f).SetTarget(this).SetUpdate(true);
+            rect.DOAnchorPos(basePosition + new Vector2(0, 14f), hold + .3f)
+                .SetEase(Ease.OutSine).SetTarget(this).SetUpdate(true);
         }
 
         private void OnDestroy()

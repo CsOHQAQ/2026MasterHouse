@@ -186,19 +186,7 @@ namespace MasterHouse
             }
         }
 
-        /// <summary>服务成功 → 演员庆祝并限时停留。</summary>
-        public void NotifyServed(int guestIndex)
-        {
-            if (stage != null) stage.NotifyServed(guestIndex);
-        }
-
-        /// <summary>被拒绝 → 演员直接返回门口离开。</summary>
-        public void NotifyRefused(int guestIndex)
-        {
-            if (stage != null) stage.NotifyRefused(guestIndex);
-        }
-
-        /// <summary>整体重建舞台（周结算/GM 重置后访客重新进场）。</summary>
+        /// <summary>整体重建舞台（GM 重置后访客重新进场）。庆祝/离场等状态表现由舞台层轮询实例状态自驱（§9）。</summary>
         public void RebuildStage() => BuildVisitorStage();
 
         /// <summary>重建场景访客 NPC 层（仅起居室）。舞台只读 VisitorManager 状态，表现不回写业务（§16.4）。</summary>

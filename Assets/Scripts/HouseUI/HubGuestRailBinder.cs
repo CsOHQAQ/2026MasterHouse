@@ -2,7 +2,11 @@ using UnityEngine;
 
 namespace MasterHouse
 {
-    /// <summary>Hub 访客事件列表绑定：四张访客卡（Prefab 内既有实例），点击选中访客。</summary>
+    /// <summary>
+    /// Hub 访客列表绑定：语义为「当前在场访客」（访客交付说明 §10，周制退役）。
+    /// Prefab 内既有 4 张卡位，按在场实例（InstanceId 升序）填充，超出卡位的实例暂不上墙、空卡隐藏；
+    /// 实例进离场/状态变化时由 HubPage 订阅业务事件整体刷新。
+    /// </summary>
     public sealed class HubGuestRailBinder
     {
         private OutGameHubGuestRailView view;
@@ -15,30 +19,51 @@ namespace MasterHouse
             Refresh();
         }
 
-        /// <summary>服务状态变化后整体重绑（数量少，全量刷新）。</summary>
+        /// <summary>在场实例变化后整体重绑（数量少，全量刷新）。</summary>
         public void Refresh()
         {
             if (view == null) return;
-            var visitors = GameManager.Instance.VisitorTable.visitors;
-            var states = GameManager.Instance.VisitorManager.Data.States;
-            view.title.text = "VISITOR EVENTS / 访客事件";
-            view.remaining.text = GameManager.Instance.VisitorManager.CountRemaining().ToString("00");
-            for (var i = 0; i < view.cards.Length && i < visitors.Count; i++)
+            var visitor = GameManager.Instance.VisitorManager;
+            var instances = visitor.Data.Instances;
+            view.title.text = "VISITOR EVENTS / 当前在场访客";
+            view.remaining.text = visitor.CountOnStage.ToString("00");
+            for (var i = 0; i < view.cards.Length; i++)
             {
-                var index = i;
-                var guest = visitors[i];
-                var done = states[i].Served;
                 var card = view.cards[i];
-                card.portrait.texture = Resources.Load<Texture2D>(guest.portraitPath);
-                card.eventLabel.text = guest.special ? "SPECIAL EVENT" : "EVENT 0" + (i + 1);
-                card.guestName.text = guest.displayName;
-                card.status.text = done ? "事件已完成" : guest.special ? "特殊客人 · 可打断" : "一般客人 · 可接待";
-                card.typeLabel.text = done ? "✓" : guest.special ? "特" : "普";
-                card.background.color = done ? new Color(.03f, .03f, .045f, .55f) : new Color(.025f, .025f, .045f, .83f);
-                var textColor = done ? new Color(1, 1, 1, .45f) : HouseUIUtil.White;
-                card.eventLabel.color = card.guestName.color = card.status.color = textColor;
-                HouseUIUtil.BindButton(card.button, () => page.SelectGuest(index));
+                if (card == null) continue;
+                if (i >= instances.Count)
+                {
+                    card.gameObject.SetActive(false);
+                    continue;
+                }
+                card.gameObject.SetActive(true);
+                var instance = instances[i];
+                var instanceId = instance.InstanceId;
+                card.portrait.texture = Resources.Load<Texture2D>(instance.Race.GetPortraitPath());
+                card.eventLabel.text = $"VISITOR {instance.InstanceId:00}";
+                card.guestName.text = instance.DisplayName;
+                card.status.text = StatusText(instance.State);
+                card.typeLabel.text = TypeMark(instance.State);
+                card.background.color = new Color(.025f, .025f, .045f, .83f);
+                card.eventLabel.color = card.guestName.color = card.status.color = HouseUIUtil.White;
+                HouseUIUtil.BindButton(card.button, () => page.SelectGuest(instanceId));
             }
         }
+
+        private static string StatusText(EVisitorState state) => state switch
+        {
+            EVisitorState.FrontDesk => "前台等待接待 · 点击交谈",
+            EVisitorState.Serving => "服务中 · 等待递上物品",
+            EVisitorState.Wandering => "心满意足 · 屋内闲逛",
+            _ => "正在离开",
+        };
+
+        private static string TypeMark(EVisitorState state) => state switch
+        {
+            EVisitorState.FrontDesk => "待",
+            EVisitorState.Serving => "服",
+            EVisitorState.Wandering => "逛",
+            _ => "…",
+        };
     }
 }

@@ -50,6 +50,8 @@ namespace MasterHouse
         private const string JournalArticlePath = Folder + "/JournalArticle.prefab";
         private const string AchievementRowPath = Folder + "/AchievementRow.prefab";
         // 3.6：商城补 Prefab 与统一占位页（§16.8）
+        // 访客系统重做：当日结算面板（访客交付说明 §7）
+        private const string DaySettlePanelPath = Folder + "/DaySettlePanel.prefab";
         private const string MarketCardPath = Folder + "/MarketCard.prefab";
         private const string MarketPanelPath = Folder + "/MarketPanel.prefab";
         private const string MarketPagePath = Folder + "/MarketPage.prefab";
@@ -113,6 +115,7 @@ namespace MasterHouse
             BuildJournalPanelContent(JournalPanelPath);
             BuildArchivePanelContent(ArchivePanelPath);
             BuildDialogueView(DialogueViewPath);
+            BuildDaySettlePanel(DaySettlePanelPath);
             BuildPanelPage(CalendarPagePath, "CalendarPage", "REAL TIME", "日程与时间", "历", CalendarPanelPath);
             BuildPanelPage(TasksPagePath, "TasksPage", "TODAY / 03", "今日委托", "任", TasksPanelPath);
             BuildPanelPage(DevicePagePath, "DevicePage", "HOUSE INDEX", "设备图鉴", "器", DevicePanelPath);
@@ -163,6 +166,7 @@ namespace MasterHouse
             if (!File.Exists(JournalPanelPath)) { BuildJournalPanelContent(JournalPanelPath); changed = true; }
             if (!File.Exists(ArchivePanelPath)) { BuildArchivePanelContent(ArchivePanelPath); changed = true; }
             if (!File.Exists(DialogueViewPath)) { BuildDialogueView(DialogueViewPath); changed = true; }
+            if (!File.Exists(DaySettlePanelPath)) { BuildDaySettlePanel(DaySettlePanelPath); changed = true; }
             if (!File.Exists(CalendarPagePath)) { BuildPanelPage(CalendarPagePath, "CalendarPage", "REAL TIME", "日程与时间", "历", CalendarPanelPath); changed = true; }
             if (!File.Exists(TasksPagePath)) { BuildPanelPage(TasksPagePath, "TasksPage", "TODAY / 03", "今日委托", "任", TasksPanelPath); changed = true; }
             if (!File.Exists(DevicePagePath)) { BuildPanelPage(DevicePagePath, "DevicePage", "HOUSE INDEX", "设备图鉴", "器", DevicePanelPath); changed = true; }
@@ -720,7 +724,7 @@ namespace MasterHouse
             refs.brandButton = PageButton(root.transform, "Brand", "<i>The Guesthouse\nof Meros</i>     <size=14>N E W  C H A P T E R</size>",
                 new Vector2(120, 0), new Vector2(600, 90), Color.clear, Hex("E22D76"), 29, TextAnchor.MiddleCenter, new Vector2(.5f, .5f));
             refs.brandLabel = refs.brandButton.GetComponentInChildren<Text>();
-            refs.welcomeLabel = Label(root.transform, "Welcome", "WELCOME HOME.\n本周将有 <color=#E22D76>4</color> 位访客来访", 19, Hex("F3E8DD"),
+            refs.welcomeLabel = Label(root.transform, "Welcome", "WELCOME HOME.\n当前在场 <color=#E22D76>0</color> 位访客", 19, Hex("F3E8DD"),
                 new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-370, 0), new Vector2(330, 78), TextAnchor.MiddleCenter, FontStyle.Normal);
             refs.optionsButton = PageButton(root.transform, "Options", "设\n<size=15>OPTIONS · 设置</size>", new Vector2(-70, 0),
                 new Vector2(112, 104), new Color(.32f, .06f, .18f, .86f), Hex("F3E8DD"), 27, TextAnchor.MiddleCenter, new Vector2(1, .5f));
@@ -1053,7 +1057,7 @@ namespace MasterHouse
                 TextAnchor.MiddleCenter, FontStyle.Bold);
             var week = Image(root.transform, "WeekPanel", new Vector2(1, .5f), new Vector2(1, .5f),
                 new Vector2(-245, 90), new Vector2(410, 540), new Color(.02f, .025f, .045f, .85f));
-            view.weekTitle = Label(week.transform, "Title", "WEEK 01 / 本周访客", 16, Hex("E22D76"),
+            view.weekTitle = Label(week.transform, "Title", "ON STAGE / 在场访客", 16, Hex("E22D76"),
                 new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -35), new Vector2(350, 40),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
             view.weekGuestButtons = new Button[4];
@@ -1097,8 +1101,30 @@ namespace MasterHouse
                 view.furnitureBackgrounds[i] = button.targetGraphic as Image;
                 view.furnitureLabels[i] = button.GetComponentInChildren<Text>();
             }
-            view.endWeekButton = PageButton(dock.transform, "EndWeek", "结束本周 →", new Vector2(-100, 0),
+            view.endWeekButton = PageButton(dock.transform, "EndWeek", "结束今天 →", new Vector2(-100, 0),
                 new Vector2(180, 70), Hex("6E243E"), Hex("F3E8DD"), 17, TextAnchor.MiddleCenter, new Vector2(1, .5f));
+            Save(root, path);
+        }
+
+        /// <summary>当日结算面板（访客交付说明 §7）：整屏遮罩 + 居中卡片（标题/结算正文/确认按钮），只展示不惩罚。</summary>
+        private static void BuildDaySettlePanel(string path)
+        {
+            var root = Root("DaySettlePanel");
+            var view = root.AddComponent<OutGameDaySettleView>();
+            view.scrim = Image(root.transform, "Scrim", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+                new Color(.005f, .008f, .02f, .72f));
+            view.panel = Rect(root.transform, "Panel", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                Vector2.zero, new Vector2(680, 460));
+            ImageOn(view.panel, new Color(.035f, .025f, .045f, .96f));
+            view.title = Label(view.panel, "Title", "DAY 01 结算", 30, Hex("E22D76"),
+                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -60), new Vector2(600, 50),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            view.body = Label(view.panel, "Body", string.Empty, 20, Hex("F3E8DD"),
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 10), new Vector2(580, 250),
+                TextAnchor.UpperLeft, FontStyle.Normal);
+            view.confirmButton = PageButton(view.panel, "Confirm", "开始新的一天 →", new Vector2(0, 55),
+                new Vector2(300, 62), Hex("6E243E"), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
+            view.confirmLabel = view.confirmButton.GetComponentInChildren<Text>();
             Save(root, path);
         }
 

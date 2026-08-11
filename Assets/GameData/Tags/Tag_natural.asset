@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d792f2d7ba05454ebfd73aeb5e1e852, type: 3}
+  m_Name: Tag_natural
+  m_EditorClassIdentifier: 
+  id: natural
+  displayName: "\u5929\u7136"
+  phrase: "\u5929\u7136\u7684"
+  parent: {fileID: 11400000, guid: c64ba93ea55e8894e8f71cd51ea96ba1, type: 2}
+  grammarRole: 1
+  sortOrder: 0
