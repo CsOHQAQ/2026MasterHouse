@@ -11,6 +11,8 @@ namespace MasterHouse
         public string GridId;
         public int Col;
         public int Row;
+        /// <summary>左右镜像摆放（F 键切换；随会话/初始摆放持久）。</summary>
+        public bool Flipped;
         public GameObject Root;
         public SpriteRenderer Renderer;
 

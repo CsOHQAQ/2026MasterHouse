@@ -50,6 +50,7 @@ namespace MasterHouse
         {
             public FurnitureEntry Entry;
             public FurnitureRuntimeItem Item;      // null = 从收纳栏拖出
+            public bool Flipped;                   // F 键左右镜像
             public FurnitureRuntimeGrid CandidateGrid;
             public int CandidateCol;
             public int CandidateRow;
@@ -60,7 +61,9 @@ namespace MasterHouse
         }
 
         private static FurnitureRoomController active;
-        private static SessionState session;
+
+        /// <summary>会话布局按房间 id 分桶（家具模式随 Hub 当前房间动态加载）；未编辑过的房间沿用其默认摆放。</summary>
+        private static readonly Dictionary<string, SessionState> sessions = new Dictionary<string, SessionState>();
 
         private FurnitureTable furnitureTable;
         private FurnitureRoomEntry room;
@@ -81,21 +84,27 @@ namespace MasterHouse
         private string lastClickItemId;
         private float lastClickTime;
 
-        /// <summary>打开家具模式。配置表缺失时返回 false（提示先执行生成菜单）。</summary>
-        public static bool Open(Action onClosed)
+        /// <summary>打开家具模式并加载指定房间（随 Hub 当前房间动态加载；下标越界回落 0）。配置表缺失时返回 false。</summary>
+        public static bool Open(int roomIndex, Action onClosed)
         {
             if (active != null) return true;
             // 家具表并入 Def 体系（§16.7）：统一由 GameManager 加载
             var furniture = GameManager.Instance.FurnitureTable;
             var rooms = GameManager.Instance.FurnitureRoomTable;
-            if (furniture == null || rooms == null || rooms.rooms.Count == 0 || rooms.rooms[0] == null)
+            if (furniture == null || rooms == null || rooms.rooms.Count == 0)
             {
                 Debug.LogWarning("[Furniture] 配置表缺失，请先执行菜单 MasterHouse → 家具系统 → 创建配置表。");
                 return false;
             }
+            var roomEntry = roomIndex >= 0 && roomIndex < rooms.rooms.Count ? rooms.rooms[roomIndex] : rooms.rooms[0];
+            if (roomEntry == null)
+            {
+                Debug.LogWarning($"[Furniture] 房间配置为空（下标 {roomIndex}），无法进入家具模式。");
+                return false;
+            }
             var go = new GameObject("FurnitureRoomMode");
             active = go.AddComponent<FurnitureRoomController>();
-            active.Init(furniture, rooms.rooms[0], onClosed);
+            active.Init(furniture, roomEntry, onClosed);
             return true;
         }
 
@@ -159,19 +168,16 @@ namespace MasterHouse
             }
             renderer.sprite = sprite;
             go.transform.position = PxToWorld(room.sceneWidth * .5f, room.sceneHeight * .5f, z);
-            go.transform.localScale = new Vector3(
-                room.sceneWidth / sprite.rect.width,
-                room.sceneHeight / sprite.rect.height, 1f);
+            go.transform.localScale = SpriteScale(sprite, room.sceneWidth, room.sceneHeight);
             return renderer;
         }
 
         private void BuildCamera()
         {
             var pivot = PxToWorld(room.sceneWidth * .5f, room.sceneHeight * .5f, 0f);
-            var halfHeight = room.sceneHeight / PixelsPerUnit * .5f;
-            var distance = halfHeight / Mathf.Tan(CameraFov * .5f * Mathf.Deg2Rad);
+            var halfExtents = new Vector2(room.sceneWidth, room.sceneHeight) / PixelsPerUnit * .5f;
             rig = new GameObject("FurnitureCameraRig").AddComponent<FurnitureCameraRig>();
-            rig.Init(pivot, distance, CameraFov);
+            rig.Init(pivot, halfExtents, CameraFov); // 初始完整显示背景；滚轮缩放 + 右键/中键平移在吊架内
         }
 
         private void BuildGrids()
@@ -193,6 +199,15 @@ namespace MasterHouse
         #endregion
 
         #region 坐标换算
+
+        /// <summary>
+        /// 把精灵缩放到指定的场景像素尺寸。必须用 bounds（世界单位）而非 rect（导入后像素）：
+        /// 原图超过导入 Max Size 被降采样时，rect 变小但 bounds 不变，用 rect 会把大图放大（如 5120px 房间背景放大 2.5 倍）。
+        /// </summary>
+        private static Vector3 SpriteScale(Sprite sprite, float scenePxWidth, float scenePxHeight) =>
+            new Vector3(
+                scenePxWidth / PixelsPerUnit / Mathf.Max(1e-4f, sprite.bounds.size.x),
+                scenePxHeight / PixelsPerUnit / Mathf.Max(1e-4f, sprite.bounds.size.y), 1f);
 
         /// <summary>场景像素（左上原点、Y 向下）→ 世界坐标。</summary>
         private Vector3 PxToWorld(float px, float py, float z)
@@ -272,7 +287,8 @@ namespace MasterHouse
             foreach (var child in ChildrenOf(host)) LayoutItem(child);
         }
 
-        private FurnitureRuntimeItem PlaceItem(FurnitureEntry entry, string gridId, int col, int row, bool silent)
+        private FurnitureRuntimeItem PlaceItem(FurnitureEntry entry, string gridId, int col, int row, bool silent,
+            bool flipped = false)
         {
             var grid = grids[gridId];
             var item = new FurnitureRuntimeItem
@@ -282,15 +298,15 @@ namespace MasterHouse
                 GridId = gridId,
                 Col = col,
                 Row = row,
+                Flipped = flipped,
             };
             item.Root = new GameObject("Furniture_" + entry.id);
             item.Root.transform.SetParent(stageRoot, false);
             item.Renderer = item.Root.AddComponent<SpriteRenderer>();
             item.Renderer.sprite = entry.sprite;
+            item.Renderer.flipX = flipped;
             if (entry.sprite != null)
-                item.Root.transform.localScale = new Vector3(
-                    entry.displayWidth / entry.sprite.rect.width,
-                    entry.displayHeight / entry.sprite.rect.height, 1f);
+                item.Root.transform.localScale = SpriteScale(entry.sprite, entry.displayWidth, entry.displayHeight);
             items[item.Id] = item;
             grid.SetOccupied(col, row, entry.cols, entry.rows, item.Id, true);
 
@@ -390,9 +406,26 @@ namespace MasterHouse
 
             if (drag != null)
             {
+                if (Input.GetKeyDown(KeyCode.F)) // 拖拽中 F 翻转幽灵
+                {
+                    drag.Flipped = !drag.Flipped;
+                    if (drag.GhostRenderer != null) drag.GhostRenderer.flipX = drag.Flipped;
+                }
                 UpdateDrag();
                 if (Input.GetMouseButtonUp(0)) EndDrag(true);
                 return;
+            }
+
+            if (Input.GetKeyDown(KeyCode.F) && !hud.PopupOpen)
+            {
+                // 非拖拽态：F 翻转鼠标下的已摆放家具，立即落会话
+                var hover = HitItem(MouseScenePx());
+                if (hover != null)
+                {
+                    hover.Flipped = !hover.Flipped;
+                    if (hover.Renderer != null) hover.Renderer.flipX = hover.Flipped;
+                    SaveState();
+                }
             }
 
             if (Input.GetMouseButtonDown(0) && !hud.PopupOpen)
@@ -462,17 +495,17 @@ namespace MasterHouse
 
         private void BeginDrag(FurnitureEntry entry, FurnitureRuntimeItem item)
         {
-            drag = new DragState { Entry = entry, Item = item };
+            drag = new DragState { Entry = entry, Item = item, Flipped = item != null && item.Flipped };
+            hud.SetDragDimming(true); // 布置中顶部 UI 淡出让位（收纳栏保留作拖回落点）
             drag.Ghost = new GameObject("DragGhost");
             drag.Ghost.transform.SetParent(stageRoot, false);
             drag.GhostRenderer = drag.Ghost.AddComponent<SpriteRenderer>();
             drag.GhostRenderer.sprite = entry.sprite;
+            drag.GhostRenderer.flipX = drag.Flipped;
             drag.GhostRenderer.sortingOrder = OrderGhost;
             drag.GhostRenderer.color = new Color(1f, 1f, 1f, .85f);
             if (entry.sprite != null)
-                drag.Ghost.transform.localScale = new Vector3(
-                    entry.displayWidth / entry.sprite.rect.width,
-                    entry.displayHeight / entry.sprite.rect.height, 1f);
+                drag.Ghost.transform.localScale = SpriteScale(entry.sprite, entry.displayWidth, entry.displayHeight);
 
             if (item != null)
             {
@@ -496,9 +529,11 @@ namespace MasterHouse
                         childGhost.transform.localPosition = new Vector3(
                             offsetX / PixelsPerUnit / hostScale.x, offsetY / PixelsPerUnit / hostScale.y, 0f);
                         if (child.Entry.sprite != null)
+                        {
+                            var childScale = SpriteScale(child.Entry.sprite, child.Entry.displayWidth, child.Entry.displayHeight);
                             childGhost.transform.localScale = new Vector3(
-                                child.Entry.displayWidth / child.Entry.sprite.rect.width / hostScale.x,
-                                child.Entry.displayHeight / child.Entry.sprite.rect.height / hostScale.y, 1f);
+                                childScale.x / hostScale.x, childScale.y / hostScale.y, 1f);
+                        }
                         child.Root.SetActive(false);
                     }
                     if (grids.TryGetValue(TableGridId(item.Id), out var tableGrid)) tableGrid.SetVisible(false);
@@ -507,7 +542,7 @@ namespace MasterHouse
                 item.Root.SetActive(false);
             }
 
-            ShowGridsForSurface(entry.surface);
+            ShowGridsForEntry(entry);
             RefreshAllGridColors();
             if (focusBlurRenderer != null)
             {
@@ -524,41 +559,54 @@ namespace MasterHouse
             var wantLeft = px.x - entry.displayWidth * .5f;
             var wantBottom = px.y + entry.displayHeight * .25f;
 
+            // 拖回收纳优先：指针悬在收纳栏面板上即判定收回（面板亮粉提示）。
+            // 收纳栏正后方的地板行想摆放：先「隐藏界面」或滚轮放大，让收纳栏离开指针下方。
             drag.OverInventory = drag.Item != null && hud.IsPointerOverInventory(Input.mousePosition);
             hud.SetInventoryDropHint(drag.OverInventory);
 
             RefreshAllGridColors();
             drag.CandidateGrid = null;
-            if (!drag.OverInventory)
+            if (drag.OverInventory)
             {
-                FurnitureRuntimeGrid best = null;
-                var bestDist = float.MaxValue;
-                foreach (var grid in grids.Values)
+                drag.Ghost.transform.position = PxToWorld(
+                    wantLeft + entry.displayWidth * .5f, wantBottom - entry.displayHeight * .5f, ZGhost);
+                drag.GhostRenderer.color = new Color(1f, 1f, 1f, .85f);
+                return;
+            }
+            FurnitureRuntimeGrid best = null;
+            var bestDist = float.MaxValue;
+            var bestIsTable = false;
+            foreach (var grid in grids.Values)
+            {
+                if (!entry.Supports(grid.Surface)) continue; // 表面类型可多选（如纸箱：地面/桌面）
+                if (drag.Item != null && grid.HostItemId == drag.Item.Id) continue;
+                if (!grid.Contains(px, SnapMarginPx)) continue;
+                var dist = grid.DistanceSq(px);
+                // 桌面格与地面格空间重叠：指针悬在桌面格内时桌面格优先，
+                // 否则多选表面的小件永远被大范围地面格抢走、落到桌子身后的地板行（层级被桌子压住）
+                var isTable = grid.Surface == FurnitureSurfaceType.Table;
+                var better = best == null || (isTable && !bestIsTable) ||
+                             (isTable == bestIsTable && dist < bestDist);
+                if (better)
                 {
-                    if (grid.Surface != entry.surface) continue;
-                    if (drag.Item != null && grid.HostItemId == drag.Item.Id) continue;
-                    if (!grid.Contains(px, SnapMarginPx)) continue;
-                    var dist = grid.DistanceSq(px);
-                    if (dist < bestDist)
-                    {
-                        best = grid;
-                        bestDist = dist;
-                    }
+                    best = grid;
+                    bestDist = dist;
+                    bestIsTable = isTable;
                 }
-                if (best != null)
-                {
-                    var footWidth = entry.cols * best.CellWidth;
-                    var footHeight = entry.rows * best.CellHeight;
-                    var col = Mathf.Clamp(Mathf.RoundToInt(
-                        (wantLeft + (entry.displayWidth - footWidth) * .5f - best.X) / best.CellWidth), 0, best.Cols - entry.cols);
-                    var row = Mathf.Clamp(Mathf.RoundToInt(
-                        (wantBottom - footHeight - best.Y) / best.CellHeight), 0, best.Rows - entry.rows);
-                    drag.CandidateGrid = best;
-                    drag.CandidateCol = col;
-                    drag.CandidateRow = row;
-                    drag.CandidateOk = best.FootprintFree(col, row, entry.cols, entry.rows, drag.Item?.Id);
-                    best.PaintPreview(col, row, entry.cols, entry.rows, drag.CandidateOk);
-                }
+            }
+            if (best != null)
+            {
+                var footWidth = entry.cols * best.CellWidth;
+                var footHeight = entry.rows * best.CellHeight;
+                var col = Mathf.Clamp(Mathf.RoundToInt(
+                    (wantLeft + (entry.displayWidth - footWidth) * .5f - best.X) / best.CellWidth), 0, best.Cols - entry.cols);
+                var row = Mathf.Clamp(Mathf.RoundToInt(
+                    (wantBottom - footHeight - best.Y) / best.CellHeight), 0, best.Rows - entry.rows);
+                drag.CandidateGrid = best;
+                drag.CandidateCol = col;
+                drag.CandidateRow = row;
+                drag.CandidateOk = best.FootprintFree(col, row, entry.cols, entry.rows, drag.Item?.Id);
+                best.PaintPreview(col, row, entry.cols, entry.rows, drag.CandidateOk);
             }
 
             float ghostLeft, ghostBottom;
@@ -585,6 +633,7 @@ namespace MasterHouse
         {
             var state = drag;
             drag = null;
+            hud.SetDragDimming(false);
             hud.SetInventoryDropHint(false);
             if (focusBlurRenderer != null)
             {
@@ -617,6 +666,8 @@ namespace MasterHouse
                 if (state.Item != null)
                 {
                     state.Item.Root.SetActive(true);
+                    state.Item.Flipped = state.Flipped;
+                    if (state.Item.Renderer != null) state.Item.Renderer.flipX = state.Flipped;
                     if (state.Entry.tableSurface != null && state.Entry.tableSurface.enabled)
                     {
                         if (grids.TryGetValue(TableGridId(state.Item.Id), out var tableGrid)) tableGrid.SetVisible(true);
@@ -626,7 +677,7 @@ namespace MasterHouse
                 }
                 else
                 {
-                    PlaceItem(state.Entry, state.CandidateGrid.Id, state.CandidateCol, state.CandidateRow, false);
+                    PlaceItem(state.Entry, state.CandidateGrid.Id, state.CandidateCol, state.CandidateRow, false, state.Flipped);
                     hud.RefreshInventory();
                 }
             }
@@ -636,9 +687,9 @@ namespace MasterHouse
                 {
                     var hasSurface = false;
                     foreach (var grid in grids.Values)
-                        if (grid.Surface == state.Entry.surface) { hasSurface = true; break; }
-                    if (state.Entry.surface == FurnitureSurfaceType.Table && !hasSurface)
-                        hud.ShowToast("需要先摆放带桌面格的地面家具（圆木茶几）");
+                        if (state.Entry.Supports(grid.Surface)) { hasSurface = true; break; }
+                    if (!hasSurface && state.Entry.Supports(FurnitureSurfaceType.Table))
+                        hud.ShowToast("需要先摆放带桌面格的家具（如茶几）");
                     else if (state.CandidateGrid != null && !state.CandidateOk)
                         hud.ShowToast("该位置无法摆放");
                 }
@@ -653,9 +704,10 @@ namespace MasterHouse
 
         #region 网格显隐
 
-        private void ShowGridsForSurface(FurnitureSurfaceType surface)
+        /// <summary>拖拽中显示该家具支持的全部表面网格（表面类型可多选）。</summary>
+        private void ShowGridsForEntry(FurnitureEntry entry)
         {
-            foreach (var grid in grids.Values) grid.SetVisible(grid.Surface == surface);
+            foreach (var grid in grids.Values) grid.SetVisible(entry.Supports(grid.Surface));
         }
 
         private void ApplyGridVisibility()
@@ -704,12 +756,11 @@ namespace MasterHouse
             }
         }
 
-        /// <summary>装饰分来源之一：当前已摆放装饰品的得分总和，回写流通服务。</summary>
+        /// <summary>装饰分来源之一：全部房间已摆放装饰品的得分总和（当前房间先落会话，再逐房间求和）。</summary>
         private void RecomputeDecorationScore()
         {
-            var sum = 0;
-            foreach (var item in items.Values) sum += item.Entry.decorationScore;
-            Economy.SetFurnitureDecorationScore(sum);
+            SaveState();
+            SyncDecorationFromSession();
         }
 
         private void OnEconomyChanged()
@@ -721,26 +772,27 @@ namespace MasterHouse
 
         #region 会话状态
 
-        /// <summary>导出当前布局供存档。null = 从未编辑过（沿用房间默认摆放）。</summary>
-        public static List<FurniturePlacementConfig> CaptureSessionPlacements()
+        /// <summary>导出指定房间的当前布局供存档/烘焙。null = 该房间从未编辑过（沿用其默认摆放）。</summary>
+        public static List<FurniturePlacementConfig> CaptureSessionPlacements(string roomId)
         {
-            if (active != null) active.SaveState();
-            if (session == null) return null;
-            return new List<FurniturePlacementConfig>(session.Placements);
+            if (active != null && active.room != null && active.room.id == roomId) active.SaveState();
+            if (string.IsNullOrEmpty(roomId) || !sessions.TryGetValue(roomId, out var state)) return null;
+            return new List<FurniturePlacementConfig>(state.Placements);
         }
 
-        /// <summary>从存档恢复布局；placements 为 null 时回落到房间默认摆放。</summary>
-        public static void RestoreSessionPlacements(List<FurniturePlacementConfig> placements)
+        /// <summary>从存档恢复指定房间的布局；placements 为 null 时回落到该房间默认摆放（存档接缝，待定 #9）。</summary>
+        public static void RestoreSessionPlacements(string roomId, List<FurniturePlacementConfig> placements)
         {
+            if (string.IsNullOrEmpty(roomId)) return;
             if (placements == null)
             {
-                session = null;
+                sessions.Remove(roomId);
             }
             else
             {
                 var state = new SessionState();
                 state.Placements.AddRange(placements);
-                session = state;
+                sessions[roomId] = state;
             }
             SyncDecorationFromSession();
         }
@@ -751,45 +803,43 @@ namespace MasterHouse
             if (active != null) active.Close();
         }
 
-        /// <summary>清空布局（新游戏）。</summary>
+        /// <summary>清空全部房间布局（新游戏）。</summary>
         public static void ResetSession()
         {
-            session = null;
+            sessions.Clear();
             SyncDecorationFromSession();
         }
 
-        /// <summary>不打开家具模式也能把布局对应的装饰品得分回写流通服务（读档/新游戏后 Hub 立即显示正确装饰分）。</summary>
+        /// <summary>不打开家具模式也能把布局对应的装饰品得分回写流通服务（读档/新游戏后 Hub 立即显示正确装饰分）。
+        /// 多房间：逐房间取会话布局（无会话则用该房间默认摆放）求和。</summary>
         private static void SyncDecorationFromSession()
         {
             var table = GameManager.Instance.FurnitureTable;
-            if (table == null) return;
-            List<FurniturePlacementConfig> placements;
-            if (session != null)
+            var rooms = GameManager.Instance.FurnitureRoomTable;
+            if (table == null || rooms == null)
             {
-                placements = session.Placements;
-            }
-            else
-            {
-                var rooms = GameManager.Instance.FurnitureRoomTable;
-                if (rooms == null || rooms.rooms.Count == 0 || rooms.rooms[0] == null)
-                {
-                    Economy.SetFurnitureDecorationScore(0);
-                    return;
-                }
-                placements = rooms.rooms[0].initialPlacements;
+                Economy.SetFurnitureDecorationScore(0);
+                return;
             }
             var sum = 0;
-            foreach (var placement in placements)
+            foreach (var roomEntry in rooms.rooms)
             {
-                var entry = placement == null ? null : table.Find(placement.furnitureId);
-                if (entry != null) sum += entry.decorationScore;
+                if (roomEntry == null) continue;
+                var placements = sessions.TryGetValue(roomEntry.id, out var state)
+                    ? state.Placements
+                    : roomEntry.initialPlacements;
+                foreach (var placement in placements)
+                {
+                    var entry = placement == null ? null : table.Find(placement.furnitureId);
+                    if (entry != null) sum += entry.decorationScore;
+                }
             }
             Economy.SetFurnitureDecorationScore(sum);
         }
 
         private void RestoreState()
         {
-            var placements = session != null ? session.Placements : room.initialPlacements;
+            var placements = sessions.TryGetValue(room.id, out var state) ? state.Placements : room.initialPlacements;
 
             // 先摆基础网格上的家具，再摆桌面家具（宿主此时已生成桌面网格）
             foreach (var placement in placements)
@@ -798,7 +848,7 @@ namespace MasterHouse
                 var entry = furnitureTable.Find(placement.furnitureId);
                 if (entry == null || !grids.TryGetValue(placement.gridId ?? string.Empty, out var grid)) continue;
                 if (!grid.FootprintFree(placement.col, placement.row, entry.cols, entry.rows, null)) continue;
-                PlaceItem(entry, placement.gridId, placement.col, placement.row, true);
+                PlaceItem(entry, placement.gridId, placement.col, placement.row, true, placement.flipped);
             }
             foreach (var placement in placements)
             {
@@ -810,7 +860,7 @@ namespace MasterHouse
                     if (item.Entry.id == placement.hostFurnitureId) { host = item; break; }
                 if (host == null || !grids.TryGetValue(TableGridId(host.Id), out var grid)) continue;
                 if (!grid.FootprintFree(placement.col, placement.row, entry.cols, entry.rows, null)) continue;
-                PlaceItem(entry, grid.Id, placement.col, placement.row, true);
+                PlaceItem(entry, grid.Id, placement.col, placement.row, true, placement.flipped);
             }
         }
 
@@ -826,6 +876,7 @@ namespace MasterHouse
                     gridId = item.GridId,
                     col = item.Col,
                     row = item.Row,
+                    flipped = item.Flipped,
                 });
             }
             foreach (var item in items.Values)
@@ -838,9 +889,10 @@ namespace MasterHouse
                     hostFurnitureId = host.Entry.id,
                     col = item.Col,
                     row = item.Row,
+                    flipped = item.Flipped,
                 });
             }
-            session = state;
+            sessions[room.id] = state; // 按房间分桶保存
         }
 
         #endregion
