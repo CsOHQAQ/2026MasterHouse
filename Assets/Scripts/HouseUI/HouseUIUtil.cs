@@ -15,17 +15,41 @@ namespace MasterHouse
 
         private static Font font;
 
-        /// <summary>与旧局外 UI 同源的字体选择：拉丁字符优先 Georgia，中文回退楷体。</summary>
+        /// <summary>
+        /// 项目 UI 字体：思源黑体（美术定稿，源文件在 Assets/PC ui/Fonts，Resources 下放运行时加载副本）。
+        /// 资产缺失时回退旧的系统字体链，保证文字始终可显示。
+        /// </summary>
         public static Font Font
         {
             get
             {
                 if (font != null) return font;
-                string[] preferred = { "Georgia", "Times New Roman", "STKaiti", "KaiTi", "Microsoft YaHei", "SimHei" };
-                font = Font.CreateDynamicFontFromOSFont(preferred, 32);
+                font = Resources.Load<Font>("Fonts/SourceHanSansOLD-Normal-2");
+                if (font == null)
+                {
+                    Debug.LogWarning("[HouseUI] 项目字体缺失（Resources/Fonts/SourceHanSansOLD-Normal-2），回退系统字体");
+                    string[] preferred = { "Georgia", "Times New Roman", "STKaiti", "KaiTi", "Microsoft YaHei", "SimHei" };
+                    font = Font.CreateDynamicFontFromOSFont(preferred, 32);
+                }
                 if (font == null) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 return font;
             }
+        }
+
+        /// <summary>
+        /// 全局面板底图（PC ui/common/Secondary-bg，黑底粉边，9 宫格切片）：
+        /// 各类弹窗/面板/卡片统一经此换肤；素材缺失时保持原有底色不变。
+        /// alpha 控制整体透明度；borderScale 越大边框越细（小按钮传 2~3，避免切片边框比按钮还厚）。
+        /// </summary>
+        public static void ApplyPanelSkin(Image panel, float alpha = 1f, float borderScale = 1f)
+        {
+            if (panel == null) return;
+            var skin = Resources.Load<Sprite>("OutGameUI/common/Secondary-bg");
+            if (skin == null) return;
+            panel.sprite = skin;
+            panel.color = new Color(1f, 1f, 1f, alpha);
+            panel.type = Image.Type.Sliced;
+            panel.pixelsPerUnitMultiplier = Mathf.Max(.01f, borderScale);
         }
 
         public static Color Hex(string value, float alpha = 1f)

@@ -17,22 +17,22 @@ MonoBehaviour:
     displayName: "\u8D77\u5C45\u5BA4"
     code: HOME
     note: "\u5BA2\u4EBA\u4F1A\u5728\u8FD9\u91CC\u7B49\u5F85\u670D\u52A1"
-    artPath: OutGameUI/house-hub-v2
+    artPath: OutGameUI/room-01
   - id: bedroom
     displayName: "\u5367\u5BA4"
     code: REST
     note: "\u6062\u590D\u72B6\u6001\u5E76\u63A8\u8FDB\u81F3\u4E0B\u4E00\u5929"
-    artPath: OutGameUI/dream-house
+    artPath: OutGameUI/room-02
   - id: kitchen
     displayName: "\u53A8\u623F"
     code: MAKE
     note: "\u4F7F\u7528\u8BBE\u5907\u5236\u4F5C\u8BBF\u5BA2\u9700\u8981\u7684\u7269\u54C1"
-    artPath: OutGameUI/house-hub-v3
+    artPath: OutGameUI/room-03
   - id: study
     displayName: "\u4E66\u623F"
     code: READ
     note: "\u89E3\u9501\u914D\u65B9\u4E0E\u5BA2\u4EBA\u7EBF\u7D22"
-    artPath: OutGameUI/study-room-clean
+    artPath: OutGameUI/room-04
   devices:
   - roomId: living
     displayName: "\u9ED1\u80F6\u5531\u673A"

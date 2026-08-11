@@ -14,7 +14,7 @@ namespace MasterHouse
 
         protected override void OnEnter()
         {
-            HouseUIRuntime.StretchTexture(Root, "HomeReveal", "OutGameUI/house-hub-v2");
+            HouseUIRuntime.StretchTexture(Root, "HomeReveal", "OutGameUI/room-01");
             HouseUIRuntime.StretchPanel(Root, "RevealVignette", new Color(.02f, .02f, .035f, .28f));
             var welcome = HouseUIRuntime.Panel(Root, "Welcome", new Vector2(.5f, .5f),
                 Vector2.zero, new Vector2(370, 126), new Color(.83f, .77f, .67f, .94f));
