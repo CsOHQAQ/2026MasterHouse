@@ -170,7 +170,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: -62, y: -7}
+  m_AnchoredPosition: {x: -69, y: -1.3159}
   m_SizeDelta: {x: 110, y: 42}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8923962114106926083
@@ -333,8 +333,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 230, y: 0}
-  m_SizeDelta: {x: 410, y: 100}
+  m_AnchoredPosition: {x: 228.3523, y: 0.9841}
+  m_SizeDelta: {x: 415.9045, y: 98.0319}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1571078224923781350
 CanvasRenderer:
@@ -785,8 +785,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: -28, y: -16}
+  m_AnchoredPosition: {x: 1.3852997, y: -0.46170044}
+  m_SizeDelta: {x: -25.2293, y: -16.9235}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6102959829301147990
 CanvasRenderer:
@@ -829,7 +829,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u8BBE\n<size=15>OPTIONS \xB7 \u8BBE\u7F6E</size>"
+  m_Text: "<size=15>OPTIONS \xB7 \u8BBE\u7F6E</size>"
 --- !u!1 &6625216304654780300
 GameObject:
   m_ObjectHideFlags: 0
@@ -864,8 +864,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: -28, y: -16}
+  m_AnchoredPosition: {x: 0.44799805, y: 0}
+  m_SizeDelta: {x: -27.104, y: -16}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7507507618261783435
 CanvasRenderer:
@@ -908,9 +908,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: '<i>The Guesthouse
-
-    of Meros</i>     <size=14>N E W  C H A P T E R</size>'
+  m_Text: <i>The Guesthouse of Meros</i>     <size=14>N E W  C H A P T E R</size>
 --- !u!1 &7034303901433968958
 GameObject:
   m_ObjectHideFlags: 0
@@ -948,7 +946,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 120, y: 0}
+  m_AnchoredPosition: {x: 125, y: -3.0319}
   m_SizeDelta: {x: 600, y: 90}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5375143606474951813
@@ -1081,8 +1079,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: -28, y: -16}
+  m_AnchoredPosition: {x: -93.6, y: 0}
+  m_SizeDelta: {x: -225.4741, y: -31.4}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1689157179342779209
 CanvasRenderer:
@@ -1160,7 +1158,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -78, y: 14}
+  m_AnchoredPosition: {x: -89, y: 20}
   m_SizeDelta: {x: 150, y: 24}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2054523217475260190
