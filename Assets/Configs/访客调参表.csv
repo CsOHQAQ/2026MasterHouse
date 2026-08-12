@@ -1,0 +1,6 @@
+﻿参数,值,说明
+openMinute,480,开门时刻（当天分钟数，480=8:00）
+closeMinute,1320,打烊时刻（当天分钟数，1320=22:00）
+bubbleIntervalTicks,120,闲逛冒泡间隔（tick）
+bubbleJitterTicks,40,冒泡间隔抖动（tick），实际=间隔±抖动
+bubbleHoldTicks,40,气泡停留时长（tick）
