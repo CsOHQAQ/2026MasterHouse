@@ -378,6 +378,42 @@ namespace MasterHouse
         /// <summary>GM：改写 runSeed（§6.1，存档未落地期间的调试入口）。只影响此后新投放访客的需求 roll。</summary>
         public void SetRunSeed(long seed) => Data.RunSeed = seed;
 
+        /// <summary>GM 召唤计数：派生种子键与真实日程条目错开（10000 起），实例不参与存档恢复（debug 专用）。</summary>
+        private int gmSpawnCount;
+
+        /// <summary>
+        /// GM：立即召唤一位访客到前台（忽略日程与营业时段，验证接待流程用）。
+        /// race 为空时按日程表引用的种族轮换；日程表没有任何种族时返回 null。
+        /// </summary>
+        public VisitorInstance GmSpawnVisitor(VisitorRaceDef race = null)
+        {
+            if (race == null)
+            {
+                var races = new List<VisitorRaceDef>();
+                if (schedule != null)
+                    foreach (var entry in schedule.entries)
+                        if (entry != null && entry.race != null && !races.Contains(entry.race))
+                            races.Add(entry.race);
+                if (races.Count == 0) return null;
+                race = races[gmSpawnCount % races.Count];
+            }
+            var seedIndex = 10000 + gmSpawnCount++;
+            var instance = new VisitorInstance
+            {
+                InstanceId = Data.NextInstanceId++,
+                Race = race,
+                ScheduleDay = clock.Data.Day,
+                ScheduleIndex = seedIndex,
+                State = EVisitorState.FrontDesk,
+                StateEnterTick = Data.BusinessTick,
+            };
+            instance.Rng = new DeterministicRng(DeterministicRng.Hash(Data.RunSeed, clock.Data.Day, seedIndex));
+            RollNeeds(instance);
+            Data.Instances.Add(instance);
+            InstanceSpawned?.Invoke(instance);
+            return instance;
+        }
+
         /// <summary>清空全部访客状态（新游戏/GM 重置）。</summary>
         public void ResetNew()
         {
