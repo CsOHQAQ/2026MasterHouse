@@ -10,7 +10,7 @@ namespace MasterHouse
     /// Hub 场景里的访客 NPC 舞台层（纯表现，§16.4）：
     /// ①业务访客：每帧轮询 VisitorManager 的在场实例列表生成/回收演员（实例动态增删，§9），
     ///   演员状态随实例业务状态同步（表现不回写业务），点击转发 instanceId 给 HubPage 触发对话；
-    ///   闲逛台词经 DialogueRequested 事件推给对应演员的句子气泡。
+    ///   闲逛台词经 DialogueManager.BubbleRequested 事件推给对应演员的句子气泡（内容选取在对话系统侧）。
     /// ②串门邻居（ambient）：随机轮换进场，在门口排队等玩家决定去留（名册在 VisitorTuningConfig）。
     /// ③把场景归一化坐标换算成锚点（跟随观景模式的 uvRect 平移缩放），并按深度排序前后遮挡。
     /// 只在起居室出现。
@@ -96,20 +96,23 @@ namespace MasterHouse
                 for (var k = 0; k < Mathf.Min(MaxAmbient, order.Count); k++)
                     stage.SpawnAmbient(order[k], 5f + k * 3.5f + UnityEngine.Random.Range(0f, 2f));
             }
-            Visitor.DialogueRequested += stage.OnDialogueRequested;
+            // 闲逛台词直接订对话系统的气泡通道：内容选取（种族对话池 → 加权抽取 → recent 去重）
+            // 全在 DialogueManager 里，舞台只负责把成文的句子送到对应演员头顶
+            if (GameManager.Instance != null && GameManager.Instance.DialogueManager != null)
+                GameManager.Instance.DialogueManager.BubbleRequested += stage.OnBubbleRequested;
             return stage;
         }
 
         private void OnDestroy()
         {
-            if (GameManager.Instance != null && GameManager.Instance.VisitorManager != null)
-                GameManager.Instance.VisitorManager.DialogueRequested -= OnDialogueRequested;
+            if (GameManager.Instance != null && GameManager.Instance.DialogueManager != null)
+                GameManager.Instance.DialogueManager.BubbleRequested -= OnBubbleRequested;
         }
 
         /// <summary>闲逛台词冒泡（§8 满意后闲逛触发点）：推给对应演员的句子气泡展示。</summary>
-        private void OnDialogueRequested(VisitorInstance instance, EVisitorDialogueTrigger trigger, string line)
+        private void OnBubbleRequested(VisitorInstance instance, string line)
         {
-            if (trigger != EVisitorDialogueTrigger.WanderChat) return;
+            if (instance == null || string.IsNullOrEmpty(line)) return;
             if (!businessActors.TryGetValue(instance.InstanceId, out var actor) || actor == null) return;
             // 气泡停留时长按 tick 配置（§4.5），表现层换算成秒（表现层豁免，§16.4）
             var ticksPerSecond = GameConfig.Instance != null ? Mathf.Max(1, GameConfig.Instance.TicksPerSecond) : 10;

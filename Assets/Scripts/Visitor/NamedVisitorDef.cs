@@ -15,6 +15,6 @@ namespace MasterHouse
         [Tooltip("固定名字（覆写种族显示名）")] public string displayName;
         [Tooltip("固定立绘差分（覆写种族立绘）")] public List<ExpressionPortrait> portraits = new List<ExpressionPortrait>();
         [Tooltip("固定需求（覆写权重 roll）")] public List<NeedTagWeight> fixedNeeds = new List<NeedTagWeight>();
-        [Tooltip("专属对话池：类型由对话系统交付时给出，先留字段占位")] public ScriptableObject dialoguePool;
+        [Tooltip("专属对话池：覆写种族对话池（对话设计说明 §4.5）")] public DialoguePoolDef dialoguePool;
     }
 }

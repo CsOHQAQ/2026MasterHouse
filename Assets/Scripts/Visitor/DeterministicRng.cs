@@ -32,6 +32,38 @@ namespace MasterHouse
             return (long)h;
         }
 
+        /// <summary>
+        /// 三元派生种子：对话选取用（对话设计说明 §6）——
+        /// 种子 = Hash(runSeed, 访客实例Id, 触发分类, 本次请求序号)。
+        /// 与两元重载同样无状态、不依赖调用顺序。
+        /// </summary>
+        public static long Hash(long runSeed, int a, int b, int c)
+        {
+            var h = (ulong)Hash(runSeed, a, b);
+            h = Mix(h ^ ((ulong)(uint)c * 0x94D049BB133111EBUL));
+            return (long)h;
+        }
+
+        /// <summary>
+        /// 字符串稳定哈希（FNV-1a 32 位）：把资产名/id 这类字符串键喂进派生种子用。
+        /// **不要用 string.GetHashCode()**——.NET 不保证它跨进程/跨版本稳定，
+        /// 那会让「同一 runSeed 重进游戏结果一致」这条验收项在某次升级后悄悄失效。
+        /// </summary>
+        public static int HashString(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return 0;
+            unchecked
+            {
+                var hash = 2166136261u;
+                foreach (var c in value)
+                {
+                    hash ^= c;
+                    hash *= 16777619u;
+                }
+                return (int)hash;
+            }
+        }
+
         /// <summary>SplitMix64 终混（雪崩充分，适合把结构化输入打散成种子）。</summary>
         private static ulong Mix(ulong z)
         {

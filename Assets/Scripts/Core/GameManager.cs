@@ -16,12 +16,16 @@ namespace MasterHouse
         public EconomyManager EconomyManager { get; private set; }
         public VisitorManager VisitorManager { get; private set; }
 
-        /// <summary>对话接缝（§16.9，待定 #17）：自研对话系统进场时在此替换实现，别处不动。</summary>
-        public IDialogueService DialogueService { get; private set; }
+        /// <summary>
+        /// 自研对话系统本体（§16.9，待定 #17 已定案）。同时作为访客侧的 IDialogueService 实现——
+        /// 访客模块只认接口，不反向依赖对话模块。
+        /// </summary>
+        public DialogueManager DialogueManager { get; private set; }
 
         /// <summary>局外内容表（Model，运行时只读，§16.6）。缺失是报错不是回退。</summary>
         public VisitorScheduleTable VisitorSchedule { get; private set; }
         public VisitorTuningConfig VisitorTuning { get; private set; }
+        public DialogueTuningConfig DialogueTuning { get; private set; }
         public CodexTable CodexTable { get; private set; }
 
         /// <summary>家具配置表（Model，§16.7 并入 Def 体系：统一由此加载，消费方不再散落 Resources.Load）。</summary>
@@ -68,9 +72,11 @@ namespace MasterHouse
         /// 局外内部时钟先走、访客后判（用刚推进的时间做整数比较）。</summary>
         private void RunTick()
         {
-            // 打烊闸门（§16.4/访客交付说明 §7）：到达打烊时刻后局内生产节点停 tick，堵死「不结束今天、挂机刷资源」；
-            // 局内测试场景中时钟从不运行、永不打烊，产线照常推进（待定 #19 联通前的隔离态）
-            if (!HouseClockManager.IsClosedForToday)
+            // 局内产线门控（§16.4 打烊闸门 + 对话设计说明 §8 模态对话框）：
+            // IsWorldFrozen = 打烊 或 模态对话框开启。**刻意不用 IsRunning**——
+            // 后者还含「不在 Hub 页」，而局内测试场景根本没有 HubPage，跟着它走产线就永不推进
+            // （待定 #19 联通前的隔离态，详见 HouseClockManager.IsWorldFrozen 注释）
+            if (!HouseClockManager.IsWorldFrozen)
                 LevelManager.TickAll();
             HouseClockManager.Tick();
             VisitorManager.Tick();
@@ -90,6 +96,7 @@ namespace MasterHouse
             LevelManager = new LevelManager(LinkManager, PlayerCargo);
             VisitorSchedule = Resources.Load<VisitorScheduleTable>("OutGameUI/VisitorScheduleTable");
             VisitorTuning = Resources.Load<VisitorTuningConfig>("OutGameUI/VisitorTuningConfig");
+            DialogueTuning = Resources.Load<DialogueTuningConfig>("OutGameUI/DialogueTuningConfig");
             CodexTable = Resources.Load<CodexTable>("OutGameUI/CodexTable");
             if (VisitorSchedule == null || VisitorTuning == null || CodexTable == null)
                 Debug.LogError("局外内容表缺失或损坏（Resources/OutGameUI/VisitorScheduleTable|VisitorTuningConfig|CodexTable）：" +
@@ -103,10 +110,15 @@ namespace MasterHouse
             HouseClockManager = new HouseClockManager(VisitorTuning); // 营业时段迁入 VisitorTuningConfig（§4.5）
             // Economy 纯事件驱动，不进 RunTick（§16.4）；Codex 供装饰分数量统计（§16.7 毒点①），家具两表供所有权与初始摆放分
             EconomyManager = new EconomyManager(CodexTable, FurnitureTable, FurnitureRoomTable);
-            DialogueService = new DefDialogueService();
+
+            // 对话与访客的**两阶段初始化**：VisitorManager 的构造需要 IDialogueService，
+            // DialogueManager 又需要 VisitorManager——构造期循环依赖，靠先造后 Bind 解开。
+            // 顺序不能颠倒，Bind 也不能漏（漏了对话里的事件与条件全部拿不到上下文）。
+            DialogueManager = new DialogueManager(DialogueTuning);
             // runSeed 由 VisitorManager 内部注入固定默认常量（§6.1，待定 #9），GM 面板可改写
             VisitorManager = new VisitorManager(VisitorSchedule, VisitorTuning, HouseClockManager,
-                EconomyManager, PlayerCargo, DialogueService);
+                EconomyManager, PlayerCargo, DialogueManager);
+            DialogueManager.Bind(VisitorManager, EconomyManager, HouseClockManager, PlayerCargo);
         }
 
         private void Start()

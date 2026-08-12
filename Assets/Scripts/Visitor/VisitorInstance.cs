@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace MasterHouse
 {
@@ -83,36 +81,22 @@ namespace MasterHouse
 
         public string DisplayName => Race != null ? Race.displayName : "访客";
 
+        /// <summary>无外部注入时共用的默认短语组装器（无状态，线程无关）。</summary>
+        private static readonly INeedPhraseBuilder DefaultPhraseBuilder = new DefaultNeedPhraseBuilder();
+
         /// <summary>
-        /// 程序化需求句（§8「开始等待服务」附带）：按 (轴 sortOrder, 节点 sortOrder) 稳定排序（§4.1/§11.2），
-        /// 形容词用描述词短语、名词用显示名，非必要项标注（加分）。
+        /// 程序化需求句：任务卡等 UI 直接展示需求时用。
+        ///
+        /// 组装规则已于 2026-08-12 收进对话系统的 INeedPhraseBuilder（对话设计说明 §9），本方法只是薄壳。
+        /// 与访客重做期的旧规则有两处不同，以 §9 为准：
+        ///   ①「甜的、软的食物」而不是把每项平铺（形容词修饰中心名词，中心词取树最深的名词）；
+        ///   ② **不再标注「（加分）」**——那是评分规则，写进台词等于给玩家漏答案。
+        /// 台词里要说需求请用占位符 {需求}（§9），不要绕道调本方法。
         /// </summary>
-        public string BuildNeedSentence()
+        public string BuildNeedSentence(INeedPhraseBuilder builder = null)
         {
-            if (Needs.Count == 0) return "我随便看看就好。";
-            var sorted = new List<VisitorNeed>(Needs);
-            sorted.Sort((a, b) => TagDef.Compare(a.Tag, b.Tag));
-            var text = new StringBuilder("我想要");
-            var wroteAny = false;
-            var hasNoun = false;
-            foreach (var need in sorted) // 形容词短语在前（Compare 已按轴稳定排序，形容词轴/名词轴的先后由轴 sortOrder 配置）
-            {
-                if (wroteAny) text.Append("、");
-                var tag = need.Tag;
-                if (tag.EffectiveGrammarRole == ETagGrammarRole.Adjective)
-                {
-                    text.Append(tag.Phrase);
-                }
-                else
-                {
-                    text.Append(tag.displayName);
-                    hasNoun = true;
-                }
-                if (!need.Required) text.Append("（加分）");
-                wroteAny = true;
-            }
-            text.Append(hasNoun ? "。" : "的东西。");
-            return text.ToString();
+            var phrase = (builder ?? DefaultPhraseBuilder).Build(Needs);
+            return string.IsNullOrEmpty(phrase) ? "我随便看看就好。" : $"我想要{phrase}。";
         }
     }
 }

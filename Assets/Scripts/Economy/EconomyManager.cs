@@ -74,6 +74,26 @@ namespace MasterHouse
             RaiseChanged();
         }
 
+        /// <summary>
+        /// 货币增减（下限 0）：对话奖励事件等玩法入口（对话设计说明 §7）。
+        /// 与 GmAddCurrency 分开是语义问题——GM 是调试后门，本方法是正经玩法收支，
+        /// 将来要加日志/成就统计/数值埋点时只该挂在这一侧。
+        /// </summary>
+        public void AddCurrency(int amount)
+        {
+            if (amount == 0) return;
+            Data.Currency = Mathf.Max(0, Data.Currency + amount);
+            RaiseChanged();
+        }
+
+        /// <summary>声望增减（下限 0）：对话奖励事件等玩法入口。声望变化会实时影响 Item 解禁状态。</summary>
+        public void AddReputation(int amount)
+        {
+            if (amount == 0) return;
+            Data.Reputation = Mathf.Max(0, Data.Reputation + amount);
+            RaiseChanged();
+        }
+
         public bool IsFurnitureOwned(string furnitureId) => Data.OwnedFurniture.Contains(furnitureId);
 
         /// <summary>声望是否已达到 Item 的解禁阈值（未达到时商城/收纳栏呈「？」）。</summary>

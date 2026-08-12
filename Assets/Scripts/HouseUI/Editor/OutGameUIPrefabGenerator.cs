@@ -39,6 +39,7 @@ namespace MasterHouse
         private const string JournalPanelPath = Folder + "/JournalPanel.prefab";
         private const string ArchivePanelPath = Folder + "/ArchivePanel.prefab";
         private const string DialogueViewPath = Folder + "/DialogueView.prefab";
+        private const string DialogueOptionPath = Folder + "/DialogueOption.prefab";
         private const string CalendarPagePath = Folder + "/CalendarPage.prefab";
         private const string TasksPagePath = Folder + "/TasksPage.prefab";
         private const string DevicePagePath = Folder + "/DevicePage.prefab";
@@ -118,6 +119,7 @@ namespace MasterHouse
             BuildJournalPanelContent(JournalPanelPath);
             BuildArchivePanelContent(ArchivePanelPath);
             BuildDialogueView(DialogueViewPath);
+            BuildDialogueOption(DialogueOptionPath);
             BuildDaySettlePanel(DaySettlePanelPath);
             BuildPanelPage(CalendarPagePath, "CalendarPage", "REAL TIME", "日程与时间", "历", CalendarPanelPath);
             BuildPanelPage(TasksPagePath, "TasksPage", "TODAY / 03", "今日委托", "任", TasksPanelPath);
@@ -170,6 +172,7 @@ namespace MasterHouse
             if (!File.Exists(JournalPanelPath)) { BuildJournalPanelContent(JournalPanelPath); changed = true; }
             if (!File.Exists(ArchivePanelPath)) { BuildArchivePanelContent(ArchivePanelPath); changed = true; }
             if (!File.Exists(DialogueViewPath)) { BuildDialogueView(DialogueViewPath); changed = true; }
+            if (!File.Exists(DialogueOptionPath)) { BuildDialogueOption(DialogueOptionPath); changed = true; }
             if (!File.Exists(DaySettlePanelPath)) { BuildDaySettlePanel(DaySettlePanelPath); changed = true; }
             if (!File.Exists(CalendarPagePath)) { BuildPanelPage(CalendarPagePath, "CalendarPage", "REAL TIME", "日程与时间", "历", CalendarPanelPath); changed = true; }
             if (!File.Exists(TasksPagePath)) { BuildPanelPage(TasksPagePath, "TasksPage", "TODAY / 03", "今日委托", "任", TasksPanelPath); changed = true; }
@@ -235,7 +238,7 @@ namespace MasterHouse
                 TitlePath, PaperPath, SaveSlotPath, SavePagePath, GalleryPagePath, SettingsPagePath, ExitPagePath,
                 HubTopBarPath, HubTaskCardPath, HubGuestCardPath, HubGuestRailPath, HubDockButtonPath,
                 HubRightDockPath, HubRoomButtonPath, HubRoomNavigationPath, HubSceneOverlayPath, HubPath,
-                HubImmersiveTogglePath, CalendarPanelPath, TasksPanelPath, DialogueViewPath,
+                HubImmersiveTogglePath, CalendarPanelPath, TasksPanelPath, DialogueViewPath, DialogueOptionPath,
                 DevicePanelPath, JournalPanelPath, ArchivePanelPath,
                 CalendarPagePath, TasksPagePath, DevicePagePath, JournalPagePath, ArchivePagePath,
             };
@@ -1089,8 +1092,7 @@ namespace MasterHouse
             var lineSprite = AssetDatabase.LoadAssetAtPath<Sprite>(artDir + "line.png");
             var arrowSprite = AssetDatabase.LoadAssetAtPath<Sprite>(artDir + "arrow.png");
             var portraitTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(artDir + "character/1.png");
-            var optionNormal = AssetDatabase.LoadAssetAtPath<Sprite>(artDir + "Options-default.png");
-            var optionHover = AssetDatabase.LoadAssetAtPath<Sprite>(artDir + "Options-hover.png");
+            // 选项的笔刷皮肤（Options-default / Options-hover）已移到 BuildDialogueOption 的模板里
 
             var root = Root("DialogueView");
             var view = root.AddComponent<OutGameDialogueView>();
@@ -1098,6 +1100,16 @@ namespace MasterHouse
             // 全屏场景底图（对话专用美术）
             view.sceneArt = Raw(root.transform, "Scene", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             view.sceneArt.texture = bgTexture;
+
+            // 整屏推进热区（点击推进台词 / 立即全文，§5.1）。
+            // 紧跟场景之后创建 = 兄弟序最靠前 = 被其余控件盖住，
+            // 所以点选项/关闭按钮不会误触推进（UGUI 射线取最上层）
+            var advance = Image(root.transform, "AdvanceHotZone", Vector2.zero, Vector2.one,
+                Vector2.zero, Vector2.zero, new Color(0, 0, 0, 0));
+            advance.raycastTarget = true; // alpha 0 但照常吃射线
+            view.advanceButton = advance.gameObject.AddComponent<Button>();
+            view.advanceButton.targetGraphic = advance;
+            view.advanceButton.transition = Selectable.Transition.None; // 整屏热区不该有任何视觉反馈
 
             // 右侧撕边压暗层
             view.rightShade = Image(root.transform, "RightShade", new Vector2(1, 0), new Vector2(1, 1),
@@ -1110,97 +1122,116 @@ namespace MasterHouse
                 new Vector2(0, 1), new Vector2(0, 1), new Vector2(210, -74), new Vector2(360, 80),
                 TextAnchor.MiddleLeft, FontStyle.BoldAndItalic);
 
-            // 底部对话区容器：背景图（2560×1440 设计稿）自带暗部，不再叠加黑条（透明容器只做定位）
+            // 底部对话条：暗色渐层容器
             view.dialogueBar = Rect(root.transform, "DialogueBar", new Vector2(0, 0), new Vector2(1, 0),
-                new Vector2(0, 130), new Vector2(0, 260));
-            ImageOn(view.dialogueBar, new Color(0f, 0f, 0f, 0f)).raycastTarget = false;
+                new Vector2(0, 122), new Vector2(0, 244));
+            var barBackground = ImageOn(view.dialogueBar, new Color(.012f, .01f, .022f, .86f));
+            // 对话条不吃射线：否则它会挡住底下的整屏推进热区，玩家点正文推不动对话——
+            // 而点正文恰恰是最自然的推进动作
+            barBackground.raycastTarget = false;
 
-            // 左下立绘（按示意图：占画面左下约 1/4 高）
+            // 左下立绘（压在对话条之上）
             view.portrait = Raw(root.transform, "Portrait", new Vector2(0, 0), new Vector2(0, 0),
-                new Vector2(310, 235), new Vector2(470, 470));
+                new Vector2(240, 235), new Vector2(430, 430));
             view.portrait.texture = portraitTexture;
             view.portrait.raycastTarget = false;
 
-            // 说话人名（立绘右侧）+ 笔刷短线 + 正文（示意图 2560×1440 坐标 ×0.75 换算）
-            view.speakerName = Label(root.transform, "SpeakerName", string.Empty, 26, Hex("E22D76"),
-                new Vector2(0, 0), new Vector2(0, 0), new Vector2(925, 196), new Vector2(520, 40),
-                TextAnchor.MiddleLeft, FontStyle.BoldAndItalic);
-            view.nameLine = Image(root.transform, "NameLine", new Vector2(0, 0), new Vector2(0, 0),
-                new Vector2(875, 168), new Vector2(420, 10), Color.white);
+            // 名字条（说话人名 + 笔刷分隔线）：旁白句整条隐藏，故收在一个容器里统一开关（§4.1）
+            view.nameplate = Rect(view.dialogueBar, "Nameplate", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(760, -60), new Vector2(600, 70));
+            view.speakerName = Label(view.nameplate, "SpeakerName", string.Empty, 26, Hex("E22D76"),
+                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -20), new Vector2(600, 40),
+                TextAnchor.MiddleLeft, FontStyle.Bold);
+            view.nameLine = Image(view.nameplate.transform, "NameLine", new Vector2(.5f, 1), new Vector2(.5f, 1),
+                new Vector2(0, -50), new Vector2(600, 10), Color.white);
             view.nameLine.sprite = lineSprite;
             view.nameLine.raycastTarget = false;
-            view.dialogueText = Label(root.transform, "DialogueText", string.Empty, 20, Hex("F3E8DD"),
-                new Vector2(0, 0), new Vector2(0, 0), new Vector2(1115, 95), new Vector2(900, 105),
+            view.dialogueText = Label(view.dialogueBar, "DialogueText", string.Empty, 22, Hex("F3E8DD"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(1010, -150), new Vector2(1100, 130),
                 TextAnchor.UpperLeft, FontStyle.Normal);
-            view.continueArrow = Image(root.transform, "ContinueArrow", new Vector2(0, 0), new Vector2(0, 0),
-                new Vector2(1517, 62), new Vector2(30, 26), Color.white);
+            view.continueArrow = Image(view.dialogueBar.transform, "ContinueArrow", new Vector2(1, 0), new Vector2(1, 0),
+                new Vector2(-400, 36), new Vector2(28, 24), Color.white);
             view.continueArrow.sprite = arrowSprite;
             view.continueArrow.raycastTarget = false;
 
-            // 左下 ESC 键帽 + 返回；右下操作提示（滚轮切换选项 / 回车确认，静态示意）
-            view.closeButton = KeycapButton(root.transform, "Close", "ESC",
-                new Vector2(0, 0), new Vector2(100, 42), new Vector2(100, 46));
-            view.escHint = Label(root.transform, "CloseHint", "返回", 16, new Color(1, 1, 1, .75f),
-                new Vector2(0, 0), new Vector2(0, 0), new Vector2(190, 42), new Vector2(80, 30),
-                TextAnchor.MiddleLeft, FontStyle.Normal);
-            var wheelIcon = Image(root.transform, "WheelIcon", new Vector2(0, 0), new Vector2(0, 0),
-                new Vector2(1415, 42), new Vector2(34, 44), Color.white);
-            wheelIcon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/PC ui/button/default/MIDDLE.png");
-            wheelIcon.preserveAspect = true;
-            wheelIcon.raycastTarget = false;
-            Label(root.transform, "WheelHint", "切换选项", 15, new Color(1, 1, 1, .75f),
-                new Vector2(0, 0), new Vector2(0, 0), new Vector2(1500, 42), new Vector2(120, 30),
-                TextAnchor.MiddleLeft, FontStyle.Normal);
-            var enterIcon = Image(root.transform, "EnterIcon", new Vector2(0, 0), new Vector2(0, 0),
-                new Vector2(1660, 42), new Vector2(96, 44), Color.white);
-            enterIcon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/PC ui/button/default/enter.png");
-            enterIcon.preserveAspect = true;
-            enterIcon.raycastTarget = false;
-            Label(root.transform, "EnterHint", "确认", 15, new Color(1, 1, 1, .75f),
-                new Vector2(0, 0), new Vector2(0, 0), new Vector2(1755, 42), new Vector2(80, 30),
-                TextAnchor.MiddleLeft, FontStyle.Normal);
+            // 旁白：居中无框整屏文本（§4.1），默认隐藏，只有旁白句才亮
+            view.narrationText = Label(root.transform, "NarrationText", string.Empty, 26, Hex("F3E8DD"),
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(1100, 300),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+            view.narrationText.gameObject.SetActive(false);
 
-            // 右侧选项列：右对齐（右缘固定），底板长度由绑定层按文本宽度向左自适应延伸；
-            // Options 笔刷皮肤 默认黑 / 悬停粉（SpriteSwap），未用槽位运行时隐藏
-            view.optionButtons = new Button[7];
-            view.optionBackgrounds = new Image[7];
-            view.optionLabels = new Text[7];
-            for (var i = 0; i < 7; i++)
+            // 左下 ESC·返回（可点）
+            view.closeButton = PageButton(root.transform, "Close", "ESC  返回", new Vector2(110, 34),
+                new Vector2(170, 46), new Color(1, 1, 1, .05f), Hex("F3E8DD"), 16, TextAnchor.MiddleCenter, new Vector2(0, 0));
+            view.escHint = view.closeButton.GetComponentInChildren<Text>();
+
+            // 右侧选项列容器：**模板 Prefab + 运行时实例化**（§16.2），不再是固定 7 槽。
+            // 竖直布局组负责排布，所以选项数量无上限，且少选项时会自动居中而不是贴在顶上
+            // （旧的固定槽位 y = 190 - i*78 写死，2 个选项会歪在上半区）。
+            view.optionsRoot = Rect(root.transform, "OptionsRoot", new Vector2(1, .5f), new Vector2(1, .5f),
+                new Vector2(-320, -44), new Vector2(430, 0));
+            var layout = view.optionsRoot.gameObject.AddComponent<VerticalLayoutGroup>();
+            layout.spacing = 10;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = true;
+            layout.childControlHeight = false;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+            var fitter = view.optionsRoot.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            Save(root, path);
+        }
+
+        /// <summary>
+        /// 分支选项按钮模板（§16.2 动态列表项）：Options 笔刷皮肤，默认黑 / 悬停粉（SpriteSwap）。
+        /// 由 DialogueOverlay 按当前分支的选项数实例化到 DialogueView 的 optionsRoot 下。
+        /// </summary>
+        private static void BuildDialogueOption(string path)
+        {
+            const string artDir = "Assets/PC ui/dialogue/";
+            var optionNormal = AssetDatabase.LoadAssetAtPath<Sprite>(artDir + "Options-default.png");
+            var optionHover = AssetDatabase.LoadAssetAtPath<Sprite>(artDir + "Options-hover.png");
+
+            var root = new GameObject("DialogueOption", typeof(RectTransform));
+            root.layer = 5;
+            var rect = (RectTransform)root.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
+            rect.pivot = new Vector2(.5f, .5f);
+            rect.sizeDelta = new Vector2(430, 68);
+
+            var view = root.AddComponent<DialogueOptionView>();
+            view.background = root.AddComponent<Image>();
+            view.background.color = Color.white;
+            view.background.sprite = optionNormal;
+            // 用全名：本类里有个同名的静态方法 Image(...)，简写会撞上
+            view.background.type = UnityEngine.UI.Image.Type.Simple;
+
+            view.button = root.AddComponent<Button>();
+            view.button.targetGraphic = view.background;
+            AddTweenFeedback(view.button);
+            if (optionHover != null)
             {
-                var button = PageButton(root.transform, "Option" + i, string.Empty,
-                    new Vector2(-182, -48 - i * 92), new Vector2(430, 66),
-                    Color.white, Hex("F3E8DD"), 20, TextAnchor.MiddleRight, new Vector2(1, .5f));
-                var rect = (RectTransform)button.transform;
-                rect.pivot = new Vector2(1f, .5f); // 右缘固定，加宽向左延伸
-                var background = button.targetGraphic as Image;
-                if (background != null)
+                view.button.transition = Selectable.Transition.SpriteSwap;
+                view.button.spriteState = new SpriteState
                 {
-                    background.sprite = optionNormal;
-                    background.type = UnityEngine.UI.Image.Type.Simple;
-                }
-                if (optionHover != null)
-                {
-                    button.transition = Selectable.Transition.SpriteSwap;
-                    button.spriteState = new SpriteState
-                    {
-                        highlightedSprite = optionHover,
-                        pressedSprite = optionHover,
-                        selectedSprite = optionNormal,
-                        disabledSprite = optionNormal,
-                    };
-                }
-                var label = button.GetComponentInChildren<Text>();
-                if (label != null)
-                {
-                    // 文本右对齐，右侧让出笔刷星标区
-                    var labelRect = (RectTransform)label.transform;
-                    labelRect.offsetMin = new Vector2(24, 0);
-                    labelRect.offsetMax = new Vector2(-78, 0);
-                }
-                view.optionButtons[i] = button;
-                view.optionBackgrounds[i] = background;
-                view.optionLabels[i] = label;
+                    highlightedSprite = optionHover,
+                    pressedSprite = optionHover,
+                    selectedSprite = optionNormal,
+                    disabledSprite = optionNormal,
+                };
             }
+
+            view.label = Label(root.transform, "Label", string.Empty, 19, Hex("F3E8DD"),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            view.label.rectTransform.offsetMin = new Vector2(14, 8);
+            view.label.rectTransform.offsetMax = new Vector2(-14, -8);
+
+            // 布局组要按固定高排布，给一份 LayoutElement 免得被拉伸
+            var element = root.AddComponent<LayoutElement>();
+            element.preferredHeight = 68;
+            element.minHeight = 68;
+
             Save(root, path);
         }
 

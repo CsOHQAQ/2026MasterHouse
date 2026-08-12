@@ -22,6 +22,9 @@ namespace MasterHouse.EditorTools
         private const string RaceDir = "Assets/Resources/OutGameUI/VisitorRaces";
         private const string TagDir = "Assets/GameData/Tags";
         private const string ItemDir = "Assets/GameData/Items";
+        private const string DialogueTuningPath = "Assets/Resources/OutGameUI/DialogueTuningConfig.asset";
+        private const string DialogueDir = "Assets/GameData/Dialogue";
+        private const string DialogueGroupDir = DialogueDir + "/通用";
 
         private Vector2 scroll;
         private readonly Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
@@ -62,6 +65,24 @@ namespace MasterHouse.EditorTools
                 AssetList<VisitorRaceDef>(RaceDir, "种族模板",
                     "性格数值（tick）/ 需求权重 / 立绘差分 / 序列帧",
                     () => CreateAsset<VisitorRaceDef>(RaceDir, "Race_新种族"));
+            });
+
+            Section("对话", () =>
+            {
+                InlineAsset<DialogueTuningConfig>(DialogueTuningPath, "调参配置",
+                    "打字机速度 / recent 去重环长度 N（气泡时长在访客调参里，不重复配）", FixDialogueAssets);
+                AssetList<DialoguePoolDef>(DialogueDir, "种族对话池",
+                    "八个触发分类的对话组 + 四档交付预览单句；由 VisitorRaceDef.dialoguePool 引用",
+                    () => CreateAsset<DialoguePoolDef>(DialogueDir, "Pool_新种族"));
+                AssetList<DialogueGroupDef>(DialogueGroupDir, "对话组",
+                    "单句/事件/分支组成；分支跳转无位置寻址，插行删行安全",
+                    () => CreateAsset<DialogueGroupDef>(DialogueGroupDir, "Group_新对话组"));
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("打开对话编辑器（左树右编辑）", GUILayout.Height(22)))
+                    DialogueEditorWindow.Open();
+                if (GUILayout.Button("校验对话资产", GUILayout.Height(22), GUILayout.Width(110)))
+                    DialogueAssetValidator.ValidateAllFromMenu();
+                EditorGUILayout.EndHorizontal();
             });
 
             Section("标签森林（需求匹配，局内局外共用）", () =>
@@ -205,6 +226,7 @@ namespace MasterHouse.EditorTools
         }
 
         private static void FixVisitorAssets() => VisitorConfigSetupUtility.CreateIfMissing();
+        private static void FixDialogueAssets() => DialogueConfigSetupUtility.CreateIfMissing();
         private static void FixFurnitureAssets() => FurnitureConfigSetupUtility.CreateIfMissing();
 
         private bool GetFoldout(string key)
