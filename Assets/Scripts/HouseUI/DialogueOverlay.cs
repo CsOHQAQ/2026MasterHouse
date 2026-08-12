@@ -31,9 +31,15 @@ namespace MasterHouse
         private readonly RectTransform root;
         private readonly OutGameDialogueView view;
         private readonly DialogueTypewriter typewriter;
-        private readonly List<DialogueOptionView> optionInstances = new List<DialogueOptionView>();
 
-        private GameObject optionTemplate;
+        /// <summary>Prefab 里预摆的选项槽位（阶梯排布手调定稿）；数量不够时克隆最后一个向下延伸。</summary>
+        private readonly List<DialogueOptionView> optionSlots = new List<DialogueOptionView>();
+        private readonly List<DialogueOptionView> optionClones = new List<DialogueOptionView>();
+        /// <summary>本分支当前可见且可选的选项下标（滚轮/回车用）。</summary>
+        private readonly List<int> enabledOptions = new List<int>();
+        private readonly List<DialogueOptionView> shownOptions = new List<DialogueOptionView>();
+        private int selectedOption = -1;
+
         private bool closing;
 
         private DialogueOverlay(HouseUIManager ui, RectTransform root, OutGameDialogueView view,
@@ -83,6 +89,15 @@ namespace MasterHouse
             var overlay = new DialogueOverlay(ui, rect, view, typewriter);
             current = overlay;
 
+            // 键盘/滚轮输入（空格推进、滚轮切选项、回车确认）；挂当层，随层销毁
+            var hotkeys = instance.AddComponent<DialogueHotkeys>();
+            hotkeys.Bind(overlay.CycleSelection, overlay.ConfirmSelection);
+
+            // 清掉 EventSystem 选中残留（比如打开对话用的那个场景访客按钮）——
+            // 否则回车会触发它的 uGUI Submit，隔空再点一次、叠开新对话
+            if (UnityEngine.EventSystems.EventSystem.current != null)
+                UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
+
             overlay.BindStatic();
             overlay.Refresh();
             HouseUIUtil.ApplyFallbackFont(instance.transform);
@@ -129,7 +144,14 @@ namespace MasterHouse
             if (view.closeButton != null) HouseUIUtil.BindButton(view.closeButton, ui.PopOverlay);
             if (view.advanceButton != null) HouseUIUtil.BindButton(view.advanceButton, OnAdvanceClicked);
             if (view.guestTitle != null) view.guestTitle.text = "GUEST";
-            if (view.escHint != null) view.escHint.text = "ESC  返回";
+
+            // 选项槽位在 Prefab 里预摆（§16.2 布局真相源），这里只收集引用
+            optionSlots.Clear();
+            if (view.optionsRoot != null)
+                view.optionsRoot.GetComponentsInChildren(true, optionSlots);
+            if (optionSlots.Count == 0)
+                Debug.LogError("[HouseUI] DialogueView Prefab 里没有选项槽位（OptionsRoot 下应预摆 DialogueOptionView）；" +
+                               "旧结构 Prefab 请删除后由生成器重建");
         }
 
         /// <summary>把 DialogueManager 的当前状态画出来。内容每变一次调一次。</summary>
@@ -166,7 +188,15 @@ namespace MasterHouse
             {
                 // 差分缺失时 GetPortraitPath 内部回落平静并打 Warning，不阻断播放（§4.1）
                 var path = visitor.Race.GetPortraitPath(line.emotion);
-                view.portrait.texture = string.IsNullOrEmpty(path) ? null : Resources.Load<Texture2D>(path);
+                var texture = string.IsNullOrEmpty(path) ? null : Resources.Load<Texture2D>(path);
+                view.portrait.texture = texture;
+                if (texture != null)
+                {
+                    // RawImage 没有保持宽高比的开关：高度用 Prefab 手调值，宽度按贴图真实比例回算，避免拉伸
+                    var portraitRect = view.portrait.rectTransform;
+                    var height = portraitRect.sizeDelta.y;
+                    portraitRect.sizeDelta = new Vector2(height * texture.width / (float)texture.height, height);
+                }
             }
 
             if (view.speakerName != null)
@@ -181,41 +211,33 @@ namespace MasterHouse
             if (target != null) typewriter.Play(target, text, dialogue.TypewriterCharsPerSecond);
         }
 
-        /// <summary>重建选项列：模板 Prefab 运行时实例化（§16.2），数量无上限、由布局组自动排布。</summary>
+        /// <summary>
+        /// 重建选项列：绑定 Prefab 里预摆的槽位（阶梯排布手调定稿），多余槽位隐藏；
+        /// 选项数超出槽位数时克隆最后一个槽位、按最后两个槽位的位置差向下延伸。
+        /// </summary>
         private void RebuildOptions(DialogueManager dialogue)
         {
-            foreach (var option in optionInstances)
-                if (option != null)
-                    Object.Destroy(option.gameObject);
-            optionInstances.Clear();
+            foreach (var clone in optionClones)
+                if (clone != null)
+                    Object.Destroy(clone.gameObject);
+            optionClones.Clear();
+            foreach (var slot in optionSlots)
+                if (slot != null)
+                    slot.gameObject.SetActive(false);
+            shownOptions.Clear();
+            enabledOptions.Clear();
+            selectedOption = -1;
 
             var options = dialogue.CurrentOptions;
-            if (options == null || options.Count == 0 || view.optionsRoot == null) return;
-
-            if (optionTemplate == null)
-            {
-                optionTemplate = Resources.Load<GameObject>(OutGamePrefabResourcePaths.DialogueOption);
-                if (optionTemplate == null)
-                {
-                    Debug.LogError("[HouseUI] 对话选项模板 Prefab 缺失（§16.2）：" +
-                                   OutGamePrefabResourcePaths.DialogueOption);
-                    return;
-                }
-            }
+            if (options == null || options.Count == 0 || optionSlots.Count == 0) return;
 
             for (var i = 0; i < options.Count; i++)
             {
                 var option = options[i];
                 if (option == null) continue;
-                var instance = Object.Instantiate(optionTemplate, view.optionsRoot, false);
-                instance.name = "Option" + i;
-                var optionView = instance.GetComponent<DialogueOptionView>();
-                if (optionView == null)
-                {
-                    Debug.LogError("[HouseUI] 对话选项模板缺少视图组件：DialogueOptionView");
-                    Object.Destroy(instance);
-                    continue;
-                }
+                var optionView = SlotFor(shownOptions.Count);
+                if (optionView == null) continue;
+                optionView.gameObject.SetActive(true);
 
                 var enabled = dialogue.IsOptionEnabled(option);
                 if (optionView.label != null)
@@ -231,12 +253,95 @@ namespace MasterHouse
                     {
                         var index = i; // 闭包捕获：不能直接用循环变量
                         HouseUIUtil.BindButton(optionView.button, () => OnOptionClicked(index));
+                        var shownIndex = shownOptions.Count;
+                        BindHoverSync(optionView, shownIndex);
+                        enabledOptions.Add(shownIndex);
                     }
                 }
-                optionInstances.Add(optionView);
+                shownOptions.Add(optionView);
             }
 
+            // 默认选中第一个可选项（滚轮/回车操作的起点；悬停会把选中同步到鼠标位置）
+            if (enabledOptions.Count > 0) selectedOption = enabledOptions[0];
+            ApplySelectionVisual();
             HouseUIUtil.ApplyFallbackFont(view.optionsRoot);
+        }
+
+        /// <summary>取第 index 个槽位；超出预摆数量时克隆最后一个槽位向下延伸。</summary>
+        private DialogueOptionView SlotFor(int index)
+        {
+            if (index < optionSlots.Count) return optionSlots[index];
+
+            var last = optionSlots[optionSlots.Count - 1];
+            var step = optionSlots.Count >= 2
+                ? last.GetComponent<RectTransform>().anchoredPosition -
+                  optionSlots[optionSlots.Count - 2].GetComponent<RectTransform>().anchoredPosition
+                : new Vector2(0, -110);
+            var clone = Object.Instantiate(last.gameObject, last.transform.parent, false);
+            clone.name = "OptionClone" + index;
+            var rect = (RectTransform)clone.transform;
+            rect.anchoredPosition = ((RectTransform)last.transform).anchoredPosition +
+                                    step * (index - optionSlots.Count + 1);
+            var optionView = clone.GetComponent<DialogueOptionView>();
+            optionClones.Add(optionView);
+            return optionView;
+        }
+
+        /// <summary>悬停时把「当前选中」同步到鼠标所在项，让滚轮和鼠标以最后交互为准。</summary>
+        private void BindHoverSync(DialogueOptionView optionView, int shownIndex)
+        {
+            var trigger = optionView.gameObject.GetComponent<UnityEngine.EventSystems.EventTrigger>();
+            if (trigger == null) trigger = optionView.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+            trigger.triggers.Clear();
+            var entry = new UnityEngine.EventSystems.EventTrigger.Entry
+            {
+                eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter,
+            };
+            entry.callback.AddListener(_ =>
+            {
+                selectedOption = shownIndex;
+                ApplySelectionVisual();
+            });
+            trigger.triggers.Add(entry);
+        }
+
+        /// <summary>选中项亮悬停皮肤（笔刷粉），其余回默认黑。</summary>
+        private void ApplySelectionVisual()
+        {
+            for (var i = 0; i < shownOptions.Count; i++)
+            {
+                var optionView = shownOptions[i];
+                if (optionView == null || optionView.background == null || optionView.button == null) continue;
+                var state = optionView.button.spriteState;
+                var sprite = i == selectedOption ? state.highlightedSprite : state.selectedSprite;
+                if (sprite != null) optionView.background.sprite = sprite;
+            }
+        }
+
+        /// <summary>滚轮切换选中项（向下滚 = 往下一项）。分支未亮选项时无事发生。</summary>
+        private void CycleSelection(int direction)
+        {
+            if (closing || enabledOptions.Count == 0) return;
+            var at = enabledOptions.IndexOf(selectedOption);
+            var next = at < 0 ? 0 : ((at + direction) % enabledOptions.Count + enabledOptions.Count) % enabledOptions.Count;
+            selectedOption = enabledOptions[next];
+            ApplySelectionVisual();
+        }
+
+        /// <summary>回车/空格确认当前选中项；不在分支上时回落为推进对白。</summary>
+        private void ConfirmSelection()
+        {
+            if (closing) return;
+            var dialogue = GameManager.Instance.DialogueManager;
+            if (!dialogue.IsAtBranch)
+            {
+                OnAdvanceClicked();
+                return;
+            }
+            if (selectedOption < 0 || selectedOption >= shownOptions.Count) return;
+            var chosen = shownOptions[selectedOption];
+            if (chosen != null && chosen.button != null && chosen.button.interactable)
+                chosen.button.onClick.Invoke();
         }
 
         // ══════════ 输入 ══════════
@@ -257,6 +362,9 @@ namespace MasterHouse
         private void OnOptionClicked(int index)
         {
             if (closing) return;
+            // 点完清掉 uGUI 选中态，免得之后的回车对这颗按钮再触发一次 Submit
+            if (UnityEngine.EventSystems.EventSystem.current != null)
+                UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
             GameManager.Instance.DialogueManager.ChooseOption(index);
         }
 
