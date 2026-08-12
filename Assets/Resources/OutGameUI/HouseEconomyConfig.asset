@@ -14,9 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   startCurrency: 2480
   startReputation: 40
-  serviceCurrencyReward: 320
-  serviceReputationReward: 25
+  rewardMismatch:
+    currency: 80
+    reputation: 0
+  rewardPlain:
+    currency: 200
+    reputation: 10
+  rewardSatisfied:
+    currency: 320
+    reputation: 25
+  rewardPerfect:
+    currency: 480
+    reputation: 45
+  satisfactionThresholdPercent: 60
   refuseReputationPenalty: 15
-  failReputationPenalty: 30
   decorScorePerRoom: 50
   decorScorePerDevice: 30

@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81e78dec9d1fef143a2128fa8d1bbda6, type: 3}
+  m_Name: Pool_hedgehog
+  m_EditorClassIdentifier: 
+  firstMeeting:
+  - group: {fileID: 11400000, guid: e99e6e1477457b040a9c7fad11f86290, type: 2}
+    weight: 1
+    conditions: []
+  serviceStart:
+  - group: {fileID: 11400000, guid: e642c12f0b7259444b9a0ba5eb43699a, type: 2}
+    weight: 1
+    conditions: []
+  rejected:
+  - group: {fileID: 11400000, guid: a19034e21641e3a4d813770bb3c87f0e, type: 2}
+    weight: 1
+    conditions: []
+  doneMismatch:
+  - group: {fileID: 11400000, guid: 1eec6ab65565a4142a40fb9c65230a96, type: 2}
+    weight: 1
+    conditions: []
+  donePlain:
+  - group: {fileID: 11400000, guid: db7344b1ce0917d40b9c9ddee0bd9ea7, type: 2}
+    weight: 1
+    conditions: []
+  doneSatisfied:
+  - group: {fileID: 11400000, guid: 6feddb498dcc9084190d6a44e19b8842, type: 2}
+    weight: 1
+    conditions: []
+  donePerfect:
+  - group: {fileID: 11400000, guid: f1ed0dd23b06a3a4ea5516611c0cb03d, type: 2}
+    weight: 1
+    conditions: []
+  wanderChat:
+  - group: {fileID: 11400000, guid: 81ee205cf2df9bb439e4a00a65d75d09, type: 2}
+    weight: 1
+    conditions: []
+  - group: {fileID: 11400000, guid: 2dfc75270c23d654c84f1fcd265a4d65, type: 2}
+    weight: 1
+    conditions: []
+  - group: {fileID: 11400000, guid: 6d595a4905fab5040868c0823f03587d, type: 2}
+    weight: 1
+    conditions: []
+  - group: {fileID: 11400000, guid: e7aa5290a9cfdca43af25803ff07e771, type: 2}
+    weight: 1
+    conditions: []
+  - group: {fileID: 11400000, guid: 446febaeae534c444a553d90df5270fd, type: 2}
+    weight: 1
+    conditions: []
+  previewMismatch:
+  - speaker: 2
+    text: "\uFF08{\u8BBF\u5BA2\u540D}\u76B1\u4E86\u76B1\u7709\uFF09"
+    emotion: 3
+  previewPlain:
+  - speaker: 2
+    text: "\uFF08{\u8BBF\u5BA2\u540D}\u770B\u4E86\u4E00\u773C\uFF0C\u6CA1\u4EC0\u4E48\u8868\u60C5\uFF09"
+    emotion: 0
+  previewSatisfied:
+  - speaker: 2
+    text: "\uFF08{\u8BBF\u5BA2\u540D}\u7684\u773C\u775B\u4EAE\u4E86\u4E00\u4E0B\uFF09"
+    emotion: 1
+  previewPerfect:
+  - speaker: 2
+    text: "\uFF08{\u8BBF\u5BA2\u540D}\u5C4F\u4F4F\u4E86\u547C\u5438\uFF09"
+    emotion: 4
+  references:
+    version: 2
+    RefIds: []
