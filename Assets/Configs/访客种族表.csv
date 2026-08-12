@@ -1,0 +1,5 @@
+﻿种族id,显示名,等搭话超时tick,等交货超时tick,闲逛上限tick,跨天留宿概率%,需求权重,需求数下限,需求数上限,立绘差分,序列帧,对话池
+fox,狐族,3000,6000,3600,30,木料*5*必/天然*3/精加工*2,1,2,平静=OutGameUI/Guests/fox,OutGameUI/Visitors/orange_cat,Pool_fox
+crow,鸦族,1800,3600,2400,10,材料*4*必/精加工*4/能源*2,2,3,平静=OutGameUI/Guests/crow,OutGameUI/Visitors/rottweiler,Pool_crow
+hedgehog,猬族,2400,4800,3000,20,能源*4*必/精加工*3,1,2,平静=OutGameUI/Guests/hedgehog,OutGameUI/Visitors/wangcai,Pool_hedgehog
+rabbit,兔族,4200,7200,6000,60,天然*5*必/木料*3,1,1,平静=OutGameUI/Guests/rabbit,OutGameUI/Visitors/xueqiu,Pool_rabbit

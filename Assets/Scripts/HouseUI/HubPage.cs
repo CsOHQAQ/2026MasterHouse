@@ -198,6 +198,8 @@ namespace MasterHouse
                 if (index == RoomIndex) Toast($"当前位于{rooms[index].displayName} · {rooms[index].note}");
                 return;
             }
+            SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：切换房间即转场
+
             // 进出卧室走开关门过渡，其余房间直接交叉淡入（与旧壳一致）
             var usesDoor = index == 1 || RoomIndex == 1;
             if (!usesDoor)
@@ -247,6 +249,8 @@ namespace MasterHouse
             }
             SelectedInstanceId = instanceId;
             taskCard.Refresh();
+            // 音效需求 #3：点访客卡/NPC 的交互音在此统一发（两条点击路径都汇到这里；访客卡按钮的基础点击音已关避免叠响）
+            SfxManager.Play(ESfx.GuestInteract);
 
             switch (instance.State)
             {
@@ -305,12 +309,17 @@ namespace MasterHouse
                 UI.Canvas.enabled = true;
                 // 旧壳此处落档；存档功能移除（§16.5），仅重烘焙背景与热点
                 scene.RefreshAfterFurniture();
+                SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：退出家具模式
             });
             if (!opened)
             {
                 furnitureModeOpen = false;
                 UI.Canvas.enabled = true;
                 Toast("家具配置表缺失：请先执行菜单 MasterHouse → 家具系统 → 创建配置表");
+            }
+            else
+            {
+                SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：进入家具模式
             }
         }
 

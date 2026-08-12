@@ -23,6 +23,7 @@ namespace MasterHouse.EditorTools
         private const string TagDir = "Assets/GameData/Tags";
         private const string ItemDir = "Assets/GameData/Items";
         private const string DialogueTuningPath = "Assets/Resources/OutGameUI/DialogueTuningConfig.asset";
+        private const string SfxPath = "Assets/Resources/OutGameUI/SfxTable.asset";
         private const string DialogueDir = "Assets/GameData/Dialogue";
         private const string DialogueGroupDir = DialogueDir + "/通用";
 
@@ -92,6 +93,13 @@ namespace MasterHouse.EditorTools
                     () => CreateAsset<TagDef>(TagDir, "Tag_新标签"));
                 if (GUILayout.Button("校验标签森林（成环/跨轴同名）", GUILayout.Height(22)))
                     TagDefValidator.ValidateAll();
+            });
+
+            Section("音效", () =>
+            {
+                InlineAsset<SfxTable>(SfxPath, "音效表",
+                    "ESfx → 剪辑/音量倍率/节流间隔；音频源文件在 Resources/SoundEffect（全局音量在设置文件 sfxVolume）",
+                    SfxConfigSetupUtility.CreateIfMissing);
             });
 
             Section("经济", () =>

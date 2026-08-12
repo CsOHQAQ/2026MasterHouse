@@ -1,0 +1,12 @@
+﻿音效id,说明,剪辑,音量,最短间隔秒
+UiClick,基础点击：普通按钮/tab切换/翻页/菜单,SoundEffect/1_Button_260812,1,0.05
+FurniturePickup,家具拾起（开始拖拽）,SoundEffect/2_Pickup_260812,1,0.05
+FurniturePlace,家具放置（落地/收回收纳栏）,SoundEffect/2_Putdown_260812,1,0.05
+GuestInteract,客人交互：点访客卡/NPC、对话点击继续,SoundEffect/3_Interaction_260812,1,0.05
+ValueGain,数值正向提示（声望+/任务完成）,SoundEffect/4_ScoreGain_260812,1,0.05
+ValueLose,数值负向提示（声望-/任务失败）,SoundEffect/4_ScoreLose_260812,1,0.05
+PageTransition,页面转场：整页切换/进出家具模式/切房间,SoundEffect/5_Transition_260812,1,0.1
+VisitorArrive,访客到来通知,SoundEffect/6_InfoCome_260812,1,0.1
+VisitorLeave,访客离开通知,SoundEffect/6_InfoLeave_260812,1,0.1
+Reward,资源&奖励获得：任务奖励/商城购买/对话发放,SoundEffect/7_Reward_260812,1,0.1
+DialogueTyping,对话逐字显示音（打字机，节奏靠最短间隔）,SoundEffect/8_TypingKeyboard_260812,1,0.055

@@ -71,6 +71,8 @@ namespace MasterHouse
         /// <summary>整页替换：清空叠加层 → 旧页退场销毁 → 新页进场。</summary>
         public void ShowPage(HousePage page)
         {
+            // 音效需求 #5：页与页之间的切换响转场音；启动进标题页（无旧页）不响
+            if (currentPage != null) SfxManager.Play(ESfx.PageTransition);
             while (overlayStack.Count > 0) PopOverlay();
             currentPage?.Hide();
             currentPage = page;

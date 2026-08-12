@@ -90,13 +90,15 @@ namespace MasterHouse
             return group;
         }
 
-        /// <summary>Prefab 按钮统一绑定：清旧监听、挂新回调、补 hover 手感组件。</summary>
-        public static void BindButton(Button button, UnityEngine.Events.UnityAction action)
+        /// <summary>Prefab 按钮统一绑定：清旧监听、挂新回调、补 hover 手感组件（兼点击音，音效需求 #1）。
+        /// clickSfx 传 None 表示这颗按钮的声音由回调内更具体的动作音承担（如访客卡、对话推进）。</summary>
+        public static void BindButton(Button button, UnityEngine.Events.UnityAction action, ESfx clickSfx = ESfx.UiClick)
         {
             if (button == null) return;
             var feedback = button.GetComponent<OutGameTweenButton>();
             if (feedback == null) feedback = button.gameObject.AddComponent<OutGameTweenButton>();
             feedback.hoverScale = 1.025f;
+            feedback.clickSfx = clickSfx;
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(action);
         }
@@ -105,8 +107,14 @@ namespace MasterHouse
         {
             if (toggle == null) return;
             toggle.onValueChanged.RemoveAllListeners();
-            toggle.isOn = value;
-            toggle.onValueChanged.AddListener(action);
+            toggle.isOn = value; // 先设值再挂监听：初始化赋值不触发回调、也不该响点击音
+            var feedback = toggle.GetComponent<OutGameTweenButton>();
+            toggle.onValueChanged.AddListener(v =>
+            {
+                // Toggle 没有走 BindButton 的手感组件；没挂 OutGameTweenButton 时由这里补点击音，挂了则由组件发声不重复
+                if (feedback == null) SfxManager.Play(ESfx.UiClick);
+                action(v);
+            });
         }
 
         /// <summary>销毁页面/叠加层前停掉其层级下所有 Tween，防止 DOTween 在本帧末尾写入失效对象。</summary>
