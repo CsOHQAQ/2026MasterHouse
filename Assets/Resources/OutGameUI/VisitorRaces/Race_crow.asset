@@ -34,4 +34,4 @@ MonoBehaviour:
   - expression: 0
     portraitPath: OutGameUI/Guests/crow
   sheetPath: OutGameUI/Visitors/rottweiler
-  dialoguePool: {fileID: 0}
+  dialoguePool: {fileID: 11400000, guid: 9eaefa8328e95bf41942cf7a31a20a3d, type: 2}
