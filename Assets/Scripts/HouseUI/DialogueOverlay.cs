@@ -142,7 +142,8 @@ namespace MasterHouse
         private void BindStatic()
         {
             if (view.closeButton != null) HouseUIUtil.BindButton(view.closeButton, ui.PopOverlay);
-            if (view.advanceButton != null) HouseUIUtil.BindButton(view.advanceButton, OnAdvanceClicked);
+            // 推进按钮不响基础点击音：推进音（音效需求 #3）在 OnAdvanceClicked 里按「是否真的推进了」发声
+            if (view.advanceButton != null) HouseUIUtil.BindButton(view.advanceButton, OnAdvanceClicked, ESfx.None);
             if (view.guestTitle != null) view.guestTitle.text = "GUEST";
 
             // 选项槽位在 Prefab 里预摆（§16.2 布局真相源），这里只收集引用
@@ -252,7 +253,8 @@ namespace MasterHouse
                     if (enabled)
                     {
                         var index = i; // 闭包捕获：不能直接用循环变量
-                        HouseUIUtil.BindButton(optionView.button, () => OnOptionClicked(index));
+                        // 选项也算对话交互（音效需求 #3），点击音关掉、在 OnOptionClicked 里发交互音
+                        HouseUIUtil.BindButton(optionView.button, () => OnOptionClicked(index), ESfx.None);
                         var shownIndex = shownOptions.Count;
                         BindHoverSync(optionView, shownIndex);
                         enabledOptions.Add(shownIndex);
@@ -350,7 +352,8 @@ namespace MasterHouse
         {
             if (closing) return;
             var dialogue = GameManager.Instance.DialogueManager;
-            if (dialogue.IsAtBranch) return;                 // 分支必须选，点空白不推进
+            if (dialogue.IsAtBranch) return;                 // 分支必须选，点空白不推进（无效点击不响）
+            SfxManager.Play(ESfx.GuestInteract);             // 音效需求 #3：对话点击继续（跳全文与推进同响）
             if (!typewriter.IsComplete)                      // 未显完 ⇒ 立即全文（§5.1）
             {
                 typewriter.SkipToEnd();
@@ -362,6 +365,7 @@ namespace MasterHouse
         private void OnOptionClicked(int index)
         {
             if (closing) return;
+            SfxManager.Play(ESfx.GuestInteract); // 音效需求 #3：选定分支选项（键盘回车确认也汇到这里）
             // 点完清掉 uGUI 选中态，免得之后的回车对这颗按钮再触发一次 Submit
             if (UnityEngine.EventSystems.EventSystem.current != null)
                 UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);

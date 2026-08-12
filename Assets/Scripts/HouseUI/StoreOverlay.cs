@@ -244,6 +244,7 @@ namespace MasterHouse
             switch (result)
             {
                 case FurniturePurchaseResult.Success:
+                    SfxManager.Play(ESfx.Reward); // 音效需求 #7：商城购买成功（购买扣款刻意不响负向音，反馈就是这声获得）
                     RefreshCards();
                     RefreshPreview();
                     ShowObtained(entry);

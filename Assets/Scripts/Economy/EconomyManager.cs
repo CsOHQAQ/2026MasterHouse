@@ -4,6 +4,15 @@ using UnityEngine;
 
 namespace MasterHouse
 {
+    /// <summary>玩法收支的正负向语义（音效需求 #4）：表现层据此挑正向/负向提示音，本枚举不进存档。</summary>
+    public enum EEconomyFeedback
+    {
+        CurrencyGain,
+        CurrencyLoss,
+        ReputationGain,
+        ReputationLoss,
+    }
+
     /// <summary>
     /// 流通数值逻辑（§16.3，旧 HouseEconomy 静态服务平移）：货币/声望/装饰分与家具所有权的唯一修改入口，
     /// 商城面板与家具摆放模式都从这里读写。纯事件驱动、不挂 tick（§16.4 只要求时钟与访客业务上 tick）。
@@ -22,6 +31,13 @@ namespace MasterHouse
 
         /// <summary>任一数值变化后触发（§2.1：玩家操作产生的离散变化由 Manager 广播，UI 刷新用）。</summary>
         public event Action Changed;
+
+        /// <summary>
+        /// 玩法收支的正负向提示（音效需求 #4，SfxManager 订阅）：只在「玩家应当感知到得失」的收支处广播——
+        /// 服务结算/拒绝、对话奖励走这里；购买（反馈由商城的获得弹窗与其音效承担）、GM 后门（调试静音）、
+        /// 装饰分回写（与家具摆放音重叠）**刻意不发**。
+        /// </summary>
+        public event Action<EEconomyFeedback> Feedback;
 
         public EconomyManager(CodexTable codex, FurnitureTable furnitureTable, FurnitureRoomTable roomTable)
         {
@@ -64,6 +80,7 @@ namespace MasterHouse
             Data.Currency += reward.currency;
             Data.Reputation += reward.reputation;
             RaiseChanged();
+            Feedback?.Invoke(EEconomyFeedback.ReputationGain); // 货币声望同笔结算，正向提示只发一次
             return (reward.currency, reward.reputation);
         }
 
@@ -72,6 +89,7 @@ namespace MasterHouse
         {
             Data.Reputation = Mathf.Max(0, Data.Reputation - config.refuseReputationPenalty);
             RaiseChanged();
+            Feedback?.Invoke(EEconomyFeedback.ReputationLoss);
         }
 
         /// <summary>
@@ -84,6 +102,7 @@ namespace MasterHouse
             if (amount == 0) return;
             Data.Currency = Mathf.Max(0, Data.Currency + amount);
             RaiseChanged();
+            Feedback?.Invoke(amount > 0 ? EEconomyFeedback.CurrencyGain : EEconomyFeedback.CurrencyLoss);
         }
 
         /// <summary>声望增减（下限 0）：对话奖励事件等玩法入口。声望变化会实时影响 Item 解禁状态。</summary>
@@ -92,6 +111,7 @@ namespace MasterHouse
             if (amount == 0) return;
             Data.Reputation = Mathf.Max(0, Data.Reputation + amount);
             RaiseChanged();
+            Feedback?.Invoke(amount > 0 ? EEconomyFeedback.ReputationGain : EEconomyFeedback.ReputationLoss);
         }
 
         public bool IsFurnitureOwned(string furnitureId) => Data.OwnedFurniture.Contains(furnitureId);

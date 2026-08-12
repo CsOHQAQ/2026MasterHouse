@@ -46,7 +46,8 @@ namespace MasterHouse
                 card.typeLabel.text = TypeMark(instance.State);
                 HouseUIUtil.ApplyPanelSkin(card.background, .8f, 2.5f); // 访客卡换 common 框（半透明）
                 card.eventLabel.color = card.guestName.color = card.status.color = HouseUIUtil.White;
-                HouseUIUtil.BindButton(card.button, () => page.SelectGuest(instanceId));
+                // 点击音关掉：访客卡响的是交互音（音效需求 #3），由 SelectGuest 统一发声
+                HouseUIUtil.BindButton(card.button, () => page.SelectGuest(instanceId), ESfx.None);
             }
         }
 
