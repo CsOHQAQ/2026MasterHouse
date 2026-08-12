@@ -29,6 +29,9 @@ namespace MasterHouse
         /// <summary>输出暂存——资源/加工的产出；中转型的内部暂存（容量待定 #6）。仓库型为 null（漏斗 §7）。</summary>
         public readonly ItemStorage OutputStorage;
 
+        /// <summary>条件型：各条需求的滑动窗口状态；其余类型为 null。</summary>
+        public readonly ConditionState ConditionState;
+
         /// <summary>资源型：生产计时（tick）。</summary>
         public int ProductionCounter;
 
@@ -65,6 +68,10 @@ namespace MasterHouse
                 case ENodeType.Transit:
                     // 待定 #6：中转暂存容量暂按小容量
                     OutputStorage = new ItemStorage(((TransitNodeDef)def).StorageCapPerItem);
+                    break;
+                case ENodeType.Condition:
+                    // 无暂存：收到即蒸发，只记窗口到货
+                    ConditionState = new ConditionState((ConditionNodeDef)def);
                     break;
             }
 

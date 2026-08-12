@@ -11,6 +11,7 @@ namespace MasterHouse
         Processor,  // 加工型：消耗输入暂存推进配方，产出入输出暂存
         Storage,    // 仓库型：漏斗而非容器，收到即计入全局 PlayerCargo
         Transit,    // 中转型：无配方转运，配对 Pin 实现"立交"
+        Condition,  // 条件型：检查上游供给速率是否达标，是家具「修好」的判据
     }
 
     /// <summary>

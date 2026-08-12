@@ -67,11 +67,8 @@ namespace MasterHouse
             activeRect = default;
         }
 
-        /// <summary>单关独占（需求记录·决策 2）：当前关取已加载列表首个。</summary>
-        private LevelData CurrentLevel =>
-            gm != null && gm.LevelManager.LoadedLevels.Count > 0
-                ? gm.LevelManager.LoadedLevels[0]
-                : null;
+        /// <summary>玩家正在打开的关卡（同一时刻至多一个）；退出局内后为 null。</summary>
+        private LevelData CurrentLevel => gm != null ? gm.LevelManager.ActiveLevel : null;
 
         private void RefreshAssetLists()
         {
@@ -122,11 +119,20 @@ namespace MasterHouse
             foreach (var def in levelDefs)
             {
                 bool isCurrent = current != null && current.Def == def;
-                if (GUILayout.Button(isCurrent ? $"▶ {def.name}（点击热重载）" : def.name))
+                // 已创建过的关卡即使没打开也常驻（家具照常产出），后缀标出生效状态
+                var data = gm.LevelManager.FindLevel(def);
+                string suffix = data == null ? "" : data.IsEffective ? "  [生效]" : "  [未生效]";
+                if (GUILayout.Button(isCurrent ? $"▶ {def.name}（点击热重载）{suffix}" : $"{def.name}{suffix}"))
                     LoadLevel(def);
             }
             if (levelDefs.Count == 0)
                 GUILayout.Label("（Assets/GameData/Level/ 下无关卡资产）");
+
+            GUI.enabled = current != null;
+            if (GUILayout.Button("关闭关卡（退出局内，数据与产出保留）"))
+                gm.LevelManager.CloseLevel();
+            GUI.enabled = true;
+
             if (GUILayout.Button("刷新资产列表"))
                 RefreshAssetLists();
 #else
@@ -135,15 +141,19 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 切关/热重载（决策 2/3）：Unload 当前关（全量丢弃运行时状态，稳态结算待定 #7 占位于
-        /// LevelManager.UnloadLevel）→ 从 LevelDef 重新 Load → 相机对准新关画布。
+        /// 点当前关 = **热重载**（决策 3）：丢弃该关全部运行时状态，从 LevelDef 重建。
+        /// 点其他关 = **切关**：当前关只是关闭（数据常驻、家具产出继续），再打开目标关。
         /// </summary>
         private void LoadLevel(LevelDef def)
         {
             var lm = gm.LevelManager;
-            for (int i = lm.LoadedLevels.Count - 1; i >= 0; i--)
-                lm.UnloadLevel(lm.LoadedLevels[i]);
-            var level = lm.LoadLevel(def);
+            var current = lm.ActiveLevel;
+            if (current != null && current.Def == def)
+                lm.DiscardLevel(def);
+            else
+                lm.CloseLevel();
+
+            var level = lm.OpenLevel(def);
             FocusCanvas(level);
         }
 
@@ -183,8 +193,8 @@ namespace MasterHouse
             GUILayout.Label("== 时间 ==");
             var level = CurrentLevel;
             GUILayout.Label(level != null
-                ? $"当前关：{level.Def.name}   Tick：{level.TickCount}"
-                : "未加载关卡");
+                ? $"当前关：{level.Def.name}   Tick：{level.TickCount}   {(level.IsEffective ? "已生效" : "未生效")}"
+                : "未打开关卡（相当于退出局内；常驻关卡的家具产出照常推进）");
 
             GUILayout.BeginHorizontal();
             bool paused = GUILayout.Toggle(gm.IsPaused, "暂停");
@@ -232,8 +242,12 @@ namespace MasterHouse
             {
 #if UNITY_EDITOR
                 foreach (var def in allNodeDefs)
+                {
+                    // 条件节点只能由策划预置，任何模式下都不列出（PlacementController 另有硬拦）
+                    if (def.NodeType == ENodeType.Condition) continue;
                     if (GUILayout.Button($"{DisplayName(def)}（{def.NodeType}）"))
                         placement.BeginPlacement(def);
+                }
 #else
                 GUILayout.Label("自由模式列表仅编辑器内可用");
 #endif
@@ -266,6 +280,17 @@ namespace MasterHouse
                 GUILayout.Label("（暂无产出）");
 
             GUILayout.Space(8f);
+            GUILayout.Label("== 常驻关卡（家具）==");
+            foreach (var lv in gm.LevelManager.Levels)
+            {
+                string furniture = string.IsNullOrEmpty(lv.Def.FurnitureId) ? "未绑定家具" : lv.Def.FurnitureId;
+                GUILayout.Label($"{lv.Def.name}（{furniture}）  {(lv.IsEffective ? "生效" : "未生效")}" +
+                                $"  产出 {lv.Def.Outputs.Count} 条  Tick {lv.TickCount}");
+            }
+            if (gm.LevelManager.Levels.Count == 0)
+                GUILayout.Label("（尚未创建任何关卡数据）");
+
+            GUILayout.Space(8f);
             GUILayout.Label("== 选中详情 ==");
             var ic = InteractionController.Instance;
             if (ic == null)
@@ -292,6 +317,8 @@ namespace MasterHouse
                 GUILayout.Label($"输入暂存：{StorageText(node.InputStorage)}");
             if (node.OutputStorage != null)
                 GUILayout.Label($"输出暂存：{StorageText(node.OutputStorage)}");
+            if (node.ConditionState != null)
+                DrawConditionDetail(node.ConditionState);
             if (node.Def is ProcessorNodeDef processorDef && processorDef.Recipe != null)
                 GUILayout.Label(node.RecipeInProgress
                     ? $"配方进度：{node.RecipeProgressTicks}/{processorDef.Recipe.WorkTicks} tick"
@@ -301,6 +328,20 @@ namespace MasterHouse
                 var pin = node.Pins[i];
                 GUILayout.Label($"Pin{i}  {DirText(pin.RuntimeDirection)}  {DisplayName(pin.RuntimeItemType)}  链接x{pin.Links.Count}");
             }
+        }
+
+        /// <summary>条件节点详情：逐条需求的窗口累计 / 需求量与达标情况。</summary>
+        private static void DrawConditionDetail(ConditionState state)
+        {
+            GUILayout.Label($"条件：{(state.Satisfied ? "全部达标" : "未达标")}");
+            if (state.Tracks.Count == 0)
+            {
+                GUILayout.Label("　（未配需求，视为恒达标）");
+                return;
+            }
+            foreach (var track in state.Tracks)
+                GUILayout.Label($"　{DisplayName(track.Entry.Item)}  {track.WindowAmount}/{track.Required}" +
+                                $"  窗口 {track.WindowTicks} tick{(track.Satisfied ? "  ✓" : "")}");
         }
 
         private void DrawLinkDetail(LinkData link)

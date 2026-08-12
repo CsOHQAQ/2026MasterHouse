@@ -196,7 +196,35 @@ namespace MasterHouse.EditorTools
                     issues.Add($"可建「{b.Node.name}」数量上限应 ≥ 1。");
                 if (b.Node is TransitNodeDef)
                     issues.Add($"可建列表包含中转节点「{b.Node.name}」——§7：中转节点位置由策划在关卡中预置，请确认是否有意。");
+                if (b.Node is ConditionNodeDef)
+                    issues.Add($"可建列表包含条件节点「{b.Node.name}」——条件节点只能预置，玩家永远造不出来，本条无效，请删除。");
             }
+
+            // 家具效果产出（关卡生效后持续产出到玩家仓库）
+            for (int i = 0; i < def.Outputs.Count; i++)
+            {
+                var o = def.Outputs[i];
+                if (o == null || o.Item == null)
+                {
+                    issues.Add($"产出第 {i + 1} 条未指定物资。");
+                    continue;
+                }
+                if (o.Amount <= 0)
+                    issues.Add($"产出「{o.Item.name}」的数量应 ≥ 1。");
+                if (o.TicksPerOutput <= 0)
+                    issues.Add($"产出「{o.Item.name}」的间隔应 ≥ 1 tick。");
+            }
+
+            // 生效判据提示：没有条件节点的关卡恒生效，家具摆下去就在产出
+            bool hasCondition = false;
+            foreach (var e in def.PresetNodes)
+                if (e.Node is ConditionNodeDef)
+                {
+                    hasCondition = true;
+                    break;
+                }
+            if (!hasCondition && def.Outputs.Count > 0)
+                issues.Add("本关没有预置条件节点：家具将**恒定生效**、摆下即产出。若期望「修好才生效」，请预置条件节点。");
 
             return issues;
         }

@@ -32,6 +32,10 @@ MonoBehaviour:
   needCountMax: 2
   portraits:
   - expression: 0
-    portraitPath: OutGameUI/Guests/fox
+    portraitPath: OutGameUI
+  - expression: 0
+    portraitPath: Guests
+  - expression: 0
+    portraitPath: fox
   sheetPath: OutGameUI/Visitors/orange_cat
   dialoguePool: {fileID: 11400000, guid: 141951c41f9cb6f44ab3613f8ce4752e, type: 2}

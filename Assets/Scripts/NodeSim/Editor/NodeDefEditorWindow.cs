@@ -17,9 +17,12 @@ namespace MasterHouse.EditorTools
     {
         const string kNodeFolder = "Assets/GameData/Nodes";
 
-        static readonly string[] kTypeNames = { "资源型", "加工型", "仓库型", "中转型" };
+        static readonly string[] kTypeNames = { "资源型", "加工型", "仓库型", "中转型", "条件型" };
         static readonly Type[] kTypes =
-            { typeof(ResourceNodeDef), typeof(ProcessorNodeDef), typeof(StorageNodeDef), typeof(TransitNodeDef) };
+        {
+            typeof(ResourceNodeDef), typeof(ProcessorNodeDef), typeof(StorageNodeDef),
+            typeof(TransitNodeDef), typeof(ConditionNodeDef),
+        };
         static readonly string[] kFacingNames = { "上", "右", "下", "左" }; // 与 EDirection4 枚举顺序一致
 
         NodeDef _target;
@@ -283,6 +286,7 @@ namespace MasterHouse.EditorTools
                 case ProcessorNodeDef p: DrawProcessorFields(p); break;
                 case StorageNodeDef s: DrawStorageFields(s); break;
                 case TransitNodeDef t: DrawTransitFields(t); break;
+                case ConditionNodeDef c: DrawConditionFields(c); break;
             }
         }
 
@@ -386,6 +390,78 @@ namespace MasterHouse.EditorTools
             }
         }
 
+        void DrawConditionFields(ConditionNodeDef c)
+        {
+            EditorGUILayout.HelpBox(
+                "条件节点判定「家具是否修好」：每条需求统计最近 W tick 内收到的量，" +
+                "全部达标才算本节点满足。收到的物资即刻蒸发，不占暂存、也不会背压上游。",
+                MessageType.None);
+
+            GUILayout.Label("需求列表（留空 = 恒达标）", EditorStyles.miniBoldLabel);
+            for (int i = 0; i < c.Conditions.Count; i++)
+            {
+                var entry = c.Conditions[i];
+                if (entry == null) continue; // 空条目由校验区提示
+
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+                EditorGUILayout.BeginHorizontal();
+                var swatch = GUILayoutUtility.GetRect(14, 14, GUILayout.Width(14), GUILayout.Height(14));
+                EditorGUI.DrawRect(swatch, entry.Item != null ? entry.Item.DisplayColor : Color.gray);
+                EditorGUI.BeginChangeCheck();
+                var item = (ItemDef)EditorGUILayout.ObjectField(entry.Item, typeof(ItemDef), false);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObject(c, "修改需求物资");
+                    entry.Item = item;
+                    EditorUtility.SetDirty(c);
+                }
+                bool doRemove = GUILayout.Button("×", GUILayout.Width(22));
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Label("需求量", GUILayout.Width(46));
+                int amount = EditorGUILayout.IntField(entry.RequiredAmount, GUILayout.Width(50));
+                GUILayout.Label("窗口(tick)", GUILayout.Width(66));
+                int window = EditorGUILayout.IntField(entry.WindowTicks, GUILayout.Width(50));
+                GUILayout.FlexibleSpace();
+                EditorGUILayout.EndHorizontal();
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObject(c, "修改需求数值");
+                    entry.RequiredAmount = Mathf.Max(1, amount);
+                    entry.WindowTicks = Mathf.Max(1, window);
+                    EditorUtility.SetDirty(c);
+                }
+
+                // 速率换算：策划配的是「窗口内几个」，这里换算成每秒直觉值（tick 频率见 GameConfig）
+                int tps = GameConfig.Instance != null ? Mathf.Max(1, GameConfig.Instance.TicksPerSecond) : 10;
+                float perSecond = entry.RequiredAmount * (float)tps / Mathf.Max(1, entry.WindowTicks);
+                EditorGUILayout.LabelField(
+                    $"≈ 每 {entry.WindowTicks} tick 需 {entry.RequiredAmount} 个（约 {perSecond:0.##} 个/秒）",
+                    EditorStyles.miniLabel);
+
+                EditorGUILayout.EndVertical();
+
+                if (doRemove)
+                {
+                    Undo.RecordObject(c, "删除需求");
+                    c.Conditions.RemoveAt(i);
+                    EditorUtility.SetDirty(c);
+                    GUIUtility.ExitGUI();
+                }
+            }
+
+            if (GUILayout.Button("+ 添加需求"))
+            {
+                Undo.RecordObject(c, "添加需求");
+                c.Conditions.Add(new ConditionEntry());
+                EditorUtility.SetDirty(c);
+                GUIUtility.ExitGUI();
+            }
+        }
+
         // ==================== Pin 列表 ====================
 
         void DrawPinSection()
@@ -439,6 +515,9 @@ namespace MasterHouse.EditorTools
                     return "仓库节点：可自由增删 Pin 与物资种类；方向固定为「输入」。";
                 case ProcessorNodeDef _:
                     return "加工节点：Pin 的数量与物资由配方的输入/产出一一对应决定，不能手动增删；改配方后自动同步，也可手动点「按配方同步 Pin」。";
+                case ConditionNodeDef _:
+                    return "条件节点：可自由增删 Pin，方向固定为「输入」。同一种物资允许配多个 Pin 并联供货" +
+                           "（单条链接的速率有上限），到货合并计入同一条需求。";
                 case TransitNodeDef _:
                     return "中转节点：Pin 必须成对配置、互为配对 Pin（§6.3 立交）；删除任一个会连同配对一起删除。物资可留空，方向固定「同步」，运行时随连接确定。";
                 default:

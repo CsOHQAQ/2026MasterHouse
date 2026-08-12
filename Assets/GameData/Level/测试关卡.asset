@@ -10,8 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 185ed5bc5ce815f48a5b9b0699cb5bb0, type: 3}
-  m_Name: "测试关卡"
-  m_EditorClassIdentifier:
+  m_Name: "\u6D4B\u8BD5\u5173\u5361"
+  m_EditorClassIdentifier: 
+  FurnitureId: 
+  Outputs: []
   Canvas:
     Grids:
     - DeltaPosition: {x: 0, y: 0}
@@ -245,14 +247,6 @@ MonoBehaviour:
     - DeltaPosition: {x: 14, y: 5}
       Type: 0
     - DeltaPosition: {x: 15, y: 5}
-      Type: 0
-    - DeltaPosition: {x: 16, y: 5}
-      Type: 0
-    - DeltaPosition: {x: 17, y: 5}
-      Type: 0
-    - DeltaPosition: {x: 18, y: 5}
-      Type: 0
-    - DeltaPosition: {x: 19, y: 5}
       Type: 0
     - DeltaPosition: {x: 0, y: 6}
       Type: 0
@@ -503,6 +497,10 @@ MonoBehaviour:
   - Node: {fileID: 11400000, guid: b108c1f51ae67c9563b388f7fcb11e5a, type: 2}
     Cell: {x: 10, y: 6}
     CanMove: 1
+    CanDelete: 0
+  - Node: {fileID: 11400000, guid: 331ced10bd5aaf44ca463dbf1d695473, type: 2}
+    Cell: {x: 14, y: 2}
+    CanMove: 0
     CanDelete: 0
   BuildableNodes:
   - Node: {fileID: 11400000, guid: 1b0a20726e2d0748b145a5e745c91114, type: 2}

@@ -33,12 +33,13 @@ namespace MasterHouse
                 foreach (var pin in node.Pins)
                 {
                     if (pin.RuntimeDirection != EPinDirection.Input) continue;
-                    DeliverToPin(node, pin, playerCargo);
+                    DeliverToPin(node, pin, playerCargo, level.TickCount);
                 }
             }
         }
 
-        private static void DeliverToPin(NodeData node, PinData pin, PlayerCargoData playerCargo)
+        /// <summary>tick 参数供条件节点记到货窗口（§条件节点）；其余类型用不到。</summary>
+        private static void DeliverToPin(NodeData node, PinData pin, PlayerCargoData playerCargo, long tick)
         {
             // 推进在途计时，并收集「到期持货」的链接（新到期 + 既有阻塞）
             List<LinkData> ready = null;
@@ -68,7 +69,7 @@ namespace MasterHouse
                 int give = Mathf.Min(link.SlotCount, space);
                 if (give > 0)
                 {
-                    Deposit(node, link.ItemType, give, playerCargo);
+                    Deposit(node, link.ItemType, give, playerCargo, tick);
                     link.SlotCount -= give;
                     servedAny = true;
                     lastServed = link.LinkId;
@@ -102,12 +103,15 @@ namespace MasterHouse
                     return int.MaxValue; // 仓库是漏斗，无上限（§7）；白名单在建线时校验
                 case ENodeType.Transit:
                     return node.OutputStorage.GetFreeSpace(item); // 容量待定 #6
+                case ENodeType.Condition:
+                    return int.MaxValue; // 无暂存、无限吸收：上游永不背压（有意设计）
                 default:
                     return 0; // 资源型不应有输入 Pin
             }
         }
 
-        private static void Deposit(NodeData node, ItemDef item, int count, PlayerCargoData playerCargo)
+        private static void Deposit(NodeData node, ItemDef item, int count,
+            PlayerCargoData playerCargo, long tick)
         {
             switch (node.Def.NodeType)
             {
@@ -119,6 +123,10 @@ namespace MasterHouse
                     break;
                 case ENodeType.Transit:
                     node.OutputStorage.Add(item, count);
+                    break;
+                case ENodeType.Condition:
+                    // 收到即蒸发，只记入窗口（守恒的第二个明示例外）
+                    node.ConditionState.Record(item, count, tick);
                     break;
             }
         }
@@ -216,10 +224,14 @@ namespace MasterHouse
         // ───────────────── 链接创建 / 删除 ─────────────────
 
         /// <summary>
-        /// 创建链接（§6.2 强类型自动推导 + §5 一次性 A* 布线）。
-        /// pinA/pinB 不分先后，方向按两端 Pin 的运行时方向解析。失败返回 null 并给出原因。
+        /// 创建链接（§6.2 强类型自动推导）。
+        /// <para><paramref name="path"/> = 玩家手绘的途径格（§5 手动描格），本层会**完整复核**其合法性——
+        /// 不信任 Controller 传入的数据（§11.4）；传 null 时退回一次性 A*（仅调试面板「重新布线」使用）。</para>
+        /// pinA/pinB 不分先后，方向按两端 Pin 的运行时方向解析；
+        /// 若解析出的 from→to 与 path 首尾相反，path 会被反转后存入。失败返回 null 并给出原因。
         /// </summary>
-        public LinkData TryCreateLink(LevelData level, PinData pinA, PinData pinB, out string failReason)
+        public LinkData TryCreateLink(LevelData level, PinData pinA, PinData pinB, out string failReason,
+            IReadOnlyList<Vector2Int> path = null)
         {
             failReason = null;
             if (pinA == null || pinB == null || pinA == pinB)
@@ -293,24 +305,34 @@ namespace MasterHouse
                 return null;
             }
 
-            // 一次性 A* 自动布线（§5：创建时辅助，不是运行时系统）
             var start = fromPin.Owner.GetPinPortCell(fromPin.IndexInNode);
             var goal = toPin.Owner.GetPinPortCell(toPin.IndexInNode);
-            var path = FindPath(level, start, goal);
+
+            List<Vector2Int> pathCells;
             if (path == null)
             {
-                failReason = "找不到合法走线";
-                return null;
+                // A* 只剩调试面板「重新布线」这一条调用路径（§5：正式玩法一律玩家手绘）
+                pathCells = FindPath(level, start, goal);
+                if (pathCells == null)
+                {
+                    failReason = "找不到合法走线";
+                    return null;
+                }
+            }
+            else
+            {
+                pathCells = ValidatePlayerPath(level, path, start, goal, out failReason);
+                if (pathCells == null) return null;
             }
 
             var config = GameConfig.Instance;
             var link = new LinkData(level.NextLinkId++, fromPin, toPin)
             {
                 ItemType = item,
-                PathCells = path,
+                PathCells = pathCells,
                 // 待定 #4：节拍先用 GameConfig 全局默认；在途时长见 ComputeTransitTicks
                 BeatTicks = config != null ? config.DefaultLinkBeatTicks : 10,
-                TransitTicks = ComputeTransitTicks(config, path),
+                TransitTicks = ComputeTransitTicks(config, pathCells),
             };
 
             level.Links.Add(link);          // 追加即按 LinkId 升序（§11.2）
@@ -323,6 +345,59 @@ namespace MasterHouse
 
             OnLinkCreated?.Invoke(level, link);
             return link;
+        }
+
+        /// <summary>
+        /// 复核玩家手绘路径并规整方向（§5）：
+        /// 每格 ∈ 画布 ∧ 未被占用、相邻格 4 向连续、整条不自交，
+        /// 且首尾格分别落在两端 Pin 的外侧接线格上。
+        /// 玩家可能从输入侧往输出侧画，此时整条反转后返回（存储一律 from→to）。
+        /// </summary>
+        private static List<Vector2Int> ValidatePlayerPath(LevelData level, IReadOnlyList<Vector2Int> path,
+            Vector2Int start, Vector2Int goal, out string failReason)
+        {
+            failReason = null;
+            if (path == null || path.Count == 0)
+            {
+                failReason = "走线为空";
+                return null;
+            }
+
+            var first = path[0];
+            var last = path[path.Count - 1];
+            bool reversed;
+            if (first == start && last == goal) reversed = false;
+            else if (first == goal && last == start) reversed = true;
+            else
+            {
+                failReason = "走线两端没有接在 Pin 的接口格上";
+                return null;
+            }
+
+            var seen = new HashSet<Vector2Int>(); // 仅成员查询（§11.2）
+            for (int i = 0; i < path.Count; i++)
+            {
+                var cell = path[i];
+                if (!seen.Add(cell))
+                {
+                    failReason = "走线与自身重叠";
+                    return null;
+                }
+                if (!IsCellFreeForLink(level, cell))
+                {
+                    failReason = "走线经过的格子越界或已被占用";
+                    return null;
+                }
+                if (i > 0 && Mathf.Abs(cell.x - path[i - 1].x) + Mathf.Abs(cell.y - path[i - 1].y) != 1)
+                {
+                    failReason = "走线不是 4 向连续的折线";
+                    return null;
+                }
+            }
+
+            var result = new List<Vector2Int>(path);
+            if (reversed) result.Reverse();
+            return result;
         }
 
         /// <summary>

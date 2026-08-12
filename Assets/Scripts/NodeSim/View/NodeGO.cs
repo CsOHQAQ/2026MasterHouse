@@ -16,6 +16,7 @@ namespace MasterHouse
         private static readonly Color ProcessorColor = new Color(0.30f, 0.50f, 0.75f);
         private static readonly Color StorageColor = new Color(0.78f, 0.63f, 0.26f);
         private static readonly Color TransitColor = new Color(0.58f, 0.44f, 0.72f);
+        private static readonly Color ConditionColor = new Color(0.24f, 0.66f, 0.68f);
         private static readonly Color UnknownColor = Color.magenta; // NodeType 未配置的警示色
 
         /// <summary>非法临时态 tint（§4.3 最简着色提示，正式交互待定 #14）。</summary>
@@ -153,6 +154,9 @@ namespace MasterHouse
                     sb.Append("\n存 ");
                     AppendStorage(sb, Data.OutputStorage);
                     break;
+                case ENodeType.Condition:
+                    AppendConditionProgress(sb);
+                    break;
                 // Storage：漏斗无暂存（§7），累计产出看调试面板的 PlayerCargo
             }
 
@@ -182,6 +186,25 @@ namespace MasterHouse
             sb.Append("加工 ").Append(percent).Append('%');
         }
 
+        /// <summary>条件节点：逐条显示滑动窗口内的累计量 / 需求量，达标行标 ✓。</summary>
+        private void AppendConditionProgress(StringBuilder sb)
+        {
+            var state = Data.ConditionState;
+            if (state == null || state.Tracks.Count == 0)
+            {
+                sb.Append("\n未配需求（恒达标）");
+                return;
+            }
+            foreach (var track in state.Tracks) // List 顺序 = 策划配置顺序，稳定
+            {
+                sb.Append('\n')
+                    .Append(DisplayNameOf(track.Entry.Item)).Append(' ')
+                    .Append(track.WindowAmount).Append('/').Append(track.Required)
+                    .Append('/').Append(track.WindowTicks).Append('t');
+                if (track.Satisfied) sb.Append(" ✓");
+            }
+        }
+
         private static void AppendStorage(StringBuilder sb, ItemStorage storage)
         {
             if (storage == null)
@@ -208,6 +231,7 @@ namespace MasterHouse
                 case ENodeType.Processor: return ProcessorColor;
                 case ENodeType.Storage: return StorageColor;
                 case ENodeType.Transit: return TransitColor;
+                case ENodeType.Condition: return ConditionColor;
                 default: return UnknownColor;
             }
         }

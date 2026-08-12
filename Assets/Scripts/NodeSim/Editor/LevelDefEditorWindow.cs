@@ -16,8 +16,12 @@ namespace MasterHouse.EditorTools
     {
         const string kLevelFolder = "Assets/GameData/Levels";
 
-        /// <summary>自动绘制时跳过的字段：画布与预置节点走画布/定制列表编辑。</summary>
-        static readonly HashSet<string> kCustomDrawnProps = new HashSet<string> { "m_Script", "Canvas", "PresetNodes" };
+        /// <summary>家具表资产路径（家具是表里的一行，不是独立资产，故只能按 id 关联）。</summary>
+        const string kFurnitureTablePath = "Assets/Resources/OutGameUI/FurnitureTable.asset";
+
+        /// <summary>自动绘制时跳过的字段：画布/预置节点走定制编辑，家具 id 走下拉选择。</summary>
+        static readonly HashSet<string> kCustomDrawnProps =
+            new HashSet<string> { "m_Script", "Canvas", "PresetNodes", "FurnitureId" };
 
         LevelDef _target;
         SerializedObject _serialized;
@@ -268,12 +272,60 @@ namespace MasterHouse.EditorTools
             _scrollRight = EditorGUILayout.BeginScrollView(_scrollRight);
             if (_target != null)
             {
+                DrawFurnitureBinding();
                 DrawAutoFields();
                 DrawPresetSection();
                 DrawValidation();
             }
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// 关联家具：家具不是独立资产而是家具表里的一行，所以关卡只能存 id。
+        /// 这里从家具表读出全部行做成下拉，策划不用手打字符串。
+        /// </summary>
+        void DrawFurnitureBinding()
+        {
+            GUILayout.Label("关联家具（本关卡 = 这件家具的维修玩法）", EditorStyles.boldLabel);
+
+            var table = AssetDatabase.LoadAssetAtPath<FurnitureTable>(kFurnitureTablePath);
+            if (table == null)
+            {
+                EditorGUI.BeginChangeCheck();
+                string manual = EditorGUILayout.TextField("家具 id", _target.FurnitureId);
+                if (EditorGUI.EndChangeCheck()) ApplyFurnitureId(manual);
+                EditorGUILayout.HelpBox($"未找到家具表（{kFurnitureTablePath}），暂时手填 id。", MessageType.Warning);
+                return;
+            }
+
+            // 家具行数不多，每次重建选项即可，新导表立刻生效
+            var ids = new List<string> { string.Empty };
+            var labels = new List<string> { "（不绑定家具）" };
+            foreach (var e in table.entries)
+            {
+                if (e == null || string.IsNullOrEmpty(e.id)) continue;
+                ids.Add(e.id);
+                labels.Add(string.IsNullOrEmpty(e.displayName) ? e.id : $"{e.displayName}（{e.id}）");
+            }
+
+            string currentId = _target.FurnitureId ?? string.Empty;
+            int index = ids.IndexOf(currentId);
+            bool missing = index < 0;
+
+            EditorGUI.BeginChangeCheck();
+            int picked = EditorGUILayout.Popup("家具", missing ? 0 : index, labels.ToArray());
+            if (EditorGUI.EndChangeCheck()) ApplyFurnitureId(ids[picked]);
+
+            if (missing)
+                EditorGUILayout.HelpBox($"当前 id「{currentId}」不在家具表中（可能已改名或删除），请重选。", MessageType.Warning);
+        }
+
+        void ApplyFurnitureId(string id)
+        {
+            Undo.RecordObject(_target, "修改关联家具");
+            _target.FurnitureId = id;
+            EditorUtility.SetDirty(_target);
         }
 
         void DrawAutoFields()

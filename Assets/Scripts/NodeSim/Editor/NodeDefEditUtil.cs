@@ -73,6 +73,7 @@ namespace MasterHouse.EditorTools
                 case ProcessorNodeDef _: return "加工";
                 case StorageNodeDef _: return "仓库";
                 case TransitNodeDef _: return "中转";
+                case ConditionNodeDef _: return "条件";
                 default: return "未知";
             }
         }
@@ -82,7 +83,8 @@ namespace MasterHouse.EditorTools
         /// <summary>该类型是否允许自由增删 Pin（§7：仓库/资源可自由调整数量与物资种类）。</summary>
         public static bool AllowFreePinEdit(NodeDef def)
         {
-            return def is ResourceNodeDef || def is StorageNodeDef;
+            // 条件型同理：需求可以由多个输入 Pin 并联供给（单链接速率有上限）
+            return def is ResourceNodeDef || def is StorageNodeDef || def is ConditionNodeDef;
         }
 
         /// <summary>
@@ -93,6 +95,7 @@ namespace MasterHouse.EditorTools
         {
             if (def is ResourceNodeDef) return EPinDirection.Output;
             if (def is StorageNodeDef) return EPinDirection.Input;
+            if (def is ConditionNodeDef) return EPinDirection.Input;
             if (def is TransitNodeDef) return EPinDirection.None;
             return null;
         }
@@ -106,17 +109,29 @@ namespace MasterHouse.EditorTools
             {
                 Pin = new PinDef
                 {
-                    ItemType = def is ResourceNodeDef r ? r.OutputItem : null,
+                    ItemType = DefaultPinItem(def),
                     Direction = ForcedDirection(def) ?? EPinDirection.Output,
                     MaxRate = 1,
                     PairedPinIndex = -1,
                 },
                 LocalCell = Vector2Int.zero,
-                Facing = def is StorageNodeDef ? EDirection4.Left : EDirection4.Right,
+                // 输入型（仓库/条件）默认朝左接线，输出型朝右
+                Facing = ForcedDirection(def) == EPinDirection.Input ? EDirection4.Left : EDirection4.Right,
             };
             AutoFacing(def, layout);
             def.Pins.Add(layout);
             EditorUtility.SetDirty(def);
+        }
+
+        /// <summary>新增 Pin 的默认物资：资源型取产出物资，条件型取首条需求物资，其余留空。</summary>
+        static ItemDef DefaultPinItem(NodeDef def)
+        {
+            if (def is ResourceNodeDef r) return r.OutputItem;
+            if (def is ConditionNodeDef c)
+                foreach (var entry in c.Conditions)
+                    if (entry != null && entry.Item != null)
+                        return entry.Item;
+            return null;
         }
 
         /// <summary>中转型：一次添加一对互为配对的 Pin（物资/方向留空，运行时同步）。</summary>
@@ -355,6 +370,37 @@ namespace MasterHouse.EditorTools
                         issues.Add("未配置配方——加工节点的 Pin 由配方决定（待定 #3：先按单条配方）。");
                     else if (!ProcessorPinsInSync(proc))
                         issues.Add("Pin 与配方不一致，请点「按配方同步 Pin」。");
+                    break;
+
+                case ConditionNodeDef c:
+                    if (c.Conditions.Count == 0)
+                        issues.Add("未配置任何需求：该条件节点恒达标，关卡等同于没有它。");
+                    for (int i = 0; i < c.Conditions.Count; i++)
+                    {
+                        var entry = c.Conditions[i];
+                        if (entry == null || entry.Item == null)
+                        {
+                            issues.Add($"需求 #{i} 未配置物资。");
+                            continue;
+                        }
+                        if (entry.RequiredAmount <= 0)
+                            issues.Add($"需求「{entry.Item.name}」的需求量应大于 0。");
+                        if (entry.WindowTicks <= 0)
+                            issues.Add($"需求「{entry.Item.name}」的窗口长度应大于 0。");
+                        if (!def.Pins.Exists(p => p.Pin.ItemType == entry.Item))
+                            issues.Add($"需求「{entry.Item.name}」没有对应的输入 Pin，永远收不到货。");
+                    }
+                    for (int i = 0; i < def.Pins.Count; i++)
+                    {
+                        var item = def.Pins[i].Pin.ItemType;
+                        if (item == null)
+                        {
+                            issues.Add($"Pin #{i} 未配置物资种类。");
+                            continue;
+                        }
+                        if (!c.Conditions.Exists(e => e != null && e.Item == item))
+                            issues.Add($"Pin #{i}（{item.name}）不在需求列表中，收到的货不计入任何条件。");
+                    }
                     break;
 
                 case TransitNodeDef _:

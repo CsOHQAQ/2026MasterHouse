@@ -43,25 +43,25 @@ namespace MasterHouse
 
             levelManager = gm.LevelManager;
             linkManager = gm.LinkManager;
-            levelManager.OnLevelLoaded += HandleLevelLoaded;
-            levelManager.OnLevelUnloaded += HandleLevelUnloaded;
+            levelManager.OnLevelOpened += HandleLevelOpened;
+            levelManager.OnLevelClosed += HandleLevelClosed;
             levelManager.OnNodePlaced += HandleNodePlaced;
             levelManager.OnNodeRemoved += HandleNodeRemoved;
             // OnNodeMoved 无需订阅：NodeGO 每帧读 Origin 自行跟随（§2.1 连续量轮询）
             linkManager.OnLinkCreated += HandleLinkCreated;
             linkManager.OnLinkDeleted += HandleLinkDeleted;
 
-            // GameManager.Start 可能先于本 Start 加载了 startLevel（脚本执行顺序未约定），补建表现
-            foreach (var level in levelManager.LoadedLevels)
-                HandleLevelLoaded(level);
+            // GameManager.Start 可能先于本 Start 打开了 startLevel（脚本执行顺序未约定），补建表现
+            if (levelManager.ActiveLevel != null)
+                HandleLevelOpened(levelManager.ActiveLevel);
         }
 
         private void OnDestroy()
         {
             if (levelManager != null)
             {
-                levelManager.OnLevelLoaded -= HandleLevelLoaded;
-                levelManager.OnLevelUnloaded -= HandleLevelUnloaded;
+                levelManager.OnLevelOpened -= HandleLevelOpened;
+                levelManager.OnLevelClosed -= HandleLevelClosed;
                 levelManager.OnNodePlaced -= HandleNodePlaced;
                 levelManager.OnNodeRemoved -= HandleNodeRemoved;
             }
@@ -72,9 +72,9 @@ namespace MasterHouse
             }
         }
 
-        // ───────────────── 关卡 Load/Unload：全量重建 / 全量销毁 ─────────────────
+        // ───────────────── 关卡 打开/关闭：全量重建 / 全量销毁 ─────────────────
 
-        private void HandleLevelLoaded(LevelData level)
+        private void HandleLevelOpened(LevelData level)
         {
             if (levelContainers.ContainsKey(level)) return;
 
@@ -91,12 +91,12 @@ namespace MasterHouse
                 CreateLinkView(level, link);
         }
 
-        private void HandleLevelUnloaded(LevelData level)
+        private void HandleLevelClosed(LevelData level)
         {
             if (!levelContainers.TryGetValue(level, out var container)) return;
             levelContainers.Remove(level);
 
-            // 数据仍在（Unload 不清 LevelData），只销毁表现物与映射
+            // 数据仍常驻（关卡只是不再推进），只销毁表现物与映射
             foreach (var node in level.Nodes)
                 nodeViews.Remove(node);
             foreach (var link in level.Links)

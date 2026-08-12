@@ -124,7 +124,7 @@ namespace MasterHouse
         private void Start()
         {
             if (startLevel != null)
-                LevelManager.LoadLevel(startLevel);
+                LevelManager.OpenLevel(startLevel);
         }
 
         private void Update()
