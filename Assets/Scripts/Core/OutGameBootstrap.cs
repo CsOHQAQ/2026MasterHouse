@@ -21,6 +21,10 @@ namespace MasterHouse
                 DontDestroyOnLoad(gm); // 与局外界面壳同寿命（HouseUIManager 自身是 DontDestroyOnLoad）
             }
 
+            // 全局音效播放器（表现层）：须在业务 Manager 就位后、界面壳之前拉起——
+            // 一进场就要订阅访客/经济事件（音效需求 #4/#6），漏订会丢开局第一批通知音
+            SfxManager.Ensure();
+
             HouseUIManager.Build();
 
             if (spawnGmConsole && FindObjectOfType<HouseGmConsole>() == null)
