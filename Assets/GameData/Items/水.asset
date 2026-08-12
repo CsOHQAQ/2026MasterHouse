@@ -10,10 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 76e2c1dae30a4d6f9525abf23afde01b, type: 3}
-  m_Name: "\u7535\u529B"
+  m_Name: "\u6C34"
   m_EditorClassIdentifier: 
-  DisplayName: "\u7535\u529B"
-  DisplayColor: {r: 1, g: 0.9039522, b: 0, a: 1}
+  DisplayName: "\u6C34"
+  DisplayColor: {r: 0, g: 0.6653919, b: 1, a: 1}
   icon: {fileID: 0}
-  tags:
-  - {fileID: 11400000, guid: 395e88c8eb2fed74f8a980a94f822c33, type: 2}
+  tags: []

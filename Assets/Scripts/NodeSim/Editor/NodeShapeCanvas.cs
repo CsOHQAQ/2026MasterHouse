@@ -26,6 +26,7 @@ namespace MasterHouse.EditorTools
 
         bool _dragging;
         bool _dragErase;
+        bool _shapeChangedDuringDrag;
         bool _panning;
         bool _draggingPin;
         static readonly Vector2Int kNoCell = new Vector2Int(int.MinValue, int.MinValue);
@@ -64,14 +65,15 @@ namespace MasterHouse.EditorTools
             ViewRows = Mathf.Clamp(maxY + 3, 8, 64);
         }
 
-        public void OnGUI(Rect rect, NodeDef def, EditorWindow host, ref Vector2 scrollPosition)
+        public void OnGUI(Rect rect, NodeDef def, EditorWindow host, ref Vector2 scrollPosition,
+            System.Action onShapeChanged = null)
         {
             EnsureStyles();
 
             if (Event.current.type == EventType.Repaint)
                 DrawAll(rect, def);
 
-            HandleEvents(rect, def, host, ref scrollPosition);
+            HandleEvents(rect, def, host, ref scrollPosition, onShapeChanged);
         }
 
         void EnsureStyles()
@@ -167,7 +169,8 @@ namespace MasterHouse.EditorTools
 
         // ==================== 交互 ====================
 
-        void HandleEvents(Rect rect, NodeDef def, EditorWindow host, ref Vector2 scrollPosition)
+        void HandleEvents(Rect rect, NodeDef def, EditorWindow host, ref Vector2 scrollPosition,
+            System.Action onShapeChanged)
         {
             var e = Event.current;
 
@@ -231,8 +234,11 @@ namespace MasterHouse.EditorTools
 
             if (e.type == EventType.MouseUp)
             {
+                bool shapeChanged = _dragging && _shapeChangedDuringDrag;
                 _dragging = false;
+                _shapeChangedDuringDrag = false;
                 _lastCell = kNoCell;
+                if (shapeChanged) onShapeChanged?.Invoke();
                 return;
             }
 
@@ -283,14 +289,17 @@ namespace MasterHouse.EditorTools
                 if (e.type == EventType.MouseDown)
                 {
                     _dragging = true;
+                    _shapeChangedDuringDrag = false;
                     _lastCell = kNoCell;
                     // 右键始终擦除；左键从已有格开始整段拖动视为擦除，否则绘制
                     _dragErase = e.button == 1 || def.Shape.ContainsDelta(cell);
                 }
                 if (_dragging && cell != _lastCell)
                 {
+                    int oldCount = def.Shape.Grids.Count;
                     if (_dragErase) NodeDefEditUtil.EraseCell(def, cell);
                     else NodeDefEditUtil.PaintCell(def, cell);
+                    _shapeChangedDuringDrag |= def.Shape.Grids.Count != oldCount;
                     _lastCell = cell;
                 }
                 e.Use();
