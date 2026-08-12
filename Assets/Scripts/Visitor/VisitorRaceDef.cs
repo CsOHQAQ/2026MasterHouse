@@ -4,14 +4,10 @@ using UnityEngine;
 
 namespace MasterHouse
 {
-    /// <summary>
-    /// 访客表情占位枚举：表情枚举由对话系统定义（单句对话自带表情字段，访客交付说明 §9）。
-    /// 对话系统交付前先只留默认项；交付时以其定义为准替换本枚举。
-    /// </summary>
-    public enum EVisitorExpression
-    {
-        Default = 0, // 默认
-    }
+    // 表情枚举 EVisitorExpression（访客重做期间的占位，仅有 Default）已于 2026-08-12 退役，
+    // 由对话系统的 EDialogueEmotion 取代（Dialogue/DialogueLine.cs，访客交付说明 §9 的约定：
+    // 表情枚举由对话系统定义，单句对话自带表情字段）。
+    // 序列化兼容：两个枚举的 0 号项对应（Default → Calm），已配的差分表不受影响。
 
     /// <summary>需求权重项（§4.3）：从种族权重表按权重抽取需求 tag。</summary>
     [Serializable]
@@ -26,7 +22,7 @@ namespace MasterHouse
     [Serializable]
     public sealed class ExpressionPortrait
     {
-        public EVisitorExpression expression;
+        public EDialogueEmotion expression;
         [Tooltip("立绘 Resources 路径，如 OutGameUI/Guests/fox")] public string portraitPath;
     }
 
@@ -55,25 +51,31 @@ namespace MasterHouse
         public int needCountMax = 2;
 
         [Header("表现（Resources 路径）")]
-        [Tooltip("立绘差分表：表情枚举 → 贴图路径；表情枚举由对话系统定义（§9），当前仅默认表情")]
+        [Tooltip("立绘差分表：表情枚举 → 贴图路径。表情枚举由对话系统定义（EDialogueEmotion，§9）")]
         public List<ExpressionPortrait> portraits = new List<ExpressionPortrait>();
         [Tooltip("序列帧前缀，实际资源为 前缀 + \"_await_sheet\"/\"_attack_sheet\" 的 PNG+JSON 组合")]
         public string sheetPath;
 
-        [Header("对话（占位）")]
-        [Tooltip("对话池引用：类型由对话系统交付时给出，先留字段占位（§4.3）")]
-        public ScriptableObject dialoguePool;
+        [Header("对话")]
+        [Tooltip("本种族的对话池：八个触发分类的对话组 + 四档交付预览单句（对话设计说明 §4.5）")]
+        public DialoguePoolDef dialoguePool;
 
-        /// <summary>取表情立绘路径；无对应差分时回落默认表情，再回落空串。</summary>
-        public string GetPortraitPath(EVisitorExpression expression = EVisitorExpression.Default)
+        /// <summary>
+        /// 取表情立绘路径；该差分缺失时回落到平静（默认表情）并打 Warning，不阻断播放（对话设计说明 §4.1）。
+        /// 平静也没配时回落空串，由调用方决定怎么表现（通常是不显示立绘）。
+        /// </summary>
+        public string GetPortraitPath(EDialogueEmotion expression = EDialogueEmotion.Calm)
         {
             string fallback = null;
             foreach (var entry in portraits)
             {
                 if (entry == null) continue;
                 if (entry.expression == expression) return entry.portraitPath;
-                if (entry.expression == EVisitorExpression.Default) fallback = entry.portraitPath;
+                if (entry.expression == EDialogueEmotion.Calm) fallback = entry.portraitPath;
             }
+            if (expression != EDialogueEmotion.Calm)
+                Debug.LogWarning($"[VisitorRaceDef] 种族「{displayName}」缺少表情差分「{DialogueEmotionText.NameOf(expression)}」，" +
+                                 "已回落平静（§4.1：缺差分不阻断播放）", this);
             return fallback ?? string.Empty;
         }
     }

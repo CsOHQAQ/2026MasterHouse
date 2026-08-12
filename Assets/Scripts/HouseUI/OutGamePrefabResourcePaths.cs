@@ -28,6 +28,8 @@ namespace MasterHouse
         public const string JournalPanel = "OutGameUI/Prefabs/JournalPanel";
         public const string ArchivePanel = "OutGameUI/Prefabs/ArchivePanel";
         public const string DialogueView = "OutGameUI/Prefabs/DialogueView";
+        /// <summary>分支选项按钮模板（运行时按选项数实例化到 DialogueView 的 optionsRoot，§16.2）。</summary>
+        public const string DialogueOption = "OutGameUI/Prefabs/DialogueOption";
         public const string CalendarPage = "OutGameUI/Prefabs/CalendarPage";
         public const string DeviceCard = "OutGameUI/Prefabs/DeviceCard";
         public const string StorePage = "OutGameUI/Prefabs/StorePage";

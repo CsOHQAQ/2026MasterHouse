@@ -78,15 +78,20 @@ namespace MasterHouse
             HouseUIUtil.ApplyFallbackFont(Root);
             AnimateHubIn();
 
-            // 时间只在 Hub 内流动（§16.4 闸门）：进场开、退场关；家具模式不退页，时钟照走
-            GameManager.Instance.HouseClockManager.SetRunning(true);
+            // 时间只在 Hub 内流动（§16.4 闸门）：进场开、退场关；家具模式不退页，时钟照走。
+            // 闸门是原因集合（对话设计说明 §8），本页只负责自己那条原因，不碰模态对话框那条
+            GameManager.Instance.HouseClockManager.SetStopReason(EClockStopReason.OffHubPage, false);
             HouseGmConsole.FullResetRequested += OnGmFullReset;
-            // 访客实例动态增删（§9）：进离场/状态变化时刷新访客卡与任务卡；被拒绝/完成服务的台词以 Toast 临时展示（§8 debug 许可）
+            // 访客实例动态增删（§9）：进离场/状态变化时刷新访客卡与任务卡
             var visitor = GameManager.Instance.VisitorManager;
             visitor.InstanceSpawned += OnVisitorListChanged;
             visitor.InstanceChanged += OnVisitorListChanged;
             visitor.InstanceDeparted += OnVisitorListChanged;
-            visitor.DialogueRequested += OnVisitorDialogue;
+            // 对话框的开合由业务驱动而非玩家点击驱动：接待成功会自动接上【开始等待服务】，
+            // 超时/拒绝会自动播【被拒绝】——UI 侧只管跟着开关（对话设计说明 §7）
+            var dialogue = GameManager.Instance.DialogueManager;
+            dialogue.PlaybackStarted += OnDialogueStarted;
+            dialogue.PlaybackEnded += OnDialogueEnded;
             UI.ShowToast(notice);
         }
 
@@ -96,9 +101,11 @@ namespace MasterHouse
             visitor.InstanceSpawned -= OnVisitorListChanged;
             visitor.InstanceChanged -= OnVisitorListChanged;
             visitor.InstanceDeparted -= OnVisitorListChanged;
-            visitor.DialogueRequested -= OnVisitorDialogue;
+            var dialogue = GameManager.Instance.DialogueManager;
+            dialogue.PlaybackStarted -= OnDialogueStarted;
+            dialogue.PlaybackEnded -= OnDialogueEnded;
             HouseGmConsole.FullResetRequested -= OnGmFullReset;
-            GameManager.Instance.HouseClockManager.SetRunning(false);
+            GameManager.Instance.HouseClockManager.SetStopReason(EClockStopReason.OffHubPage, true);
             topBar.Dispose();
         }
 
@@ -109,13 +116,9 @@ namespace MasterHouse
             taskCard.Refresh();
         }
 
-        /// <summary>对话触发点的临时展示（§8）：对话系统未落地期间，被拒绝（含两段超时）的台词走 Toast。</summary>
-        private void OnVisitorDialogue(VisitorInstance instance, EVisitorDialogueTrigger trigger, string line)
-        {
-            if (view == null) return;
-            if (trigger == EVisitorDialogueTrigger.Rejected)
-                Toast($"{instance.DisplayName} 离开了：「{line}」 · 声望 -{GameManager.Instance.EconomyManager.RefuseReputationPenalty}");
-        }
+        private void OnDialogueStarted() => DialogueOverlay.Open(UI);
+
+        private void OnDialogueEnded() => DialogueOverlay.CloseFromPlaybackEnded();
 
         /// <summary>GM「恢复初始态」：面板本体已重置经济与家具会话，这里补访客/时钟归零与表现重建。</summary>
         private void OnGmFullReset()
@@ -123,6 +126,7 @@ namespace MasterHouse
             var gm = GameManager.Instance;
             gm.VisitorManager.ResetNew();
             gm.HouseClockManager.ResetNew();
+            gm.DialogueManager.ResetNew(); // 清 recent 环与待播队列，并强制收掉可能开着的对话框
             SelectedInstanceId = -1;
             if (view == null) return;
             scene.RefreshAfterFurniture();
@@ -223,7 +227,14 @@ namespace MasterHouse
                 });
         }
 
-        /// <summary>选中在场访客并打开事务对话层（对话系统未落地期间为 debug 驱动层，§8 明示许可）。</summary>
+        /// <summary>
+        /// 选中在场访客并搭话。
+        ///
+        /// 接待/拒绝**不再由 UI 决定**——它们是【初次见面】对话末尾分支选项上的事件（§7），
+        /// 这里只负责把「玩家点了这位访客」翻译成一次对话请求，剩下的全在对话内容里。
+        /// 旧版那套「按访客状态硬生成接待/拒绝/递物品按钮」的 debug 驱动层已随对话系统落地删除
+        /// （访客交付说明 §8 的临时许可到此为止）。
+        /// </summary>
         public void SelectGuest(int instanceId)
         {
             var instance = GameManager.Instance.VisitorManager.Find(instanceId);
@@ -234,48 +245,22 @@ namespace MasterHouse
             }
             SelectedInstanceId = instanceId;
             taskCard.Refresh();
-            DialogueOverlay.Open(UI, this);
-        }
 
-        /// <summary>对话层内切换在场访客：关当前层重开（选中语义与旧壳一致）。</summary>
-        public void SwitchDialogueGuest(int instanceId)
-        {
-            SelectedInstanceId = instanceId;
-            taskCard.Refresh();
-            UI.PopOverlay();
-            DialogueOverlay.Open(UI, this);
-        }
-
-        /// <summary>接待选中访客（对话事件 → VisitorManager.Accept，§8）；成功后重开对话层进入提交物品阶段。</summary>
-        public void AcceptSelectedGuest()
-        {
-            var gm = GameManager.Instance;
-            var instance = gm.VisitorManager.Find(SelectedInstanceId);
-            if (instance == null || !gm.VisitorManager.Accept(SelectedInstanceId)) return;
-            UI.PopOverlay();
-            DialogueOverlay.Open(UI, this); // 重开以按「服务中」状态重绑（需求句 + 物品提交栏）
-        }
-
-        /// <summary>拒绝选中访客（前台等待/服务中都可用，§5）；结算与台词展示由 VisitorManager 事件驱动。</summary>
-        public void RefuseSelectedGuest()
-        {
-            var gm = GameManager.Instance;
-            if (!gm.VisitorManager.Reject(SelectedInstanceId)) return;
-            UI.PopOverlay();
-        }
-
-        /// <summary>提交物品并结算（对话事件 → VisitorManager.Submit，§8）。</summary>
-        public void SubmitItemToSelectedGuest(ItemDef item)
-        {
-            var gm = GameManager.Instance;
-            var instance = gm.VisitorManager.Find(SelectedInstanceId);
-            if (instance == null) return;
-            var name = instance.DisplayName;
-            if (!gm.VisitorManager.Submit(SelectedInstanceId, item)) return;
-            UI.PopOverlay();
-            var reward = gm.EconomyManager.RewardFor(instance.Satisfaction);
-            Toast($"{name} 对「{item.DisplayName}」的评价：{ServeSatisfactionText.NameOf(instance.Satisfaction)}" +
-                  $" · ◈ +{reward.currency} · 声望 +{reward.reputation}");
+            switch (instance.State)
+            {
+                case EVisitorState.FrontDesk:
+                    // 播【初次见面】：对话框由 DialogueManager.PlaybackStarted 事件拉起（见 OnDialogueStarted）
+                    GameManager.Instance.VisitorManager.RequestFirstMeeting(instanceId);
+                    break;
+                case EVisitorState.Serving:
+                    // 【外部依赖】选物品并交付属于「需求交付页面」，由单独的落地文档定义（§7）。
+                    // 那个页面就位前，这里只提示需求；提交路径的验收暂由 GM 面板（F1）的调试按钮承担。
+                    Toast($"{instance.DisplayName} 在等：{instance.BuildNeedSentence()}");
+                    break;
+                default:
+                    Toast($"{instance.DisplayName} 正心满意足地在屋里逛着。");
+                    break;
+            }
         }
 
         /// <summary>

@@ -41,8 +41,12 @@ namespace MasterHouse
         /// <summary>实例离场（已从在场列表移除）。</summary>
         public event Action<VisitorInstance> InstanceDeparted;
 
-        /// <summary>对话触发点被请求（§8 五触发点；line 为对话接缝返回的单句，临时由 Toast/气泡展示）。</summary>
-        public event Action<VisitorInstance, EVisitorDialogueTrigger, string> DialogueRequested;
+        /// <summary>
+        /// 对话触发点被请求（§8 五触发点）。对话本体的播放由 IDialogueService 实现方负责，
+        /// 本事件只是给表现层的旁路通知（演员表情、日志、埋点）——**不要在订阅方里再播一次对话**。
+        /// 对话接缝改为 fire-and-forget 后不再有单句返回值（旧签名带 string 是占位实现时期的产物）。
+        /// </summary>
+        public event Action<VisitorInstance, EVisitorDialogueTrigger> DialogueRequested;
 
         /// <summary>日结完成（携带当日累计快照，面板展示用；只展示不惩罚，§7）。</summary>
         public event Action<VisitorDaySummary> DayEnded;
@@ -85,11 +89,14 @@ namespace MasterHouse
 
         /// <summary>
         /// 每全局 tick 调用一次（GameManager，时钟推进之后）。
-        /// 标题冻结（IsRunning=false）与打烊闸门（§7）期间整体停表：业务 tick 不走，超时/冒泡计时天然冻结。
+        /// 闸门关闭期间整体停表：业务 tick 不走，超时/冒泡计时天然冻结、不需要逐个实例暂停。
+        /// 关闸的三种情形——不在 Hub 页、模态对话框开启（对话设计说明 §8）、打烊（§7）。
         /// </summary>
         public void Tick()
         {
-            if (!clock.IsRunning || clock.IsClosedForToday) return;
+            // IsRunning 自 2026-08-12 起已经把打烊与全部停走原因（不在 Hub 页 / 模态对话框）都算进去了，
+            // 不必再单独判 IsClosedForToday
+            if (!clock.IsRunning) return;
             Data.BusinessTick++;
             SpawnDueVisitors();
             TickStates();
@@ -281,12 +288,16 @@ namespace MasterHouse
             return true;
         }
 
-        /// <summary>初次见面（§8）：玩家交互「前台等待接待」的访客时请求；状态不变，仍在前台。</summary>
-        public string RequestFirstMeeting(int instanceId)
+        /// <summary>
+        /// 初次见面（§8）：玩家交互「前台等待接待」的访客时请求；状态不变，仍在前台。
+        /// 返回是否真的发起了请求（访客不存在或不在前台时为 false）。
+        /// </summary>
+        public bool RequestFirstMeeting(int instanceId)
         {
             var instance = Find(instanceId);
-            if (instance == null || instance.State != EVisitorState.FrontDesk) return string.Empty;
-            return RequestDialogue(instance, EVisitorDialogueTrigger.FirstMeeting);
+            if (instance == null || instance.State != EVisitorState.FrontDesk) return false;
+            RequestDialogue(instance, EVisitorDialogueTrigger.FirstMeeting);
+            return true;
         }
 
         /// <summary>
@@ -415,13 +426,14 @@ namespace MasterHouse
             InstanceDeparted?.Invoke(instance);
         }
 
-        private string RequestDialogue(VisitorInstance instance, EVisitorDialogueTrigger trigger)
+        /// <summary>
+        /// 请求播放一段对话（§8）。fire-and-forget：不等播完、不接返回值——
+        /// 模态对话框期间闸门关闭，业务时间本来就停着，「等对话播完」对访客状态机是免费的。
+        /// </summary>
+        private void RequestDialogue(VisitorInstance instance, EVisitorDialogueTrigger trigger)
         {
-            var line = dialogue != null
-                ? dialogue.RequestVisitorLine(instance, trigger, instance.Satisfaction)
-                : string.Empty;
-            DialogueRequested?.Invoke(instance, trigger, line);
-            return line;
+            dialogue?.RequestVisitorDialogue(instance, trigger, instance.Satisfaction);
+            DialogueRequested?.Invoke(instance, trigger);
         }
 
         // ── 存档接缝占位（§16.5，待定 #9）：留 Capture/Restore 但无调用方，与 EconomyManager 现有做法一致 ──

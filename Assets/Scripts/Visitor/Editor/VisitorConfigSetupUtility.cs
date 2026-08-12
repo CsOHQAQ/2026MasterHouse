@@ -152,7 +152,7 @@ namespace MasterHouse.EditorTools
             race.needTagWeights = new List<NeedTagWeight>(needs);
             race.portraits = new List<ExpressionPortrait>
             {
-                new ExpressionPortrait { expression = EVisitorExpression.Default, portraitPath = portraitPath },
+                new ExpressionPortrait { expression = EDialogueEmotion.Calm, portraitPath = portraitPath },
             };
             race.sheetPath = sheetPath;
             AssetDatabase.CreateAsset(race, path);
