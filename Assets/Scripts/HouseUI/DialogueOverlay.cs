@@ -17,6 +17,9 @@ namespace MasterHouse
         private readonly RectTransform root;
         private bool closing;
 
+        /// <summary>当前存活的对话层：拦截重复 Open（空格触发 uGUI Submit「隔空点击」访客按钮时会二次进入）。</summary>
+        private static DialogueOverlay activeOverlay;
+
         private DialogueOverlay(RectTransform root)
         {
             this.root = root;
@@ -24,6 +27,11 @@ namespace MasterHouse
 
         public static void Open(HouseUIManager ui, HubPage page)
         {
+            if (activeOverlay != null && !activeOverlay.closing) return; // 已开着：不叠层
+            // 清掉 EventSystem 选中残留（如打开对话用的那个场景访客按钮）——
+            // 否则空格会触发它的 Submit，再开一层对话
+            if (UnityEngine.EventSystems.EventSystem.current != null)
+                UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
             var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.DialogueView);
             if (prefab == null)
             {
@@ -41,7 +49,14 @@ namespace MasterHouse
             }
             var rect = (RectTransform)instance.transform;
             rect.SetAsLastSibling();
+            // 全屏点击拦截（运行时加在实例上，不动 Prefab）：防止推进文字的点击穿透到
+            // 后面的场景访客/按钮——否则会叠开多层对话，ESC 要按多次才能退干净
+            var blocker = instance.GetComponent<Image>();
+            if (blocker == null) blocker = instance.AddComponent<Image>();
+            blocker.color = Color.clear;
+            blocker.raycastTarget = true;
             var overlay = new DialogueOverlay(rect);
+            activeOverlay = overlay;
             BindContent(view, ui, page);
             HouseUIUtil.ApplyFallbackFont(instance.transform);
 
@@ -67,6 +82,7 @@ namespace MasterHouse
         {
             if (closing || root == null) return;
             closing = true;
+            if (activeOverlay == this) activeOverlay = null;
             var group = HouseUIUtil.Group(root.gameObject);
             group.blocksRaycasts = false;
             group.DOFade(0, .2f).SetUpdate(true).OnComplete(() =>
@@ -105,18 +121,58 @@ namespace MasterHouse
                 };
             }
             if (view.speakerName != null) view.speakerName.text = speaker;
-            if (view.dialogueText != null) view.dialogueText.text = line;
             if (view.guestTitle != null) view.guestTitle.text = "GUEST";
-            if (view.escHint != null) view.escHint.text = "ESC  返回";
+            if (view.escHint != null) view.escHint.text = "返回"; // ESC 字样由键帽素材自带
 
-            BindOptions(view, page, guest);
+            // 对白演出（逐字/关键词标红下划线/超 50 字分段/空格·左键跳过与推进）：
+            // 关键词 = 访客需求 tag 的显示名与描述词；选项在全部文字演完后亮出
+            var activeOptions = BindOptions(view, page, guest);
+            foreach (var option in activeOptions) option.SetActive(false);
+            var keywords = new List<string>();
+            if (guest != null)
+                foreach (var need in guest.Needs)
+                {
+                    if (need.Tag == null) continue;
+                    if (!string.IsNullOrEmpty(need.Tag.displayName)) keywords.Add(need.Tag.displayName);
+                    if (!string.IsNullOrEmpty(need.Tag.Phrase)) keywords.Add(need.Tag.Phrase);
+                }
+            var player = view.GetComponent<DialogueTextPlayer>();
+            if (player == null) player = view.gameObject.AddComponent<DialogueTextPlayer>();
+            player.Play(view.dialogueText, view.continueArrow, line, keywords, () =>
+            {
+                var buttons = new List<Button>();
+                foreach (var option in activeOptions)
+                {
+                    if (option == null) continue;
+                    option.SetActive(true);
+                    var optionButton = option.GetComponent<Button>();
+                    if (optionButton != null) buttons.Add(optionButton);
+                }
+                player.SetOptions(buttons); // 滚轮切换 / 空格确认
+            });
+            // 悬停即选中（规格：滚轮与悬停都能切换，以最后交互为准）
+            foreach (var option in activeOptions)
+            {
+                if (option == null) continue;
+                var optionButton = option.GetComponent<Button>();
+                if (optionButton == null) continue;
+                var trigger = option.GetComponent<UnityEngine.EventSystems.EventTrigger>();
+                if (trigger == null) trigger = option.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+                var enter = new UnityEngine.EventSystems.EventTrigger.Entry
+                {
+                    eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter,
+                };
+                enter.callback.AddListener(_ => player.NotifyOptionHover(optionButton));
+                trigger.triggers.Add(enter);
+            }
         }
 
         /// <summary>
         /// 右侧选项列（debug 驱动，§8）：按访客状态生成——
         /// 前台等待：接待 / 查看需求 / 拒绝；服务中：递上仓库物品（前 4 项）/ 拒绝。
+        /// 返回本次激活的选项物体（对白演出层先隐藏、演完再亮）。
         /// </summary>
-        private static void BindOptions(OutGameDialogueView view, HubPage page, VisitorInstance guest)
+        private static List<GameObject> BindOptions(OutGameDialogueView view, HubPage page, VisitorInstance guest)
         {
             var gm = GameManager.Instance;
             var options = new List<(string label, UnityAction action)>();
@@ -146,9 +202,16 @@ namespace MasterHouse
             }
             // 「结束今天」不进对话选项：日结入口在 Hub 右侧 dock（对话里出现打断演出且语义不属于访客交谈）
 
+            var activeButtons = new List<GameObject>();
             for (var i = 0; i < view.optionButtons.Length; i++)
             {
+                // 视图数组引用可能因 Prefab 手改/重建而丢失：按子物体名 OptionN 兜底找回
                 var button = view.optionButtons[i];
+                if (button == null)
+                {
+                    var node = view.transform.Find("Option" + i);
+                    button = node != null ? node.GetComponent<Button>() : null;
+                }
                 if (button == null) continue;
                 if (i >= options.Count)
                 {
@@ -156,10 +219,30 @@ namespace MasterHouse
                     continue;
                 }
                 button.gameObject.SetActive(true);
-                if (view.optionLabels != null && i < view.optionLabels.Length && view.optionLabels[i] != null)
-                    view.optionLabels[i].text = options[i].label;
+                activeButtons.Add(button.gameObject);
+                var label = view.optionLabels != null && i < view.optionLabels.Length ? view.optionLabels[i] : null;
+                if (label == null) label = button.GetComponentInChildren<Text>(true);
+                if (label != null)
+                {
+                    label.text = options[i].label;
+                    // 底板宽度按文本向左自适应延伸（右缘固定，按钮 pivot=(1,.5)）；
+                    // 上限对应策划规范「单行最多 18 个中文字符」；
+                    // 下限保住笔刷素材的宽高比（宽 < 高×素材比例时笔刷会被横向压扁）
+                    var rect = (RectTransform)button.transform;
+                    var height = rect.sizeDelta.y;
+                    var minWidth = 300f;
+                    var background = view.optionBackgrounds != null && i < view.optionBackgrounds.Length
+                        ? view.optionBackgrounds[i] : null;
+                    if (background == null) background = button.targetGraphic as Image;
+                    if (background != null && background.sprite != null && background.sprite.bounds.size.y > 0f)
+                        minWidth = Mathf.Max(minWidth,
+                            height * (background.sprite.bounds.size.x / background.sprite.bounds.size.y));
+                    var width = Mathf.Clamp(label.preferredWidth + 130f, minWidth, 860f);
+                    rect.sizeDelta = new Vector2(width, height);
+                }
                 HouseUIUtil.BindButton(button, options[i].action);
             }
+            return activeButtons;
         }
     }
 }

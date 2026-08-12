@@ -1110,47 +1110,68 @@ namespace MasterHouse
                 new Vector2(0, 1), new Vector2(0, 1), new Vector2(210, -74), new Vector2(360, 80),
                 TextAnchor.MiddleLeft, FontStyle.BoldAndItalic);
 
-            // 底部对话条：暗色渐层容器
+            // 底部对话区容器：背景图（2560×1440 设计稿）自带暗部，不再叠加黑条（透明容器只做定位）
             view.dialogueBar = Rect(root.transform, "DialogueBar", new Vector2(0, 0), new Vector2(1, 0),
-                new Vector2(0, 122), new Vector2(0, 244));
-            ImageOn(view.dialogueBar, new Color(.012f, .01f, .022f, .86f));
+                new Vector2(0, 130), new Vector2(0, 260));
+            ImageOn(view.dialogueBar, new Color(0f, 0f, 0f, 0f)).raycastTarget = false;
 
-            // 左下立绘（压在对话条之上）
+            // 左下立绘（按示意图：占画面左下约 1/4 高）
             view.portrait = Raw(root.transform, "Portrait", new Vector2(0, 0), new Vector2(0, 0),
-                new Vector2(240, 235), new Vector2(430, 430));
+                new Vector2(310, 235), new Vector2(470, 470));
             view.portrait.texture = portraitTexture;
             view.portrait.raycastTarget = false;
 
-            // 说话人名 + 笔刷分隔线 + 正文 + 继续箭头
-            view.speakerName = Label(view.dialogueBar, "SpeakerName", string.Empty, 26, Hex("E22D76"),
-                new Vector2(0, 1), new Vector2(0, 1), new Vector2(760, -46), new Vector2(600, 40),
-                TextAnchor.MiddleLeft, FontStyle.Bold);
-            view.nameLine = Image(view.dialogueBar.transform, "NameLine", new Vector2(0, 1), new Vector2(0, 1),
-                new Vector2(760, -76), new Vector2(600, 10), Color.white);
+            // 说话人名（立绘右侧）+ 笔刷短线 + 正文（示意图 2560×1440 坐标 ×0.75 换算）
+            view.speakerName = Label(root.transform, "SpeakerName", string.Empty, 26, Hex("E22D76"),
+                new Vector2(0, 0), new Vector2(0, 0), new Vector2(925, 196), new Vector2(520, 40),
+                TextAnchor.MiddleLeft, FontStyle.BoldAndItalic);
+            view.nameLine = Image(root.transform, "NameLine", new Vector2(0, 0), new Vector2(0, 0),
+                new Vector2(875, 168), new Vector2(420, 10), Color.white);
             view.nameLine.sprite = lineSprite;
             view.nameLine.raycastTarget = false;
-            view.dialogueText = Label(view.dialogueBar, "DialogueText", string.Empty, 22, Hex("F3E8DD"),
-                new Vector2(0, 1), new Vector2(0, 1), new Vector2(1010, -150), new Vector2(1100, 130),
+            view.dialogueText = Label(root.transform, "DialogueText", string.Empty, 20, Hex("F3E8DD"),
+                new Vector2(0, 0), new Vector2(0, 0), new Vector2(1115, 95), new Vector2(900, 105),
                 TextAnchor.UpperLeft, FontStyle.Normal);
-            view.continueArrow = Image(view.dialogueBar.transform, "ContinueArrow", new Vector2(1, 0), new Vector2(1, 0),
-                new Vector2(-400, 36), new Vector2(28, 24), Color.white);
+            view.continueArrow = Image(root.transform, "ContinueArrow", new Vector2(0, 0), new Vector2(0, 0),
+                new Vector2(1517, 62), new Vector2(30, 26), Color.white);
             view.continueArrow.sprite = arrowSprite;
             view.continueArrow.raycastTarget = false;
 
-            // 左下 ESC·返回（可点）
-            view.closeButton = PageButton(root.transform, "Close", "ESC  返回", new Vector2(110, 34),
-                new Vector2(170, 46), new Color(1, 1, 1, .05f), Hex("F3E8DD"), 16, TextAnchor.MiddleCenter, new Vector2(0, 0));
-            view.escHint = view.closeButton.GetComponentInChildren<Text>();
+            // 左下 ESC 键帽 + 返回；右下操作提示（滚轮切换选项 / 回车确认，静态示意）
+            view.closeButton = KeycapButton(root.transform, "Close", "ESC",
+                new Vector2(0, 0), new Vector2(100, 42), new Vector2(100, 46));
+            view.escHint = Label(root.transform, "CloseHint", "返回", 16, new Color(1, 1, 1, .75f),
+                new Vector2(0, 0), new Vector2(0, 0), new Vector2(190, 42), new Vector2(80, 30),
+                TextAnchor.MiddleLeft, FontStyle.Normal);
+            var wheelIcon = Image(root.transform, "WheelIcon", new Vector2(0, 0), new Vector2(0, 0),
+                new Vector2(1415, 42), new Vector2(34, 44), Color.white);
+            wheelIcon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/PC ui/button/default/MIDDLE.png");
+            wheelIcon.preserveAspect = true;
+            wheelIcon.raycastTarget = false;
+            Label(root.transform, "WheelHint", "切换选项", 15, new Color(1, 1, 1, .75f),
+                new Vector2(0, 0), new Vector2(0, 0), new Vector2(1500, 42), new Vector2(120, 30),
+                TextAnchor.MiddleLeft, FontStyle.Normal);
+            var enterIcon = Image(root.transform, "EnterIcon", new Vector2(0, 0), new Vector2(0, 0),
+                new Vector2(1660, 42), new Vector2(96, 44), Color.white);
+            enterIcon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/PC ui/button/default/enter.png");
+            enterIcon.preserveAspect = true;
+            enterIcon.raycastTarget = false;
+            Label(root.transform, "EnterHint", "确认", 15, new Color(1, 1, 1, .75f),
+                new Vector2(0, 0), new Vector2(0, 0), new Vector2(1755, 42), new Vector2(80, 30),
+                TextAnchor.MiddleLeft, FontStyle.Normal);
 
-            // 右侧选项列：Options 笔刷皮肤，默认黑 / 悬停粉（SpriteSwap），未用槽位运行时隐藏
+            // 右侧选项列：右对齐（右缘固定），底板长度由绑定层按文本宽度向左自适应延伸；
+            // Options 笔刷皮肤 默认黑 / 悬停粉（SpriteSwap），未用槽位运行时隐藏
             view.optionButtons = new Button[7];
             view.optionBackgrounds = new Image[7];
             view.optionLabels = new Text[7];
             for (var i = 0; i < 7; i++)
             {
                 var button = PageButton(root.transform, "Option" + i, string.Empty,
-                    new Vector2(-320, 190 - i * 78), new Vector2(430, 68),
-                    Color.white, Hex("F3E8DD"), 19, TextAnchor.MiddleCenter, new Vector2(1, .5f));
+                    new Vector2(-182, -48 - i * 92), new Vector2(430, 66),
+                    Color.white, Hex("F3E8DD"), 20, TextAnchor.MiddleRight, new Vector2(1, .5f));
+                var rect = (RectTransform)button.transform;
+                rect.pivot = new Vector2(1f, .5f); // 右缘固定，加宽向左延伸
                 var background = button.targetGraphic as Image;
                 if (background != null)
                 {
@@ -1168,9 +1189,17 @@ namespace MasterHouse
                         disabledSprite = optionNormal,
                     };
                 }
+                var label = button.GetComponentInChildren<Text>();
+                if (label != null)
+                {
+                    // 文本右对齐，右侧让出笔刷星标区
+                    var labelRect = (RectTransform)label.transform;
+                    labelRect.offsetMin = new Vector2(24, 0);
+                    labelRect.offsetMax = new Vector2(-78, 0);
+                }
                 view.optionButtons[i] = button;
                 view.optionBackgrounds[i] = background;
-                view.optionLabels[i] = button.GetComponentInChildren<Text>();
+                view.optionLabels[i] = label;
             }
             Save(root, path);
         }
