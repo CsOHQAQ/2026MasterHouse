@@ -34,4 +34,4 @@ MonoBehaviour:
   - expression: 0
     portraitPath: OutGameUI/Guests/fox
   sheetPath: OutGameUI/Visitors/orange_cat
-  dialoguePool: {fileID: 11400000, guid: 2bec90cfc716c0547a6c76a2db569599, type: 2}
+  dialoguePool: {fileID: 11400000, guid: 141951c41f9cb6f44ab3613f8ce4752e, type: 2}

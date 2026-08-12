@@ -31,4 +31,4 @@ MonoBehaviour:
   - expression: 0
     portraitPath: OutGameUI/Guests/rabbit
   sheetPath: OutGameUI/Visitors/xueqiu
-  dialoguePool: {fileID: 11400000, guid: cd9176c508d267c4ca816d411ddd5968, type: 2}
+  dialoguePool: {fileID: 11400000, guid: 22c59b5e6b618094ca807dfefd81f7b5, type: 2}

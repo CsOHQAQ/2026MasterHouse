@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1cf09acc80f39fb4aa38b615139a6e00, type: 3}
+  m_Script: {fileID: 11500000, guid: 879b07e4ae4234d4f838501c011901c1, type: 3}
   m_Name: Group_first_meeting
   m_EditorClassIdentifier: 
   id: first_meeting
@@ -32,13 +32,13 @@ MonoBehaviour:
     - conditions: []
       text: "\u8BF7\u8FDB\uFF0C\u6211\u6765\u62DB\u5F85\u4F60\u3002"
       actions:
-      - rid: 7599008808756576256
+      - rid: 7457989847301488640
       next: 2
       nextGroup: {fileID: 0}
     - conditions: []
       text: "\u62B1\u6B49\uFF0C\u4ECA\u5929\u4E0D\u65B9\u4FBF\u3002"
       actions:
-      - rid: 7599008808756576257
+      - rid: 7457989847301488641
       next: 2
       nextGroup: {fileID: 0}
     - conditions: []
@@ -49,11 +49,11 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7599008808756576256
+    - rid: 7457989847301488640
       type: {class: AcceptVisitorAction, ns: MasterHouse, asm: Assembly-CSharp}
       data:
         executeOnInterrupt: 0
-    - rid: 7599008808756576257
+    - rid: 7457989847301488641
       type: {class: RejectVisitorAction, ns: MasterHouse, asm: Assembly-CSharp}
       data:
         executeOnInterrupt: 0

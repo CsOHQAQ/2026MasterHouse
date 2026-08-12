@@ -59,7 +59,7 @@ namespace MasterHouse
             scaler.matchWidthOrHeight = .5f;
 
             var panel = F.Panel(panelRoot.transform, "Body", new Vector2(0, .5f), new Vector2(0, .5f),
-                new Vector2(190, 0), new Vector2(330, 650), new Color(.04f, .05f, .07f, .93f));
+                new Vector2(190, 0), new Vector2(330, 760), new Color(.04f, .05f, .07f, .93f));
             HouseUIUtil.ApplyPanelSkin(panel); // 全局面板底图（Secondary-bg）
             F.Outline(panel.gameObject, new Color(.45f, .85f, .8f, .5f), new Vector2(1, -1));
             F.Label(panel.transform, "Title", "GM 面板  <size=13>F1 开关</size>", 22, F.Cyan,
@@ -80,9 +80,17 @@ namespace MasterHouse
                 visitor.SetRunSeed(visitor.Data.RunSeed + 1);
                 RefreshValues();
             });
+            // 召唤访客：忽略日程立即出现在前台（种族按日程表轮换），验证接待流程用
+            GmButton(panel.transform, 6, "召唤一位访客", () =>
+            {
+                var spawned = GameManager.Instance.VisitorManager.GmSpawnVisitor();
+                Debug.Log(spawned != null
+                    ? $"[GM] 已召唤访客：{spawned.DisplayName}（实例 {spawned.InstanceId}）"
+                    : "[GM] 召唤失败：日程表里没有配置任何种族");
+            });
 #if UNITY_EDITOR
             // 编辑器专用：给全局仓库注入物资，供访客提交流程验收（局外测试场景与局内隔离，仓库默认为空）
-            GmButton(panel.transform, 6, "仓库物资 每种 +5（编辑器）", () =>
+            GmButton(panel.transform, 7, "仓库物资 每种 +5（编辑器）", () =>
             {
                 var cargo = GameManager.Instance.PlayerCargo;
                 foreach (var guid in UnityEditor.AssetDatabase.FindAssets("t:ItemDef"))
@@ -96,7 +104,7 @@ namespace MasterHouse
             // 【外部依赖占位】选物品并交付属于「需求交付页面」，那份落地文档未出（对话设计说明 §7）。
             // 页面就位前，提交路径的验收由这颗按钮承担——它是对话层里那套 debug 递物品按钮的去处：
             // 临时代码该待在 GM 面板，不该待在正式对话流程里。
-            GmButton(panel.transform, 7, "给服务中的访客递上仓库首项", () =>
+            GmButton(panel.transform, 8, "给服务中的访客递上仓库首项", () =>
             {
                 var gm = GameManager.Instance;
                 VisitorInstance target = null;
@@ -120,7 +128,7 @@ namespace MasterHouse
                 Debug.LogWarning("[GM] 仓库是空的——先按上面的「仓库物资 每种 +5」注入");
             });
 
-            GmButton(panel.transform, 8, "恢复所有状态到初始态", FullReset);
+            GmButton(panel.transform, 9, "恢复所有状态到初始态", FullReset);
 
             Economy.Changed += RefreshValues;
             RefreshValues();
