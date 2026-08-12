@@ -230,7 +230,7 @@ namespace MasterHouse
             AfterPlayback(uiAlreadyClosed: true);
         }
 
-        // ══════════ 交付预览（§7 外部依赖，当前无调用方）══════════
+        // ══════════ 交付预览（§7，调用方 = 需求交付页面）══════════
 
         /// <summary>
         /// 交付预览单句（§6 / §7）：物品放入交付框时的即时反应，**绝不结算**——
@@ -239,8 +239,8 @@ namespace MasterHouse
         /// 种子与其它触发点不同：Hash(runSeed, 实例Id, 物品, 档位)，**不含请求序号**——
         /// 这样同一件物品反复拖入拖出，反应稳定不闪烁（§6）。预览不参与 recent。
         ///
-        /// 【外部依赖】调用方是「需求交付页面」，它需要先提供「试算满意度档位而不落地」的只读接口。
-        /// 该页面属于另一份落地文档的范围，接口未就位前本方法无调用方。
+        /// 调用方是「需求交付页面」（DeliveryOverlay，2026-08-12 落地）：
+        /// 档位由 `VisitorManager.Preview` 试算，与确认交付后的实际结算共用同一份 Evaluate。
         /// </summary>
         public string PreviewLine(VisitorInstance visitor, ItemDef item, EServeSatisfaction satisfaction)
         {
@@ -260,6 +260,7 @@ namespace MasterHouse
             var line = lines[rng.Range(0, lines.Count)];
             if (line == null) return string.Empty;
             var ctx = BuildContext(visitor);
+            ctx.PreviewItem = item; // 让预览单句里的 {物品名} 指向交付框里这件（还没提交，SubmittedItem 是空的）
             return DialogueTextFormatter.Format(line.text, ctx, needPhrase);
         }
 

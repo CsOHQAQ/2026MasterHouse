@@ -224,7 +224,7 @@ namespace MasterHouse
                 }
                 else
                 {
-                    // 两段超时都走【被拒绝】对话分类并按拒绝口径结算声望（§5）
+                    // 两段超时都走【被拒绝】对话分类；声望按超时时所处状态取档（交付页落地说明 §5.2）
                     SettleRefusal(instance);
                 }
             }
@@ -250,7 +250,10 @@ namespace MasterHouse
             return true;
         }
 
-        /// <summary>拒绝：在「前台等待接待」与「服务中」两个状态都可用（打烊后玩家必须能手动清场，§5）。</summary>
+        /// <summary>
+        /// 拒绝：在「前台等待接待」与「服务中」两个状态都可用（打烊后玩家必须能手动清场，§5）。
+        /// 声望惩罚按当前状态分两档——服务中反悔扣得更重（交付页落地说明 §5.2）。
+        /// </summary>
         public bool Reject(int instanceId)
         {
             var instance = Find(instanceId);
@@ -289,6 +292,21 @@ namespace MasterHouse
         }
 
         /// <summary>
+        /// 试算满意度但不落地（交付页落地说明 §5.1）：不扣库存、不改状态、不请求对话，交付预览专用。
+        /// 访客不存在 / 不在「服务中」/ 物品为空时返回「不对味」——交付页在这些情况下本来就不该显示预览。
+        ///
+        /// **与 Submit 共用同一个 Evaluate**，这是硬要求：两条路径的判定一旦分叉，
+        /// 就会出现「预览显示完美、交出去变满意」，那是最难查的一类 bug。
+        /// </summary>
+        public EServeSatisfaction Preview(int instanceId, ItemDef item)
+        {
+            var instance = Find(instanceId);
+            if (instance == null || instance.State != EVisitorState.Serving || item == null)
+                return EServeSatisfaction.Mismatch;
+            return Evaluate(instance, item);
+        }
+
+        /// <summary>
         /// 初次见面（§8）：玩家交互「前台等待接待」的访客时请求；状态不变，仍在前台。
         /// 返回是否真的发起了请求（访客不存在或不在前台时为 false）。
         /// </summary>
@@ -303,6 +321,9 @@ namespace MasterHouse
         /// <summary>
         /// 评分（§6.2）：①任一必要需求未命中→不对味；②否则按加分项命中比例分档（阈值A 配在 EconomyConfig）；
         /// ③没有加分项（只有必要项）时直接判完美。命中 ⇔ 物品的某个 tag 等于需求 tag、或以它为祖先（§4.1）。
+        ///
+        /// 纯函数、无副作用——`Submit`（落地）与 `Preview`（试算）**共用这一份**，
+        /// 交付预览显示的档位与确认交付后的实际结算档位由此逐字一致（交付页落地说明 §5.1）。
         /// </summary>
         private EServeSatisfaction Evaluate(VisitorInstance instance, ItemDef item)
         {
@@ -438,12 +459,22 @@ namespace MasterHouse
 
         // ── 内部结算 ──
 
-        /// <summary>拒绝口径结算（玩家拒绝 / 等搭话超时 / 等交货超时共用，§5）：扣声望 + 播【被拒绝】+ 离场。</summary>
+        /// <summary>
+        /// 拒绝口径结算（玩家拒绝 / 等搭话超时 / 等交货超时共用，§5）：扣声望 + 播【被拒绝】+ 离场。
+        ///
+        /// 惩罚**分两档**（交付页落地说明 §5.2）：接待后反悔比在前台谢客更失礼，扣得更多。
+        /// 两段超时按「超时发生时所处状态」取档——语义一致（这位访客在哪个阶段被辜负），
+        /// 且实现上就是下面这个三元，不必特判超时与手动拒绝。
+        /// </summary>
         private void SettleRefusal(VisitorInstance instance)
         {
-            economy.RefuseGuestService();
+            var serving = instance.State == EVisitorState.Serving;
+            if (serving) economy.RefuseServingGuest();
+            else economy.RefuseGuestService();
             Data.Today.RefusedCount++;
-            Data.Today.ReputationLost += economy.RefuseReputationPenalty;
+            Data.Today.ReputationLost += serving
+                ? economy.ServiceFailedReputationPenalty
+                : economy.RefuseReputationPenalty;
             RequestDialogue(instance, EVisitorDialogueTrigger.Rejected);
             Depart(instance);
         }

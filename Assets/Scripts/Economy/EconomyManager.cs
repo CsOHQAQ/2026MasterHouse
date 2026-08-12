@@ -49,7 +49,11 @@ namespace MasterHouse
             Data.RoomCount * config.decorScorePerRoom + Data.DeviceCount * config.decorScorePerDevice
             + Data.FurnitureDecorScore + Data.GmDecorationBonus;
 
+        /// <summary>前台拒绝的声望惩罚（在「前台等待接待」谢客 / 等搭话超时，§5.2）。</summary>
         public int RefuseReputationPenalty => config.refuseReputationPenalty;
+
+        /// <summary>服务中拒绝的声望惩罚（已接待后反悔 / 等交货超时，§5.2）。交付页按钮上要写明这个数。</summary>
+        public int ServiceFailedReputationPenalty => config.serviceFailedReputationPenalty;
 
         /// <summary>评分阈值A（§6.2）：加分项命中比例分档用，供 VisitorManager 读取。</summary>
         public int SatisfactionThresholdPercent => config.satisfactionThresholdPercent;
@@ -67,10 +71,23 @@ namespace MasterHouse
             return (reward.currency, reward.reputation);
         }
 
-        /// <summary>声望去处：拒绝服务客人（玩家拒绝与两段超时同口径，§5）。</summary>
+        /// <summary>
+        /// 声望去处：在前台谢客（含等搭话超时，§5.2 前台档）。
+        /// 服务中反悔走 RefuseServingGuest——那一档扣得更多，别把两者混用。
+        /// </summary>
         public void RefuseGuestService()
         {
             Data.Reputation = Mathf.Max(0, Data.Reputation - config.refuseReputationPenalty);
+            RaiseChanged();
+        }
+
+        /// <summary>
+        /// 声望去处：接待之后再拒绝（含等交货超时，§5.2 服务中档）。
+        /// 下限口径与前台档一致（Mathf.Max(0, …)），只是数值更重。
+        /// </summary>
+        public void RefuseServingGuest()
+        {
+            Data.Reputation = Mathf.Max(0, Data.Reputation - config.serviceFailedReputationPenalty);
             RaiseChanged();
         }
 

@@ -21,6 +21,16 @@ namespace MasterHouse
         /// </summary>
         public VisitorInstance Visitor;
 
+        /// <summary>
+        /// 「玩家正拿着的那件东西」：交付预览期间指交付框里的候选物品，其余场合为 null。
+        ///
+        /// 存在的理由：`{物品名}` 平时取 `Visitor.SubmittedItem`，而那一格**只有真正交付之后才有值**
+        /// （VisitorManager.Submit）。预览发生在交付之前，没有这一格的话，
+        /// 「这{物品名}……好像不太对」会渲染成「这这个……好像不太对」——
+        /// 而引用玩家手上这件东西恰恰是预览单句最该说的内容（交付页落地说明，2026-08-12 访谈）。
+        /// </summary>
+        public ItemDef PreviewItem;
+
         /// <summary>当前访客实例 id；无访客时为 -1。</summary>
         public int VisitorInstanceId => Visitor != null ? Visitor.InstanceId : -1;
 

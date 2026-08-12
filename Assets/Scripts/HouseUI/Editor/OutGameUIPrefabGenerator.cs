@@ -39,6 +39,9 @@ namespace MasterHouse
         private const string JournalPanelPath = Folder + "/JournalPanel.prefab";
         private const string ArchivePanelPath = Folder + "/ArchivePanel.prefab";
         private const string DialogueViewPath = Folder + "/DialogueView.prefab";
+        // 需求交付页（2026-08-12 落地）：整页 + 仓库条目模板（§16.2 动态列表项）
+        private const string DeliveryPagePath = Folder + "/DeliveryPage.prefab";
+        private const string DeliveryItemRowPath = Folder + "/DeliveryItemRow.prefab";
         private const string CalendarPagePath = Folder + "/CalendarPage.prefab";
         private const string TasksPagePath = Folder + "/TasksPage.prefab";
         private const string DevicePagePath = Folder + "/DevicePage.prefab";
@@ -118,6 +121,8 @@ namespace MasterHouse
             BuildJournalPanelContent(JournalPanelPath);
             BuildArchivePanelContent(ArchivePanelPath);
             BuildDialogueView(DialogueViewPath);
+            BuildDeliveryItemRow(DeliveryItemRowPath);
+            BuildDeliveryPage(DeliveryPagePath);
             BuildDaySettlePanel(DaySettlePanelPath);
             BuildPanelPage(CalendarPagePath, "CalendarPage", "REAL TIME", "日程与时间", "历", CalendarPanelPath);
             BuildPanelPage(TasksPagePath, "TasksPage", "TODAY / 03", "今日委托", "任", TasksPanelPath);
@@ -170,6 +175,8 @@ namespace MasterHouse
             if (!File.Exists(JournalPanelPath)) { BuildJournalPanelContent(JournalPanelPath); changed = true; }
             if (!File.Exists(ArchivePanelPath)) { BuildArchivePanelContent(ArchivePanelPath); changed = true; }
             if (!File.Exists(DialogueViewPath)) { BuildDialogueView(DialogueViewPath); changed = true; }
+            if (!File.Exists(DeliveryItemRowPath)) { BuildDeliveryItemRow(DeliveryItemRowPath); changed = true; }
+            if (!File.Exists(DeliveryPagePath)) { BuildDeliveryPage(DeliveryPagePath); changed = true; }
             if (!File.Exists(DaySettlePanelPath)) { BuildDaySettlePanel(DaySettlePanelPath); changed = true; }
             if (!File.Exists(CalendarPagePath)) { BuildPanelPage(CalendarPagePath, "CalendarPage", "REAL TIME", "日程与时间", "历", CalendarPanelPath); changed = true; }
             if (!File.Exists(TasksPagePath)) { BuildPanelPage(TasksPagePath, "TasksPage", "TODAY / 03", "今日委托", "任", TasksPanelPath); changed = true; }
@@ -1252,6 +1259,181 @@ namespace MasterHouse
                 TextAnchor.MiddleCenter, FontStyle.Normal);
             view.label.rectTransform.anchoredPosition = new Vector2(79.6f, -17.4f);
             view.label.rectTransform.sizeDelta = new Vector2(-819.6f, -200.1f);
+        }
+
+        /// <summary>
+        /// 仓库条目模板（交付页落地说明 §3：条目走「模板 Prefab + 运行时实例化」，§16.2）。
+        /// 一条 = 图标 + 名字 + 数量；拖拽行为组件一并烘上，运行时只做 Bind。
+        /// 图标当前一律为空（美术未接入），由绑定层按 ItemDef.DisplayColor 画占位色块。
+        /// </summary>
+        private static void BuildDeliveryItemRow(string path)
+        {
+            var root = ComponentRoot("DeliveryItemRow", new Vector2(500, 76));
+            var row = root.AddComponent<DeliveryItemView>();
+            row.background = ImageOn((RectTransform)root.transform, new Color(1, 1, 1, .06f));
+            row.background.raycastTarget = true; // 拖拽要靠它吃射线
+
+            row.icon = Image(root.transform, "Icon", new Vector2(0, .5f), new Vector2(0, .5f),
+                new Vector2(50, 0), new Vector2(56, 56), Color.gray);
+            row.icon.raycastTarget = false;
+            row.itemName = Label(root.transform, "Name", string.Empty, 22, Hex("F3E8DD"),
+                new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(250, 0), new Vector2(320, 40),
+                TextAnchor.MiddleLeft, FontStyle.Normal);
+            row.count = Label(root.transform, "Count", string.Empty, 22, Hex("D4A46B"),
+                new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-60, 0), new Vector2(100, 40),
+                TextAnchor.MiddleRight, FontStyle.Bold);
+
+            // 竖排列表的高度来源（childControlHeight 关着，靠这个给 ContentSizeFitter 报数）
+            var layout = root.AddComponent<LayoutElement>();
+            layout.minHeight = 76;
+            layout.preferredHeight = 76;
+
+            root.AddComponent<DeliveryDragSource>(); // 拖拽源，运行时 Bind 落点与回调
+            Save(root, path);
+        }
+
+        /// <summary>
+        /// 需求交付页（交付页落地说明 §3）：左访客（立绘 + 页内气泡）、中交付框、右仓库滚动列表，
+        /// 底部横贯需求句 / 奖励预期 / 三个出口按钮。**立绘在左**是硬要求，不要镜像。
+        /// </summary>
+        private static void BuildDeliveryPage(string path)
+        {
+            var portraitTexture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/PC ui/dialogue/character/1.png");
+
+            var root = Root("DeliveryPage");
+            var view = root.AddComponent<DeliveryPageView>();
+
+            // 整屏遮罩：点击 =「稍后再说」，同时挡住下层 Hub 交互
+            var scrim = Image(root.transform, "Scrim", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+                new Color(.005f, .008f, .02f, .78f));
+            view.scrimButton = scrim.gameObject.AddComponent<Button>();
+            view.scrimButton.targetGraphic = scrim;
+            view.scrimButton.transition = Selectable.Transition.None; // 遮罩不该有视觉反馈
+
+            // ── 左：访客 ──
+            view.guestName = Label(root.transform, "GuestName", string.Empty, 34, Hex("E22D76"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(400, -130), new Vector2(520, 56),
+                TextAnchor.MiddleCenter, FontStyle.BoldAndItalic);
+            // 立绘画布远大于可见区（原图透明边大），沿用对话层那套「大画布 + 0.45 缩放」的手调组合
+            view.portrait = Raw(root.transform, "Portrait", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(400, -440), new Vector2(1200, 1200));
+            view.portrait.rectTransform.localScale = TunedScale;
+            view.portrait.texture = portraitTexture;
+
+            // 页内气泡：立绘下方（§7 待确认默认值），默认透明，放入物品后显示交付预览单句
+            var bubble = Image(root.transform, "PreviewBubble", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(400, -790), new Vector2(560, 120), Color.white);
+            bubble.raycastTarget = false;
+            ApplyPanelSkinAsset(bubble, .92f, 2.5f);
+            view.bubbleText = Label(bubble.transform, "Text", string.Empty, 20, Hex("F3E8DD"),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+            view.bubbleText.rectTransform.offsetMin = new Vector2(22, 12);
+            view.bubbleText.rectTransform.offsetMax = new Vector2(-22, -12);
+            view.bubbleGroup = bubble.gameObject.AddComponent<CanvasGroup>();
+            view.bubbleGroup.alpha = 0f;
+            view.bubbleGroup.blocksRaycasts = false;
+
+            // ── 中：交付框 ──
+            Label(root.transform, "DeliveryEyebrow", "DELIVERY", 20, Hex("E22D76", .8f),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(960, -130), new Vector2(420, 40),
+                TextAnchor.MiddleCenter, FontStyle.BoldAndItalic);
+            view.dropZone = Rect(root.transform, "DropZone", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(960, -440), new Vector2(420, 420));
+            var dropBackground = ImageOn(view.dropZone, Color.white);
+            ApplyPanelSkinAsset(dropBackground, .85f);
+            dropBackground.raycastTarget = false; // 命中判定用 Rect 包含测试，不靠射线（见 DeliveryDragSource）
+            view.dropHint = Label(view.dropZone, "Hint", "把物品拖到这里", 22, new Color(1, 1, 1, .5f),
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(340, 60),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+            view.dropItemIcon = Image(view.dropZone, "ItemIcon", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                new Vector2(0, 40), new Vector2(180, 180), Color.gray);
+            view.dropItemIcon.raycastTarget = false;
+            view.dropItemIcon.gameObject.SetActive(false);
+            view.dropItemName = Label(view.dropZone, "ItemName", string.Empty, 24, Hex("F3E8DD"),
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -110), new Vector2(360, 44),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+
+            // ── 右：仓库滚动列表 ──
+            Label(root.transform, "CargoEyebrow", "CARGO", 20, Hex("E22D76", .8f),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(1520, -130), new Vector2(520, 40),
+                TextAnchor.MiddleCenter, FontStyle.BoldAndItalic);
+            var viewport = Rect(root.transform, "CargoViewport", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(1520, -480), new Vector2(520, 620));
+            var viewportImage = ImageOn(viewport, new Color(1, 1, 1, .02f));
+            viewportImage.raycastTarget = true; // 滚轮要有落点
+            viewport.gameObject.AddComponent<RectMask2D>();
+            var content = Rect(viewport, "Content", new Vector2(0, 1), new Vector2(1, 1), Vector2.zero, Vector2.zero);
+            content.pivot = new Vector2(.5f, 1);
+            var vertical = content.gameObject.AddComponent<VerticalLayoutGroup>();
+            vertical.spacing = 8;
+            vertical.padding = new RectOffset(10, 10, 10, 10);
+            vertical.childAlignment = TextAnchor.UpperCenter;
+            vertical.childControlHeight = false;
+            vertical.childControlWidth = false;
+            vertical.childForceExpandHeight = false;
+            vertical.childForceExpandWidth = false;
+            var contentFitter = content.gameObject.AddComponent<ContentSizeFitter>();
+            contentFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            var scroll = viewport.gameObject.AddComponent<ScrollRect>();
+            scroll.content = content;
+            scroll.viewport = viewport;
+            scroll.horizontal = false;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 24f;
+            var scrollbarRect = Rect(root.transform, "CargoScrollbar", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(1798, -480), new Vector2(10, 620));
+            ImageOn(scrollbarRect, new Color(1, 1, 1, .06f));
+            var scrollbar = scrollbarRect.gameObject.AddComponent<Scrollbar>();
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            var handleRect = Rect(scrollbarRect, "Handle", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            scrollbar.handleRect = handleRect;
+            scrollbar.targetGraphic = ImageOn(handleRect, Hex("E22D76", .55f));
+            scroll.verticalScrollbar = scrollbar;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+            view.cargoScroll = scroll;
+            view.cargoContent = content;
+            view.cargoEmptyLabel = Label(root.transform, "CargoEmpty", "——— 仓库里什么都没有 ———", 18, Hex("E22D76", .7f),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(1520, -480), new Vector2(480, 40),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+
+            // ── 底部：需求句 / 奖励预期 / 三个出口 ──
+            view.needSentence = Label(root.transform, "NeedSentence", string.Empty, 26, Hex("F3E8DD"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(960, -900), new Vector2(1400, 44),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+            view.rewardPreview = Label(root.transform, "RewardPreview", "预期：——", 22, new Color(1, 1, 1, .82f),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(960, -950), new Vector2(1400, 40),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+            view.confirmButton = PageButton(root.transform, "Confirm", "确认交付", new Vector2(620, -1010),
+                new Vector2(300, 62), Hex("6E243E"), Hex("F3E8DD"), 21, TextAnchor.MiddleCenter, new Vector2(0, 1));
+            view.confirmLabel = view.confirmButton.GetComponentInChildren<Text>();
+            view.rejectButton = PageButton(root.transform, "Reject", "拒绝交付", new Vector2(960, -1010),
+                new Vector2(300, 62), new Color(.28f, .06f, .12f, .95f), Hex("F3E8DD"), 21, TextAnchor.MiddleCenter,
+                new Vector2(0, 1));
+            view.rejectLabel = view.rejectButton.GetComponentInChildren<Text>();
+            view.laterButton = PageButton(root.transform, "Later", "稍后再说", new Vector2(1300, -1010),
+                new Vector2(300, 62), new Color(1, 1, 1, .08f), Hex("F3E8DD"), 21, TextAnchor.MiddleCenter,
+                new Vector2(0, 1));
+            view.laterLabel = view.laterButton.GetComponentInChildren<Text>();
+
+            // 拖拽层最后建 = 兄弟序最靠后 = 幽灵压在所有内容之上（UGUI 按层级顺序绘制）
+            view.dragLayer = Rect(root.transform, "DragLayer", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+
+            Save(root, path);
+        }
+
+        /// <summary>
+        /// 生成期给 Image 贴全局面板底图（PC ui/common/Secondary-bg，9 宫格）。
+        /// 与运行时的 HouseUIUtil.ApplyPanelSkin 同一张图，区别只是走 AssetDatabase 而非 Resources.Load。
+        /// </summary>
+        private static void ApplyPanelSkinAsset(Image panel, float alpha = 1f, float borderScale = 1f)
+        {
+            if (panel == null) return;
+            var skin = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/PC ui/common/Secondary-bg.png");
+            if (skin == null) return;
+            panel.sprite = skin;
+            panel.color = new Color(1f, 1f, 1f, alpha);
+            panel.type = UnityEngine.UI.Image.Type.Sliced;
+            panel.pixelsPerUnitMultiplier = Mathf.Max(.01f, borderScale);
         }
 
         /// <summary>当日结算面板（访客交付说明 §7）：整屏遮罩 + 居中卡片（标题/结算正文/确认按钮），只展示不惩罚。</summary>

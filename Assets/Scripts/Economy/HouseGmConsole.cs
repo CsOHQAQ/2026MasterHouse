@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using F = MasterHouse.HouseUIRuntime; // §16.7 毒点②已断：不再依赖退役中的 OutGameUIFactory
@@ -101,34 +100,10 @@ namespace MasterHouse
                 }
             });
 #endif
-            // 【外部依赖占位】选物品并交付属于「需求交付页面」，那份落地文档未出（对话设计说明 §7）。
-            // 页面就位前，提交路径的验收由这颗按钮承担——它是对话层里那套 debug 递物品按钮的去处：
-            // 临时代码该待在 GM 面板，不该待在正式对话流程里。
-            GmButton(panel.transform, 8, "给服务中的访客递上仓库首项", () =>
-            {
-                var gm = GameManager.Instance;
-                VisitorInstance target = null;
-                foreach (var instance in gm.VisitorManager.Data.Instances)
-                    if (instance.State == EVisitorState.Serving) { target = instance; break; }
-                if (target == null)
-                {
-                    Debug.LogWarning("[GM] 场上没有「服务中」的访客——先在 Hub 点前台访客、在对话里选接待");
-                    return;
-                }
-                var snapshot = new List<KeyValuePair<ItemDef, long>>();
-                gm.PlayerCargo.GetSnapshot(snapshot);
-                foreach (var pair in snapshot)
-                {
-                    if (pair.Value <= 0) continue;
-                    if (gm.VisitorManager.Submit(target.InstanceId, pair.Key))
-                        Debug.Log($"[GM] 已把「{pair.Key.DisplayName}」递给 {target.DisplayName}，" +
-                                  $"评价：{ServeSatisfactionText.NameOf(target.Satisfaction)}");
-                    return;
-                }
-                Debug.LogWarning("[GM] 仓库是空的——先按上面的「仓库物资 每种 +5」注入");
-            });
+            // 「给服务中的访客递上仓库首项」那颗临时按钮已随需求交付页面落地删除（2026-08-12）：
+            // 提交路径现在由正式界面承担（Hub 点「服务中」的访客 → 交付页拖物品 → 确认交付）。
 
-            GmButton(panel.transform, 9, "恢复所有状态到初始态", FullReset);
+            GmButton(panel.transform, 8, "恢复所有状态到初始态", FullReset);
 
             Economy.Changed += RefreshValues;
             RefreshValues();

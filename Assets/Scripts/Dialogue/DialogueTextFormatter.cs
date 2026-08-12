@@ -33,7 +33,11 @@ namespace MasterHouse
 
             if (text.Contains(TokenItemName))
             {
-                var item = visitor != null ? visitor.SubmittedItem : null;
+                // 预览候选优先于已提交物品：交付预览发生在 Submit 之前，那时 SubmittedItem 还是空的
+                // （见 GameplayContext.PreviewItem 注释）。两者都没有时才回落「这个」。
+                var item = ctx != null && ctx.PreviewItem != null
+                    ? ctx.PreviewItem
+                    : visitor != null ? visitor.SubmittedItem : null;
                 text = text.Replace(TokenItemName, item != null ? item.DisplayName : "这个");
             }
 

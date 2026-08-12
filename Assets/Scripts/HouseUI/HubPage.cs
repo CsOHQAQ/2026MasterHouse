@@ -234,6 +234,8 @@ namespace MasterHouse
         /// 这里只负责把「玩家点了这位访客」翻译成一次对话请求，剩下的全在对话内容里。
         /// 旧版那套「按访客状态硬生成接待/拒绝/递物品按钮」的 debug 驱动层已随对话系统落地删除
         /// （访客交付说明 §8 的临时许可到此为止）。
+        ///
+        /// 唯一由 UI 直接开的是「服务中」那条：交付页要玩家挑物品，天然是界面而不是对话。
         /// </summary>
         public void SelectGuest(int instanceId)
         {
@@ -253,9 +255,9 @@ namespace MasterHouse
                     GameManager.Instance.VisitorManager.RequestFirstMeeting(instanceId);
                     break;
                 case EVisitorState.Serving:
-                    // 【外部依赖】选物品并交付属于「需求交付页面」，由单独的落地文档定义（§7）。
-                    // 那个页面就位前，这里只提示需求；提交路径的验收暂由 GM 面板（F1）的调试按钮承担。
-                    Toast($"{instance.DisplayName} 在等：{instance.BuildNeedSentence()}");
+                    // 选物品并交付走「需求交付页面」（2026-08-12 落地）：叠加层，ESC/遮罩 =「稍后再说」。
+                    // 页面开启期间关营业闸门，确认交付后由它自己关页再调 VisitorManager.Submit
+                    DeliveryOverlay.Open(UI, instanceId);
                     break;
                 default:
                     Toast($"{instance.DisplayName} 正心满意足地在屋里逛着。");
