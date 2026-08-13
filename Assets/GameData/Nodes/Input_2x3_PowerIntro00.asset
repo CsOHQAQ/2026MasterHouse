@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7cef402340358d47839d1023b747647, type: 3}
+  m_Name: Input_2x3_PowerIntro00
+  m_EditorClassIdentifier: 
+  DisplayName: PowerIntro00
+  Shape:
+    Grids:
+    - DeltaPosition: {x: 0, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 2}
+      Type: 0
+  Pins:
+  - Pin:
+      ItemType: {fileID: 11400000, guid: ee29202ad5bca734f9366d84a23f9b2f, type: 2}
+      MaxRate: 1
+      Direction: 2
+      PairedPinIndex: -1
+    LocalCell: {x: 1, y: 1}
+    Facing: 1
+  OutputItem: {fileID: 11400000, guid: ee29202ad5bca734f9366d84a23f9b2f, type: 2}
+  TicksPerProduction: 10
+  AmountPerProduction: 1
+  StorageCap: 10
