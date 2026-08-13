@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 185ed5bc5ce815f48a5b9b0699cb5bb0, type: 3}
   m_Name: NewTestLevel
   m_EditorClassIdentifier: 
+  FurnitureId: 
+  Outputs: []
   Canvas:
     Grids:
     - DeltaPosition: {x: 15, y: 8}
@@ -326,6 +328,118 @@ MonoBehaviour:
       Type: 0
     - DeltaPosition: {x: 11, y: 2}
       Type: 0
+    - DeltaPosition: {x: 0, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 3, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 4, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 12, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 13, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 14, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 15, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 16, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 3, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 4, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 12, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 13, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 14, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 15, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 16, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 3, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 4, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 12, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 13, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 14, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 15, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 16, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 8}
+      Type: 0
   WorldOrigin: {x: 0, y: 0}
-  PresetNodes: []
+  PresetNodes:
+  - Node: {fileID: 11400000, guid: b108c1f51ae67c9563b388f7fcb11e5a, type: 2}
+    Cell: {x: 3, y: 8}
+    CanMove: 1
+    CanDelete: 0
+  - Node: {fileID: 11400000, guid: b108c1f51ae67c9563b388f7fcb11e5a, type: 2}
+    Cell: {x: 3, y: 4}
+    CanMove: 0
+    CanDelete: 0
+  - Node: {fileID: 11400000, guid: b108c1f51ae67c9563b388f7fcb11e5a, type: 2}
+    Cell: {x: 10, y: 8}
+    CanMove: 0
+    CanDelete: 0
+  - Node: {fileID: 11400000, guid: b108c1f51ae67c9563b388f7fcb11e5a, type: 2}
+    Cell: {x: 10, y: 4}
+    CanMove: 0
+    CanDelete: 0
   BuildableNodes: []

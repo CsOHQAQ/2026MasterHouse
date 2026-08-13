@@ -292,6 +292,18 @@ namespace MasterHouse
                 GUILayout.Label("（尚未创建任何关卡数据）");
 
             GUILayout.Space(8f);
+            GUILayout.Label("== 连线总长 ==");
+            var currentLevel = CurrentLevel;
+            int linkCount = currentLevel != null ? currentLevel.Links.Count : 0;
+            int totalLinkLength = 0;
+            if (currentLevel != null)
+            {
+                foreach (var link in currentLevel.Links)
+                    totalLinkLength += link.PathCells.Count;
+            }
+            GUILayout.Label($"一共连了 {linkCount} 条线，所有线条的总长是 {totalLinkLength} 格");
+
+            GUILayout.Space(8f);
             GUILayout.Label("== 选中详情 ==");
             var ic = InteractionController.Instance;
             if (ic == null)
