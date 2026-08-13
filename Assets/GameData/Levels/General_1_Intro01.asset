@@ -126,16 +126,6 @@ MonoBehaviour:
       Type: 0
     - DeltaPosition: {x: 4, y: 7}
       Type: 0
-    - DeltaPosition: {x: 5, y: 7}
-      Type: 0
-    - DeltaPosition: {x: 6, y: 7}
-      Type: 0
-    - DeltaPosition: {x: 7, y: 7}
-      Type: 0
-    - DeltaPosition: {x: 8, y: 7}
-      Type: 0
-    - DeltaPosition: {x: 9, y: 7}
-      Type: 0
     - DeltaPosition: {x: 0, y: 8}
       Type: 0
     - DeltaPosition: {x: 1, y: 8}
@@ -146,15 +136,25 @@ MonoBehaviour:
       Type: 0
     - DeltaPosition: {x: 4, y: 8}
       Type: 0
-    - DeltaPosition: {x: 5, y: 8}
+    - DeltaPosition: {x: 5, y: 3}
       Type: 0
-    - DeltaPosition: {x: 6, y: 8}
+    - DeltaPosition: {x: 6, y: 3}
       Type: 0
-    - DeltaPosition: {x: 7, y: 8}
+    - DeltaPosition: {x: 7, y: 3}
       Type: 0
-    - DeltaPosition: {x: 8, y: 8}
+    - DeltaPosition: {x: 8, y: 3}
       Type: 0
-    - DeltaPosition: {x: 9, y: 8}
+    - DeltaPosition: {x: 9, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 9, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 2}
       Type: 0
   WorldOrigin: {x: 0, y: 0}
   PresetNodes:
@@ -167,7 +167,7 @@ MonoBehaviour:
     CanMove: 0
     CanDelete: 0
   - Node: {fileID: 11400000, guid: 7e0891d640e480c4a8c1ff7402ade216, type: 2}
-    Cell: {x: 7, y: 5}
+    Cell: {x: 7, y: 3}
     CanMove: 0
     CanDelete: 0
   BuildableNodes: []
