@@ -21,7 +21,8 @@ namespace MasterHouse
     public sealed class FurnitureEntry
     {
         [Tooltip("唯一 id，摆放与存档都用它引用")] public string id;
-        [Tooltip("显示名称")] public string displayName;
+        [Tooltip("英文索引（素材文件名里的英文名，检索/对照用，不上屏）")] public string nameKey;
+        [Tooltip("显示名称（中文，界面上屏）")] public string displayName;
         [Tooltip("商店分类（盆栽/摆件/桌椅/壁挂/灯具，商店页签用）")] public string category;
         [Tooltip("商店描述文案")] public string description;
         [Tooltip("可吸附的表面类型（可多选：如纸箱既可地面也可桌面；表格里用 / 分隔）")]
@@ -33,6 +34,8 @@ namespace MasterHouse
         // 售卖配置（价格 / 解禁声望）已于 2026-08-13 拆去 StoreTable，按 id 关联；读取走 EconomyManager
         [Tooltip("摆放后对 House 装饰分的贡献")] public int decorationScore = 10;
         [Tooltip("家具精灵（Assets/Resources/OutGameUI/Furniture）")] public Sprite sprite;
+        [Tooltip("专属拿起音效（空 = 用全局默认 FurniturePickup）")] public AudioClip pickupSound;
+        [Tooltip("专属放下音效（空 = 用全局默认 FurniturePlace）")] public AudioClip putdownSound;
         [Tooltip("桌面格配置（仅地面家具生效）")] public FurnitureTableSurfaceConfig tableSurface = new FurnitureTableSurfaceConfig();
 
         /// <summary>是否可吸附到指定表面类型的网格。</summary>

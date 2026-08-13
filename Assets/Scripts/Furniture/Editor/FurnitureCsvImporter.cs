@@ -71,7 +71,8 @@ namespace MasterHouse.EditorTools
 
         private static readonly string[] FurnitureHeader =
         {
-            "id", "显示名", "分类", "描述", "表面类型", "占格列", "占格行", "显示宽", "显示高", "装饰分", "精灵图",
+            "id", "英文索引", "显示名", "分类", "描述", "表面类型", "占格列", "占格行", "显示宽", "显示高", "装饰分", "精灵图",
+            "拿起音效", "放下音效",
             "桌面格启用", "桌面格列数", "桌面格宽", "桌面格高", "桌面格偏移X", "桌面高度",
         };
 
@@ -81,6 +82,7 @@ namespace MasterHouse.EditorTools
         private static readonly string[] RoomHeader =
         {
             "记录类型", "房间id", "显示名", "场景宽", "场景高", "背景图", "景深模糊图", "失焦模糊图", "初始货币",
+            "访客区左", "访客区下", "访客区右", "访客区上", "入口区左", "入口区下", "入口区右", "入口区上",
             "网格id", "表面类型", "列数", "行数", "格宽", "格高", "X", "Y", "家具id", "宿主家具id", "列", "行", "翻转",
         };
 
@@ -121,6 +123,7 @@ namespace MasterHouse.EditorTools
                 var entry = new FurnitureEntry
                 {
                     id = Cell(row, col, "id"),
+                    nameKey = Cell(row, col, "英文索引"),
                     displayName = Cell(row, col, "显示名"),
                     category = Cell(row, col, "分类"),
                     description = Cell(row, col, "描述"),
@@ -131,6 +134,8 @@ namespace MasterHouse.EditorTools
                     displayHeight = Float(row, col, "显示高", 100f),
                     decorationScore = Int(row, col, "装饰分", 0),
                     sprite = LoadSprite(Cell(row, col, "精灵图")),
+                    pickupSound = LoadAudio(Cell(row, col, "拿起音效")),
+                    putdownSound = LoadAudio(Cell(row, col, "放下音效")),
                     tableSurface = new FurnitureTableSurfaceConfig
                     {
                         enabled = Bool(row, col, "桌面格启用"),
@@ -216,6 +221,13 @@ namespace MasterHouse.EditorTools
                         depthBlurOverlay = LoadSprite(Cell(row, col, "景深模糊图")),
                         focusBlurOverlay = LoadSprite(Cell(row, col, "失焦模糊图")),
                         startCredit = Int(row, col, "初始货币", 0),
+                        // 访客活动区/入口区（归一化，左下原点）：按房间美术红框标定，缺列时用通用默认带
+                        visitorWalkArea = Rect.MinMaxRect(
+                            Float(row, col, "访客区左", .04f), Float(row, col, "访客区下", .03f),
+                            Float(row, col, "访客区右", .96f), Float(row, col, "访客区上", .35f)),
+                        visitorEntryArea = Rect.MinMaxRect(
+                            Float(row, col, "入口区左", .08f), Float(row, col, "入口区下", .15f),
+                            Float(row, col, "入口区右", .18f), Float(row, col, "入口区上", .33f)),
                     });
                     continue;
                 }
@@ -280,9 +292,9 @@ namespace MasterHouse.EditorTools
             foreach (var e in table.entries)
             {
                 if (e == null) continue;
-                lines.Add(Line(e.id, e.displayName, e.category, e.description, SurfacesText(e.surfaces), e.cols, e.rows,
+                lines.Add(Line(e.id, e.nameKey, e.displayName, e.category, e.description, SurfacesText(e.surfaces), e.cols, e.rows,
                     e.displayWidth, e.displayHeight, e.decorationScore,
-                    SpritePath(e.sprite),
+                    SpritePath(e.sprite), AudioPath(e.pickupSound), AudioPath(e.putdownSound),
                     e.tableSurface != null && e.tableSurface.enabled ? "是" : "否",
                     e.tableSurface?.cols ?? 3, e.tableSurface?.cellWidth ?? 64f, e.tableSurface?.cellHeight ?? 56f,
                     e.tableSurface?.offsetX ?? 50f, e.tableSurface?.surfaceHeight ?? 146f));
@@ -315,18 +327,22 @@ namespace MasterHouse.EditorTools
             foreach (var room in table.rooms)
             {
                 if (room == null) continue;
+                var walk = room.visitorWalkArea;
+                var entry = room.visitorEntryArea;
                 lines.Add(Line("房间", room.id, room.displayName, room.sceneWidth, room.sceneHeight,
                     SpritePath(room.background), SpritePath(room.depthBlurOverlay), SpritePath(room.focusBlurOverlay),
-                    room.startCredit, "", "", "", "", "", "", "", "", "", "", "", "", ""));
+                    room.startCredit, walk.xMin, walk.yMin, walk.xMax, walk.yMax,
+                    entry.xMin, entry.yMin, entry.xMax, entry.yMax,
+                    "", "", "", "", "", "", "", "", "", "", "", "", ""));
                 foreach (var grid in room.grids)
-                    lines.Add(Line("网格", room.id, "", "", "", "", "", "", "",
+                    lines.Add(Line("网格", room.id, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
                         grid.id, SurfaceName(grid.surface), grid.cols, grid.rows,
                         grid.cellWidth, grid.cellHeight, grid.x, grid.y, "", "", "", "", ""));
                 foreach (var cell in room.blockedCells)
-                    lines.Add(Line("占用格", room.id, "", "", "", "", "", "", "",
+                    lines.Add(Line("占用格", room.id, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
                         cell.gridId, "", "", "", "", "", "", "", "", "", cell.col, cell.row, ""));
                 foreach (var place in room.initialPlacements)
-                    lines.Add(Line("初始摆放", room.id, "", "", "", "", "", "", "",
+                    lines.Add(Line("初始摆放", room.id, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
                         place.gridId, "", "", "", "", "", "", "", place.furnitureId, place.hostFurnitureId,
                         place.col, place.row, place.flipped ? "是" : "否"));
             }
@@ -501,6 +517,29 @@ namespace MasterHouse.EditorTools
             if (sprite == null)
                 Debug.LogWarning($"[导表] 精灵图未找到或未按 Sprite 导入：{path}（该行 sprite 置空）");
             return sprite;
+        }
+
+        /// <summary>音效列写法与图片列一致：Assets/ 完整路径或 Resources 相对路径（不带扩展名）；空 = 用全局默认。</summary>
+        private static AudioClip LoadAudio(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return null;
+            var clip = path.StartsWith("Assets/")
+                ? AssetDatabase.LoadAssetAtPath<AudioClip>(path)
+                : Resources.Load<AudioClip>(path);
+            if (clip == null)
+                Debug.LogWarning($"[导表] 音效剪辑未找到：{path}（该列置空，回落全局默认音）");
+            return clip;
+        }
+
+        private static string AudioPath(AudioClip clip)
+        {
+            if (clip == null) return string.Empty;
+            var assetPath = AssetDatabase.GetAssetPath(clip);
+            const string prefix = "Assets/Resources/";
+            if (!assetPath.StartsWith(prefix)) return assetPath;
+            var relative = assetPath.Substring(prefix.Length);
+            var dot = relative.LastIndexOf('.');
+            return dot > 0 ? relative.Substring(0, dot) : relative;
         }
 
         private static string SpritePath(Sprite sprite)

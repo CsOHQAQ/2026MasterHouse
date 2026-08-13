@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - id: 002
-    displayName: red armchair
+    nameKey: red armchair
+    displayName: "\u7EA2\u8272\u6276\u624B\u6905"
     category: "\u684C\u6905"
     description: 
     surfaces: 00000000
@@ -22,10 +23,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 185
     displayHeight: 174
-    price: 0
-    unlockReputation: 0
     decorationScore: 32
     sprite: {fileID: 21300000, guid: 403aacb143bd90c43b1ae7d0b1dc85b3, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -34,7 +35,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 003
-    displayName: floor lamp
+    nameKey: floor lamp
+    displayName: "\u843D\u5730\u706F"
     category: "\u706F\u5177"
     description: 
     surfaces: 00000000
@@ -42,10 +44,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 77
     displayHeight: 194
-    price: 0
-    unlockReputation: 0
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 6fd2604882f672444b3e4f4f30322816, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -54,7 +56,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 004
-    displayName: decorated bookcase
+    nameKey: decorated bookcase
+    displayName: "\u88C5\u9970\u4E66\u67DC"
     category: "\u684C\u6905"
     description: 
     surfaces: 00000000
@@ -62,10 +65,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 153
     displayHeight: 255
-    price: 0
-    unlockReputation: 0
     decorationScore: 39
     sprite: {fileID: 21300000, guid: 4d23a03f099327c43bbc880dfc691432, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -74,7 +77,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 005
-    displayName: wood coffee table
+    nameKey: wood coffee table
+    displayName: "\u6728\u8D28\u8336\u51E0"
     category: "\u684C\u6905"
     description: 
     surfaces: 00000000
@@ -82,10 +86,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 252
     displayHeight: 110
-    price: 0
-    unlockReputation: 0
     decorationScore: 28
     sprite: {fileID: 21300000, guid: 1bc23b147c9527943a464c505be37b20, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 1
       cols: 2
@@ -94,7 +98,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 88
   - id: 006
-    displayName: blue pedestal table
+    nameKey: blue pedestal table
+    displayName: "\u84DD\u8272\u5706\u67F1\u684C"
     category: "\u684C\u6905"
     description: 
     surfaces: 00000000
@@ -102,10 +107,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 94
     displayHeight: 113
-    price: 0
-    unlockReputation: 0
     decorationScore: 11
     sprite: {fileID: 21300000, guid: 9859e757e7ad85a4aa9d51f74ff36695, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 1
       cols: 1
@@ -114,7 +119,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 90
   - id: 007
-    displayName: hanging plant 1
+    nameKey: hanging plant 1
+    displayName: "\u60AC\u6302\u7EFF\u690D\xB7\u58F9"
     category: "\u58C1\u6302"
     description: 
     surfaces: 02000000
@@ -122,10 +128,10 @@ MonoBehaviour:
     rows: 3
     displayWidth: 86
     displayHeight: 188
-    price: 0
-    unlockReputation: 0
     decorationScore: 16
     sprite: {fileID: 21300000, guid: 7221268e2147cf246bfc3d52515e1da9, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -134,7 +140,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 008
-    displayName: hanging plant 2
+    nameKey: hanging plant 2
+    displayName: "\u60AC\u6302\u7EFF\u690D\xB7\u8D30"
     category: "\u58C1\u6302"
     description: 
     surfaces: 02000000
@@ -142,10 +149,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 76
     displayHeight: 137
-    price: 0
-    unlockReputation: 0
     decorationScore: 10
     sprite: {fileID: 21300000, guid: e3c494522300fa143b7258c3bded3071, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -154,7 +161,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 010
-    displayName: hanging plant 4
+    nameKey: hanging plant 4
+    displayName: "\u60AC\u6302\u7EFF\u690D\xB7\u8086"
     category: "\u58C1\u6302"
     description: 
     surfaces: 02000000
@@ -162,10 +170,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 90
     displayHeight: 124
-    price: 0
-    unlockReputation: 0
     decorationScore: 11
     sprite: {fileID: 21300000, guid: ea40e911d19ff804da46fdaac87cc479, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -174,7 +182,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 011
-    displayName: open cardboard box
+    nameKey: open cardboard box
+    displayName: "\u655E\u53E3\u7EB8\u7BB1"
     category: "\u6446\u4EF6"
     description: 
     surfaces: 0000000001000000
@@ -182,10 +191,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 131
     displayHeight: 84
-    price: 0
-    unlockReputation: 0
     decorationScore: 11
     sprite: {fileID: 21300000, guid: e1ba5871266aa024a975ba256c71c0de, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -194,7 +203,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 012
-    displayName: closed cardboard box
+    nameKey: closed cardboard box
+    displayName: "\u5C01\u53E3\u7EB8\u7BB1"
     category: "\u6446\u4EF6"
     description: 
     surfaces: 0000000001000000
@@ -202,10 +212,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 91
     displayHeight: 76
-    price: 0
-    unlockReputation: 0
     decorationScore: 7
     sprite: {fileID: 21300000, guid: 358c039738646c64caf38c259e17bcf7, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -214,7 +224,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 013
-    displayName: potted monstera 1
+    nameKey: potted monstera 1
+    displayName: "\u9F9F\u80CC\u7AF9\u76C6\u683D\xB7\u58F9"
     category: "\u76C6\u683D"
     description: 
     surfaces: 00000000
@@ -222,10 +233,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 124
     displayHeight: 160
-    price: 0
-    unlockReputation: 0
     decorationScore: 20
     sprite: {fileID: 21300000, guid: 0745cb24dd955cd45836b405fdd3d90e, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -234,7 +245,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 014
-    displayName: potted monstera 2
+    nameKey: potted monstera 2
+    displayName: "\u9F9F\u80CC\u7AF9\u76C6\u683D\xB7\u8D30"
     category: "\u76C6\u683D"
     description: 
     surfaces: 00000000
@@ -242,10 +254,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 102
     displayHeight: 119
-    price: 0
-    unlockReputation: 0
     decorationScore: 12
     sprite: {fileID: 21300000, guid: d16f1b95b3f6db34baf4f4301f1a2b2c, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -254,7 +266,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 016
-    displayName: mountain poster
+    nameKey: mountain poster
+    displayName: "\u5C71\u666F\u6D77\u62A5"
     category: "\u58C1\u6302"
     description: 
     surfaces: 02000000
@@ -262,10 +275,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 94
     displayHeight: 115
-    price: 0
-    unlockReputation: 0
     decorationScore: 11
     sprite: {fileID: 21300000, guid: f24e9d06ae333024990ca73067d5d94d, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -274,7 +287,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 017
-    displayName: wall clock
+    nameKey: wall clock
+    displayName: "\u6302\u949F"
     category: "\u58C1\u6302"
     description: 
     surfaces: 02000000
@@ -282,10 +296,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 75
     displayHeight: 81
-    price: 0
-    unlockReputation: 0
     decorationScore: 6
     sprite: {fileID: 21300000, guid: aa9ba5b275350804fb42799b4e91830c, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -294,7 +308,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 018
-    displayName: wall calendar
+    nameKey: wall calendar
+    displayName: "\u6302\u5386"
     category: "\u58C1\u6302"
     description: 
     surfaces: 02000000
@@ -302,10 +317,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 64
     displayHeight: 72
-    price: 0
-    unlockReputation: 0
     decorationScore: 5
     sprite: {fileID: 21300000, guid: cd3bd2c36c7a1ec4bb6298de097dd943, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -314,7 +329,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 020
-    displayName: green tag
+    nameKey: green tag
+    displayName: "\u7EFF\u8272\u6302\u7B7E"
     category: "\u58C1\u6302"
     description: 
     surfaces: 02000000
@@ -322,10 +338,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 52
     displayHeight: 38
-    price: 0
-    unlockReputation: 0
     decorationScore: 5
     sprite: {fileID: 21300000, guid: 935fd1be942895a4da0eb258d3bfc229, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -334,7 +350,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 021
-    displayName: purple tag
+    nameKey: purple tag
+    displayName: "\u7D2B\u8272\u6302\u7B7E"
     category: "\u58C1\u6302"
     description: 
     surfaces: 02000000
@@ -342,10 +359,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 51
     displayHeight: 38
-    price: 0
-    unlockReputation: 0
     decorationScore: 5
     sprite: {fileID: 21300000, guid: 4c2bf5088826ccb4e8bfc2e0c86686a3, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -354,7 +371,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 023
-    displayName: hanging plant
+    nameKey: hanging plant
+    displayName: "\u60AC\u6302\u7EFF\u690D"
     category: "\u58C1\u6302"
     description: 
     surfaces: 02000000
@@ -362,10 +380,10 @@ MonoBehaviour:
     rows: 3
     displayWidth: 95
     displayHeight: 209
-    price: 0
-    unlockReputation: 0
     decorationScore: 20
     sprite: {fileID: 21300000, guid: d41d8d1b5eaff5448ae5b274cb93ec87, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -374,7 +392,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 024
-    displayName: blue sofa
+    nameKey: blue sofa
+    displayName: "\u84DD\u8272\u6C99\u53D1"
     category: "\u684C\u6905"
     description: 
     surfaces: 00000000
@@ -382,10 +401,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 316
     displayHeight: 138
-    price: 0
-    unlockReputation: 0
     decorationScore: 44
     sprite: {fileID: 21300000, guid: 3e94d9487faa4e64a9eacfaf68cf0dca, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -394,7 +413,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 032
-    displayName: open cardboard box
+    nameKey: open cardboard box
+    displayName: "\u655E\u53E3\u7EB8\u7BB1\xB7\u5927"
     category: "\u6446\u4EF6"
     description: 
     surfaces: 0000000001000000
@@ -402,10 +422,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 111
     displayHeight: 95
-    price: 0
-    unlockReputation: 0
     decorationScore: 11
     sprite: {fileID: 21300000, guid: 058ea7091fbc8bf48b0a4be9b7085c91, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -414,7 +434,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 035
-    displayName: book file holder
+    nameKey: book file holder
+    displayName: "\u4E66\u7ACB\u6587\u4EF6\u67B6"
     category: "\u6446\u4EF6"
     description: 
     surfaces: 00000000
@@ -422,10 +443,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 92
     displayHeight: 72
-    price: 0
-    unlockReputation: 0
     decorationScore: 7
     sprite: {fileID: 21300000, guid: c4f525f5a83a5984090232bc99146412, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -434,7 +455,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 036
-    displayName: round pod chair
+    nameKey: round pod chair
+    displayName: "\u5706\u5F62\u592A\u7A7A\u6905"
     category: "\u684C\u6905"
     description: 
     surfaces: 00000000
@@ -442,10 +464,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 173
     displayHeight: 195
-    price: 0
-    unlockReputation: 0
     decorationScore: 34
     sprite: {fileID: 21300000, guid: e018e42944361b841a7e9b21c82fbfb4, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -454,7 +476,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 037
-    displayName: organic wall mirror
+    nameKey: organic wall mirror
+    displayName: "\u4E91\u5F62\u58C1\u955C"
     category: "\u58C1\u6302"
     description: 
     surfaces: 02000000
@@ -462,10 +485,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 96
     displayHeight: 131
-    price: 0
-    unlockReputation: 0
     decorationScore: 13
     sprite: {fileID: 21300000, guid: f959f840dfa93d94ca1b98a21218f148, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -474,7 +497,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 038
-    displayName: orb floor lamp
+    nameKey: orb floor lamp
+    displayName: "\u5706\u7403\u843D\u5730\u706F"
     category: "\u706F\u5177"
     description: 
     surfaces: 00000000
@@ -482,10 +506,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 85
     displayHeight: 165
-    price: 0
-    unlockReputation: 0
     decorationScore: 14
     sprite: {fileID: 21300000, guid: ecc70caa0ed483847a6da792cafcc1ec, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -494,7 +518,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 040
-    displayName: jellyfish aquarium console
+    nameKey: jellyfish aquarium console
+    displayName: "\u6C34\u6BCD\u7F38\u8FB9\u67DC"
     category: "\u684C\u6905"
     description: 
     surfaces: 00000000
@@ -502,10 +527,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 158
     displayHeight: 187
-    price: 0
-    unlockReputation: 0
     decorationScore: 30
     sprite: {fileID: 21300000, guid: 7241903ce71a4c744a87b3bf4b21615c, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -514,7 +539,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 041
-    displayName: lava lamp
+    nameKey: lava lamp
+    displayName: "\u7194\u5CA9\u706F"
     category: "\u706F\u5177"
     description: 
     surfaces: 00000000
@@ -522,10 +548,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 60
     displayHeight: 183
-    price: 0
-    unlockReputation: 0
     decorationScore: 11
     sprite: {fileID: 21300000, guid: 5e03d7e7337b41a4c8abab133b596676, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -534,7 +560,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 043
-    displayName: retro dining set
+    nameKey: retro dining set
+    displayName: "\u590D\u53E4\u9910\u684C\u6905"
     category: "\u684C\u6905"
     description: 
     surfaces: 00000000
@@ -542,10 +569,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 369
     displayHeight: 184
-    price: 0
-    unlockReputation: 0
     decorationScore: 60
     sprite: {fileID: 21300000, guid: ccab81b10a3e3bc48b44d46913318b39, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 1
       cols: 3
@@ -554,7 +581,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 147
   - id: 049
-    displayName: cactus lamp
+    nameKey: cactus lamp
+    displayName: "\u4ED9\u4EBA\u638C\u706F"
     category: "\u706F\u5177"
     description: 
     surfaces: 00000000
@@ -562,10 +590,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 70
     displayHeight: 121
-    price: 0
-    unlockReputation: 0
     decorationScore: 8
     sprite: {fileID: 21300000, guid: ca12aca76629a674cbe7d6e021ce73ec, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -574,7 +602,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 051
-    displayName: round bar shelf
+    nameKey: round bar shelf
+    displayName: "\u5706\u5F62\u5427\u53F0\u67B6"
     category: "\u684C\u6905"
     description: 
     surfaces: 00000000
@@ -582,10 +611,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 124
     displayHeight: 163
-    price: 0
-    unlockReputation: 0
     decorationScore: 20
     sprite: {fileID: 21300000, guid: 8ec509d189b214e4c82fbf843bb0f254, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -594,7 +623,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 053
-    displayName: potted palm
+    nameKey: potted palm
+    displayName: "\u68D5\u6988\u76C6\u683D"
     category: "\u76C6\u683D"
     description: 
     surfaces: 00000000
@@ -602,10 +632,10 @@ MonoBehaviour:
     rows: 3
     displayWidth: 130
     displayHeight: 301
-    price: 0
-    unlockReputation: 0
     decorationScore: 39
     sprite: {fileID: 21300000, guid: ec8b86f3b0bab684c8d1b9376b4f8f8a, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -614,7 +644,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 054
-    displayName: blue beanbag
+    nameKey: blue beanbag
+    displayName: "\u84DD\u8272\u61D2\u4EBA\u6C99\u53D1"
     category: "\u684C\u6905"
     description: 
     surfaces: 00000000
@@ -622,10 +653,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 140
     displayHeight: 112
-    price: 0
-    unlockReputation: 0
     decorationScore: 16
     sprite: {fileID: 21300000, guid: ab992e58d10fd57489b5f9c3ec43602d, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -634,7 +665,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 055
-    displayName: space rug
+    nameKey: space rug
+    displayName: "\u592A\u7A7A\u5730\u6BEF"
     category: "\u6446\u4EF6"
     description: 
     surfaces: 00000000
@@ -642,10 +674,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 194
     displayHeight: 79
-    price: 0
-    unlockReputation: 0
     decorationScore: 15
     sprite: {fileID: 21300000, guid: b6fa0d471928f574bb43a0e9b9a5e566, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -654,7 +686,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 056
-    displayName: cloud coffee table
+    nameKey: cloud coffee table
+    displayName: "\u4E91\u6735\u8336\u51E0"
     category: "\u684C\u6905"
     description: 
     surfaces: 00000000
@@ -662,10 +695,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 275
     displayHeight: 119
-    price: 0
-    unlockReputation: 0
     decorationScore: 33
     sprite: {fileID: 21300000, guid: 6f9591961231cee419654d526084f37b, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 1
       cols: 3
@@ -674,7 +707,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 95
   - id: 057
-    displayName: glass media console
+    nameKey: glass media console
+    displayName: "\u73BB\u7483\u7535\u89C6\u67DC"
     category: "\u684C\u6905"
     description: 
     surfaces: 00000000
@@ -682,10 +716,10 @@ MonoBehaviour:
     rows: 1
     displayWidth: 303
     displayHeight: 136
-    price: 0
-    unlockReputation: 0
     decorationScore: 41
     sprite: {fileID: 21300000, guid: eb6a0ebb68f1b9e48bde8ee29d374dbf, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -694,7 +728,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 059
-    displayName: crescent aquarium lamp
+    nameKey: crescent aquarium lamp
+    displayName: "\u6708\u7259\u6C34\u65CF\u706F"
     category: "\u706F\u5177"
     description: 
     surfaces: 00000000
@@ -702,10 +737,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 114
     displayHeight: 160
-    price: 0
-    unlockReputation: 0
     decorationScore: 18
     sprite: {fileID: 21300000, guid: d1071e6e344400c40b5eebd31f75b17c, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -714,7 +749,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 060
-    displayName: retro space tv
+    nameKey: retro space tv
+    displayName: "\u590D\u53E4\u592A\u7A7A\u7535\u89C6"
     category: "\u6446\u4EF6"
     description: 
     surfaces: 00000000
@@ -722,10 +758,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 148
     displayHeight: 140
-    price: 0
-    unlockReputation: 0
     decorationScore: 21
     sprite: {fileID: 21300000, guid: e83c74f2a2765a447bbf531c96621e6e, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -734,7 +770,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 063
-    displayName: lava lamp
+    nameKey: lava lamp
+    displayName: "\u7194\u5CA9\u706F\xB7\u9AD8"
     category: "\u706F\u5177"
     description: 
     surfaces: 00000000
@@ -742,10 +779,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 65
     displayHeight: 181
-    price: 0
-    unlockReputation: 0
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 0cd655c153c77d6408600f7281ee3977, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -754,7 +791,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 064
-    displayName: tall bubble aquarium
+    nameKey: tall bubble aquarium
+    displayName: "\u9AD8\u7B52\u6C14\u6CE1\u6C34\u65CF\u7BB1"
     category: "\u6446\u4EF6"
     description: 
     surfaces: 00000000
@@ -762,10 +800,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 62
     displayHeight: 208
-    price: 0
-    unlockReputation: 0
     decorationScore: 13
     sprite: {fileID: 21300000, guid: 14b6b22d829086742b37c108b40daf1d, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -774,7 +812,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 075
-    displayName: washing machine
+    nameKey: washing machine
+    displayName: "\u6D17\u8863\u673A"
     category: "\u6446\u4EF6"
     description: 
     surfaces: 00000000
@@ -782,10 +821,10 @@ MonoBehaviour:
     rows: 2
     displayWidth: 161
     displayHeight: 188
-    price: 0
-    unlockReputation: 0
     decorationScore: 30
     sprite: {fileID: 21300000, guid: d5160ece572442049a44adc97f5071d5, type: 3}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3
@@ -794,7 +833,8 @@ MonoBehaviour:
       offsetX: 50
       surfaceHeight: 146
   - id: 077
-    displayName: bathtub table set
+    nameKey: bathtub table set
+    displayName: "\u6D74\u7F38\u8336\u5EA7"
     category: "\u684C\u6905"
     description: 
     surfaces: 00000000
@@ -802,10 +842,10 @@ MonoBehaviour:
     rows: 3
     displayWidth: 363
     displayHeight: 294
-    price: 0
-    unlockReputation: 0
     decorationScore: 60
     sprite: {fileID: 21300000, guid: c3ebdb8ef5334ad43a772ea4dca4bc9b, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
       cols: 3

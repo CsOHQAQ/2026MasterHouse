@@ -119,6 +119,7 @@ namespace MasterHouse.EditorTools
             return new FurnitureEntry
             {
                 id = id,
+                nameKey = id, // 示例内容的英文索引即 id（table/pouf 等英文短名）
                 displayName = name,
                 surfaces = new List<FurnitureSurfaceType> { surface },
                 cols = cols,
