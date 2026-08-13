@@ -45,8 +45,11 @@ namespace MasterHouse
         private RectTransform worldRoot;
         private RectTransform layerRoot;
         private Action<int> onGuestClicked;
-        /// <summary>拖拽松手回调（instanceId, 目标房间）：页面翻译成 VisitorManager.MoveVisitorToRoom。</summary>
-        private Action<int, int> onGuestDropped;
+        /// <summary>
+        /// 拖拽松手回调（instanceId, 目标房间）→ 业务是否接受这个落点。
+        /// 页面翻译成 VisitorManager.MoveVisitorToRoom；返回 false 时演员弹回拖拽起手位置。
+        /// </summary>
+        private Func<int, int, bool> onGuestDropped;
         private bool initialSpawnDone;
         private int frontDeskSlot;
         private readonly List<OutGameVisitorActor> actors = new List<OutGameVisitorActor>();
@@ -61,7 +64,7 @@ namespace MasterHouse
         /// <summary>在四宫格世界根下创建访客层（覆盖全部房间）。业务访客按 VisitorManager 的在场实例生成：
         /// 建层时已在场 → 按 (状态, 房间) 直接落位；此后新实例由 Update 轮询捕捉，从起居室大门走进前台。</summary>
         public static OutGameVisitorStage Build(RectTransform worldRoot, Action<int> onGuestClicked,
-            Action<int, int> onGuestDropped)
+            Func<int, int, bool> onGuestDropped)
         {
             var existing = worldRoot.Find("VisitorStage");
             if (existing != null) Destroy(existing.gameObject);
@@ -229,13 +232,18 @@ namespace MasterHouse
             actor.UpdatePlayerDrag(room, point);
         }
 
-        /// <summary>松手：表现先落位，业务经页面回调结算；业务拒绝时实例同步会在下一帧把演员弹回。</summary>
+        /// <summary>
+        /// 松手：表现先落位，业务经页面回调裁决（§5.2 按状态分派）。
+        /// 业务拒绝时立刻弹回起手位置——跨房间的情况实例同步下一帧也会纠正，
+        /// 但同房间内被拒（前台访客在起居室里被拖动）只能靠这条路。
+        /// </summary>
         private void DropActor(OutGameVisitorActor actor, int instanceId)
         {
             if (!actor.Dragging) return;
             var room = actor.RoomIndex;
-            actor.EndPlayerDrag();
-            onGuestDropped?.Invoke(instanceId, room);
+            var accepted = onGuestDropped != null && onGuestDropped(instanceId, room);
+            if (accepted) actor.EndPlayerDrag();
+            else actor.CancelPlayerDrag();
         }
 
         private void SpawnAmbient(int rosterIndex, float delay)

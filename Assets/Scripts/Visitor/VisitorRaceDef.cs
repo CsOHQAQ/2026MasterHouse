@@ -9,14 +9,8 @@ namespace MasterHouse
     // 表情枚举由对话系统定义，单句对话自带表情字段）。
     // 序列化兼容：两个枚举的 0 号项对应（Default → Calm），已配的差分表不受影响。
 
-    /// <summary>需求权重项（§4.3）：从种族权重表按权重抽取需求 tag。</summary>
-    [Serializable]
-    public sealed class NeedTagWeight
-    {
-        public TagDef tag;
-        [Tooltip("权重（>0 才参与抽取）")] public int weight = 1;
-        [Tooltip("是否必要：required 需求未命中即「不对味」（§6.2）")] public bool required;
-    }
+    // 需求权重项 NeedTagWeight 已随 tag 需求体系退役（需求重做说明 §9.1）：
+    // 需求改为一条 NeedDef、由日程条目配死，种族不再参与需求生成。
 
     /// <summary>立绘差分表条目（§4.3）：表情枚举 → 贴图路径（Resources）。</summary>
     [Serializable]
@@ -45,10 +39,8 @@ namespace MasterHouse
         [Range(0, 100)]
         [Tooltip("跨天留宿概率（%）：打烊时仍在闲逛的访客按此概率保留到次日")] public int stayOvernightPercent = 20;
 
-        [Header("需求生成（§4.3/§6.2）")]
-        [Tooltip("需求权重表：(tag, 权重, 是否必要)")] public List<NeedTagWeight> needTagWeights = new List<NeedTagWeight>();
-        [Tooltip("需求数量范围 [min, max]")] public int needCountMin = 1;
-        public int needCountMax = 2;
+        // 需求生成（needTagWeights / needCountMin / needCountMax）已随 tag 需求体系退役（§9.1）：
+        // 谁带什么需求来，改由访客日程表逐条配死（需求重做说明 §4.2），种族不再插手。
 
         [Header("表现（Resources 路径）")]
         [Tooltip("立绘差分表：表情枚举 → 贴图路径。表情枚举由对话系统定义（EDialogueEmotion，§9）")]

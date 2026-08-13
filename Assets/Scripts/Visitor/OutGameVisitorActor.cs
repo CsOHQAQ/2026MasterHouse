@@ -232,12 +232,18 @@ namespace MasterHouse
 
         // ── 玩家拖拽换房（2026-08-13 四宫格）：舞台层做屏幕→世界换算，这里只管表现状态 ──
 
+        /// <summary>拖拽起手时的落脚点，业务拒绝换房时原样弹回（见 CancelPlayerDrag）。</summary>
+        private Vector2 dragOriginPosition;
+        private int dragOriginRoom;
+
         /// <summary>开始拖拽：状态机停走，吞掉随后的点击（拖完抬手不该触发对话）。</summary>
         public void BeginPlayerDrag()
         {
             if (!IsDraggable) return;
             Dragging = true;
             moving = false;
+            dragOriginPosition = ScenePosition;
+            dragOriginRoom = RoomIndex;
         }
 
         /// <summary>拖拽跟随：舞台层换算好的 (房间, 房内归一化坐标)。跨房时名牌上的房间名实时跟着换。</summary>
@@ -250,12 +256,28 @@ namespace MasterHouse
             if (roomChanged) UpdateStatusCard();
         }
 
-        /// <summary>拖拽结束；业务层拒绝换房时由舞台层再调 TeleportToRoom 弹回。</summary>
+        /// <summary>拖拽结束（业务已接受落点）。</summary>
         public void EndPlayerDrag()
         {
             if (!Dragging) return;
             Dragging = false;
             if (state == ActorState.Wandering) stateTimer = UnityEngine.Random.Range(1.5f, 3f); // 落地后歇口气再逛
+        }
+
+        /// <summary>
+        /// 业务拒绝换房：原样弹回拖拽起手时的位置。
+        ///
+        /// 跨房间被拒时舞台层的每帧实例同步本来就会把演员拉回业务房间，但**同房间内被拒不会**
+        /// （actor.RoomIndex 与 instance.RoomIndex 一致，同步逻辑看不出差别）——
+        /// 前台访客在起居室内被拖动正是这种情况，不弹回的话他就离开排队站位杵在地上了。
+        /// </summary>
+        public void CancelPlayerDrag()
+        {
+            Dragging = false;
+            RoomIndex = dragOriginRoom;
+            ScenePosition = dragOriginPosition;
+            moving = false;
+            UpdateStatusCard();
         }
 
         /// <summary>直接落位到某房间（业务同步/拖拽弹回共用；不走进门流程）。</summary>
@@ -303,8 +325,10 @@ namespace MasterHouse
             {
                 case EVisitorState.FrontDesk:
                     break; // 初始状态：进门 → 前台等待，由 Arriving→Waiting 流程呈现
+                case EVisitorState.AwaitingRoom:
+                    break; // 接待完仍在门口排队等分房（§5.3），站位不动——玩家把他拖走才算数
                 case EVisitorState.Serving:
-                    EnterWandering(.2f); // 接待成功：走进屋内（单房间阶段以游走区代表房间，§9）
+                    EnterWandering(.2f); // 分房落定：走进那间客房（房间由舞台层按 instance.RoomIndex 同步）
                     break;
                 case EVisitorState.Wandering:
                     if (first) EnterWandering(.3f); // 重建舞台时已在闲逛：直接游走，不补庆祝
@@ -449,11 +473,13 @@ namespace MasterHouse
             UpdateStatusCard();
         }
 
-        /// <summary>常驻回填：重建舞台时访客已在场，按业务状态直接落位淡入（前台位或屋内游走点）。</summary>
+        /// <summary>常驻回填：重建舞台时访客已在场，按业务状态直接落位淡入（门口排队位或屋内游走点）。</summary>
         private void BeginInside()
         {
             group.DOFade(1f, .4f).SetTarget(this).SetUpdate(true);
-            if (!ambient && businessState == (int)EVisitorState.FrontDesk)
+            // 「等待分配房间」与「前台等待接待」都站在起居室入口区排队（需求重做说明 §5.3），落位口径一致
+            if (!ambient && (businessState == (int)EVisitorState.FrontDesk ||
+                             businessState == (int)EVisitorState.AwaitingRoom))
             {
                 ScenePosition = waitPoint;
                 state = ActorState.Waiting;
@@ -601,6 +627,7 @@ namespace MasterHouse
                 pool = businessState switch
                 {
                     (int)EVisitorState.FrontDesk => new[] { "？", "…" },
+                    (int)EVisitorState.AwaitingRoom => new[] { "☞", "？" }, // 等着被领进房间
                     (int)EVisitorState.Serving => new[] { "！", "…" },
                     (int)EVisitorState.Wandering => new[] { "♥", "♪", "★" },
                     _ => state == ActorState.Leaving ? new[] { "…" } : null,
@@ -638,7 +665,8 @@ namespace MasterHouse
                 status = businessState switch
                 {
                     (int)EVisitorState.FrontDesk => "在门口等待接待 · 点击交谈",
-                    (int)EVisitorState.Serving => "等待服务 · 点击递上物品",
+                    (int)EVisitorState.AwaitingRoom => "等待安排房间 · 拖进一间空房",
+                    (int)EVisitorState.Serving => "服务中 · 点击交谈",
                     (int)EVisitorState.Wandering => "心满意足 · 屋内闲逛中",
                     _ => "刚刚进门",
                 };

@@ -26,21 +26,26 @@ namespace MasterHouse
     /// 种族对话池（Model 层，运行时只读；设计说明 §4.5）：一个种族一个资产，
     /// 由 VisitorRaceDef.dialoguePool 引用。
     ///
-    /// 用**八个具名字段**而不是「分类枚举 → 列表」的字典/数组：Inspector 一目了然、
+    /// 用**具名字段**而不是「分类枚举 → 列表」的字典/数组：Inspector 一目了然、
     /// 缺哪个分类一眼看出，且不需要写重复键与缺键校验。
+    /// 2026-08-13 需求重做：新增「服务中交谈」（serviceCheck）、删掉四个交付预览单句列表，
+    /// 现为九个模态分类 + 一个气泡分类。
     ///
     /// 【务必独占本文件】ScriptableObject 必须与文件同名，否则 .asset 的脚本引用会损坏（见 RETRO）。
     /// </summary>
     [CreateAssetMenu(menuName = "MasterHouse/对话池", fileName = "DialoguePool")]
     public sealed class DialoguePoolDef : ScriptableObject
     {
-        [Header("模态对话框（八个触发分类，§4.5）")]
+        [Header("模态对话框（触发分类，§4.5 + 需求重做说明 §6.4）")]
 
         [Tooltip("初次见面：玩家点击前台等待接待的访客")]
         public List<DialogueGroupEntry> firstMeeting = new List<DialogueGroupEntry>();
 
-        [Tooltip("开始等待服务：接待成功、进入服务中（含程序化需求句 §9）")]
+        [Tooltip("开始等待服务：分房落定、进入服务中——此时才说出需求（{需求} 占位符）")]
         public List<DialogueGroupEntry> serviceStart = new List<DialogueGroupEntry>();
+
+        [Tooltip("服务中交谈：玩家点击已入住的访客。条件类需求的**验收分支挂在这一类**（需求重做说明 §6.4）")]
+        public List<DialogueGroupEntry> serviceCheck = new List<DialogueGroupEntry>();
 
         [Tooltip("被拒绝：玩家拒绝 / 等搭话超时 / 等交货超时（三者同口径）")]
         public List<DialogueGroupEntry> rejected = new List<DialogueGroupEntry>();
@@ -62,15 +67,7 @@ namespace MasterHouse
         [Tooltip("满意后闲逛：闲逛期间由冒泡调度器定期请求")]
         public List<DialogueGroupEntry> wanderChat = new List<DialogueGroupEntry>();
 
-        [Header("交付预览（单句，不结算）")]
-
-        // 这四项存的是**单句而不是对话组**——从类型上就挂不了事件与分支，
-        // 「预览绝不结算」是类型保证的，不是靠约定（§4.5）。预览也不参与 recent 去重（§6）。
-
-        [Tooltip("交付预览·不对味")] public List<DialogueLine> previewMismatch = new List<DialogueLine>();
-        [Tooltip("交付预览·一般")] public List<DialogueLine> previewPlain = new List<DialogueLine>();
-        [Tooltip("交付预览·满意")] public List<DialogueLine> previewSatisfied = new List<DialogueLine>();
-        [Tooltip("交付预览·完美")] public List<DialogueLine> previewPerfect = new List<DialogueLine>();
+        // 四个「交付预览」单句列表已随交付页一并退役（需求重做说明 §9.1）。
 
         /// <summary>
         /// 按触发分类取对话组候选列表（§4.5）。satisfaction 仅 ServiceDone 有意义，其余触发点忽略。
@@ -82,6 +79,7 @@ namespace MasterHouse
             {
                 case EVisitorDialogueTrigger.FirstMeeting: return firstMeeting;
                 case EVisitorDialogueTrigger.ServiceStart: return serviceStart;
+                case EVisitorDialogueTrigger.ServiceCheck: return serviceCheck;
                 case EVisitorDialogueTrigger.Rejected: return rejected;
                 case EVisitorDialogueTrigger.WanderChat: return wanderChat;
                 case EVisitorDialogueTrigger.ServiceDone: return DoneGroupsFor(satisfaction);
@@ -100,18 +98,6 @@ namespace MasterHouse
             }
         }
 
-        /// <summary>按满意度档取交付预览单句列表（§4.5）。</summary>
-        public List<DialogueLine> PreviewFor(EServeSatisfaction satisfaction)
-        {
-            switch (satisfaction)
-            {
-                case EServeSatisfaction.Mismatch: return previewMismatch;
-                case EServeSatisfaction.Plain: return previewPlain;
-                case EServeSatisfaction.Satisfied: return previewSatisfied;
-                default: return previewPerfect;
-            }
-        }
-
         /// <summary>分类的中文名（日志与编辑器用）。ServiceDone 会带上满意度档。</summary>
         public static string CategoryName(EVisitorDialogueTrigger trigger, EServeSatisfaction satisfaction)
         {
@@ -119,6 +105,7 @@ namespace MasterHouse
             {
                 case EVisitorDialogueTrigger.FirstMeeting: return "初次见面";
                 case EVisitorDialogueTrigger.ServiceStart: return "开始等待服务";
+                case EVisitorDialogueTrigger.ServiceCheck: return "服务中交谈";
                 case EVisitorDialogueTrigger.Rejected: return "被拒绝";
                 case EVisitorDialogueTrigger.WanderChat: return "满意后闲逛";
                 case EVisitorDialogueTrigger.ServiceDone:

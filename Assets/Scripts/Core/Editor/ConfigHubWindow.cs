@@ -21,6 +21,7 @@ namespace MasterHouse.EditorTools
         private const string StorePath = "Assets/Resources/OutGameUI/StoreTable.asset";
         private const string FurnitureRoomPath = "Assets/Resources/OutGameUI/FurnitureRoomTable.asset";
         private const string RaceDir = "Assets/Resources/OutGameUI/VisitorRaces";
+        private const string NeedDir = NeedDefEditorWindow.NeedDir;
         private const string TagDir = "Assets/GameData/Tags";
         private const string ItemDir = "Assets/GameData/Items";
         private const string DialogueTuningPath = "Assets/Resources/OutGameUI/DialogueTuningConfig.asset";
@@ -65,8 +66,17 @@ namespace MasterHouse.EditorTools
                 InlineAsset<VisitorScheduleTable>(SchedulePath, "日程表",
                     "谁在第几天几点出现。注意：已有条目别重排别插行（下标是需求随机的种子键），加内容追加表尾", FixVisitorAssets);
                 AssetList<VisitorRaceDef>(RaceDir, "种族模板",
-                    "性格数值（tick）/ 需求权重 / 立绘差分 / 序列帧",
+                    "性格数值（tick）/ 立绘差分 / 序列帧 / 对话池",
                     () => CreateAsset<VisitorRaceDef>(RaceDir, "Race_新种族"));
+                // 新建不走通用按钮：NeedDef 是抽象基类，CreateInstance 造不出来，两个子类统一在编辑器窗口里建
+                AssetList<NeedDef>(NeedDir, "需求",
+                    "条件类（房间里要有指定家具之一）/ 小游戏类；由日程表的「需求」列按资产名引用", null);
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("打开需求编辑器（左树右编辑）", GUILayout.Height(22)))
+                    NeedDefEditorWindow.Open();
+                if (GUILayout.Button("校验需求资产", GUILayout.Height(22), GUILayout.Width(110)))
+                    NeedAssetValidator.ValidateAllFromMenu();
+                EditorGUILayout.EndHorizontal();
             });
 
             Section("对话", () =>

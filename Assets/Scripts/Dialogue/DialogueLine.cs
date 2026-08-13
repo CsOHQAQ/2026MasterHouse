@@ -56,9 +56,9 @@ namespace MasterHouse
 
         [TextArea(2, 5)]
         [Tooltip("台词正文。支持占位符（§9），播放时由 DialogueTextFormatter 替换：\n" +
-                 "{需求}  访客这次的需求短语，如「甜的、软的食物」\n" +
+                 "{需求}  访客这次的需求描述（直接取 NeedDef.description，由策划在需求资产里写死）\n" +
                  "{访客名} 访客显示名\n" +
-                 "{物品名} 物品显示名：交付预览单句取交付框里的候选物品，其余场合取已提交物品")]
+                 "（{物品名} 已随 Item 链退役，写了会原样显示出来）")]
         public string text;
 
         [Tooltip("立绘差分，仅访客句生效。种族没配这个差分时回退到平静并打 Warning，不阻断播放（§4.1）")]

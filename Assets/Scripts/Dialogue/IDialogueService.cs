@@ -1,18 +1,27 @@
 namespace MasterHouse
 {
-    /// <summary>访客 → 对话的五个触发点（访客交付说明 §8 / 对话设计说明 §7）。</summary>
+    /// <summary>
+    /// 访客 → 对话的触发点（访客交付说明 §8 / 对话设计说明 §7 / 需求重做说明 §6.4）。
+    /// **枚举值显式赋值、新增只能追加**：值参与派生种子（DialogueManager.CategoryIndex），改动会让已有存档/日志对不上。
+    /// </summary>
     public enum EVisitorDialogueTrigger
     {
-        /// <summary>初次见面：进入「前台等待接待」后，玩家交互时。</summary>
+        /// <summary>初次见面：进入「前台等待接待」后，玩家交互时。分支给出接待/拒绝，**绝不透露需求**。</summary>
         FirstMeeting = 0,
-        /// <summary>开始等待服务：接待成功、进入「服务中」时（含程序化需求句）。</summary>
+        /// <summary>开始等待服务：分房落定、进入「服务中」时——**此时才说出需求**（{需求} 占位符）。</summary>
         ServiceStart = 1,
         /// <summary>被拒绝：玩家拒绝 / 等搭话超时 / 等交货超时（三者同口径）。</summary>
         Rejected = 2,
-        /// <summary>完成服务：提交结算后，附带 EServeSatisfaction 作为筛选键。</summary>
+        /// <summary>完成服务：结算后，附带 EServeSatisfaction 作为筛选键。</summary>
         ServiceDone = 3,
         /// <summary>满意后闲逛：闲逛期间由冒泡调度器定期请求。</summary>
         WanderChat = 4,
+        /// <summary>
+        /// 服务中交谈：玩家点击已入住的访客时（需求重做说明 §6.4，待确认 #4 的默认实现）。
+        /// 与 ServiceStart 分开——后者是「刚进屋说出需求」，每次点击都重播完整需求对话体验很差。
+        /// **条件类需求的验收分支就挂在这一类的对话组上。**
+        /// </summary>
+        ServiceCheck = 5,
     }
 
     /// <summary>

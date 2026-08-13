@@ -14,7 +14,9 @@ namespace MasterHouse
         [Tooltip("稳定键（存档/日志用）")] public string id;
         [Tooltip("固定名字（覆写种族显示名）")] public string displayName;
         [Tooltip("固定立绘差分（覆写种族立绘）")] public List<ExpressionPortrait> portraits = new List<ExpressionPortrait>();
-        [Tooltip("固定需求（覆写权重 roll）")] public List<NeedTagWeight> fixedNeeds = new List<NeedTagWeight>();
+        // 固定需求 fixedNeeds（一组 NeedTagWeight）已随 tag 需求体系退役（需求重做说明 §9.1）。
+        // 新模型下需求本来就配在日程条目上、一人一条、零随机，没有「覆写权重 roll」这回事——
+        // 具名客人要带专属需求，直接在他那一行日程的「需求」列填对应 NeedDef 即可，本类不必掺和。
         [Tooltip("专属对话池：覆写种族对话池（对话设计说明 §4.5）")] public DialoguePoolDef dialoguePool;
     }
 }

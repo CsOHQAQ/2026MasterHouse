@@ -209,17 +209,55 @@ namespace MasterHouse
             roomNav.Refresh();
         }
 
-        /// <summary>访客被拖到某房间后松手（舞台层回调）：翻译成业务动作（§8 同口径，失败时舞台自会弹回）。</summary>
-        public void OnVisitorDropped(int instanceId, int roomIndex)
+        /// <summary>
+        /// 访客被拖到某房间后松手（舞台层回调）：翻译成业务动作（§8 同口径）。
+        /// 返回业务是否接受这个落点——false 时舞台把演员弹回起手位置。
+        ///
+        /// 被拒时**一定要给出理由**：拖不动的规则（前台不可搬、服务中锁房、一房一客）都是玩法约束，
+        /// 演员默默弹回去只会让玩家以为是操作没成功。
+        /// </summary>
+        public bool OnVisitorDropped(int instanceId, int roomIndex)
         {
             var visitor = GameManager.Instance.VisitorManager;
             var instance = visitor.Find(instanceId);
-            var fromRoom = instance != null ? instance.RoomIndex : -1;
-            if (!visitor.MoveVisitorToRoom(instanceId, roomIndex)) return;
-            if (instance != null && fromRoom != roomIndex)
+            if (instance == null) return false;
+            var fromRoom = instance.RoomIndex;
+            var wasAwaiting = instance.State == EVisitorState.AwaitingRoom;
+
+            if (!visitor.MoveVisitorToRoom(instanceId, roomIndex))
             {
-                var rooms = GameManager.Instance.CodexTable.rooms;
-                Toast($"已把{instance.DisplayName}带到{rooms[roomIndex].displayName}");
+                Toast(RejectReason(instance, roomIndex));
+                return false;
+            }
+
+            var rooms = GameManager.Instance.CodexTable.rooms;
+            if (wasAwaiting) Toast($"已把{instance.DisplayName}安排进{rooms[roomIndex].displayName}");
+            else if (fromRoom != roomIndex) Toast($"已把{instance.DisplayName}带到{rooms[roomIndex].displayName}");
+            return true;
+        }
+
+        /// <summary>拖拽被业务拒绝的原因文案（与 VisitorManager.MoveVisitorToRoom 的裁决表一一对应，§5.2）。</summary>
+        private static string RejectReason(VisitorInstance instance, int roomIndex)
+        {
+            var visitor = GameManager.Instance.VisitorManager;
+            switch (instance.State)
+            {
+                case EVisitorState.FrontDesk:
+                    return $"{instance.DisplayName}还在门口等着被接待 · 先点他交谈";
+                case EVisitorState.Serving:
+                    return $"{instance.DisplayName}正在等需求被满足 · 服务中不能换房";
+                case EVisitorState.AwaitingRoom:
+                case EVisitorState.Wandering:
+                    if (roomIndex < VisitorManager.FirstGuestRoomIndex || roomIndex > VisitorManager.LastGuestRoomIndex)
+                        return "起居室是大堂，不能当客房 · 请拖进卧室/厨房/书房";
+                    if (visitor.IsRoomOccupied(roomIndex))
+                    {
+                        var rooms = GameManager.Instance.CodexTable.rooms;
+                        return $"{rooms[roomIndex].displayName}已经住了人 · 一间房只招待一位客人";
+                    }
+                    return "这里放不下";
+                default:
+                    return "这位访客已经离开了";
             }
         }
 
@@ -231,7 +269,9 @@ namespace MasterHouse
         /// 旧版那套「按访客状态硬生成接待/拒绝/递物品按钮」的 debug 驱动层已随对话系统落地删除
         /// （访客交付说明 §8 的临时许可到此为止）。
         ///
-        /// 唯一由 UI 直接开的是「服务中」那条：交付页要玩家挑物品，天然是界面而不是对话。
+        /// 2026-08-13 需求重做后**四态各有各的去处**：前台 → 初次见面对话；待分房 → 只有提示
+        /// （这一态的唯一推进方式是拖拽，不走对话）；服务中 → 服务中交谈对话（验收分支在里面）；
+        /// 闲逛 → 只有提示。UI 不再直接开任何业务页面。
         /// </summary>
         public void SelectGuest(int instanceId)
         {
@@ -252,10 +292,15 @@ namespace MasterHouse
                     // 播【初次见面】：对话框由 DialogueManager.PlaybackStarted 事件拉起（见 OnDialogueStarted）
                     GameManager.Instance.VisitorManager.RequestFirstMeeting(instanceId);
                     break;
+                case EVisitorState.AwaitingRoom:
+                    // 已接待、还没分房：这一态没有对话，唯一的推进方式是把人拖进空房（§5.3/§6.4）
+                    Toast($"把{instance.DisplayName}拖进一间空客房，他进屋后才会说出需求");
+                    break;
                 case EVisitorState.Serving:
-                    // 选物品并交付走「需求交付页面」（2026-08-12 落地）：叠加层，ESC/遮罩 =「稍后再说」。
-                    // 页面开启期间关营业闸门，确认交付后由它自己关页再调 VisitorManager.Submit
-                    DeliveryOverlay.Open(UI, instanceId);
+                    // 播【服务中交谈】：条件类的验收分支就挂在这一类的对话组上（需求重做说明 §6.4）。
+                    // 与【开始等待服务】分开——后者是「刚进屋说出需求」，每次点击都重播完整需求对话体验很差。
+                    // 交付页（拖物品 → 确认交付）已随 Item 链退役，验收现在完全由对话分支承担
+                    GameManager.Instance.VisitorManager.RequestServiceCheck(instanceId);
                     break;
                 default:
                     Toast($"{instance.DisplayName} 正心满意足地在屋里逛着。");

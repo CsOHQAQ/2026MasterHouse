@@ -16,11 +16,9 @@ namespace MasterHouse
         /// <summary>模态对话框开启中（§8：局内产线停 tick、时钟停走、访客倒计时停表）。</summary>
         ModalDialogue = 1,
 
-        /// <summary>
-        /// 需求交付页面开启中（交付页落地说明 §5.3）。与模态对话框同档：
-        /// 玩家在挑物品的时候，场上不该继续掉时间——尤其"等交货超时"正是这位访客自己的倒计时。
-        /// </summary>
-        DeliveryPage = 2,
+        // 2 号位曾是 DeliveryPage（需求交付页面），已随 Item 链退役删除（需求重做说明 §9.1）。
+        // 现在的验收走【服务中交谈】对话分支，闸门由 ModalDialogue 那条负责。
+        // **新增原因请从 3 起**：本枚举的值是位集合的位号，复用 2 会在存档/日志里与历史数据撞车。
     }
 
     /// <summary>
@@ -57,12 +55,11 @@ namespace MasterHouse
         /// 局内产线是否冻结（门控 LevelManager.TickAll）。
         /// **刻意不等于 !IsRunning**：局内测试场景没有 HubPage，OffHubPage 恒亮、IsRunning 恒 false，
         /// 若局内产线跟着 IsRunning 走就永远不会推进（待定 #19 联通前的隔离态）。
-        /// 真正该冻结局内的只有三件事：打烊（堵死挂机刷资源，§16.4）、模态对话框（§8）、
-        /// 需求交付页（交付页落地说明 §5.3 与验收清单「页面开启期间局内产线停 tick」）。
+        /// 真正该冻结局内的只有两件事：打烊（堵死挂机刷资源，§16.4）与模态对话框（§8）。
+        /// （交付页那条已随 Item 链退役一并删除。）
         /// </summary>
         public bool IsWorldFrozen => IsClosedForToday ||
-                                     HasStopReason(EClockStopReason.ModalDialogue) ||
-                                     HasStopReason(EClockStopReason.DeliveryPage);
+                                     HasStopReason(EClockStopReason.ModalDialogue);
 
         public HouseClockManager(VisitorTuningConfig tuning)
         {

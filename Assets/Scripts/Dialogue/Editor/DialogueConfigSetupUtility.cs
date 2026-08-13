@@ -41,33 +41,49 @@ namespace MasterHouse.EditorTools
                 created.Add(TuningPath);
             }
 
-            // ── 初次见面：打招呼 + 分支给出接待/拒绝/再想想（§5「需求是接待之后才提的」）──
-            // 接待与拒绝完全由**分支选项上的事件**驱动，UI 不再有硬编码按钮（验收清单第 4 条）
-            var firstMeeting = Group(created, "first_meeting", "初次见面：打招呼，分支给出接待/拒绝",
+            // ── 初次见面：打招呼 + 分支给出接待/拒绝/再想想 ──
+            // 接待与拒绝完全由**分支选项上的事件**驱动，UI 不再有硬编码按钮（验收清单第 4 条）。
+            // 「接待」挂【访客/还有空客房】：满房时该选项置灰（需求重做说明 §6.2）。
+            // **这一组绝不能提到需求**——「先盲选房、进房后才说需求」是硬要求（§5.3）
+            var firstMeeting = Group(created, "first_meeting", "初次见面：打招呼，分支给出接待/拒绝（不透露需求）",
                 Line(EDialogueSpeaker.Visitor, "你好，我是{访客名}。今天可以接待我吗？", EDialogueEmotion.Calm),
                 Branch(
-                    Option("请进，我来招待你。", EBranchNext.End, new AcceptVisitorAction()),
+                    GatedOption("请进，我给你安排个房间。", EBranchNext.End,
+                        new HasFreeRoomCondition(), new AcceptVisitorAction()),
                     Option("抱歉，今天不方便。", EBranchNext.End, new RejectVisitorAction()),
                     Option("让我再想想。", EBranchNext.End)));
 
-            // ── 开始等待服务：程序化需求句走 {需求} 占位符（§9），不是在代码里拼字符串 ──
-            var serviceStart = Group(created, "service_start", "开始等待服务：说出需求（{需求} 占位符）",
-                Line(EDialogueSpeaker.Visitor, "那就麻烦你了。我想要{需求}。", EDialogueEmotion.Happy),
-                Line(EDialogueSpeaker.Player, "我找找看。", EDialogueEmotion.Calm));
+            // ── 开始等待服务：进屋之后才说出需求，走 {需求} 占位符（§9），不在代码里拼字符串 ──
+            var serviceStart = Group(created, "service_start", "开始等待服务：进屋后说出需求（{需求} 占位符）",
+                Line(EDialogueSpeaker.Visitor, "这间房真不错。{需求}", EDialogueEmotion.Happy),
+                Line(EDialogueSpeaker.Player, "我看看能做点什么。", EDialogueEmotion.Calm));
+
+            // ── 服务中交谈：条件类的**验收分支**挂在这里（需求重做说明 §6.4）──
+            // 「弄好了」挂【访客/所住房间有需求家具】：房里没有那件家具时置灰，
+            // 有了就可选，选中即调【访客/完成需求结算】判完美。
+            // 「开始小游戏」是小游戏类的入口占位（§7）。第三个选项无条件，满足 §4.3 硬校验
+            var serviceCheck = Group(created, "service_check", "服务中交谈：条件类验收分支 + 小游戏入口占位",
+                Line(EDialogueSpeaker.Visitor, "{需求}", EDialogueEmotion.Calm),
+                Branch(
+                    GatedOption("你要的我已经弄好了。", EBranchNext.End,
+                        new RoomHasAnyFurnitureCondition(),
+                        new CompleteNeedAction { satisfaction = EServeSatisfaction.Perfect }),
+                    Option("我们来玩一局吧。", EBranchNext.End, new StartMinigameAction()),
+                    Option("再等我一会儿。", EBranchNext.End)));
 
             // ── 被拒绝：玩家拒绝与两段超时共用（§5 同口径）──
             var rejected = Group(created, "rejected", "被拒绝：玩家拒绝 / 等搭话超时 / 等交货超时 共用",
                 Line(EDialogueSpeaker.Visitor, "……这样啊。那我先走了。", EDialogueEmotion.Sad));
 
-            // ── 完成服务四档 ──
+            // ── 完成服务四档。条件类固定走「完美」，另三档留给小游戏类按分数定档（§6.3）──
             var doneMismatch = Group(created, "done_mismatch", "完成服务·不对味（此档不进闲逛，直接离开）",
                 Line(EDialogueSpeaker.Visitor, "这不是我想要的……我还是走吧。", EDialogueEmotion.Sad));
             var donePlain = Group(created, "done_plain", "完成服务·一般",
-                Line(EDialogueSpeaker.Visitor, "唔，「{物品名}」勉强可以吧。", EDialogueEmotion.Calm));
+                Line(EDialogueSpeaker.Visitor, "唔，勉强可以吧。", EDialogueEmotion.Calm));
             var doneSatisfied = Group(created, "done_satisfied", "完成服务·满意",
-                Line(EDialogueSpeaker.Visitor, "不错不错，我挺喜欢「{物品名}」的。", EDialogueEmotion.Happy));
+                Line(EDialogueSpeaker.Visitor, "不错不错，我挺喜欢的。", EDialogueEmotion.Happy));
             var donePerfect = Group(created, "done_perfect", "完成服务·完美（奖励类事件只能加在组末尾或选项上，§5.3 铁律②）",
-                Line(EDialogueSpeaker.Visitor, "太完美了！就是「{物品名}」！", EDialogueEmotion.Surprised));
+                Line(EDialogueSpeaker.Visitor, "太完美了！就是这个！", EDialogueEmotion.Surprised));
 
             // ── 闲逛：拆成 5 个单句组而不是一个 5 句组 ──
             // 气泡一次只显示一句，多个候选组才能让 recent 去重环与加权抽取真正发挥作用（§6）
@@ -83,7 +99,7 @@ namespace MasterHouse.EditorTools
             // ── 四个种族各建一个池，内容先共用同一批组（策划后续按种族分化，只改资产不改代码）──
             foreach (var raceId in new[] { "fox", "crow", "rabbit", "hedgehog" })
             {
-                var pool = Pool(created, raceId, firstMeeting, serviceStart, rejected,
+                var pool = Pool(created, raceId, firstMeeting, serviceStart, serviceCheck, rejected,
                     doneMismatch, donePlain, doneSatisfied, donePerfect, wander);
                 AttachPoolToRace(created, raceId, pool);
             }
@@ -97,7 +113,8 @@ namespace MasterHouse.EditorTools
         // ══════════ 资产构建 ══════════
 
         private static DialoguePoolDef Pool(List<string> created, string raceId,
-            DialogueGroupDef firstMeeting, DialogueGroupDef serviceStart, DialogueGroupDef rejected,
+            DialogueGroupDef firstMeeting, DialogueGroupDef serviceStart, DialogueGroupDef serviceCheck,
+            DialogueGroupDef rejected,
             DialogueGroupDef doneMismatch, DialogueGroupDef donePlain, DialogueGroupDef doneSatisfied,
             DialogueGroupDef donePerfect, DialogueGroupDef[] wander)
         {
@@ -108,16 +125,13 @@ namespace MasterHouse.EditorTools
             pool = ScriptableObject.CreateInstance<DialoguePoolDef>();
             pool.firstMeeting = Entries(firstMeeting);
             pool.serviceStart = Entries(serviceStart);
+            pool.serviceCheck = Entries(serviceCheck);
             pool.rejected = Entries(rejected);
             pool.doneMismatch = Entries(doneMismatch);
             pool.donePlain = Entries(donePlain);
             pool.doneSatisfied = Entries(doneSatisfied);
             pool.donePerfect = Entries(donePerfect);
             pool.wanderChat = Entries(wander);
-            pool.previewMismatch = PreviewLines("（{访客名}皱了皱眉）", EDialogueEmotion.Sad);
-            pool.previewPlain = PreviewLines("（{访客名}看了一眼，没什么表情）", EDialogueEmotion.Calm);
-            pool.previewSatisfied = PreviewLines("（{访客名}的眼睛亮了一下）", EDialogueEmotion.Happy);
-            pool.previewPerfect = PreviewLines("（{访客名}屏住了呼吸）", EDialogueEmotion.Surprised);
             AssetDatabase.CreateAsset(pool, path);
             created.Add(path);
             return pool;
@@ -158,12 +172,6 @@ namespace MasterHouse.EditorTools
             return list;
         }
 
-        private static List<DialogueLine> PreviewLines(string text, EDialogueEmotion emotion) =>
-            new List<DialogueLine>
-            {
-                new DialogueLine { speaker = EDialogueSpeaker.Narration, text = text, emotion = emotion },
-            };
-
         private static DialogueStep Line(EDialogueSpeaker speaker, string text, EDialogueEmotion emotion) =>
             new DialogueStep
             {
@@ -187,6 +195,15 @@ namespace MasterHouse.EditorTools
                 actions = new List<IGameplayAction>(actions),
                 conditions = new List<IGameplayCondition>(),
             };
+
+        /// <summary>带条件的选项：条件不满足时置灰保留可见（§12 待确认默认值）。</summary>
+        private static BranchOption GatedOption(string text, EBranchNext next, IGameplayCondition condition,
+            params IGameplayAction[] actions)
+        {
+            var option = Option(text, next, actions);
+            option.conditions.Add(condition);
+            return option;
+        }
 
         private static void EnsureFolder(string path)
         {

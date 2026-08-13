@@ -85,25 +85,11 @@ namespace MasterHouse
                 var spawned = GameManager.Instance.VisitorManager.GmSpawnVisitor();
                 Debug.Log(spawned != null
                     ? $"[GM] 已召唤访客：{spawned.DisplayName}（实例 {spawned.InstanceId}）"
-                    : "[GM] 召唤失败：日程表里没有配置任何种族");
+                    : "[GM] 召唤失败：日程表里没有配置任何种族或需求");
             });
-#if UNITY_EDITOR
-            // 编辑器专用：给全局仓库注入物资，供访客提交流程验收（局外测试场景与局内隔离，仓库默认为空）
-            GmButton(panel.transform, 7, "仓库物资 每种 +5（编辑器）", () =>
-            {
-                var cargo = GameManager.Instance.PlayerCargo;
-                foreach (var guid in UnityEditor.AssetDatabase.FindAssets("t:ItemDef"))
-                {
-                    var item = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemDef>(
-                        UnityEditor.AssetDatabase.GUIDToAssetPath(guid));
-                    if (item != null) cargo.Add(item, 5);
-                }
-            });
-#endif
-            // 「给服务中的访客递上仓库首项」那颗临时按钮已随需求交付页面落地删除（2026-08-12）：
-            // 提交路径现在由正式界面承担（Hub 点「服务中」的访客 → 交付页拖物品 → 确认交付）。
-
-            GmButton(panel.transform, 8, "恢复所有状态到初始态", FullReset);
+            // 「仓库物资 每种 +5」与「给服务中的访客递上仓库首项」两颗按钮已随 Item 链退役删除
+            // （需求重做说明 §9.1）：访客不再交付物品，验收走【服务中交谈】对话里的分支选项。
+            GmButton(panel.transform, 7, "恢复所有状态到初始态", FullReset);
 
             Economy.Changed += RefreshValues;
             RefreshValues();

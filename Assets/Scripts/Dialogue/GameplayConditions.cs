@@ -54,49 +54,42 @@ namespace MasterHouse
             ctx?.Visitor != null && ctx.Visitor.Satisfaction >= satisfaction;
     }
 
-    /// <summary>访客的需求里包含指定 tag（命中判定含祖先关系，见 TagDef.Covers）。用于「猜中需求」类的特殊台词。</summary>
-    [Serializable, SubclassLabel("访客/需求包含标签")]
-    public sealed class VisitorNeedsTagCondition : IGameplayCondition
+    /// <summary>
+    /// 访客所住房间里摆着他要的家具之一（需求重做说明 §6.2）——**条件类需求的验收判据**。
+    ///
+    /// 把它挂在【服务中交谈】对话组的验收选项上：房间里没有那件家具时选项置灰，
+    /// 玩家去买/去搬来任意一件之后选项即可选，选中触发【访客/完成需求结算】。
+    ///
+    /// 判定走 FurniturePlacementQuery（§6.1），所以「新买的 / 从别的房间搬来的 / 房间初始就摆着的 /
+    /// 摆在桌面上的」一律算数——客人只关心屋里有没有，不关心它怎么来的。
+    /// </summary>
+    [Serializable, SubclassLabel("访客/所住房间有需求家具")]
+    public sealed class RoomHasAnyFurnitureCondition : IGameplayCondition
     {
-        public TagDef tag;
-
-        [Tooltip("只看必要需求项（不勾则必要项与加分项都算）")]
-        public bool requiredOnly;
-
         public bool Evaluate(GameplayContext ctx)
         {
-            if (tag == null)
-            {
-                Debug.LogWarning("[对话条件] 需求包含标签：没有配置标签，判定为不通过");
-                return false;
-            }
-            if (ctx?.Visitor == null) return false;
-            foreach (var need in ctx.Visitor.Needs)
-            {
-                if (requiredOnly && !need.Required) continue;
-                if (need.Tag == tag) return true;
-            }
-            return false;
+            var visitor = ctx?.Visitor;
+            // 不是条件类需求时返回 false：小游戏类的验收走小游戏分数，不该被这条误判成通过
+            if (visitor == null || !(visitor.Need is ConditionNeedDef need)) return false;
+            return FurniturePlacementQuery.RoomHasAny(visitor.RoomIndex, need.furnitureIds);
         }
     }
 
-    /// <summary>全局仓库里某物品的存量不低于指定数量。用于「有货才给的提交选项」。</summary>
-    [Serializable, SubclassLabel("仓库/持有物品不少于")]
-    public sealed class HasItemCondition : IGameplayCondition
+    /// <summary>
+    /// 还有空客房可以分配（需求重做说明 §6.2）。挂在【初次见面】的「接待」选项上——
+    /// 三间客房住满时该选项自动置灰，玩家不会点到一个必然失败的接待。
+    /// </summary>
+    [Serializable, SubclassLabel("访客/还有空客房")]
+    public sealed class HasFreeRoomCondition : IGameplayCondition
     {
-        public ItemDef item;
-        public int count = 1;
-
-        public bool Evaluate(GameplayContext ctx)
-        {
-            if (item == null)
-            {
-                Debug.LogWarning("[对话条件] 持有物品不少于：没有配置物品，判定为不通过");
-                return false;
-            }
-            return ctx?.Cargo != null && ctx.Cargo.Get(item) >= count;
-        }
+        public bool Evaluate(GameplayContext ctx) =>
+            ctx?.VisitorManager != null && ctx.VisitorManager.HasFreeRoom;
     }
+
+    // 需求包含标签 VisitorNeedsTagCondition 与 持有物品不少于 HasItemCondition
+    // 已随 Item 链与 tag 需求体系退役（需求重做说明 §9.1）：
+    // 需求现在是一条 NeedDef 而不是一组 tag，仓库也不再是访客服务的消费出口。
+    // 「这位客人要的是不是某类东西」将来若要判定，加一条读 ctx.Visitor.Need 的条件即可。
 
     /// <summary>货币不低于指定值。</summary>
     [Serializable, SubclassLabel("经济/货币不少于")]

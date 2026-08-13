@@ -41,7 +41,7 @@ namespace MasterHouse
                 var instanceId = instance.InstanceId;
                 card.portrait.texture = Resources.Load<Texture2D>(instance.Race.GetPortraitPath());
                 // 所在房间跟着显示（四宫格拖拽换房后靠这里一眼找到人）
-                card.eventLabel.text = $"VISITOR {instance.InstanceId:00} · {RoomName(instance.RoomIndex)}";
+                card.eventLabel.text = $"VISITOR {instance.InstanceId:00} · {RoomLabel(instance)}";
                 card.guestName.text = instance.DisplayName;
                 card.status.text = StatusText(instance.State);
                 card.typeLabel.text = TypeMark(instance.State);
@@ -52,16 +52,23 @@ namespace MasterHouse
             }
         }
 
-        private static string RoomName(int roomIndex)
+        /// <summary>
+        /// 房间标注。「等待分配房间」显示「待分房」而不是「起居室」（需求重做说明 §10）——
+        /// 他人是在起居室没错，但玩家要看的是「这位还没有房间」，标成起居室会读成「已经住下了」。
+        /// </summary>
+        private static string RoomLabel(VisitorInstance instance)
         {
+            if (instance.State == EVisitorState.AwaitingRoom) return "待分房";
             var rooms = GameManager.Instance.CodexTable.rooms;
+            var roomIndex = instance.RoomIndex;
             return roomIndex >= 0 && roomIndex < rooms.Count ? rooms[roomIndex].displayName : "屋内";
         }
 
         private static string StatusText(EVisitorState state) => state switch
         {
             EVisitorState.FrontDesk => "门口等待接待 · 点击交谈",
-            EVisitorState.Serving => "服务中 · 等待递上物品",
+            EVisitorState.AwaitingRoom => "待分房 · 拖进一间空房",
+            EVisitorState.Serving => "服务中 · 点击交谈",
             EVisitorState.Wandering => "心满意足 · 屋内闲逛",
             _ => "正在离开",
         };
@@ -69,6 +76,7 @@ namespace MasterHouse
         private static string TypeMark(EVisitorState state) => state switch
         {
             EVisitorState.FrontDesk => "待",
+            EVisitorState.AwaitingRoom => "房",
             EVisitorState.Serving => "服",
             EVisitorState.Wandering => "逛",
             _ => "…",

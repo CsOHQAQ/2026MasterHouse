@@ -165,6 +165,7 @@ namespace MasterHouse.EditorTools
                 EditorGUI.indentLevel++;
                 Category(pool, "初次见面", pool.firstMeeting);
                 Category(pool, "开始等待服务", pool.serviceStart);
+                Category(pool, "服务中交谈", pool.serviceCheck);
                 Category(pool, "被拒绝", pool.rejected);
                 Category(pool, "完成服务·不对味", pool.doneMismatch);
                 Category(pool, "完成服务·一般", pool.donePlain);

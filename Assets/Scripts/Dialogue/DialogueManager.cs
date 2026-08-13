@@ -5,7 +5,8 @@ using UnityEngine;
 namespace MasterHouse
 {
     /// <summary>
-    /// 对话业务逻辑（设计说明 §3/§5/§6）：选取、播放推进、事件执行、闲逛冒泡与交付预览。
+    /// 对话业务逻辑（设计说明 §3/§5/§6）：选取、播放推进、事件执行与闲逛冒泡。
+    /// 交付预览已随 Item 链退役（需求重做说明 §9.1）。
     /// 取代占位实现 DefDialogueService，实现访客侧的 IDialogueService 接缝。
     ///
     /// 播放推进**不进 tick**：模态对话框期间 tick 本来就停了（§8 闸门），
@@ -20,7 +21,6 @@ namespace MasterHouse
         private const int FallbackRingLength = 3;
 
         private readonly DialogueTuningConfig tuning;
-        private readonly INeedPhraseBuilder needPhrase;
 
         // ── 两阶段初始化 ──
         // VisitorManager 的构造需要 IDialogueService，而本类又需要 VisitorManager——构造期存在循环依赖。
@@ -29,7 +29,6 @@ namespace MasterHouse
         private VisitorManager visitors;
         private EconomyManager economy;
         private HouseClockManager clock;
-        private PlayerCargoData cargo;
 
         public DialogueData Data { get; } = new DialogueData();
 
@@ -60,10 +59,9 @@ namespace MasterHouse
         /// <summary>闲逛台词冒泡（场景气泡，不碰闸门、不走模态）。</summary>
         public event Action<VisitorInstance, string> BubbleRequested;
 
-        public DialogueManager(DialogueTuningConfig tuning, INeedPhraseBuilder needPhrase = null)
+        public DialogueManager(DialogueTuningConfig tuning)
         {
             this.tuning = tuning;
-            this.needPhrase = needPhrase ?? new DefaultNeedPhraseBuilder();
             if (tuning == null)
                 Debug.LogError("[对话] 调参配置缺失（Resources/OutGameUI/DialogueTuningConfig）：" +
                                "已按默认值运行（打字机 30 字/秒、recent 环长 3）。" +
@@ -71,12 +69,16 @@ namespace MasterHouse
         }
 
         /// <summary>第二阶段初始化（见字段区注释）。GameManager 在造完 VisitorManager 之后调用一次。</summary>
+        /// <param name="cargo">
+        /// 全局仓库。**已不再被消费**——GameplayContext.Cargo 随 Item 链退役删除（需求重做说明 §9.1）。
+        /// 参数保留是因为 §9.2 要求 PlayerCargo 的构造与传参不动，等 NodeSim 包一起清理；
+        /// 不再存成字段，免得留一个永远读不到的死引用。
+        /// </param>
         public void Bind(VisitorManager visitors, EconomyManager economy, HouseClockManager clock, PlayerCargoData cargo)
         {
             this.visitors = visitors;
             this.economy = economy;
             this.clock = clock;
-            this.cargo = cargo;
         }
 
         // ══════════ 对外查询（View 只读，§11.4）══════════
@@ -102,7 +104,7 @@ namespace MasterHouse
             get
             {
                 var line = CurrentLine;
-                return line != null ? DialogueTextFormatter.Format(line.text, runtime.Context, needPhrase) : string.Empty;
+                return line != null ? DialogueTextFormatter.Format(line.text, runtime.Context) : string.Empty;
             }
         }
 
@@ -125,11 +127,11 @@ namespace MasterHouse
 
         /// <summary>选项文本的成文（已替换占位符）。</summary>
         public string FormatOptionText(BranchOption option) =>
-            option != null ? DialogueTextFormatter.Format(option.text, runtime?.Context, needPhrase) : string.Empty;
+            option != null ? DialogueTextFormatter.Format(option.text, runtime?.Context) : string.Empty;
 
-        /// <summary>需求短语（§9）：任务卡等 UI 展示需求时共用同一套组装规则。</summary>
+        /// <summary>需求描述（§9 / 需求重做说明 §9.1）：现在就是 NeedDef.description，UI 与台词共用同一份文本。</summary>
         public string BuildNeedPhrase(VisitorInstance visitor) =>
-            visitor != null ? needPhrase.Build(visitor.Needs) : string.Empty;
+            visitor != null ? visitor.BuildNeedSentence() : string.Empty;
 
         // ══════════ 访客 → 对话（IDialogueService，§7 五触发点）══════════
 
@@ -228,40 +230,6 @@ namespace MasterHouse
             }
             // 注意：不 MarkPlayed（中断视为没播过，下次仍可能抽到这一组）
             AfterPlayback(uiAlreadyClosed: true);
-        }
-
-        // ══════════ 交付预览（§7，调用方 = 需求交付页面）══════════
-
-        /// <summary>
-        /// 交付预览单句（§6 / §7）：物品放入交付框时的即时反应，**绝不结算**——
-        /// 池里存的是单句而非对话组，从类型上就挂不了事件与分支。
-        ///
-        /// 种子与其它触发点不同：Hash(runSeed, 实例Id, 物品, 档位)，**不含请求序号**——
-        /// 这样同一件物品反复拖入拖出，反应稳定不闪烁（§6）。预览不参与 recent。
-        ///
-        /// 调用方是「需求交付页面」（DeliveryOverlay，2026-08-12 落地）：
-        /// 档位由 `VisitorManager.Preview` 试算，与确认交付后的实际结算共用同一份 Evaluate。
-        /// </summary>
-        public string PreviewLine(VisitorInstance visitor, ItemDef item, EServeSatisfaction satisfaction)
-        {
-            if (visitor == null || item == null) return string.Empty;
-            var pool = PoolOf(visitor);
-            if (pool == null) return string.Empty;
-            var lines = pool.PreviewFor(satisfaction);
-            if (lines == null || lines.Count == 0)
-            {
-                Debug.LogError($"[对话] 种族「{RaceNameOf(visitor)}」缺少「交付预览·{ServeSatisfactionText.NameOf(satisfaction)}」单句，" +
-                               "预览无内容（不阻塞交付流程）");
-                return string.Empty;
-            }
-            var seed = DeterministicRng.Hash(RunSeed, visitor.InstanceId,
-                DeterministicRng.HashString(item.name), (int)satisfaction);
-            var rng = new DeterministicRng(seed);
-            var line = lines[rng.Range(0, lines.Count)];
-            if (line == null) return string.Empty;
-            var ctx = BuildContext(visitor);
-            ctx.PreviewItem = item; // 让预览单句里的 {物品名} 指向交付框里这件（还没提交，SubmittedItem 是空的）
-            return DialogueTextFormatter.Format(line.text, ctx, needPhrase);
         }
 
         // ══════════ 生命周期 ══════════
@@ -519,7 +487,7 @@ namespace MasterHouse
 
             Data.MarkPlayed(categoryKey, group, RingLength);
             var ctx = BuildContext(visitor);
-            BubbleRequested?.Invoke(visitor, DialogueTextFormatter.Format(line.text, ctx, needPhrase));
+            BubbleRequested?.Invoke(visitor, DialogueTextFormatter.Format(line.text, ctx));
         }
 
         // ══════════ 内部：事件与条件 ══════════
@@ -584,7 +552,6 @@ namespace MasterHouse
             VisitorManager = visitors,
             Economy = economy,
             Clock = clock,
-            Cargo = cargo,
             Visitor = visitor,
         };
 

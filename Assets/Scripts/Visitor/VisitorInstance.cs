@@ -1,21 +1,28 @@
-using System.Collections.Generic;
-
 namespace MasterHouse
 {
     /// <summary>
-    /// 访客生命周期状态（访客交付说明 §5）。到场前的「日程未到点」不建实例（由日程游标表达），
+    /// 访客生命周期状态（访客交付说明 §5 + 需求重做说明 §4.4/§5.3）。到场前的「日程未到点」不建实例（由日程游标表达），
     /// 离场即从在场列表移除，Departed 仅作为移除瞬间的终态标记。
+    ///
+    /// **枚举值必须显式赋值且新增只能追加**——存档接缝 VisitorInstanceSaveData.state 存的是 (int)State，
+    /// 改动已有值会静默错乱（§4.4）。
     /// </summary>
     public enum EVisitorState
     {
-        /// <summary>前台等待接待：日程到点进场后站在前台，等玩家搭话/接待，超时按被拒绝口径离开。</summary>
+        /// <summary>前台等待接待：日程到点进场后站在起居室入口区排队，等玩家搭话/接待，超时按被拒绝口径离开。</summary>
         FrontDesk = 0,
-        /// <summary>服务中：接待成功进入房间，等玩家提交物品；一次性、不可补交、不可重入。</summary>
+        /// <summary>服务中：已入住某间客房，等需求被满足；房间被占，**服务中锁房**（不可拖走，§5.2）。</summary>
         Serving = 1,
-        /// <summary>闲逛：服务满意后在屋内游走冒泡，累计达种族上限自行离开；打烊时可 roll 跨天留宿。</summary>
+        /// <summary>闲逛：服务完成后在自己房间游走冒泡，**房间仍被占**；累计达种族上限自行离开，打烊时可 roll 跨天留宿。</summary>
         Wandering = 2,
         /// <summary>已离场（终态标记；实例同时从在场列表移除）。</summary>
         Departed = 3,
+        /// <summary>
+        /// 等待分配房间：已接待、仍站在起居室入口区，等玩家把他拖进一间空客房（需求重做说明 §5.3）。
+        /// **需求此时尚未透露**——【初次见面】只负责打招呼与接待/拒绝，进房后才播【开始等待服务】说出需求。
+        /// 「先盲选房、进房后才说需求」是硬要求，别把需求提前泄给玩家。
+        /// </summary>
+        AwaitingRoom = 4,
     }
 
     /// <summary>服务满意度四档（访客交付说明 §4.7）。</summary>
@@ -35,12 +42,8 @@ namespace MasterHouse
         public static string NameOf(EServeSatisfaction satisfaction) => Names[(int)satisfaction];
     }
 
-    /// <summary>需求项（§4.6）：tag + 是否必要。</summary>
-    public struct VisitorNeed
-    {
-        public TagDef Tag;
-        public bool Required;
-    }
+    // 需求项 VisitorNeed（tag + 是否必要）已随 tag 需求体系退役（需求重做说明 §9.1）。
+    // 现在一位访客只带一条 NeedDef，来自日程条目、零随机。
 
     /// <summary>
     /// 运行时访客实例（访客交付说明 §4.6）。只能由 VisitorManager 修改（§11.4）。
@@ -65,20 +68,22 @@ namespace MasterHouse
         public long StateEnterTick;
 
         /// <summary>
-        /// 当前所在房间（Hub 四宫格下标，0 = 起居室/门厅）。进场默认 0；
-        /// 玩家在 Hub 场景把访客拖到其他房间时经 VisitorManager.MoveVisitorToRoom 修改（2026-08-13）。
-        /// 纯位置信息，不参与超时/评分等业务判定。
+        /// **所住房间**（Hub 四宫格下标，0 = 起居室 = 大堂，不可分配为客房；1~3 为客房）。
+        /// 进场默认 0；玩家把访客从「等待分配房间」拖进空客房时经 VisitorManager.MoveVisitorToRoom 落定。
+        ///
+        /// 2026-08-13 需求重做起，本字段从「纯位置信息」升级为**业务真相**：
+        /// 条件类需求的判定依据就是「这个房间里有没有那件家具」（§5/§6），一房一客的占用校验也读它。
         /// </summary>
         public int RoomIndex;
 
-        /// <summary>需求项列表（roll 顺序即派生随机流顺序，天然稳定）。</summary>
-        public readonly List<VisitorNeed> Needs = new List<VisitorNeed>();
+        /// <summary>
+        /// 本次拜访的需求（来自日程条目，零随机；需求重做说明 §4.2/§4.3）。
+        /// 为空的日程条目在投放时就被 LogError 拦下，所以在场实例上这一格恒非空。
+        /// </summary>
+        public NeedDef Need;
 
-        /// <summary>满意度（Submit 结算之后有效）。</summary>
+        /// <summary>满意度（CompleteNeed 结算之后有效）。</summary>
         public EServeSatisfaction Satisfaction;
-
-        /// <summary>提交的物品（结算展示与日志用）。</summary>
-        public ItemDef SubmittedItem;
 
         /// <summary>下次闲逛冒泡的业务 tick（0 = 未排程）。</summary>
         public long NextBubbleTick;
@@ -88,22 +93,15 @@ namespace MasterHouse
 
         public string DisplayName => Race != null ? Race.displayName : "访客";
 
-        /// <summary>无外部注入时共用的默认短语组装器（无状态，线程无关）。</summary>
-        private static readonly INeedPhraseBuilder DefaultPhraseBuilder = new DefaultNeedPhraseBuilder();
-
         /// <summary>
-        /// 程序化需求句：任务卡等 UI 直接展示需求时用。
+        /// 需求句：任务卡等 UI 直接展示需求时用。
         ///
-        /// 组装规则已于 2026-08-12 收进对话系统的 INeedPhraseBuilder（对话设计说明 §9），本方法只是薄壳。
-        /// 与访客重做期的旧规则有两处不同，以 §9 为准：
-        ///   ①「甜的、软的食物」而不是把每项平铺（形容词修饰中心名词，中心词取树最深的名词）；
-        ///   ② **不再标注「（加分）」**——那是评分规则，写进台词等于给玩家漏答案。
-        /// 台词里要说需求请用占位符 {需求}（§9），不要绕道调本方法。
+        /// 现在就是**直接取 NeedDef.description**——那句话由策划在需求资产里写死
+        /// （需求重做说明 §4.3）。基于 tag 森林的程序化造句器 INeedPhraseBuilder 已随 Item 链退役（§9.1）：
+        /// 需求不再是一组 tag，没有可组装的东西了。
+        ///
+        /// 薄壳保留是为了不动调用点。台词里要说需求请用占位符 {需求}，不要绕道调本方法。
         /// </summary>
-        public string BuildNeedSentence(INeedPhraseBuilder builder = null)
-        {
-            var phrase = (builder ?? DefaultPhraseBuilder).Build(Needs);
-            return string.IsNullOrEmpty(phrase) ? "我随便看看就好。" : $"我想要{phrase}。";
-        }
+        public string BuildNeedSentence() => Need != null ? Need.description : string.Empty;
     }
 }

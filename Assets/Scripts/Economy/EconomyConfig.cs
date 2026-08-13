@@ -33,10 +33,13 @@ namespace MasterHouse
         [Tooltip("满意")] public SatisfactionReward rewardSatisfied = new SatisfactionReward();
         [Tooltip("完美")] public SatisfactionReward rewardPerfect = new SatisfactionReward();
 
-        [Header("评分阈值（§6.2）")]
-        [Range(1, 100)]
-        [Tooltip("阈值A：加分项命中比例（%）≥ 此值为「满意」，低于为「一般」；全命中为「完美」")]
-        public int satisfactionThresholdPercent = 60;
+        [Header("离场基础金钱（需求重做说明 §8）")]
+        // 待确认 #1：配置位置与数值。**默认实现**为全局单值，暂定与单次服务奖励同量级；
+        // 策划实测后若需按种族差异化，再迁到 VisitorRaceDef。
+        // 这笔钱是新模型下「不会陷入没钱死循环」的保证：所有业务访客离场都留下它，
+        // **包括被拒绝与超时流失的**——未满足需求只是拿不到额外奖励，不扣钱。
+        [Tooltip("访客离场时留下的基础货币（成功/拒绝/超时三条路径通用）")]
+        public int guestLeaveTip = 320;
 
         [Header("声望去处（拒绝分两档，交付页落地说明 §5.2）")]
         // 访谈定案：接待后反悔比在前台谢客更失礼，扣得更多。两段超时按**超时发生时所处状态**取档

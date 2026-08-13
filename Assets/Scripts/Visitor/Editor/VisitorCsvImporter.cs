@@ -15,8 +15,8 @@ namespace MasterHouse.EditorTools
     ///   种族 → VisitorRaces/Race_&lt;raceId&gt;.asset（缺则新建，多余的资产保留并告警）
     ///   日程 → VisitorScheduleTable.asset（整表重建；§4.4 重排会改需求 roll，加内容请追加在 Excel 表尾）
     ///   调参/氛围 → VisitorTuningConfig.asset
-    /// 引用列写法：需求权重「标签*权重[*必]」以 / 分隔（标签可写显示名或 id）；
-    /// 立绘差分「表情=Resources路径」以 / 分隔（表情写中文名，如 平静/高兴）；对话池写资产名（如 Pool_fox）。
+    /// 引用列写法：立绘差分「表情=Resources路径」以 / 分隔（表情写中文名，如 平静/高兴）；
+    /// 对话池与日程的「需求」列写资产名（如 Pool_fox / Need_lamp）。
     /// </summary>
     public static class VisitorCsvImporter
     {
@@ -102,7 +102,6 @@ namespace MasterHouse.EditorTools
         {
             var rows = ReadCsv(RaceCsvPath, out var col);
             var existing = LoadAll<VisitorRaceDef>();
-            var tags = LoadAll<TagDef>();
             var pools = LoadAll<DialoguePoolDef>();
             var seen = new HashSet<string>();
 
@@ -136,9 +135,6 @@ namespace MasterHouse.EditorTools
                 race.waitDeliverTimeoutTicks = Int(row, col, "等交货超时tick", race.waitDeliverTimeoutTicks);
                 race.wanderMaxTicks = Int(row, col, "闲逛上限tick", race.wanderMaxTicks);
                 race.stayOvernightPercent = Int(row, col, "跨天留宿概率%", race.stayOvernightPercent);
-                race.needTagWeights = ParseNeedWeights(Cell(row, col, "需求权重"), tags, raceId);
-                race.needCountMin = Int(row, col, "需求数下限", 1);
-                race.needCountMax = Int(row, col, "需求数上限", race.needCountMin);
                 race.portraits = ParsePortraits(Cell(row, col, "立绘差分"), raceId);
                 race.sheetPath = Cell(row, col, "序列帧");
                 race.dialoguePool = ResolveByAssetName(pools, Cell(row, col, "对话池"), raceId, "对话池");
@@ -149,36 +145,6 @@ namespace MasterHouse.EditorTools
                 if (!seen.Contains(race.raceId))
                     Debug.LogWarning($"[导表] 种族资产「{race.raceId}」不在 CSV 里：资产保留未动（若要删除请手动删资产并同步日程表）");
             return seen.Count;
-        }
-
-        /// <summary>解析需求权重「标签*权重[*必]」以 / 分隔；标签可写显示名或 id。</summary>
-        private static List<NeedTagWeight> ParseNeedWeights(string text, List<TagDef> tags, string raceId)
-        {
-            var result = new List<NeedTagWeight>();
-            if (string.IsNullOrEmpty(text)) return result;
-            foreach (var token in text.Split('/', '、'))
-            {
-                if (string.IsNullOrWhiteSpace(token)) continue;
-                var parts = token.Trim().Split('*', '×');
-                var tagName = parts[0].Trim();
-                var tag = tags.Find(t => t.displayName == tagName || t.id == tagName);
-                if (tag == null)
-                {
-                    Debug.LogWarning($"[导表] 种族「{raceId}」需求权重引用了不存在的标签「{tagName}」，该项已跳过" +
-                                     "（标签写 TagDef 的显示名或 id）");
-                    continue;
-                }
-                var weight = parts.Length > 1 && int.TryParse(parts[1].Trim(), out var w) ? w : 1;
-                var required = false;
-                for (var i = 2; i < parts.Length; i++)
-                {
-                    var flag = parts[i].Trim();
-                    if (flag == "必" || flag == "必要" || flag.Equals("required", StringComparison.OrdinalIgnoreCase))
-                        required = true;
-                }
-                result.Add(new NeedTagWeight { tag = tag, weight = weight, required = required });
-            }
-            return result;
         }
 
         /// <summary>解析立绘差分「表情=Resources路径」以 / 分隔；表情写中文名（平静/高兴/困惑/失望/惊讶）或枚举名。</summary>
@@ -220,6 +186,7 @@ namespace MasterHouse.EditorTools
             var table = LoadOrCreate<VisitorScheduleTable>(ScheduleAssetPath);
             var races = LoadAll<VisitorRaceDef>();
             var named = LoadAll<NamedVisitorDef>();
+            var needs = LoadAll<NeedDef>();
             table.entries.Clear();
             foreach (var row in rows)
             {
@@ -235,6 +202,10 @@ namespace MasterHouse.EditorTools
                     day = Int(row, col, "天", 1),
                     appearMinute = Int(row, col, "出现时刻(分钟)", 9 * 60),
                     race = race,
+                    // 需求写 NeedDef 的资产名（同「对话池」列写 Pool_fox 的做法，§4.2）。
+                    // 已知代价：改资产名即断引用且无法「查找引用」，这是 Excel 引用 SO 的固有问题，接受。
+                    // 解析失败只打 Warning 不中断——空需求的后果由运行时的 LogError 指名行号报出
+                    need = ResolveByAssetName(needs, Cell(row, col, "需求"), raceName, "需求"),
                     namedOverride = ResolveByAssetName(named, Cell(row, col, "具名覆写"), raceName, "具名覆写"),
                 });
             }
@@ -298,21 +269,16 @@ namespace MasterHouse.EditorTools
             var lines = new List<string>
             {
                 Line("种族id", "显示名", "等搭话超时tick", "等交货超时tick", "闲逛上限tick", "跨天留宿概率%",
-                    "需求权重", "需求数下限", "需求数上限", "立绘差分", "序列帧", "对话池"),
+                    "立绘差分", "序列帧", "对话池"),
             };
             foreach (var race in LoadAll<VisitorRaceDef>())
             {
-                var weights = new List<string>();
-                foreach (var entry in race.needTagWeights)
-                    if (entry != null && entry.tag != null)
-                        weights.Add($"{entry.tag.displayName}*{entry.weight}" + (entry.required ? "*必" : ""));
                 var portraits = new List<string>();
                 foreach (var entry in race.portraits)
                     if (entry != null)
                         portraits.Add($"{DialogueEmotionText.NameOf(entry.expression)}={entry.portraitPath}");
                 lines.Add(Line(race.raceId, race.displayName, race.waitTalkTimeoutTicks, race.waitDeliverTimeoutTicks,
-                    race.wanderMaxTicks, race.stayOvernightPercent, string.Join("/", weights),
-                    race.needCountMin, race.needCountMax, string.Join("/", portraits), race.sheetPath,
+                    race.wanderMaxTicks, race.stayOvernightPercent, string.Join("/", portraits), race.sheetPath,
                     race.dialoguePool != null ? race.dialoguePool.name : ""));
             }
             WriteCsv(RaceCsvPath, lines);
@@ -320,12 +286,13 @@ namespace MasterHouse.EditorTools
 
         private static void ExportScheduleCsv()
         {
-            var lines = new List<string> { Line("天", "出现时刻(分钟)", "种族id", "具名覆写") };
+            var lines = new List<string> { Line("天", "出现时刻(分钟)", "种族id", "需求", "具名覆写") };
             var table = AssetDatabase.LoadAssetAtPath<VisitorScheduleTable>(ScheduleAssetPath);
             if (table != null)
                 foreach (var entry in table.entries)
                     lines.Add(Line(entry.day, entry.appearMinute,
                         entry.race != null ? entry.race.raceId : "",
+                        entry.need != null ? entry.need.name : "",
                         entry.namedOverride != null ? entry.namedOverride.name : ""));
             WriteCsv(ScheduleCsvPath, lines);
         }

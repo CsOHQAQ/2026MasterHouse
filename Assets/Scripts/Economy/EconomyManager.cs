@@ -75,11 +75,24 @@ namespace MasterHouse
         /// <summary>服务中拒绝的声望惩罚（已接待后反悔 / 等交货超时，§5.2）。交付页按钮上要写明这个数。</summary>
         public int ServiceFailedReputationPenalty => config.serviceFailedReputationPenalty;
 
-        /// <summary>评分阈值A（§6.2）：加分项命中比例分档用，供 VisitorManager 读取。</summary>
-        public int SatisfactionThresholdPercent => config.satisfactionThresholdPercent;
-
         /// <summary>按满意度档取奖励配置（UI 预览展示用）。</summary>
         public SatisfactionReward RewardFor(EServeSatisfaction satisfaction) => config.RewardFor(satisfaction);
+
+        /// <summary>
+        /// 货币来源：访客离场时留下的基础金钱（需求重做说明 §8）。
+        /// **所有业务访客都给，包括被拒绝与超时流失的**——这是新模型下「不会陷入没钱死循环」的保证，
+        /// 未满足需求只是拿不到 CompleteGuestService 的额外奖励，不扣钱。
+        /// 返回实际入账值（0 表示策划把这项配成了 0，调用方不必再发反馈）。
+        /// </summary>
+        public int GuestLeaveTip()
+        {
+            var amount = Mathf.Max(0, config.guestLeaveTip);
+            if (amount == 0) return 0;
+            Data.Currency += amount;
+            RaiseChanged();
+            Feedback?.Invoke(EEconomyFeedback.CurrencyGain);
+            return amount;
+        }
 
         /// <summary>货币+声望来源：完成一次客人服务，按满意度四档结算（§6.2）。返回实际入账值（结算文案用）。</summary>
         public (int currency, int reputation) CompleteGuestService(EServeSatisfaction satisfaction)

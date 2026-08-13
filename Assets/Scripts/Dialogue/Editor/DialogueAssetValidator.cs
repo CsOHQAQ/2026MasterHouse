@@ -87,17 +87,13 @@ namespace MasterHouse.EditorTools
             var name = pool.name;
             Category(issues, pool, name, "初次见面", pool.firstMeeting);
             Category(issues, pool, name, "开始等待服务", pool.serviceStart);
+            Category(issues, pool, name, "服务中交谈", pool.serviceCheck);
             Category(issues, pool, name, "被拒绝", pool.rejected);
             Category(issues, pool, name, "完成服务·不对味", pool.doneMismatch);
             Category(issues, pool, name, "完成服务·一般", pool.donePlain);
             Category(issues, pool, name, "完成服务·满意", pool.doneSatisfied);
             Category(issues, pool, name, "完成服务·完美", pool.donePerfect);
             Category(issues, pool, name, "满意后闲逛", pool.wanderChat);
-
-            Preview(issues, pool, name, "不对味", pool.previewMismatch);
-            Preview(issues, pool, name, "一般", pool.previewPlain);
-            Preview(issues, pool, name, "满意", pool.previewSatisfied);
-            Preview(issues, pool, name, "完美", pool.previewPerfect);
 
             // 闲逛组的内容形态另有约束：气泡只显示第一条台词
             foreach (var entry in pool.wanderChat)
@@ -134,20 +130,6 @@ namespace MasterHouse.EditorTools
             if (usable == 0)
                 Warn(issues, context, $"对话池「{poolName}」·「{categoryName}」里每一条都带条件——" +
                                       "条件同时不满足时该分类会没有候选，建议至少留一条无条件的兜底");
-        }
-
-        private static void Preview(List<DialogueIssue> issues, Object context, string poolName,
-            string tier, List<DialogueLine> lines)
-        {
-            if (lines == null || lines.Count == 0)
-            {
-                // 交付页面还没落地（§7 外部依赖），预览缺内容不该拦住任何人
-                Warn(issues, context, $"对话池「{poolName}」的「交付预览·{tier}」是空的（交付页面就位后需要补）");
-                return;
-            }
-            for (var i = 0; i < lines.Count; i++)
-                if (lines[i] == null || string.IsNullOrWhiteSpace(lines[i].text))
-                    Warn(issues, context, $"对话池「{poolName}」·「交付预览·{tier}」第 {i} 行是空台词");
         }
 
         // ══════════ 对话组 ══════════

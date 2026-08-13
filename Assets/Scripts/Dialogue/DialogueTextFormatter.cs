@@ -10,36 +10,31 @@ namespace MasterHouse
     {
         public const string TokenNeed = "{需求}";
         public const string TokenVisitorName = "{访客名}";
-        public const string TokenItemName = "{物品名}";
 
         /// <summary>
-        /// 替换占位符。text 为空或不含任何占位符时原样返回（不含时连需求短语都不组装，省掉无谓开销）。
+        /// 替换占位符。text 为空或不含任何占位符时原样返回。
         /// 未知占位符**原样保留**——策划一眼能在游戏里看见自己写错了，比静默吞掉好。
         /// </summary>
-        public static string Format(string text, GameplayContext ctx, INeedPhraseBuilder needPhrase)
+        public static string Format(string text, GameplayContext ctx)
         {
             if (string.IsNullOrEmpty(text)) return text;
             var visitor = ctx != null ? ctx.Visitor : null;
 
             if (text.Contains(TokenNeed))
             {
-                var phrase = visitor != null && needPhrase != null ? needPhrase.Build(visitor.Needs) : string.Empty;
-                if (string.IsNullOrEmpty(phrase)) phrase = "点什么";
+                // {需求} 现在**直接取 NeedDef.description**（需求重做说明 §9.1）：需求是策划写死的一句话，
+                // 不再是一组 tag，基于 tag 森林的造句器 INeedPhraseBuilder 已随之退役。
+                // 需求资产漏填描述时回落一句中性的，不让台词渲染成半句话（校验器会报错指名是哪条）
+                var phrase = visitor != null && visitor.Need != null ? visitor.Need.description : string.Empty;
+                if (string.IsNullOrWhiteSpace(phrase)) phrase = "有点事想麻烦你";
                 text = text.Replace(TokenNeed, phrase);
             }
 
             if (text.Contains(TokenVisitorName))
                 text = text.Replace(TokenVisitorName, visitor != null ? visitor.DisplayName : "访客");
 
-            if (text.Contains(TokenItemName))
-            {
-                // 预览候选优先于已提交物品：交付预览发生在 Submit 之前，那时 SubmittedItem 还是空的
-                // （见 GameplayContext.PreviewItem 注释）。两者都没有时才回落「这个」。
-                var item = ctx != null && ctx.PreviewItem != null
-                    ? ctx.PreviewItem
-                    : visitor != null ? visitor.SubmittedItem : null;
-                text = text.Replace(TokenItemName, item != null ? item.DisplayName : "这个");
-            }
+            // {物品名} 已随 Item 链退役删除（§9.1）：访客不再交付物品，没有「那件东西」可指。
+            // 写了这个占位符的老台词会原样显示出来，正好提示策划去改。
 
             return text;
         }

@@ -23,11 +23,16 @@ namespace MasterHouse
     // ══════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// 接待访客：前台等待中的访客进入「服务中」（设计说明 §7 → VisitorManager.Accept）。
-    /// 注意 Accept 内部会请求【开始等待服务】对话——那条请求会被 DialogueManager 排进待播队列，
-    /// 等当前这段对话播完再开，不会打断正在进行的播放。
+    /// 接待访客：前台等待中的访客进入「等待分配房间」（需求重做说明 §5.3 → VisitorManager.Accept）。
+    ///
+    /// 语义已于 2026-08-13 从「进入服务中」改为「进入等待分配房间」——**接待这一步不说需求**。
+    /// 需求要等玩家把客人拖进一间空客房、进屋之后才由 MoveVisitorToRoom 播【开始等待服务】说出来
+    /// （「先盲选房、进房后才说需求」是硬要求）。类名没动，所以不需要 [MovedFrom]。
+    ///
+    /// 满房时 Accept 返回 false。给这个事件所在的选项挂上【访客/还有空客房】条件，
+    /// 满房时选项会自动置灰，玩家不会点到一个无效选项（§6.2）。
     /// </summary>
-    [Serializable, SubclassLabel("访客/接待（进入服务中）")]
+    [Serializable, SubclassLabel("访客/接待（进入等待分配房间）")]
     public sealed class AcceptVisitorAction : GameplayActionBase
     {
         public override void Execute(GameplayContext ctx)
@@ -39,13 +44,14 @@ namespace MasterHouse
             }
             // 合法性校验在 VisitorManager 内，状态不对返回 false 而不是抛异常（§7 契约）
             if (!ctx.VisitorManager.Accept(ctx.VisitorInstanceId))
-                Debug.LogWarning($"[对话事件] 接待未生效：实例 {ctx.VisitorInstanceId} 不在「前台等待接待」状态");
+                Debug.LogWarning($"[对话事件] 接待未生效：实例 {ctx.VisitorInstanceId} 不在「前台等待接待」状态，或客房已住满");
         }
     }
 
     /// <summary>
     /// 拒绝访客：按拒绝口径结算声望并让访客离场（§7 → VisitorManager.Reject）。
-    /// 前台等待与服务中两个状态都可用（打烊后玩家必须能手动清场，访客交付说明 §5）。
+    /// 前台等待 / 等待分配房间 / 服务中三个状态都可用（打烊后玩家必须能手动清场，需求重做说明 §5.3）。
+    /// 声望分两档：已接待过的（待分房、服务中）比在前台谢客扣得更多。
     /// </summary>
     [Serializable, SubclassLabel("访客/拒绝")]
     public sealed class RejectVisitorAction : GameplayActionBase
@@ -63,32 +69,59 @@ namespace MasterHouse
     }
 
     /// <summary>
-    /// 提交指定物品并结算（§7 → VisitorManager.Submit）。
-    /// 服务一次性、不可补交——提交一次即定生死，交错了照样扣物品（访客交付说明 §5）。
-    /// 物品在此处由策划写死；玩家自选物品的交付走「需求交付页面」，那是另一份落地文档的范围（§7 外部依赖）。
+    /// 完成需求结算（需求重做说明 §6.2/§6.3 → VisitorManager.CompleteNeed）：
+    /// 记账 → 播【完成服务·档位】→ 转闲逛。取代了随 Item 链退役的「提交物品」。
+    ///
+    /// **条件类固定判「完美」**（用户定案 §6.3）：条件类是布尔判定，没有中间档可分。
+    /// 小游戏类将来由小游戏框架按分数调 CompleteNeed 传对应档位，不走这个事件。
+    ///
+    /// 属奖励类事件（IRewardAction），受 §5.3 铁律②约束：**只允许放在对话组末尾或分支选项上**。
+    /// 放中途 + 玩家 ESC = 反复领取；校验器会对放错位置给警告。
+    ///
+    /// 配套条件：把【访客/所住房间有需求家具】挂在同一个选项上，否则玩家不满足需求也能点。
     /// </summary>
-    [Serializable, SubclassLabel("访客/提交指定物品")]
-    public sealed class SubmitItemAction : GameplayActionBase
+    [Serializable, SubclassLabel("访客/完成需求结算")]
+    public sealed class CompleteNeedAction : GameplayActionBase, IRewardAction
     {
-        [Tooltip("要提交的物品；仓库无货时提交失败（不存在的东西交不出去）")]
-        public ItemDef item;
+        [Tooltip("结算档位。条件类需求固定用「完美」；其余档位留给小游戏类按分数定档（§6.3）")]
+        public EServeSatisfaction satisfaction = EServeSatisfaction.Perfect;
 
         public override void Execute(GameplayContext ctx)
         {
             if (ctx?.VisitorManager == null)
             {
-                Debug.LogWarning("[对话事件] 提交物品：上下文缺 VisitorManager，已跳过");
+                Debug.LogWarning("[对话事件] 完成需求结算：上下文缺 VisitorManager，已跳过");
                 return;
             }
-            if (item == null)
-            {
-                Debug.LogError("[对话事件] 提交物品：没有配置物品（该事件未填 item），已跳过");
-                return;
-            }
-            if (!ctx.VisitorManager.Submit(ctx.VisitorInstanceId, item))
-                Debug.LogWarning($"[对话事件] 提交未生效：实例 {ctx.VisitorInstanceId} 不在「服务中」，或仓库里没有「{item.DisplayName}」");
+            if (!ctx.VisitorManager.CompleteNeed(ctx.VisitorInstanceId, satisfaction))
+                Debug.LogWarning($"[对话事件] 完成需求结算未生效：实例 {ctx.VisitorInstanceId} 不在「服务中」");
         }
     }
+
+    /// <summary>
+    /// 开始小游戏（需求重做说明 §6.2/§7）——**本包占位，不改变任何业务状态**。
+    ///
+    /// 小游戏框架尚未设计（另开专题）。这里刻意只打日志 + 提示，
+    /// **不为它预建接口、注册表或任何抽象**（§15.3「不预设抽象、不建没有调用方的接缝」）：
+    /// 等框架定案时，把这个 Execute 的实现换掉即可，策划已配的对话数据一行不用动。
+    ///
+    /// 过渡期后果是明示的：小游戏类需求的访客只能走「拒绝」或「等交货超时」离场，验收时不算 bug（§7）。
+    /// </summary>
+    [Serializable, SubclassLabel("访客/开始小游戏（尚未接入）")]
+    public sealed class StartMinigameAction : GameplayActionBase
+    {
+        public override void Execute(GameplayContext ctx)
+        {
+            var who = ctx?.Visitor != null ? ctx.Visitor.DisplayName : "访客";
+            Debug.LogWarning($"[对话事件] 开始小游戏：小游戏框架尚未接入（{who}），本次什么都没发生（§7 明示的过渡态）");
+            // 不用 ?. ——Unity 的「已销毁但引用非 null」要靠重载的 == 才判得出来
+            var ui = HouseUIManager.Instance;
+            if (ui != null) ui.ShowToast("小游戏尚未接入");
+        }
+    }
+
+    // 提交指定物品 SubmitItemAction 已随 Item 链退役（需求重做说明 §9.1）：
+    // 访客不再交付物品，验收改走【访客/完成需求结算】。
 
     /// <summary>
     /// 增减货币（§5.3 铁律②：只放在对话组末尾或分支选项上）。
@@ -129,33 +162,8 @@ namespace MasterHouse
         }
     }
 
-    /// <summary>
-    /// 发放物品到全局仓库（PlayerCargoData）。访客的伴手礼、剧情奖励等用它。
-    /// 同样受铁律②约束：只放在对话组末尾或分支选项上。
-    /// </summary>
-    [Serializable, SubclassLabel("经济/发放物品")]
-    public sealed class GrantItemAction : GameplayActionBase, IRewardAction
-    {
-        public ItemDef item;
-
-        [Tooltip("数量（≤0 视为配置错误，跳过并报错）")]
-        public int count = 1;
-
-        public override void Execute(GameplayContext ctx)
-        {
-            if (ctx?.Cargo == null)
-            {
-                Debug.LogWarning("[对话事件] 发放物品：上下文缺 PlayerCargo，已跳过");
-                return;
-            }
-            if (item == null || count <= 0)
-            {
-                Debug.LogError($"[对话事件] 发放物品：配置无效（item={(item != null ? item.DisplayName : "空")} count={count}），已跳过");
-                return;
-            }
-            ctx.Cargo.Add(item, count);
-        }
-    }
+    // 发放物品 GrantItemAction 已随 Item 链退役（§9.1）：局外侧没有物品的消费出口了，
+    // 发出去也只能躺在仓库里。伴手礼这类奖励暂用【经济/增减货币】表达。
 
     /// <summary>
     /// 往 Console 打一条日志。给策划自查分支走向用（「这条分支到底进没进来」），不影响任何业务。
