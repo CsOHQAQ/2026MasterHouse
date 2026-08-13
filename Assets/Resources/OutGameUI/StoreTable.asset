@@ -13,123 +13,377 @@ MonoBehaviour:
   m_Name: StoreTable
   m_EditorClassIdentifier: 
   entries:
-  - furnitureId: 002
+  - furnitureId: table_lamp_01
+    price: 150
+    unlockReputation: 0
+  - furnitureId: table_lamp_02
+    price: 150
+    unlockReputation: 0
+  - furnitureId: table_lamp_03
+    price: 150
+    unlockReputation: 0
+  - furnitureId: table_lamp_04
+    price: 150
+    unlockReputation: 0
+  - furnitureId: table_lamp_05
+    price: 150
+    unlockReputation: 0
+  - furnitureId: table_lamp_06
+    price: 150
+    unlockReputation: 0
+  - furnitureId: round_table_01
     price: 0
     unlockReputation: 0
-  - furnitureId: 003
-    price: 100
-    unlockReputation: 0
-  - furnitureId: 004
+  - furnitureId: round_table_02
     price: 0
     unlockReputation: 0
-  - furnitureId: 005
+  - furnitureId: round_table_03
     price: 0
     unlockReputation: 0
-  - furnitureId: 006
-    price: 70
+  - furnitureId: round_table_04
+    price: 300
     unlockReputation: 0
-  - furnitureId: 007
+  - furnitureId: round_table_05
+    price: 300
+    unlockReputation: 0
+  - furnitureId: round_table_06
+    price: 300
+    unlockReputation: 0
+  - furnitureId: round_table_07
+    price: 300
+    unlockReputation: 0
+  - furnitureId: round_table_08
+    price: 300
+    unlockReputation: 0
+  - furnitureId: crescent_aquarium_01
+    price: 380
+    unlockReputation: 0
+  - furnitureId: crescent_aquarium_04
+    price: 380
+    unlockReputation: 0
+  - furnitureId: crescent_aquarium_05
+    price: 380
+    unlockReputation: 0
+  - furnitureId: crescent_aquarium_07
+    price: 380
+    unlockReputation: 0
+  - furnitureId: cat_sofa_01
     price: 0
     unlockReputation: 0
-  - furnitureId: 008
-    price: 70
+  - furnitureId: cat_sofa_02
+    price: 260
     unlockReputation: 0
-  - furnitureId: 010
-    price: 70
+  - furnitureId: cat_sofa_03
+    price: 260
     unlockReputation: 0
-  - furnitureId: 011
-    price: 70
+  - furnitureId: cat_sofa_04
+    price: 260
     unlockReputation: 0
-  - furnitureId: 012
+  - furnitureId: cat_sofa_05
+    price: 260
+    unlockReputation: 0
+  - furnitureId: cat_sofa_06
+    price: 260
+    unlockReputation: 0
+  - furnitureId: cat_sofa_07
+    price: 260
+    unlockReputation: 0
+  - furnitureId: cat_sofa_08
+    price: 260
+    unlockReputation: 0
+  - furnitureId: single_sofa_02
     price: 0
     unlockReputation: 0
-  - furnitureId: 013
+  - furnitureId: single_sofa_03
+    price: 400
+    unlockReputation: 0
+  - furnitureId: single_sofa_04
     price: 0
     unlockReputation: 0
-  - furnitureId: 014
-    price: 80
+  - furnitureId: single_sofa_05
+    price: 400
     unlockReputation: 0
-  - furnitureId: 016
+  - furnitureId: single_sofa_06
+    price: 400
+    unlockReputation: 0
+  - furnitureId: single_sofa_07
+    price: 400
+    unlockReputation: 0
+  - furnitureId: single_sofa_08
+    price: 400
+    unlockReputation: 0
+  - furnitureId: single_sofa_09
+    price: 400
+    unlockReputation: 0
+  - furnitureId: single_sofa_10
+    price: 400
+    unlockReputation: 0
+  - furnitureId: single_sofa_11
+    price: 400
+    unlockReputation: 0
+  - furnitureId: single_sofa_12
+    price: 400
+    unlockReputation: 0
+  - furnitureId: armchair_01
     price: 0
     unlockReputation: 0
-  - furnitureId: 017
+  - furnitureId: cactus_lamp_04
+    price: 180
+    unlockReputation: 0
+  - furnitureId: cactus_lamp_05
+    price: 180
+    unlockReputation: 0
+  - furnitureId: cactus_lamp_06
+    price: 180
+    unlockReputation: 0
+  - furnitureId: cactus_lamp_07
+    price: 180
+    unlockReputation: 0
+  - furnitureId: cactus_lamp_08
+    price: 180
+    unlockReputation: 0
+  - furnitureId: hanging_plant_01
     price: 0
     unlockReputation: 0
-  - furnitureId: 018
-    price: 0
-    unlockReputation: 0
-  - furnitureId: 020
-    price: 40
-    unlockReputation: 0
-  - furnitureId: 021
-    price: 40
-    unlockReputation: 0
-  - furnitureId: 023
-    price: 130
-    unlockReputation: 0
-  - furnitureId: 024
-    price: 0
-    unlockReputation: 0
-  - furnitureId: 032
-    price: 70
-    unlockReputation: 0
-  - furnitureId: 035
-    price: 40
-    unlockReputation: 0
-  - furnitureId: 036
-    price: 0
-    unlockReputation: 0
-  - furnitureId: 037
-    price: 0
-    unlockReputation: 0
-  - furnitureId: 038
-    price: 90
-    unlockReputation: 0
-  - furnitureId: 040
-    price: 200
-    unlockReputation: 0
-  - furnitureId: 041
-    price: 70
-    unlockReputation: 0
-  - furnitureId: 043
-    price: 0
-    unlockReputation: 0
-  - furnitureId: 049
-    price: 60
-    unlockReputation: 0
-  - furnitureId: 051
-    price: 130
-    unlockReputation: 0
-  - furnitureId: 053
-    price: 0
-    unlockReputation: 0
-  - furnitureId: 054
-    price: 100
-    unlockReputation: 0
-  - furnitureId: 055
-    price: 100
-    unlockReputation: 0
-  - furnitureId: 056
-    price: 220
-    unlockReputation: 0
-  - furnitureId: 057
-    price: 0
-    unlockReputation: 0
-  - furnitureId: 059
-    price: 120
-    unlockReputation: 0
-  - furnitureId: 060
+  - furnitureId: hanging_plant_03
     price: 140
     unlockReputation: 0
-  - furnitureId: 063
-    price: 80
+  - furnitureId: hanging_plant_06
+    price: 140
     unlockReputation: 0
-  - furnitureId: 064
-    price: 90
+  - furnitureId: hanging_plant_07
+    price: 140
     unlockReputation: 0
-  - furnitureId: 075
+  - furnitureId: hanging_plant_08
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_09
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_11
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_12
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_13
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_14
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_15
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_16
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_17
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_18
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_21
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_22
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_23
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_24
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_30
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_31
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_32
+    price: 140
+    unlockReputation: 0
+  - furnitureId: hanging_plant_36
+    price: 140
+    unlockReputation: 0
+  - furnitureId: landscape_poster_02
+    price: 0
+    unlockReputation: 0
+  - furnitureId: landscape_poster_03
+    price: 0
+    unlockReputation: 0
+  - furnitureId: landscape_poster_04
+    price: 100
+    unlockReputation: 0
+  - furnitureId: landscape_poster_05
+    price: 100
+    unlockReputation: 0
+  - furnitureId: landscape_poster_06
+    price: 100
+    unlockReputation: 0
+  - furnitureId: landscape_poster_07
+    price: 100
+    unlockReputation: 0
+  - furnitureId: landscape_poster_08
+    price: 100
+    unlockReputation: 0
+  - furnitureId: landscape_poster_09
+    price: 100
+    unlockReputation: 0
+  - furnitureId: lava_lamp_01
+    price: 180
+    unlockReputation: 0
+  - furnitureId: lava_lamp_02
+    price: 180
+    unlockReputation: 0
+  - furnitureId: lava_lamp_03
+    price: 180
+    unlockReputation: 0
+  - furnitureId: lava_lamp_04
+    price: 180
+    unlockReputation: 0
+  - furnitureId: lava_lamp_05
+    price: 180
+    unlockReputation: 0
+  - furnitureId: lava_lamp_06
+    price: 180
+    unlockReputation: 0
+  - furnitureId: lava_lamp_07
+    price: 180
+    unlockReputation: 0
+  - furnitureId: lava_lamp_08
+    price: 180
+    unlockReputation: 0
+  - furnitureId: monstera_01
+    price: 0
+    unlockReputation: 0
+  - furnitureId: monstera_02
     price: 200
     unlockReputation: 0
-  - furnitureId: 077
-    price: 600
+  - furnitureId: monstera_03
+    price: 200
     unlockReputation: 0
+  - furnitureId: monstera_04
+    price: 200
+    unlockReputation: 0
+  - furnitureId: monstera_05
+    price: 200
+    unlockReputation: 0
+  - furnitureId: monstera_06
+    price: 200
+    unlockReputation: 0
+  - furnitureId: monstera_08
+    price: 200
+    unlockReputation: 0
+  - furnitureId: orb_decoration_01
+    price: 140
+    unlockReputation: 0
+  - furnitureId: orb_decoration_02
+    price: 140
+    unlockReputation: 0
+  - furnitureId: orb_decoration_03
+    price: 140
+    unlockReputation: 0
+  - furnitureId: orb_decoration_04
+    price: 140
+    unlockReputation: 0
+  - furnitureId: orb_decoration_05
+    price: 140
+    unlockReputation: 0
+  - furnitureId: orb_decoration_06
+    price: 140
+    unlockReputation: 0
+  - furnitureId: orb_decoration_07
+    price: 140
+    unlockReputation: 0
+  - furnitureId: orb_decoration_08
+    price: 140
+    unlockReputation: 0
+  - furnitureId: orb_decoration_09
+    price: 140
+    unlockReputation: 0
+  - furnitureId: potted_plant_01
+    price: 0
+    unlockReputation: 0
+  - furnitureId: potted_plant_02
+    price: 0
+    unlockReputation: 0
+  - furnitureId: potted_plant_03
+    price: 150
+    unlockReputation: 0
+  - furnitureId: potted_plant_04
+    price: 150
+    unlockReputation: 0
+  - furnitureId: potted_plant_06
+    price: 150
+    unlockReputation: 0
+  - furnitureId: round_rug_01
+    price: 160
+    unlockReputation: 0
+  - furnitureId: round_rug_02
+    price: 160
+    unlockReputation: 0
+  - furnitureId: round_rug_03
+    price: 160
+    unlockReputation: 0
+  - furnitureId: round_rug_04
+    price: 160
+    unlockReputation: 0
+  - furnitureId: round_rug_05
+    price: 160
+    unlockReputation: 0
+  - furnitureId: round_rug_06
+    price: 160
+    unlockReputation: 0
+  - furnitureId: round_rug_07
+    price: 160
+    unlockReputation: 0
+  - furnitureId: round_rug_08
+    price: 160
+    unlockReputation: 0
+  - furnitureId: round_rug_09
+    price: 160
+    unlockReputation: 0
+  - furnitureId: round_rug_10
+    price: 160
+    unlockReputation: 0
+  - furnitureId: vintage_square_clock_02
+    price: 0
+    unlockReputation: 0
+  - furnitureId: vintage_square_clock_03
+    price: 0
+    unlockReputation: 0
+  - furnitureId: vintage_square_clock_04
+    price: 120
+    unlockReputation: 0
+  - furnitureId: vintage_square_clock_05
+    price: 120
+    unlockReputation: 0
+  - furnitureId: vintage_square_clock_06
+    price: 120
+    unlockReputation: 0
+  - furnitureId: vintage_square_clock_07
+    price: 120
+    unlockReputation: 0
+  - furnitureId: vintage_square_clock_08
+    price: 120
+    unlockReputation: 0
+  - furnitureId: vintage_square_clock_10
+    price: 120
+    unlockReputation: 0
+  - furnitureId: vintage_square_clock_11
+    price: 120
+    unlockReputation: 0
+  categories:
+  - name: "\u76C6\u683D"
+    desc: "\u7EFF\u610F\u662F\u5C4B\u5B50\u7684\u547C\u5438\uFF0C\u4E5F\u662F\u8BBF\u5BA2\u7684\u8BDD\u9898\u3002"
+  - name: "\u6446\u4EF6"
+    desc: "\u5C0F\u5C0F\u7684\u7269\u4EF6\uFF0C\u6491\u8D77\u5927\u5927\u7684\u6C1B\u56F4\u3002"
+  - name: "\u684C\u6905"
+    desc: "\u5750\u4E0B\u6765\uFF0C\u6545\u4E8B\u624D\u4F1A\u5F00\u59CB\u3002"
+  - name: "\u58C1\u6302"
+    desc: "\u5899\u4E0A\u7684\u4E1C\u897F\uFF0C\u66FF\u4F60\u8BF4\u51FA\u54C1\u5473\u3002"
+  - name: "\u706F\u5177"
+    desc: "\u4E00\u76CF\u706F\uFF0C\u51B3\u5B9A\u4E00\u95F4\u5C4B\u5B50\u7684\u591C\u665A\u3002"
