@@ -11,9 +11,10 @@ namespace MasterHouse.EditorTools
     /// **窗口内编辑**与**在 Project 视图里直接选中资产编辑**两条路径都生效，不会出现
     /// 「换个入口就变成手打字符串」的裂口。
     ///
-    /// 本抽屉的下拉逻辑源自 `NodeSim/Editor/LevelDefEditorWindow.DrawFurnitureBinding`
-    /// （关卡关联家具）。那是全工程唯一一处同款实现，而该文件会随 NodeSim 包一起删除，
-    /// 所以搬到这里来——顺带解掉需求重做说明 §4.5 的时序陷阱。
+    /// 本抽屉的下拉逻辑源自旧 `NodeSim/Editor/LevelDefEditorWindow.DrawFurnitureBinding`
+    /// （关卡关联家具）。那是全工程唯一一处同款实现，**该实现已于小游戏框架落地第 1 步删除**
+    /// （NodeSim → Minigame/Circuit 搬家），此后全工程只剩本抽屉一处
+    /// ——顺带解掉需求重做说明 §4.5 的时序陷阱。
     /// </summary>
     [CustomPropertyDrawer(typeof(FurnitureIdAttribute))]
     public sealed class FurnitureIdDrawer : PropertyDrawer
