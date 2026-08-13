@@ -19,6 +19,10 @@ namespace MasterHouse
         // 2 号位曾是 DeliveryPage（需求交付页面），已随 Item 链退役删除（需求重做说明 §9.1）。
         // 现在的验收走【服务中交谈】对话分支，闸门由 ModalDialogue 那条负责。
         // **新增原因请从 3 起**：本枚举的值是位集合的位号，复用 2 会在存档/日志里与历史数据撞车。
+
+        /// <summary>小游戏页面开启中（小游戏说明 §3.4）：时钟停走、访客各类倒计时停表。
+        /// 小游戏自己按 deltaTime 计时，与全局 tick 零关系（§3.3）。</summary>
+        Minigame = 3,
     }
 
     /// <summary>
@@ -52,14 +56,19 @@ namespace MasterHouse
         public bool IsRunning => stopReasons == 0 && !IsClosedForToday;
 
         /// <summary>
-        /// 局内产线是否冻结（门控 LevelManager.TickAll）。
-        /// **刻意不等于 !IsRunning**：局内测试场景没有 HubPage，OffHubPage 恒亮、IsRunning 恒 false，
-        /// 若局内产线跟着 IsRunning 走就永远不会推进（待定 #19 联通前的隔离态）。
-        /// 真正该冻结局内的只有两件事：打烊（堵死挂机刷资源，§16.4）与模态对话框（§8）。
-        /// （交付页那条已随 Item 链退役一并删除。）
+        /// 「世界是否冻结」——不含页面闸门的那一档。
+        ///
+        /// **当前没有消费方**：它原本门控局内产线的 LevelManager.TickAll()，而局内节点玩法
+        /// 已随小游戏框架落地退役（第 2 步）。刻意保留（落地访谈 D 项拍板）——
+        /// 局内外正式联通（待定 #19）时还会有「不在 Hub 页但仍需推进」的东西需要这一档，
+        /// 届时不必重新推导它为什么不能等于 !IsRunning。
+        ///
+        /// 它**刻意不等于 !IsRunning**：IsRunning 还含 OffHubPage，而没有 HubPage 的场景里
+        /// 那一位恒亮，跟着它走就永远不推进。
         /// </summary>
         public bool IsWorldFrozen => IsClosedForToday ||
-                                     HasStopReason(EClockStopReason.ModalDialogue);
+                                     HasStopReason(EClockStopReason.ModalDialogue) ||
+                                     HasStopReason(EClockStopReason.Minigame);
 
         public HouseClockManager(VisitorTuningConfig tuning)
         {

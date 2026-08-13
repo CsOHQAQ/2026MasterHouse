@@ -104,6 +104,8 @@ namespace MasterHouse
             dialogue.PlaybackStarted -= OnDialogueStarted;
             dialogue.PlaybackEnded -= OnDialogueEnded;
             HouseGmConsole.FullResetRequested -= OnGmFullReset;
+            // 离开 Hub 时丢弃未消化的小游戏请求，免得下次进来冷不丁弹一局出来
+            MinigameOverlay.DiscardPending();
             GameManager.Instance.HouseClockManager.SetStopReason(EClockStopReason.OffHubPage, true);
             topBar.Dispose();
         }
@@ -117,7 +119,16 @@ namespace MasterHouse
 
         private void OnDialogueStarted() => DialogueOverlay.Open(UI);
 
-        private void OnDialogueEnded() => DialogueOverlay.CloseFromPlaybackEnded();
+        /// <summary>
+        /// 对话播放结束：先收对话框，**再**消化小游戏的待打开请求（小游戏说明 §3.7）。
+        /// 顺序不能反——StartMinigameAction 只登记意图不当场开页，就是为了等这一刻：
+        /// 对话层已经退栈，小游戏才压得进一个干净的栈顶。
+        /// </summary>
+        private void OnDialogueEnded()
+        {
+            DialogueOverlay.CloseFromPlaybackEnded();
+            MinigameOverlay.ConsumePending(UI);
+        }
 
         /// <summary>GM「恢复初始态」：面板本体已重置经济与家具会话，这里补访客/时钟归零与表现重建。</summary>
         private void OnGmFullReset()

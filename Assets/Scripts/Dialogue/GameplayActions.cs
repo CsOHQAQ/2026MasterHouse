@@ -99,24 +99,50 @@ namespace MasterHouse
     }
 
     /// <summary>
-    /// 开始小游戏（需求重做说明 §6.2/§7）——**本包占位，不改变任何业务状态**。
+    /// 开始小游戏（需求重做说明 §6.2/§7，小游戏说明 §3.7）。
     ///
-    /// 小游戏框架尚未设计（另开专题）。这里刻意只打日志 + 提示，
-    /// **不为它预建接口、注册表或任何抽象**（§15.3「不预设抽象、不建没有调用方的接缝」）：
-    /// 等框架定案时，把这个 Execute 的实现换掉即可，策划已配的对话数据一行不用动。
+    /// **只登记意图、不当场打开页面**——这不是偷懒，是退栈顺序要求的：
+    /// 本事件在 DialogueManager.ChooseOption 内执行，此时对话层还在栈顶且仍在播；
+    /// 当场 PushOverlay 的话，紧接着的 PlaybackEnded → CloseFromPlaybackEnded → PopOverlay
+    /// 弹掉的会是**小游戏层**而不是对话层。真正打开由 HubPage 在播放结束后调 ConsumePending。
     ///
-    /// 过渡期后果是明示的：小游戏类需求的访客只能走「拒绝」或「等交货超时」离场，验收时不算 bug（§7）。
+    /// 取不到小游戏时保持报错 + Toast、**不改变任何业务状态**（对话铁律 1）：
+    /// 访客仍在「服务中」，玩家可以再点开重试，策划补完资产即可生效。
     /// </summary>
-    [Serializable, SubclassLabel("访客/开始小游戏（尚未接入）")]
+    [Serializable, SubclassLabel("访客/开始小游戏")]
     public sealed class StartMinigameAction : GameplayActionBase
     {
         public override void Execute(GameplayContext ctx)
         {
-            var who = ctx?.Visitor != null ? ctx.Visitor.DisplayName : "访客";
-            Debug.LogWarning($"[对话事件] 开始小游戏：小游戏框架尚未接入（{who}），本次什么都没发生（§7 明示的过渡态）");
+            var visitor = ctx?.Visitor;
+            var who = visitor != null ? visitor.DisplayName : "访客";
+
+            var need = visitor != null ? visitor.Need as MinigameNeedDef : null;
+            if (need == null)
+            {
+                Debug.LogWarning($"[对话事件] 开始小游戏：{who} 的需求不是小游戏类" +
+                                 $"（当前 {(visitor?.Need != null ? visitor.Need.DisplayId : "无需求")}），" +
+                                 $"本次什么都没发生。请检查这条对话组是否挂错了触发分类");
+                Toast("这位客人要的不是小游戏");
+                return;
+            }
+
+            if (need.minigame == null)
+            {
+                Debug.LogError($"[对话事件] 开始小游戏：需求「{need.DisplayId}」没有配 minigame 引用，无法开局。" +
+                               $"请在需求编辑器里给它指一个 MinigameDef", need);
+                Toast("这条需求还没配小游戏");
+                return;
+            }
+
+            MinigameOverlay.Request(need.minigame, visitor.InstanceId, need.DisplayId);
+        }
+
+        private static void Toast(string message)
+        {
             // 不用 ?. ——Unity 的「已销毁但引用非 null」要靠重载的 == 才判得出来
             var ui = HouseUIManager.Instance;
-            if (ui != null) ui.ShowToast("小游戏尚未接入");
+            if (ui != null) ui.ShowToast(message);
         }
     }
 
