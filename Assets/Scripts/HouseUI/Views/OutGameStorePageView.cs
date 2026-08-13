@@ -39,11 +39,23 @@ namespace MasterHouse
         [Header("交互")]
         public Button closeButton;
 
+        [Header("选色（设计稿 §5，2026-08-14）")]
+        [Tooltip("预览下方的色块行容器：色块按当前家具族的配色变体数运行时实例化")]
+        public RectTransform swatchRoot;
+
+        [Header("键位提示（设计稿 §7：无商品时隐藏）")]
+        public Image colorKeycap;
+        public Text colorKeycapLabel;
+        public Image buyKeycap;
+        public Text buyKeycapLabel;
+
         [Header("获得弹窗（NEW ITEM OBTAINED）")]
         public CanvasGroup obtainedGroup;
         public RawImage obtainedThumb;
         public Text obtainedName;
         public Text obtainedDesc;
         public Button obtainedClose;
+        [Tooltip("弹窗左缘的配色列（设计稿获得弹窗：展示该族全部配色，高亮买到的那个）")]
+        public RectTransform obtainedSwatchRoot;
     }
 }

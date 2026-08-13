@@ -349,7 +349,7 @@ namespace MasterHouse
                 // 旧壳此处落档；存档功能移除（§16.5），仅重烘焙背景与热点
                 scene.RefreshAfterFurniture();
                 SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：退出家具模式
-            });
+            }, () => StoreOverlay.Open(UI, OpenFurnitureMode)); // 「购买家具」：开商店，关店后递归退回摆放模式
             if (!opened)
             {
                 furnitureModeOpen = false;

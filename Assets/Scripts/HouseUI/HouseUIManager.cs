@@ -99,6 +99,8 @@ namespace MasterHouse
             {
                 if (overlayStack.Count > 0)
                 {
+                    // 顶层可先消费 ESC（如商店先关获得弹窗，再按一次才退店）——递归返回语义
+                    if (overlayStack[overlayStack.Count - 1].ConsumeEscape()) return;
                     PopOverlay();
                     return;
                 }

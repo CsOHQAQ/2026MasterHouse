@@ -8,5 +8,11 @@ namespace MasterHouse
     {
         /// <summary>关闭并清理自身视图（由壳在弹栈时调用）。</summary>
         void Close();
+
+        /// <summary>
+        /// ESC 语义扩展（2026-08-14）：返回 true 表示本层自己消费了这次 ESC——
+        /// 比如先关掉层内的子弹窗（商店获得弹窗），壳这次就不弹栈。默认不消费。
+        /// </summary>
+        bool ConsumeEscape() => false;
     }
 }

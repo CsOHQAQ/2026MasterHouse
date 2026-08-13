@@ -20,10 +20,13 @@ def is_field_name_row(values):
 
 EXCEL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "Excel", "商店表.xlsx")
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "Assets", "Configs", "商店表.csv")
+CATEGORY_OUTPUT = os.path.join(os.path.dirname(__file__), "..", "..", "Assets", "Configs", "商店分类表.csv")
 
 # CSV 列（与 Unity 侧 FurnitureCsvImporter 表头一致，勿改文字）
 HEADER = ["id", "显示名", "价格", "解禁声望"]
 SHEET = "商店"
+CATEGORY_HEADER = ["分类名", "描述"]
+CATEGORY_SHEET = "分类"
 
 
 def cell_text(value):
@@ -40,12 +43,43 @@ def csv_cell(text):
     return text
 
 
+def export_sheet(wb, sheet, header, out_path, csv_name):
+    if sheet not in wb.sheetnames:
+        print(f"[ERROR] sheet '{sheet}' missing in 商店表.xlsx")
+        sys.exit(1)
+    rows = list(wb[sheet].iter_rows(values_only=True))
+    if len(rows) < 2:
+        print(f"[ERROR] 商店表.xlsx[{sheet}] is empty.")
+        sys.exit(1)
+    head = [cell_text(cell) for cell in rows[0]]
+    missing = [col for col in header if col not in head]
+    if missing:
+        print(f"[ERROR] 商店表.xlsx[{sheet}] missing columns: {missing}")
+        sys.exit(1)
+    lines = [",".join(csv_cell(h) for h in head)]
+    count = 0
+    for row in rows[1:]:
+        values = [cell_text(cell) for cell in row[:len(head)]]
+        values += [""] * (len(head) - len(values))
+        if not any(values):
+            continue
+        if count == 0 and is_field_name_row(values):
+            continue
+        lines.append(",".join(csv_cell(v) for v in values))
+        count += 1
+    with open(out_path, "w", encoding="utf-8-sig", newline="") as f:
+        f.write("\r\n".join(lines) + "\r\n")
+    print(f"[OK] {csv_name}: {count} rows")
+
+
 def export():
     if not os.path.exists(EXCEL_PATH):
         print(f"[ERROR] Excel not found: {os.path.abspath(EXCEL_PATH)}")
         sys.exit(1)
 
     wb = openpyxl.load_workbook(EXCEL_PATH, read_only=True, data_only=True)
+    os.makedirs(os.path.dirname(CATEGORY_OUTPUT), exist_ok=True)
+    export_sheet(wb, CATEGORY_SHEET, CATEGORY_HEADER, CATEGORY_OUTPUT, "商店分类表.csv")
     if SHEET not in wb.sheetnames:
         print(f"[ERROR] sheet '{SHEET}' missing in 商店表.xlsx")
         sys.exit(1)

@@ -4,6 +4,14 @@ using UnityEngine;
 
 namespace MasterHouse
 {
+    /// <summary>商店大类的展示文案（设计稿 §1 切换 TAB：大类名称 + 一行描述，策划配置）。</summary>
+    [Serializable]
+    public sealed class StoreCategoryEntry
+    {
+        [Tooltip("分类名（盆栽/摆件/桌椅/壁挂/灯具，与家具表「分类」列对应）")] public string name;
+        [Tooltip("一行描述文本（TAB 头与右侧信息区共用）")] public string desc;
+    }
+
     /// <summary>商店表中的一行：一件家具的售卖配置。</summary>
     [Serializable]
     public sealed class StoreEntry
@@ -26,6 +34,17 @@ namespace MasterHouse
     public sealed class StoreTable : ScriptableObject
     {
         public List<StoreEntry> entries = new List<StoreEntry>();
+
+        [Tooltip("大类展示文案（商店表「分类」sheet）")]
+        public List<StoreCategoryEntry> categories = new List<StoreCategoryEntry>();
+
+        /// <summary>大类描述；未配置回落空串。</summary>
+        public string CategoryDescOf(string categoryName)
+        {
+            foreach (var category in categories)
+                if (category != null && category.name == categoryName) return category.desc;
+            return string.Empty;
+        }
 
         public StoreEntry Find(string furnitureId)
         {

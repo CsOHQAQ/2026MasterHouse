@@ -221,7 +221,71 @@ namespace MasterHouse
             repaired |= RepairPrefab<OutGameHubTopBarView>(HubTopBarPath,
                 (root, view) => AppendTopBarEconomyChip(root, view),
                 view => view.economyChipLabel == null);
+            // 家具 HUD：补「购买家具」按钮（仓库展示化后购买唯一入口；只补缺失不动既有布局）
+            repaired |= RepairPrefab<OutGameFurnitureHudView>(FurnitureHudPath,
+                (root, view) => AppendFurnitureStoreButton(root, view),
+                view => view.storeButton == null);
+            // 商店页：按 2026-08-14 设计稿补选色行/键位提示/弹窗配色列（只补缺失不动既有布局）
+            repaired |= RepairPrefab<OutGameStorePageView>(StorePagePath,
+                (root, view) => AppendStoreRedesignNodes(root, view),
+                view => view.swatchRoot == null || view.colorKeycap == null || view.obtainedSwatchRoot == null);
             return repaired;
+        }
+
+        /// <summary>
+        /// 商店页设计稿增量（2026-08-14）：预览下方选色块行、底部「X 改变颜色 / ⏎ 购买」键位提示、
+        /// 获得弹窗左缘配色列。全部只补缺失节点；分类圆标槽位为空时顺手填上 store/1~5.png。
+        /// </summary>
+        private static void AppendStoreRedesignNodes(GameObject root, OutGameStorePageView view)
+        {
+            const string keyDir = "Assets/PC ui/button/default/";
+            if (view.swatchRoot == null)
+            {
+                // 选色块行：右侧信息区、描述文本下方（色块运行时实例化，容器只做定位）
+                view.swatchRoot = Rect(root.transform, "SwatchRow", new Vector2(1, 1), new Vector2(1, 1),
+                    new Vector2(-230, -470), new Vector2(360, 44));
+            }
+            if (view.colorKeycap == null)
+            {
+                view.colorKeycap = Image(root.transform, "ColorKeycap", new Vector2(1, 0), new Vector2(1, 0),
+                    new Vector2(-620, 44), new Vector2(48, 48), Color.white);
+                view.colorKeycap.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(keyDir + "X.png");
+                view.colorKeycap.preserveAspect = true;
+                view.colorKeycap.raycastTarget = false;
+                view.colorKeycapLabel = Label(root.transform, "ColorKeycapHint", "改变颜色", 16,
+                    new Color(1, 1, 1, .75f), new Vector2(1, 0), new Vector2(1, 0),
+                    new Vector2(-540, 44), new Vector2(110, 30), TextAnchor.MiddleLeft, FontStyle.Normal);
+            }
+            if (view.buyKeycap == null)
+            {
+                view.buyKeycap = Image(root.transform, "BuyKeycap", new Vector2(1, 0), new Vector2(1, 0),
+                    new Vector2(-400, 44), new Vector2(96, 44), Color.white);
+                view.buyKeycap.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(keyDir + "enter.png");
+                view.buyKeycap.preserveAspect = true;
+                view.buyKeycap.raycastTarget = false;
+                view.buyKeycapLabel = Label(root.transform, "BuyKeycapHint", "购买", 16,
+                    new Color(1, 1, 1, .75f), new Vector2(1, 0), new Vector2(1, 0),
+                    new Vector2(-320, 44), new Vector2(80, 30), TextAnchor.MiddleLeft, FontStyle.Normal);
+            }
+            if (view.obtainedSwatchRoot == null && view.obtainedName != null)
+            {
+                var panel = view.obtainedName.transform.parent;
+                view.obtainedSwatchRoot = Rect(panel, "ObtainedSwatches", new Vector2(0, .5f), new Vector2(0, .5f),
+                    new Vector2(30, 0), new Vector2(40, 320));
+            }
+            if (view.categorySprites == null || view.categorySprites.Length < 5) view.categorySprites = new Sprite[5];
+            for (var i = 0; i < 5; i++)
+                if (view.categorySprites[i] == null)
+                    view.categorySprites[i] = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/PC ui/store/{i + 1}.png");
+        }
+
+        /// <summary>家具 HUD 旧 Prefab 无损补回「购买家具」按钮（挂在顶部容器里，随拖拽淡出）。</summary>
+        private static void AppendFurnitureStoreButton(GameObject root, OutGameFurnitureHudView view)
+        {
+            if (view.storeButton != null) return;
+            var chrome = root.transform.Find("TopChrome") ?? root.transform;
+            view.storeButton = PageButton(chrome, "Store", "购买家具", new Vector2(-950, -60),
+                new Vector2(160, 64), new Color(.32f, .06f, .18f, .9f), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(1, 1));
         }
 
         /// <summary>
@@ -1556,6 +1620,9 @@ namespace MasterHouse
             view.creditLabel = Label(economy.transform, "Value", string.Empty, 20, Hex("F3E8DD"),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
 
+            // 购买家具：仓库只展示已拥有（2026-08-14），购买入口在这里 → 退出摆放模式并打开商店
+            view.storeButton = PageButton(chrome, "Store", "购买家具", new Vector2(-950, -60),
+                new Vector2(160, 64), new Color(.32f, .06f, .18f, .9f), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(1, 1));
             view.hideUiButton = PageButton(chrome, "HideUi", "隐藏界面", new Vector2(-560, -60),
                 new Vector2(160, 64), new Color(.025f, .025f, .04f, .8f), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(1, 1));
             view.gridToggleButton = PageButton(chrome, "GridToggle", "显示网格", new Vector2(-360, -60),

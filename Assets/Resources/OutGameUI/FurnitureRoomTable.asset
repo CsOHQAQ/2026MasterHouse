@@ -45,36 +45,36 @@ MonoBehaviour:
     - id: floor
       surface: 0
       cols: 27
-      rows: 8
+      rows: 3
       cellWidth: 60
       cellHeight: 45
       x: 26
       y: 581
     blockedCells: []
     initialPlacements:
-    - furnitureId: 016
+    - furnitureId: landscape_poster_02
       gridId: wall
       hostFurnitureId: 
       col: 9
       row: 3
       flipped: 0
-    - furnitureId: 007
+    - furnitureId: hanging_plant_01
       gridId: wall
       hostFurnitureId: 
       col: 16
       row: 6
       flipped: 0
-    - furnitureId: 002
+    - furnitureId: armchair_01
       gridId: floor
       hostFurnitureId: 
       col: 9
-      row: 2
+      row: 1
       flipped: 0
-    - furnitureId: 005
+    - furnitureId: round_table_01
       gridId: floor
       hostFurnitureId: 
       col: 13
-      row: 2
+      row: 1
       flipped: 0
   - id: bedroom
     displayName: "\u5367\u5BA4"
@@ -108,32 +108,32 @@ MonoBehaviour:
     - id: floor
       surface: 0
       cols: 27
-      rows: 8
+      rows: 3
       cellWidth: 60
       cellHeight: 45
       x: 26
       y: 581
     blockedCells: []
     initialPlacements:
-    - furnitureId: 018
+    - furnitureId: landscape_poster_03
       gridId: wall
       hostFurnitureId: 
       col: 5
       row: 7
       flipped: 0
-    - furnitureId: 024
+    - furnitureId: single_sofa_02
       gridId: floor
       hostFurnitureId: 
       col: 5
-      row: 2
+      row: 1
       flipped: 0
-    - furnitureId: 036
+    - furnitureId: cat_sofa_01
       gridId: floor
       hostFurnitureId: 
       col: 15
       row: 1
       flipped: 0
-    - furnitureId: 013
+    - furnitureId: monstera_01
       gridId: floor
       hostFurnitureId: 
       col: 23
@@ -171,26 +171,26 @@ MonoBehaviour:
     - id: floor
       surface: 0
       cols: 27
-      rows: 8
+      rows: 3
       cellWidth: 60
       cellHeight: 45
       x: 26
       y: 581
     blockedCells: []
     initialPlacements:
-    - furnitureId: 017
+    - furnitureId: vintage_square_clock_02
       gridId: wall
       hostFurnitureId: 
       col: 10
       row: 6
       flipped: 0
-    - furnitureId: 043
+    - furnitureId: round_table_02
       gridId: floor
       hostFurnitureId: 
       col: 9
-      row: 2
+      row: 1
       flipped: 0
-    - furnitureId: 012
+    - furnitureId: potted_plant_01
       gridId: floor
       hostFurnitureId: 
       col: 21
@@ -228,32 +228,32 @@ MonoBehaviour:
     - id: floor
       surface: 0
       cols: 27
-      rows: 8
+      rows: 3
       cellWidth: 60
       cellHeight: 45
       x: 26
       y: 581
     blockedCells: []
     initialPlacements:
-    - furnitureId: 057
+    - furnitureId: round_table_03
       gridId: floor
       hostFurnitureId: 
       col: 0
-      row: 2
+      row: 1
       flipped: 0
-    - furnitureId: 053
+    - furnitureId: potted_plant_02
       gridId: floor
       hostFurnitureId: 
       col: 5
       row: 0
       flipped: 0
-    - furnitureId: 037
+    - furnitureId: vintage_square_clock_03
       gridId: wall
       hostFurnitureId: 
       col: 15
       row: 7
       flipped: 0
-    - furnitureId: 004
+    - furnitureId: single_sofa_04
       gridId: floor
       hostFurnitureId: 
       col: 18
