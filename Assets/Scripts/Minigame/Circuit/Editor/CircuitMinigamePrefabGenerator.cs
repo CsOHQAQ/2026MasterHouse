@@ -31,6 +31,8 @@ namespace MasterHouse.EditorTools
         private const string MinigameDefPath = Folder + "/Minigame_修理电路.asset";
         private const string NeedDefPath = "Assets/GameData/Needs/Need_修理电路.asset";
         private const string SampleLevelPath = "Assets/GameData/Levels/General_1_Intro00.asset";
+        private const string ServiceCheckGroupPath = "Assets/GameData/Dialogue/通用/Group_service_check_circuit.asset";
+        private const string SchedulePath = "Assets/Resources/OutGameUI/VisitorScheduleTable.asset";
 
         // 占位配色（无美术阶段）
         private static readonly Color Backdrop = new Color(0.078f, 0.063f, 0.106f, 0.97f);
@@ -102,9 +104,135 @@ namespace MasterHouse.EditorTools
 
             Debug.Log(created.Count > 0
                 ? "[修理电路] 已创建：\n" + string.Join("\n", created) +
-                  "\n\n还差最后一步：把日程表某一行的「需求」列指向 " + NeedDefPath +
-                  "（菜单 MasterHouse → 配置中心 → 访客 → 日程表），整条链路才通。"
+                  "\n\n本菜单只建小游戏自己的资产。要真正跑起来还缺两样共享内容" +
+                  "（一个能触发小游戏的对话分支、一条带需求的日程），" +
+                  "执行菜单 MasterHouse → 小游戏 → 接通测试链路（只补空缺）。"
                 : "[修理电路] 资产已齐全，未做修改。");
+        }
+
+        // ══════════ 测试链路：补共享内容里的空缺 ══════════
+
+        /// <summary>
+        /// 把「日程表 → 需求 → 对话分支 → 小游戏」这条链路上属于**共享内容**的两处空缺补上。
+        ///
+        /// 与上面的生成器分开成两个菜单，是因为这里动的是策划的数据（对话池、日程表）而不是小游戏自己的资产。
+        /// 所以只做加法、**只填空缺**：对话池的 serviceCheck 非空就不动，日程条目已配需求就跳过。
+        /// </summary>
+        [MenuItem("MasterHouse/小游戏/接通测试链路（只补空缺）")]
+        public static void WireTestPath()
+        {
+            var def = AssetDatabase.LoadAssetAtPath<MinigameDef>(MinigameDefPath);
+            var need = AssetDatabase.LoadAssetAtPath<MinigameNeedDef>(NeedDefPath);
+            if (def == null || need == null)
+            {
+                Debug.LogError("[修理电路] 请先执行「创建修理电路资产（补齐缺失）」，" +
+                               "本菜单需要 MinigameDef 与 NeedDef 已经存在。");
+                return;
+            }
+
+            var log = new List<string>();
+            var group = EnsureServiceCheckGroup(log);
+            WireGroupIntoPools(group, log);
+            WireScheduleNeed(need, log);
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            Debug.Log(log.Count > 0
+                ? "[修理电路] 测试链路已接通：\n" + string.Join("\n", log) +
+                  "\n\n现在进 OutGameTest 场景开始游戏：等第一位客人到前台 → 点他接待 → " +
+                  "把他拖进一间空客房 → 再点他，选「我来看看」即可进入修理电路。"
+                : "[修理电路] 测试链路已经是通的，未做修改。");
+        }
+
+        /// <summary>
+        /// 【服务中交谈】分类的对话组：一句需求 + 一个带「开始小游戏」事件的分支。
+        /// 现有对话资产里这个分类整个是空的，没有它玩家点服务中的访客不会有任何反应。
+        /// </summary>
+        private static DialogueGroupDef EnsureServiceCheckGroup(List<string> log)
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<DialogueGroupDef>(ServiceCheckGroupPath);
+            if (existing != null) return existing;
+
+            var group = ScriptableObject.CreateInstance<DialogueGroupDef>();
+            group.id = "service_check_circuit";
+            group.note = "小游戏类需求的验收分支。由修理电路落地时自动生成的示例，台词请随意改写。";
+            group.steps = new List<DialogueStep>
+            {
+                new DialogueStep
+                {
+                    kind = EDialogueStepKind.Line,
+                    line = new DialogueLine
+                    {
+                        speaker = EDialogueSpeaker.Visitor,
+                        text = "{需求}",
+                        emotion = EDialogueEmotion.Confused,
+                    },
+                },
+                new DialogueStep
+                {
+                    kind = EDialogueStepKind.Branch,
+                    options = new List<BranchOption>
+                    {
+                        new BranchOption
+                        {
+                            text = "我来看看",
+                            // SerializeReference 的多态赋值在 C# 里直接 new 即可，Unity 序列化时自行分配 rid
+                            actions = new List<IGameplayAction> { new StartMinigameAction() },
+                            next = EBranchNext.End,
+                        },
+                        // 每个分支至少要有一个无条件选项，否则条件全不满足时对话会卡死（DialogueStep 注释里的硬校验）
+                        new BranchOption { text = "等下再说", next = EBranchNext.End },
+                    },
+                },
+            };
+
+            AssetDatabase.CreateAsset(group, ServiceCheckGroupPath);
+            log.Add(ServiceCheckGroupPath + "（新建：一句需求 + 「我来看看」分支）");
+            return group;
+        }
+
+        /// <summary>挂进各种族对话池的 serviceCheck 分类——**只填空的**，已配的一律不动。</summary>
+        private static void WireGroupIntoPools(DialogueGroupDef group, List<string> log)
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:DialoguePoolDef"))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var pool = AssetDatabase.LoadAssetAtPath<DialoguePoolDef>(path);
+                if (pool == null || pool.serviceCheck.Count > 0) continue;
+
+                pool.serviceCheck.Add(new DialogueGroupEntry { group = group, weight = 1 });
+                EditorUtility.SetDirty(pool);
+                log.Add(path + "（serviceCheck 原本是空的，已挂上）");
+            }
+        }
+
+        /// <summary>
+        /// 给日程表**第一条没配需求的条目**填上小游戏需求。
+        /// 现状是所有条目的需求都空着，而 VisitorManager 会跳过没有需求的条目——
+        /// 也就是一个访客都不会投放，游戏根本走不到小游戏这一步。
+        /// </summary>
+        private static void WireScheduleNeed(MinigameNeedDef need, List<string> log)
+        {
+            var schedule = AssetDatabase.LoadAssetAtPath<VisitorScheduleTable>(SchedulePath);
+            if (schedule == null)
+            {
+                Debug.LogWarning("[修理电路] 找不到日程表，跳过：" + SchedulePath);
+                return;
+            }
+
+            for (int i = 0; i < schedule.entries.Count; i++)
+            {
+                var entry = schedule.entries[i];
+                if (entry == null || entry.need != null) continue;
+                entry.need = need;
+                EditorUtility.SetDirty(schedule);
+                log.Add($"{SchedulePath}：第 {i + 1} 条（第 {entry.day} 天 " +
+                        $"{entry.appearMinute / 60:00}:{entry.appearMinute % 60:00}）已配上修理电路需求");
+                return;
+            }
+
+            log.Add(SchedulePath + "：所有条目都已配过需求，未改动");
         }
 
         // ══════════ Prefab 布局（1920×1080 参考分辨率）══════════
