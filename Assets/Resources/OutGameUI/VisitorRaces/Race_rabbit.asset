@@ -29,6 +29,10 @@ MonoBehaviour:
   needCountMax: 1
   portraits:
   - expression: 0
-    portraitPath: OutGameUI/Guests/rabbit
+    portraitPath: OutGameUI
+  - expression: 0
+    portraitPath: Guests
+  - expression: 0
+    portraitPath: rabbit
   sheetPath: OutGameUI/Visitors/xueqiu
   dialoguePool: {fileID: 11400000, guid: 22c59b5e6b618094ca807dfefd81f7b5, type: 2}

@@ -4,10 +4,20 @@ using UnityEngine;
 
 namespace MasterHouse
 {
-    /// <summary>小关的唯一定义入口（§8.1）。</summary>
+    /// <summary>
+    /// 小关的唯一定义入口（§8.1）。
+    /// 关卡即**一件家具的维修玩法**：条件节点判定家具是否修好，
+    /// 修好后按 Outputs 持续产出到玩家仓库（装饰分不在此配，仍在家具表 decorationScore）。
+    /// </summary>
     [CreateAssetMenu(fileName = "关卡", menuName = "MasterHouse/关卡定义", order = 30)]
     public class LevelDef : ScriptableObject
     {
+        [Tooltip("关联家具 id：家具表（FurnitureTable）中的行 id。本关卡是这件家具的维修玩法")]
+        public string FurnitureId;
+
+        [Tooltip("家具生效后的持续产出：每条各自计时，产物进玩家仓库 PlayerCargo")]
+        public List<FurnitureOutputEntry> Outputs = new List<FurnitureOutputEntry>();
+
         [Tooltip("画布形状——内联 GridGroup，已取消独立 CanvasDef 类（§8.1）")]
         public GridGroup Canvas = new GridGroup();
 
@@ -37,6 +47,19 @@ namespace MasterHouse
 
         public bool CanMove;
         public bool CanDelete;
+    }
+
+    /// <summary>家具生效后的一条持续产出。计时走全局 tick，与关卡是否被打开无关。</summary>
+    [Serializable]
+    public class FurnitureOutputEntry
+    {
+        public ItemDef Item;
+
+        [Tooltip("每次产出的数量")]
+        public int Amount = 1;
+
+        [Tooltip("产出间隔（tick）")]
+        public int TicksPerOutput = 100;
     }
 
     [Serializable]

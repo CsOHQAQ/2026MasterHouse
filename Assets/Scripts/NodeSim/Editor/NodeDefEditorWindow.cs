@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEngine;
@@ -8,7 +9,7 @@ namespace MasterHouse.EditorTools
 {
     /// <summary>
     /// 节点定义编辑器（待定 #11 的一部分）：
-    /// - 创建 / 编辑四类 NodeDef 资产，配置各类型字段；
+    /// - 创建 / 编辑五类 NodeDef 资产，配置各类型字段；
     /// - 网格画布绘制占格形状，保存时自动归一化到最左下 (0,0)；
     /// - 按类型规则配置 Pin（资源/仓库自由增删、中转成对配置、加工由配方决定）。
     /// 打开方式：菜单 MasterHouse/节点编辑器，或直接双击 NodeDef 资产。
@@ -16,10 +17,19 @@ namespace MasterHouse.EditorTools
     public class NodeDefEditorWindow : EditorWindow
     {
         const string kNodeFolder = "Assets/GameData/Nodes";
+        const string kIdentifierUserDataPrefix = "MasterHouse.NodeIdentifier=";
 
-        static readonly string[] kTypeNames = { "资源型", "加工型", "仓库型", "中转型" };
+        static readonly string[] kTypeNames =
+        {
+            "Input（输入类）", "Processor（处理类）", "Connector（链接类）",
+            "Output（输出类）", "Condition（条件类）",
+        };
         static readonly Type[] kTypes =
-            { typeof(ResourceNodeDef), typeof(ProcessorNodeDef), typeof(StorageNodeDef), typeof(TransitNodeDef) };
+        {
+            typeof(ResourceNodeDef), typeof(ProcessorNodeDef), typeof(TransitNodeDef),
+            typeof(StorageNodeDef), typeof(ConditionNodeDef),
+        };
+        static readonly string[] kTypeCodes = { "Input", "Pro", "Con", "Out", "Cond" };
         static readonly string[] kFacingNames = { "上", "右", "下", "左" }; // 与 EDirection4 枚举顺序一致
 
         NodeDef _target;
@@ -27,7 +37,7 @@ namespace MasterHouse.EditorTools
         readonly List<NodeDef> _all = new List<NodeDef>();
 
         Vector2 _scrollLeft, _scrollRight, _scrollCanvas;
-        string _newName = "新节点";
+        string _newIdentifier = "NewNode";
         int _newTypeIndex;
 
         GUIStyle _emptyHintStyle;
@@ -38,7 +48,7 @@ namespace MasterHouse.EditorTools
         public static void Open()
         {
             var w = GetWindow<NodeDefEditorWindow>("节点编辑器");
-            w.minSize = new Vector2(960, 520);
+            w.minSize = new Vector2(1010, 520);
         }
 
         /// <summary>打开窗口并定位到指定节点（供配方编辑器等其他工具跳转）。</summary>
@@ -64,12 +74,18 @@ namespace MasterHouse.EditorTools
         {
             wantsMouseMove = true;
             RefreshList();
-            Undo.undoRedoPerformed += Repaint;
+            Undo.undoRedoPerformed += OnUndoRedo;
         }
 
         void OnDisable()
         {
-            Undo.undoRedoPerformed -= Repaint;
+            Undo.undoRedoPerformed -= OnUndoRedo;
+        }
+
+        void OnUndoRedo()
+        {
+            ScheduleManagedNameSync(_target);
+            Repaint();
         }
 
         void SetTarget(NodeDef def)
@@ -140,8 +156,10 @@ namespace MasterHouse.EditorTools
         {
             NodeDefEditUtil.Normalize(_target);
             _canvas.FitTo(_target);
+            bool renamed = SyncManagedAssetName(_target, true);
             AssetDatabase.SaveAssets();
-            ShowNotification(new GUIContent("已保存，形状已归一化到最左下 (0,0)"));
+            if (renamed)
+                ShowNotification(new GUIContent("已保存并同步文件名，形状已归一化到最左下 (0,0)"));
         }
 
         void DrawHintBar()
@@ -156,11 +174,16 @@ namespace MasterHouse.EditorTools
 
         void DrawLeftPanel()
         {
-            EditorGUILayout.BeginVertical(GUILayout.Width(230));
+            EditorGUILayout.BeginVertical(GUILayout.Width(280));
 
             GUILayout.Label("新建节点", EditorStyles.boldLabel);
-            _newName = EditorGUILayout.TextField(_newName);
-            _newTypeIndex = EditorGUILayout.Popup(_newTypeIndex, kTypeNames);
+            _newTypeIndex = EditorGUILayout.Popup("A 类型", _newTypeIndex, kTypeNames);
+            EditorGUILayout.LabelField("B 尺寸", "0x0（绘制形状后自动更新）");
+            _newIdentifier = EditorGUILayout.TextField("C 识别符", _newIdentifier);
+            string preview = BuildAssetName(kTypeCodes[_newTypeIndex], 0, 0, (_newIdentifier ?? "").Trim());
+            GUILayout.Label("文件名预览", EditorStyles.miniLabel);
+            EditorGUILayout.SelectableLabel(preview + ".asset", EditorStyles.textField,
+                GUILayout.Height(EditorGUIUtility.singleLineHeight + 2));
             if (GUILayout.Button("创建"))
             {
                 CreateNew();
@@ -192,7 +215,12 @@ namespace MasterHouse.EditorTools
 
         void CreateNew()
         {
-            string name = string.IsNullOrWhiteSpace(_newName) ? "新节点" : _newName.Trim();
+            string identifier = (_newIdentifier ?? "").Trim();
+            if (!ValidateIdentifier(identifier, out string error))
+            {
+                EditorUtility.DisplayDialog("无法创建节点", error, "确定");
+                return;
+            }
 
             if (!AssetDatabase.IsValidFolder(kNodeFolder))
             {
@@ -201,14 +229,154 @@ namespace MasterHouse.EditorTools
                 AssetDatabase.CreateFolder("Assets/GameData", "Nodes");
             }
 
+            string assetName = BuildAssetName(kTypeCodes[_newTypeIndex], 0, 0, identifier);
+            string path = $"{kNodeFolder}/{assetName}.asset";
+            if (AssetDatabase.LoadMainAssetAtPath(path) != null)
+            {
+                EditorUtility.DisplayDialog("无法创建节点", $"已存在同名节点：\n{path}", "确定");
+                return;
+            }
+
             var def = (NodeDef)CreateInstance(kTypes[_newTypeIndex]);
-            def.DisplayName = name;
-            string path = AssetDatabase.GenerateUniqueAssetPath($"{kNodeFolder}/{name}.asset");
+            def.DisplayName = identifier;
             AssetDatabase.CreateAsset(def, path);
+            SetManagedIdentifier(path, identifier);
             AssetDatabase.SaveAssets();
 
             RefreshList();
-            SetTarget(def);
+            SetTarget(AssetDatabase.LoadAssetAtPath<NodeDef>(path));
+        }
+
+        static bool ValidateIdentifier(string identifier, out string error)
+        {
+            if (string.IsNullOrWhiteSpace(identifier))
+            {
+                error = "C 识别符不能为空。";
+                return false;
+            }
+            if (identifier.Contains("_"))
+            {
+                error = "C 识别符不能包含下划线；下划线由命名格式统一添加。";
+                return false;
+            }
+            if (identifier.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
+                || identifier.Contains("/") || identifier.Contains("\\"))
+            {
+                error = "C 识别符包含文件名不允许使用的字符。";
+                return false;
+            }
+
+            error = null;
+            return true;
+        }
+
+        static string BuildAssetName(string typeCode, int width, int height, string identifier)
+            => $"{typeCode}_{width}x{height}_{identifier}";
+
+        static string TypeCode(NodeDef def)
+        {
+            if (def is ResourceNodeDef) return "Input";
+            if (def is ProcessorNodeDef) return "Pro";
+            if (def is TransitNodeDef) return "Con";
+            if (def is StorageNodeDef) return "Out";
+            if (def is ConditionNodeDef) return "Cond";
+            return null;
+        }
+
+        static void GetShapeSize(NodeDef def, out int width, out int height)
+        {
+            if (def.Shape.Grids.Count == 0)
+            {
+                width = 0;
+                height = 0;
+                return;
+            }
+
+            var first = def.Shape.Grids[0].DeltaPosition;
+            int minX = first.x, maxX = first.x, minY = first.y, maxY = first.y;
+            for (int i = 1; i < def.Shape.Grids.Count; i++)
+            {
+                var p = def.Shape.Grids[i].DeltaPosition;
+                minX = Mathf.Min(minX, p.x);
+                maxX = Mathf.Max(maxX, p.x);
+                minY = Mathf.Min(minY, p.y);
+                maxY = Mathf.Max(maxY, p.y);
+            }
+            width = maxX - minX + 1;
+            height = maxY - minY + 1;
+        }
+
+        static string GetManagedIdentifier(NodeDef def)
+        {
+            string path = AssetDatabase.GetAssetPath(def);
+            var importer = AssetImporter.GetAtPath(path);
+            if (importer == null || string.IsNullOrEmpty(importer.userData)) return null;
+
+            foreach (string line in importer.userData.Split('\n'))
+                if (line.StartsWith(kIdentifierUserDataPrefix, StringComparison.Ordinal))
+                    return line.Substring(kIdentifierUserDataPrefix.Length).TrimEnd('\r');
+            return null;
+        }
+
+        static void SetManagedIdentifier(string path, string identifier)
+        {
+            var importer = AssetImporter.GetAtPath(path);
+            if (importer == null) return;
+
+            var lines = new List<string>();
+            if (!string.IsNullOrEmpty(importer.userData))
+            {
+                foreach (string line in importer.userData.Split('\n'))
+                    if (!string.IsNullOrWhiteSpace(line)
+                        && !line.StartsWith(kIdentifierUserDataPrefix, StringComparison.Ordinal))
+                        lines.Add(line.TrimEnd('\r'));
+            }
+            lines.Add(kIdentifierUserDataPrefix + identifier);
+            importer.userData = string.Join("\n", lines);
+            AssetDatabase.WriteImportSettingsIfDirty(path);
+        }
+
+        void ScheduleManagedNameSync(NodeDef def)
+        {
+            if (def == null || string.IsNullOrEmpty(GetManagedIdentifier(def))) return;
+            EditorApplication.delayCall += () =>
+            {
+                if (def == null) return;
+                SyncManagedAssetName(def, true);
+                Repaint();
+            };
+        }
+
+        bool SyncManagedAssetName(NodeDef def, bool notifyOnError)
+        {
+            if (def == null) return false;
+            string identifier = GetManagedIdentifier(def);
+            if (string.IsNullOrEmpty(identifier)) return true; // 旧节点没有命名标记，不自动改名
+
+            string typeCode = TypeCode(def);
+            if (string.IsNullOrEmpty(typeCode)) return true;
+            GetShapeSize(def, out int width, out int height);
+            string desiredName = BuildAssetName(typeCode, width, height, identifier);
+            string path = AssetDatabase.GetAssetPath(def);
+            if (Path.GetFileNameWithoutExtension(path) == desiredName) return true;
+
+            string targetPath = $"{Path.GetDirectoryName(path)?.Replace('\\', '/')}/{desiredName}.asset";
+            if (AssetDatabase.LoadMainAssetAtPath(targetPath) != null)
+            {
+                if (notifyOnError)
+                    ShowNotification(new GUIContent($"无法同步文件名：{desiredName}.asset 已存在"));
+                return false;
+            }
+
+            string renameError = AssetDatabase.RenameAsset(path, desiredName);
+            if (!string.IsNullOrEmpty(renameError))
+            {
+                if (notifyOnError) ShowNotification(new GUIContent("文件名同步失败：" + renameError));
+                return false;
+            }
+
+            RefreshList();
+            return true;
         }
 
         static string TypeName(NodeDef def) => NodeDefEditUtil.TypeName(def);
@@ -237,7 +405,7 @@ namespace MasterHouse.EditorTools
                 _scrollCanvas = EditorGUILayout.BeginScrollView(_scrollCanvas);
                 var rect = GUILayoutUtility.GetRect(_canvas.ContentWidth, _canvas.ContentHeight,
                     GUILayout.ExpandWidth(false), GUILayout.ExpandHeight(false));
-                _canvas.OnGUI(rect, _target, this, ref _scrollCanvas);
+                _canvas.OnGUI(rect, _target, this, ref _scrollCanvas, () => ScheduleManagedNameSync(_target));
                 EditorGUILayout.EndScrollView();
             }
             EditorGUILayout.EndVertical();
@@ -283,6 +451,7 @@ namespace MasterHouse.EditorTools
                 case ProcessorNodeDef p: DrawProcessorFields(p); break;
                 case StorageNodeDef s: DrawStorageFields(s); break;
                 case TransitNodeDef t: DrawTransitFields(t); break;
+                case ConditionNodeDef c: DrawConditionFields(c); break;
             }
         }
 
@@ -386,6 +555,78 @@ namespace MasterHouse.EditorTools
             }
         }
 
+        void DrawConditionFields(ConditionNodeDef c)
+        {
+            EditorGUILayout.HelpBox(
+                "条件节点判定「家具是否修好」：每条需求统计最近 W tick 内收到的量，" +
+                "全部达标才算本节点满足。收到的物资即刻蒸发，不占暂存、也不会背压上游。",
+                MessageType.None);
+
+            GUILayout.Label("需求列表（留空 = 恒达标）", EditorStyles.miniBoldLabel);
+            for (int i = 0; i < c.Conditions.Count; i++)
+            {
+                var entry = c.Conditions[i];
+                if (entry == null) continue; // 空条目由校验区提示
+
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+                EditorGUILayout.BeginHorizontal();
+                var swatch = GUILayoutUtility.GetRect(14, 14, GUILayout.Width(14), GUILayout.Height(14));
+                EditorGUI.DrawRect(swatch, entry.Item != null ? entry.Item.DisplayColor : Color.gray);
+                EditorGUI.BeginChangeCheck();
+                var item = (ItemDef)EditorGUILayout.ObjectField(entry.Item, typeof(ItemDef), false);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObject(c, "修改需求物资");
+                    entry.Item = item;
+                    EditorUtility.SetDirty(c);
+                }
+                bool doRemove = GUILayout.Button("×", GUILayout.Width(22));
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Label("需求量", GUILayout.Width(46));
+                int amount = EditorGUILayout.IntField(entry.RequiredAmount, GUILayout.Width(50));
+                GUILayout.Label("窗口(tick)", GUILayout.Width(66));
+                int window = EditorGUILayout.IntField(entry.WindowTicks, GUILayout.Width(50));
+                GUILayout.FlexibleSpace();
+                EditorGUILayout.EndHorizontal();
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObject(c, "修改需求数值");
+                    entry.RequiredAmount = Mathf.Max(1, amount);
+                    entry.WindowTicks = Mathf.Max(1, window);
+                    EditorUtility.SetDirty(c);
+                }
+
+                // 速率换算：策划配的是「窗口内几个」，这里换算成每秒直觉值（tick 频率见 GameConfig）
+                int tps = GameConfig.Instance != null ? Mathf.Max(1, GameConfig.Instance.TicksPerSecond) : 10;
+                float perSecond = entry.RequiredAmount * (float)tps / Mathf.Max(1, entry.WindowTicks);
+                EditorGUILayout.LabelField(
+                    $"≈ 每 {entry.WindowTicks} tick 需 {entry.RequiredAmount} 个（约 {perSecond:0.##} 个/秒）",
+                    EditorStyles.miniLabel);
+
+                EditorGUILayout.EndVertical();
+
+                if (doRemove)
+                {
+                    Undo.RecordObject(c, "删除需求");
+                    c.Conditions.RemoveAt(i);
+                    EditorUtility.SetDirty(c);
+                    GUIUtility.ExitGUI();
+                }
+            }
+
+            if (GUILayout.Button("+ 添加需求"))
+            {
+                Undo.RecordObject(c, "添加需求");
+                c.Conditions.Add(new ConditionEntry());
+                EditorUtility.SetDirty(c);
+                GUIUtility.ExitGUI();
+            }
+        }
+
         // ==================== Pin 列表 ====================
 
         void DrawPinSection()
@@ -439,6 +680,9 @@ namespace MasterHouse.EditorTools
                     return "仓库节点：可自由增删 Pin 与物资种类；方向固定为「输入」。";
                 case ProcessorNodeDef _:
                     return "加工节点：Pin 的数量与物资由配方的输入/产出一一对应决定，不能手动增删；改配方后自动同步，也可手动点「按配方同步 Pin」。";
+                case ConditionNodeDef _:
+                    return "条件节点：可自由增删 Pin，方向固定为「输入」。同一种物资允许配多个 Pin 并联供货" +
+                           "（单条链接的速率有上限），到货合并计入同一条需求。";
                 case TransitNodeDef _:
                     return "中转节点：Pin 必须成对配置、互为配对 Pin（§6.3 立交）；删除任一个会连同配对一起删除。物资可留空，方向固定「同步」，运行时随连接确定。";
                 default:

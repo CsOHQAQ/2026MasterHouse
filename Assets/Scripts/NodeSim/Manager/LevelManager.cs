@@ -14,20 +14,30 @@ namespace MasterHouse
         private readonly LinkManager linkManager;
         private readonly PlayerCargoData playerCargo;
 
-        /// <summary>已加载小关，按加载顺序推进 tick（顺序稳定）。</summary>
-        private readonly List<LevelData> loadedLevels = new List<LevelData>();
+        /// <summary>
+        /// 常驻关卡数据（按创建顺序，顺序稳定 §11.2）。
+        /// 玩家离开局内后**数据不释放**——当前没有存档（待定 #9），丢弃 = 玩家布局全没；
+        /// 统一存档接入后可改为「卸载 + 从存档恢复」。
+        /// </summary>
+        private readonly List<LevelData> levels = new List<LevelData>();
 
-        public IReadOnlyList<LevelData> LoadedLevels => loadedLevels;
+        public IReadOnlyList<LevelData> Levels => levels;
+
+        /// <summary>
+        /// 玩家正在打开的关卡，同一时刻至多一个；**只有它推进节点模拟**。
+        /// 其余常驻关卡完全静止（家具效果产出除外，见 TickAll）。
+        /// </summary>
+        public LevelData ActiveLevel { get; private set; }
 
         // ── 结构变化广播（§2.1）：Manager 完成修改后触发，携带数据对象引用。
         //    只覆盖玩家操作产生的离散结构变化；连续量（暂存/进度/链接状态）由 View 每帧轮询。
         //    读档/Load 时 View 仍以全量重建为真相源，广播只是运行中的增量优化 ──
 
-        /// <summary>关卡 Load 完成（预置节点已就位）。Load 过程不逐节点广播，View 应全量重建。</summary>
-        public event Action<LevelData> OnLevelLoaded;
+        /// <summary>玩家打开关卡（进入局内）：数据已就位，View 应全量重建。</summary>
+        public event Action<LevelData> OnLevelOpened;
 
-        /// <summary>关卡 Unload 完成（已从推进列表移除）。</summary>
-        public event Action<LevelData> OnLevelUnloaded;
+        /// <summary>玩家关闭关卡（退出局内）：数据仍常驻，View 只释放表现物。</summary>
+        public event Action<LevelData> OnLevelClosed;
 
         /// <summary>玩家放置节点完成。</summary>
         public event Action<LevelData, NodeData> OnNodePlaced;
@@ -46,11 +56,18 @@ namespace MasterHouse
 
         // ───────────────── 生命周期（§8.4）─────────────────
 
-        public LevelData LoadLevel(LevelDef def)
+        /// <summary>
+        /// 取回常驻关卡数据，不存在则按 LevelDef 创建（预置节点就位、算一次生效）。
+        /// 正式流程里由「玩家在房间摆下一件带关卡的家具」触发；测试场景由调试面板驱动。
+        /// </summary>
+        public LevelData EnsureLevel(LevelDef def)
         {
+            var existing = FindLevel(def);
+            if (existing != null) return existing;
+
             var level = new LevelData(def);
 
-            // 按 LevelDef 初始化预置节点（资源点、中转节点靠它预置 §8.1）
+            // 按 LevelDef 初始化预置节点（资源点、中转、条件节点靠它预置 §8.1）
             foreach (var preset in def.PresetNodes)
             {
                 if (preset.Node == null) continue;
@@ -64,30 +81,76 @@ namespace MasterHouse
             }
 
             // 待定 #9：存档恢复（存档系统未讨论），此处占位
-            // 待定 #7：若曾 Unload，按稳态净产出表 × Δtick 一次性补账（§3.4），此处占位
 
             level.IsLoaded = true;
-            loadedLevels.Add(level);
-            OnLevelLoaded?.Invoke(level);
+            UpdateEffective(level); // 有条件节点则初值为「未生效」——家具尚未修好
+            levels.Add(level);
             return level;
         }
 
-        public void UnloadLevel(LevelData level)
+        /// <summary>玩家进入局内：该关成为唯一推进节点模拟的关卡。</summary>
+        public LevelData OpenLevel(LevelDef def)
         {
-            // 待定 #7：稳态吞吐分析（整条链瓶颈产率）→ 生成每 tick 净产出表，此处占位
+            var level = EnsureLevel(def);
+            if (ActiveLevel == level) return level;
+
+            if (ActiveLevel != null) CloseLevel();
+            ActiveLevel = level;
+            OnLevelOpened?.Invoke(level);
+            return level;
+        }
+
+        /// <summary>
+        /// 玩家退出局内：数据原样常驻，只是不再推进节点模拟。
+        /// 家具效果产出照常继续（生效状态锁存在离开的那一刻）。
+        /// </summary>
+        public void CloseLevel()
+        {
+            var level = ActiveLevel;
+            if (level == null) return;
+            ActiveLevel = null;
+            // View 释放表现物：响应本广播（§2.1）
+            OnLevelClosed?.Invoke(level);
+        }
+
+        /// <summary>
+        /// 丢弃常驻数据（调试面板热重载：全量丢弃运行时状态，再从 LevelDef 重建）。
+        /// 正式玩法没有这条路径——布局是玩家资产，只有存档能替代它。
+        /// </summary>
+        public void DiscardLevel(LevelDef def)
+        {
+            var level = FindLevel(def);
+            if (level == null) return;
+            if (ActiveLevel == level) CloseLevel();
             level.IsLoaded = false;
-            loadedLevels.Remove(level);
-            // View 释放运行时表现物：响应本广播（§2.1）
-            OnLevelUnloaded?.Invoke(level);
+            levels.Remove(level);
+        }
+
+        /// <summary>按 Def 查常驻数据；未创建过返回 null。</summary>
+        public LevelData FindLevel(LevelDef def)
+        {
+            for (int i = 0; i < levels.Count; i++)
+                if (levels[i].Def == def)
+                    return levels[i];
+            return null;
         }
 
         // ───────────────── tick 推进 ─────────────────
 
-        /// <summary>由 GameManager 每个固定 tick 调用一次。</summary>
+        /// <summary>
+        /// 由 GameManager 每个固定 tick 调用一次，分两段：
+        /// ① **只推进玩家打开中的关卡**的节点模拟——未打开的关卡完全不更新
+        ///    （该规则取代了原 §3.4「后台小关稳态结算」，待定 #7 随之作废）；
+        /// ② **所有常驻关卡**推进家具效果产出——节点不更新 ≠ 家具不生效。
+        /// 顺序固定：先模拟后产出，本 tick 刚修好的家具当 tick 就开始产出。
+        /// </summary>
         public void TickAll()
         {
-            for (int i = 0; i < loadedLevels.Count; i++)
-                TickLevel(loadedLevels[i]);
+            if (ActiveLevel != null)
+                TickLevel(ActiveLevel);
+
+            for (int i = 0; i < levels.Count; i++)
+                TickFurnitureOutput(levels[i]);
         }
 
         /// <summary>tick 流水线：全局三阶段，顺序固定（§3.2）。</summary>
@@ -95,8 +158,58 @@ namespace MasterHouse
         {
             level.TickCount++;
             linkManager.TickDeliverPhase(level, playerCargo); // ① 投递：本 tick 送达的料当 tick 进配方
-            TickNodePhase(level);                             // ② 节点：生产 / 配方推进
+            TickNodePhase(level);                             // ② 节点：生产 / 配方推进 / 条件窗口
             linkManager.TickPickupPhase(level);               // ③ 取货：本 tick 新产出当 tick 被拉走
+            UpdateEffective(level);                           // 条件汇总：家具是否修好
+        }
+
+        /// <summary>
+        /// 关卡（= 家具）是否生效：没有条件节点则恒生效；有则**全部**条件节点达标。
+        /// 非法临时态的条件节点算不达标（它被冻结，窗口不推进）。
+        /// 只在关卡被打开时调用——玩家不在局内时结果保持不变（锁存）。
+        /// </summary>
+        private static void UpdateEffective(LevelData level)
+        {
+            bool hasCondition = false;
+            bool allSatisfied = true;
+            foreach (var node in level.Nodes) // 按 NodeId 稳定顺序（§11.2）
+            {
+                if (node.ConditionState == null) continue;
+                hasCondition = true;
+                if (node.IsIllegal || !node.ConditionState.Satisfied)
+                {
+                    allSatisfied = false;
+                    break;
+                }
+            }
+            level.IsEffective = !hasCondition || allSatisfied;
+        }
+
+        /// <summary>
+        /// 家具效果产出：生效的关卡按 LevelDef.Outputs 持续产出到玩家仓库。
+        /// 计时器走**全局 tick**（不是 level.TickCount，后者只在关卡打开时推进），
+        /// 因此玩家不在局内时家具照常产出；打烊时随全局停 tick 一起停（§16.4）。
+        /// </summary>
+        private void TickFurnitureOutput(LevelData level)
+        {
+            if (!level.IsEffective) return;
+
+            var outputs = level.Def.Outputs;
+            if (outputs == null) return;
+
+            int count = Math.Min(outputs.Count, level.OutputCounters.Length);
+            for (int i = 0; i < count; i++)
+            {
+                var entry = outputs[i];
+                if (entry == null || entry.Item == null || entry.Amount <= 0) continue;
+
+                int period = Math.Max(1, entry.TicksPerOutput);
+                level.OutputCounters[i]++;
+                if (level.OutputCounters[i] < period) continue;
+
+                level.OutputCounters[i] = 0;
+                playerCargo.Add(entry.Item, entry.Amount);
+            }
         }
 
         /// <summary>② 节点阶段：按 NodeId 稳定顺序遍历（§11.2）。</summary>
@@ -112,6 +225,10 @@ namespace MasterHouse
                         break;
                     case ENodeType.Processor:
                         TickProcessorNode(node);
+                        break;
+                    case ENodeType.Condition:
+                        // 推进滑动窗口（投递阶段已记本 tick 到货），重算达标
+                        node.ConditionState.Advance(level.TickCount);
                         break;
                     // Storage：漏斗无内部行为（投递阶段直接入 PlayerCargo §7）
                     // Transit：无配方转运，无内部行为
@@ -187,6 +304,9 @@ namespace MasterHouse
         /// <summary>建造资格：v1 建造免费 + BuildableNodes 数量上限（§8.3；成本经济待定 #12）。</summary>
         public bool CanBuild(LevelData level, NodeDef def)
         {
+            // 条件节点是关卡的生效判据，只能由策划预置；按类型强制，自由模式也不放行
+            if (def.NodeType == ENodeType.Condition) return false;
+
             foreach (var entry in level.Def.BuildableNodes)
                 if (entry.Node == def)
                     return CountNodesOf(level, def) < entry.MaxCount;
@@ -217,6 +337,10 @@ namespace MasterHouse
         /// </summary>
         public bool RemoveNode(LevelData level, NodeData node)
         {
+            // 条件节点不可删除：关卡靠它判定生效，删掉等于关卡失去判据。
+            // 按类型强制（不只是 CanDelete 字段），自由模式也不放行。
+            if (node.Def.NodeType == ENodeType.Condition) return false;
+
             // 先收集再删，避免遍历中修改 Pin.Links；按 LinkId 升序（Pin.Links 有序，逐 Pin 合并仍稳定）
             var attached = new List<LinkData>();
             foreach (var pin in node.Pins)

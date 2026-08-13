@@ -43,27 +43,31 @@ namespace MasterHouse
                 return;
             }
             levelManager = gm.LevelManager;
-            levelManager.OnLevelUnloaded += HandleLevelUnloaded;
+            levelManager.OnLevelClosed += HandleLevelClosed;
         }
 
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
             if (levelManager != null)
-                levelManager.OnLevelUnloaded -= HandleLevelUnloaded;
+                levelManager.OnLevelClosed -= HandleLevelClosed;
         }
 
-        /// <summary>单关独占（需求记录·决策 2）：当前关取已加载列表首个。</summary>
-        private LevelData CurrentLevel =>
-            levelManager != null && levelManager.LoadedLevels.Count > 0
-                ? levelManager.LoadedLevels[0]
-                : null;
+        /// <summary>玩家正在打开的关卡；未进入局内时为 null。</summary>
+        private LevelData CurrentLevel => levelManager != null ? levelManager.ActiveLevel : null;
 
         /// <summary>进入放置模式（调试面板的生成列表调用）。</summary>
         public void BeginPlacement(NodeDef def)
         {
             var level = CurrentLevel;
             if (def == null || level == null) return;
+
+            // 条件节点只能由策划在 LevelDef.PresetNodes 预置；按类型硬拦，自由模式也不放行
+            if (def.NodeType == ENodeType.Condition)
+            {
+                InteractionController.Instance?.ShowMessage("条件节点只能在关卡中预置，不能手动摆放");
+                return;
+            }
 
             if (!DebugOptions.FreeMode && !levelManager.CanBuild(level, def))
             {
@@ -147,6 +151,6 @@ namespace MasterHouse
                     s * 0.98f, GhostOkColor, SortingOrders.DragLine));
         }
 
-        private void HandleLevelUnloaded(LevelData level) => CancelPlacement();
+        private void HandleLevelClosed(LevelData level) => CancelPlacement();
     }
 }

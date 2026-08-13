@@ -28,8 +28,24 @@ namespace MasterHouse
     {
         public readonly LevelDef Def;
 
-        /// <summary>本关逻辑 tick 计数（§3.1）。随存档序列化（§11.5）。</summary>
+        /// <summary>
+        /// 本关逻辑 tick 计数（§3.1）。随存档序列化（§11.5）。
+        /// **只在关卡被打开（ActiveLevel）时推进**——条件节点的滑动窗口以它为时间轴，
+        /// 因此玩家离开局内后窗口内容天然冻结，再进来仍是离开时的达标状态。
+        /// </summary>
         public long TickCount;
+
+        /// <summary>
+        /// 关卡（= 家具）是否生效：没有条件节点则恒生效，有则需全部达标。
+        /// 只能由 LevelManager 维护；玩家不在局内时保持最后一次的值（锁存）。
+        /// </summary>
+        public bool IsEffective;
+
+        /// <summary>
+        /// 各条家具产出的计时器，按 Def.Outputs 顺序。
+        /// **走全局 tick**（与 TickCount 无关）：修好的家具在玩家不在局内时照常产出。
+        /// </summary>
+        public readonly int[] OutputCounters;
 
         /// <summary>按 NodeId 升序维护（创建即追加，NodeId 自增，天然有序 §11.2）。</summary>
         public readonly List<NodeData> Nodes = new List<NodeData>();
@@ -41,6 +57,7 @@ namespace MasterHouse
         public long NextNodeId;
         public long NextLinkId;
 
+        /// <summary>数据是否在常驻列表中（不代表正在推进节点模拟，后者看 LevelManager.ActiveLevel）。</summary>
         public bool IsLoaded;
 
         // 待定 #7：Unload 期间的稳态净产出表，结构随算法定案，先占位
@@ -58,6 +75,7 @@ namespace MasterHouse
             Def = def;
             foreach (var cell in def.Canvas.CellsAt(def.WorldOrigin))
                 canvasCells.Add(cell);
+            OutputCounters = new int[def.Outputs != null ? def.Outputs.Count : 0];
         }
 
         public bool IsInCanvas(Vector2Int cell) => canvasCells.Contains(cell);

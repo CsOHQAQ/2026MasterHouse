@@ -32,6 +32,10 @@ MonoBehaviour:
   needCountMax: 3
   portraits:
   - expression: 0
-    portraitPath: OutGameUI/Guests/crow
+    portraitPath: OutGameUI
+  - expression: 0
+    portraitPath: Guests
+  - expression: 0
+    portraitPath: crow
   sheetPath: OutGameUI/Visitors/rottweiler
   dialoguePool: {fileID: 11400000, guid: 9eaefa8328e95bf41942cf7a31a20a3d, type: 2}

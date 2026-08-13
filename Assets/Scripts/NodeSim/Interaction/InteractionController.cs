@@ -5,10 +5,11 @@ using UnityEngine.EventSystems;
 namespace MasterHouse
 {
     /// <summary>
-    /// 玩家世界内交互 Controller（§2/§9）：选中、Pin-Pin 拉线、移动节点、删除节点/链接。
+    /// 玩家世界内交互 Controller（§2/§9）：选中、手动描格连线、移动节点、删除节点/链接。
     /// 只把输入翻译成对 Manager 的调用，不直接修改任何数据类（§2）。
     /// 资格校验（CanMove/CanDelete/可建列表）在本层执行——自由模式只绕过这里（权限模型）。
-    /// 理线（手动拖排走线）暂不做（需求记录·决策 5），后补为纯增量。
+    /// 连线一律玩家手绘（§5）：从 Pin 按下起描格，未画到合法 Pin 的接口格就松手 = 本次作废。
+    /// 理线（抓住已有线段重新拖排）本轮仍不做，后补为纯增量。
     /// </summary>
     public class InteractionController : MonoBehaviour
     {
@@ -31,7 +32,11 @@ namespace MasterHouse
         private bool lmbHeld;
         private Vector3 lmbDownScreen;
         private bool lmbDragging;          // 已越过拖拽阈值
-        private PinData dragFromPin;       // 拉线起点（按下 Pin 即生效）
+        private PinData dragFromPin;       // 描格起点 Pin（按下 Pin 即生效）
+
+        /// <summary>玩家正在描的走线途径格（§5）；首格 = 起点 Pin 的接线格。</summary>
+        private readonly List<Vector2Int> drawPath = new List<Vector2Int>();
+
         private NodeData dragNode;         // 拖拽移动中的节点
         private Vector2Int dragGrabOffset; // 抓取点相对节点原点的格偏移
 
@@ -67,7 +72,7 @@ namespace MasterHouse
             levelManager = gm.LevelManager;
             linkManager = gm.LinkManager;
             // 结构变化时清理失效引用（选中/拖拽对象可能被删除或随关卡卸载）
-            levelManager.OnLevelUnloaded += HandleLevelUnloaded;
+            levelManager.OnLevelClosed += HandleLevelClosed;
             levelManager.OnNodeRemoved += HandleNodeRemoved;
             linkManager.OnLinkDeleted += HandleLinkDeleted;
         }
@@ -77,18 +82,15 @@ namespace MasterHouse
             if (Instance == this) Instance = null;
             if (levelManager != null)
             {
-                levelManager.OnLevelUnloaded -= HandleLevelUnloaded;
+                levelManager.OnLevelClosed -= HandleLevelClosed;
                 levelManager.OnNodeRemoved -= HandleNodeRemoved;
             }
             if (linkManager != null)
                 linkManager.OnLinkDeleted -= HandleLinkDeleted;
         }
 
-        /// <summary>单关独占（需求记录·决策 2）：当前关取已加载列表首个。</summary>
-        private LevelData CurrentLevel =>
-            levelManager != null && levelManager.LoadedLevels.Count > 0
-                ? levelManager.LoadedLevels[0]
-                : null;
+        /// <summary>玩家正在打开的关卡；未进入局内时为 null，世界交互整体停用。</summary>
+        private LevelData CurrentLevel => levelManager != null ? levelManager.ActiveLevel : null;
 
         private void Update()
         {
@@ -134,7 +136,13 @@ namespace MasterHouse
                     lmbHeld = false;
                     return;
                 }
-                if (dragFromPin == null)
+                if (dragFromPin != null)
+                {
+                    // 描格起点 = 该 Pin 的外侧接线格（§5）
+                    drawPath.Clear();
+                    drawPath.Add(dragFromPin.Owner.GetPinPortCell(dragFromPin.IndexInNode));
+                }
+                else
                 {
                     var cell = GridPicker.WorldToCell(world);
                     var node = GridPicker.PickNode(level, cell);
@@ -147,6 +155,10 @@ namespace MasterHouse
             }
 
             if (!lmbHeld) return;
+
+            // 描格：路径跟着鼠标经过的格子逐格延伸
+            if (dragFromPin != null)
+                UpdateDrawPath(level);
 
             if (!lmbDragging &&
                 ((Vector2)(Input.mousePosition - lmbDownScreen)).magnitude > DragThresholdPixels)
@@ -178,13 +190,76 @@ namespace MasterHouse
                 lmbDragging = false;
                 dragFromPin = null;
                 dragNode = null;
+                drawPath.Clear();
             }
+        }
+
+        /// <summary>
+        /// 描格（§5 手动布线）：
+        /// - 鼠标落回已描过的格 → 截断到那一格（可一次退多格，鼠标快也不卡）；
+        /// - 斜向移动 → 优先沿上一段方向先走一格再转弯（拐角更少）；
+        /// - 撞到非法格 → **停住不延伸、不作废**，玩家绕开继续描。
+        /// </summary>
+        private void UpdateDrawPath(LevelData level)
+        {
+            if (drawPath.Count == 0) return;
+
+            var target = GridPicker.ScreenToCell(cam, Input.mousePosition);
+            var tail = drawPath[drawPath.Count - 1];
+            if (target == tail) return;
+
+            int back = drawPath.LastIndexOf(target);
+            if (back >= 0)
+            {
+                drawPath.RemoveRange(back + 1, drawPath.Count - back - 1);
+                return;
+            }
+
+            // 逐格逼近鼠标：每步只走一格，4 向直角（斜向自动补一横/一竖）
+            int guard = 256; // 鼠标跨屏跳跃时的步数上限，防单帧死循环
+            while (tail != target && guard-- > 0)
+            {
+                var next = tail + NextStepToward(tail, target);
+                if (!CanDrawInto(level, next)) break; // 撞墙：停住
+                drawPath.Add(next);
+                tail = next;
+            }
+        }
+
+        /// <summary>下一格走向：能延续上一段方向就延续（减少拐角），否则先走横向。</summary>
+        private Vector2Int NextStepToward(Vector2Int from, Vector2Int target)
+        {
+            var diff = target - from;
+            var lastDir = drawPath.Count >= 2
+                ? drawPath[drawPath.Count - 1] - drawPath[drawPath.Count - 2]
+                : Vector2Int.zero;
+
+            if (lastDir.x != 0 && diff.x != 0 && lastDir.x > 0 == diff.x > 0)
+                return new Vector2Int(diff.x > 0 ? 1 : -1, 0);
+            if (lastDir.y != 0 && diff.y != 0 && lastDir.y > 0 == diff.y > 0)
+                return new Vector2Int(0, diff.y > 0 ? 1 : -1);
+            if (diff.x != 0)
+                return new Vector2Int(diff.x > 0 ? 1 : -1, 0);
+            return new Vector2Int(0, diff.y > 0 ? 1 : -1);
+        }
+
+        /// <summary>该格能否继续描：∈ 画布 ∧ 未被占用 ∧ 不与自身路径重叠（§4.2）。</summary>
+        private bool CanDrawInto(LevelData level, Vector2Int cell)
+        {
+            if (!level.IsInCanvas(cell) || level.IsOccupied(cell)) return false;
+            return !drawPath.Contains(cell);
         }
 
         private void FinishLinkDrag(LevelData level)
         {
-            var toPin = GridPicker.PickPin(level, GridPicker.ScreenToWorld(cam, Input.mousePosition));
-            if (toPin == null || toPin == dragFromPin) return; // 空放/原地松开：静默取消
+            if (drawPath.Count == 0) return;
+            var endCell = drawPath[drawPath.Count - 1];
+
+            // 优先取鼠标命中的 Pin；没命中就按路径末端反查——玩家把线描到接口格上即算连到，
+            // 不必再精确悬停在 Pin 标记上（描格的手感要求）
+            var toPin = GridPicker.PickPin(level, GridPicker.ScreenToWorld(cam, Input.mousePosition))
+                        ?? FindPinAtPortCell(level, endCell);
+            if (toPin == null || toPin == dragFromPin) return; // 空放/原地松开：本次绘制静默作废
 
             if (toPin.Owner.IsIllegal)
             {
@@ -192,9 +267,29 @@ namespace MasterHouse
                 return;
             }
 
-            var link = linkManager.TryCreateLink(level, dragFromPin, toPin, out var failReason);
+            // 必须已经描到目标 Pin 的接口格上，否则本次作废（§5）
+            if (endCell != toPin.Owner.GetPinPortCell(toPin.IndexInNode))
+            {
+                ShowMessage("没有把线描到目标 Pin 的接口格上，本次绘制作废");
+                return;
+            }
+
+            var link = linkManager.TryCreateLink(level, dragFromPin, toPin, out var failReason, drawPath);
             if (link == null)
                 ShowMessage($"连线失败：{failReason}"); // 需求 §三：失败原因必须在界面可见
+        }
+
+        /// <summary>按接线格反查 Pin（排除起点所在节点）。遍历按 NodeId 稳定顺序。</summary>
+        private PinData FindPinAtPortCell(LevelData level, Vector2Int cell)
+        {
+            foreach (var node in level.Nodes)
+            {
+                if (dragFromPin != null && node == dragFromPin.Owner) continue;
+                for (int i = 0; i < node.Pins.Count; i++)
+                    if (node.GetPinPortCell(i) == cell)
+                        return node.Pins[i];
+            }
+            return null;
         }
 
         private void ClickSelect(LevelData level)
@@ -244,6 +339,12 @@ namespace MasterHouse
             }
             else if (SelectedNode != null)
             {
+                // 条件节点按类型硬拦，自由模式也不放行（与 LevelManager.RemoveNode 同口径）
+                if (SelectedNode.Def.NodeType == ENodeType.Condition)
+                {
+                    ShowMessage("条件节点不可删除（关卡的生效判据）");
+                    return;
+                }
                 // 删除资格校验在 Controller 层：自由模式无视预置约束（权限模型）
                 if (!SelectedNode.CanDelete && !DebugOptions.FreeMode)
                 {
@@ -256,13 +357,14 @@ namespace MasterHouse
 
         // ───────────────── 结构变化回调：清理失效引用 ─────────────────
 
-        private void HandleLevelUnloaded(LevelData level)
+        private void HandleLevelClosed(LevelData level)
         {
             Deselect();
             dragFromPin = null;
             dragNode = null;
             lmbHeld = false;
             lmbDragging = false;
+            drawPath.Clear();
         }
 
         private void HandleNodeRemoved(LevelData level, NodeData node)
@@ -280,16 +382,15 @@ namespace MasterHouse
 
         private void UpdateDragLine()
         {
-            bool active = dragFromPin != null;
+            bool active = dragFromPin != null && drawPath.Count > 0;
             if (dragLine == null)
             {
                 if (!active) return;
-                var go = new GameObject("拉线预览");
+                var go = new GameObject("描线预览");
                 go.transform.SetParent(transform, false);
                 dragLine = go.AddComponent<LineRenderer>();
                 dragLine.sharedMaterial = VisualAssets.UnlitMaterial;
                 dragLine.widthMultiplier = 0.1f * ViewUtil.GridSize;
-                dragLine.positionCount = 2;
                 dragLine.useWorldSpace = true;
                 dragLine.sortingOrder = SortingOrders.DragLine;
             }
@@ -297,8 +398,11 @@ namespace MasterHouse
             dragLine.enabled = active;
             if (!active) return;
 
-            dragLine.SetPosition(0, GridPicker.PinMarkWorldPos(dragFromPin.Owner, dragFromPin.IndexInNode));
-            dragLine.SetPosition(1, GridPicker.ScreenToWorld(cam, Input.mousePosition));
+            // 沿已描出的格中心画折线：所见即所占（§5 描格）
+            dragLine.positionCount = drawPath.Count;
+            for (int i = 0; i < drawPath.Count; i++)
+                dragLine.SetPosition(i, ViewUtil.CellCenter(drawPath[i]));
+
             var color = dragFromPin.RuntimeItemType != null
                 ? dragFromPin.RuntimeItemType.DisplayColor
                 : Color.white;
