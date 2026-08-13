@@ -6,7 +6,8 @@ namespace MasterHouse.EditorTools
 {
     /// <summary>
     /// 关卡编辑器的网格画布：绘制/擦除画布形状（逐格 + 矩形框选）、摆放预置节点。
-    /// 画布逻辑坐标 y 向上，渲染时翻转到 GUI 坐标；坐标为画布局部格（相对 WorldOrigin）。
+    /// 画布逻辑坐标 y 向上，渲染时翻转到 GUI 坐标；坐标一律是画布局部格
+    /// （保存时归一化到最左下 (0,0)，世界原点 WorldOrigin 已随字段瘦身删除）。
     /// 预置节点渲染占格（按类型着色，非法格标红）与 Pin 标记。
     /// </summary>
     public class LevelCanvas

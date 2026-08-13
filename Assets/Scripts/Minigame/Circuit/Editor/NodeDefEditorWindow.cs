@@ -8,10 +8,11 @@ using UnityEngine;
 namespace MasterHouse.EditorTools
 {
     /// <summary>
-    /// 节点定义编辑器（待定 #11 的一部分）：
-    /// - 创建 / 编辑五类 NodeDef 资产，配置各类型字段；
+    /// 「修理电路」节点定义编辑器（待定 #11 的一部分）：
+    /// - 创建 / 编辑三类 NodeDef 资产（电源 / 中转件 / 电池），配置各类型字段；
     /// - 网格画布绘制占格形状，保存时自动归一化到最左下 (0,0)；
-    /// - 按类型规则配置 Pin（资源/仓库自由增删、中转成对配置、加工由配方决定）。
+    /// - 按类型规则配置 Pin：电源固定输出、电池固定输入、
+    ///   中转件按 PinGroup 分组且方向由策划配（十字件留「同步」，分流/合流配死进出，见小游戏说明 §4.7）。
     /// 打开方式：菜单 MasterHouse/节点编辑器，或直接双击 NodeDef 资产。
     /// </summary>
     public class NodeDefEditorWindow : EditorWindow
@@ -54,7 +55,7 @@ namespace MasterHouse.EditorTools
             w.minSize = new Vector2(1010, 520);
         }
 
-        /// <summary>打开窗口并定位到指定节点（供配方编辑器等其他工具跳转）。</summary>
+        /// <summary>打开窗口并定位到指定节点（供关卡编辑器等其他工具跳转）。</summary>
         public static void Open(NodeDef def)
         {
             Open();

@@ -171,7 +171,10 @@ namespace MasterHouse.EditorTools
             EditorUtility.SetDirty(def);
         }
 
-        /// <summary>按类型规则一键修正所有 Pin 的方向字段（加工型请走 SyncProcessorPins）。</summary>
+        /// <summary>
+        /// 按类型规则一键修正所有 Pin 的方向字段。
+        /// 只对方向被类型定死的电源（输出）与电池（输入）生效；中转件的方向由策划逐 Pin 配，本方法直接返回。
+        /// </summary>
         public static void FixPinDirections(NodeDef def)
         {
             var forced = ForcedDirection(def);

@@ -75,10 +75,10 @@ namespace MasterHouse.EditorTools
     }
 
     /// <summary>
-    /// 关卡定义编辑器（待定 #11 的一部分）：创建 / 编辑 LevelDef。
+    /// 「修理电路」关卡编辑器（待定 #11 的一部分）：创建 / 编辑 LevelDef。
     /// - 画布形状：逐格绘制 + 矩形框选填充/擦除 + 一键生成 W×H 矩形，保存时归一化到最左下 (0,0)；
     /// - 预置节点：列表配置 + 画布点击摆放，越界/重叠标红警告不阻止；
-    /// - 其余字段（WorldOrigin、可建列表、Goals 占位等）SerializedObject 自动绘制，加字段零维护。
+    /// - 其余字段（可建中转件与数量上限、导线预算 MaxLinkCells）SerializedObject 自动绘制，加字段零维护。
     /// 打开方式：菜单 MasterHouse/关卡编辑器，或直接双击 LevelDef 资产。
     /// </summary>
     public class LevelDefEditorWindow : EditorWindow
@@ -463,8 +463,9 @@ namespace MasterHouse.EditorTools
         {
             GUILayout.Label("字段", EditorStyles.boldLabel);
 
-            // 除画布与预置节点外全部自动绘制：LevelDef 加字段零维护；
-            // Goals / UnlockRequirement 为待定 #1 占位结构，随策划定案自动长出内容。
+            // 除画布与预置节点外全部自动绘制：LevelDef 加字段零维护。
+            // 当前会长出两个难度旋钮（小游戏说明 §4.3）：
+            // BuildableNodes（本关可摆的中转件与各自数量上限）与 MaxLinkCells（导线总格数上限，0 = 不限）。
             if (_serialized == null || _serialized.targetObject != _target)
                 _serialized = new SerializedObject(_target);
 
@@ -486,7 +487,10 @@ namespace MasterHouse.EditorTools
         {
             GUILayout.Space(6);
             GUILayout.Label($"预置节点（{_target.PresetNodes.Count} 个）", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("资源点、中转节点靠预置放入关卡（§7/§8.1）。选中一条后在画布左键摆放；越界/重叠标红但不阻止，保存前请清掉校验警告。", MessageType.None);
+            EditorGUILayout.HelpBox(
+                "电源与电池是本关的题面，靠预置放入（小游戏说明 §4.6），一律不可移动不可删除；" +
+                "中转件不在这里配，走上面的「可建中转件」列表由玩家自己摆。\n" +
+                "选中一条后在画布左键摆放；越界/重叠标红但不阻止，保存前请清掉校验警告。", MessageType.None);
 
             for (int i = 0; i < _target.PresetNodes.Count; i++)
                 DrawPresetRow(i);
