@@ -212,12 +212,20 @@ namespace MasterHouse.EditorTools
                             $"组 {groupId} 第 {stepNo} 步是 Branch 却没填「选项」列——每个选项各占一行，选项号从 1 开始");
                         continue;
                     }
+                    if (subNo >= 0)
+                    {
+                        // 只填句序不填选项：多半是漏填了选项号。按主线行处理会把「句序」静默丢掉，
+                        // 那是内容凭空消失——宁可报错
+                        report.Error("对话内容", excelRow,
+                            $"组 {groupId} 第 {stepNo} 步填了「句序」却没填「选项」——子句必须挂在某个选项下");
+                        continue;
+                    }
                     if (bucket.Main != null)
                     {
                         report.Error("对话内容", excelRow, $"组 {groupId} 的第 {stepNo} 步出现了两行主线内容（步骤号重复）");
                         continue;
                     }
-                    bucket.Main = new DialogueStep { kind = kind, line = line, actions = actions };
+                    bucket.Main = new DialogueStep { kind = kind, line = line, actions = actions, sourceRow = excelRow };
                     if (kind == EDialogueStepKind.Action && actions.Count == 0)
                         report.Error("对话内容", excelRow, $"组 {groupId} 第 {stepNo} 步是 Action，「文本」列必须写事件调用（如 Accept）");
                 }
@@ -243,7 +251,10 @@ namespace MasterHouse.EditorTools
                         report.Error("对话内容", excelRow, $"组 {groupId} 第 {stepNo} 步的选项号 {optionNo} 重复");
                         continue;
                     }
-                    slot.Option = new DialogueOption { text = Get(row, cText), conditions = conditions };
+                    slot.Option = new DialogueOption
+                    {
+                        text = Get(row, cText), conditions = conditions, sourceRow = excelRow,
+                    };
                     slot.Row = excelRow;
                 }
                 else
@@ -268,7 +279,10 @@ namespace MasterHouse.EditorTools
                     if (kind == EDialogueStepKind.Action && actions.Count == 0)
                         report.Error("对话内容", excelRow,
                             $"组 {groupId} 第 {stepNo} 步第 {optionNo} 项第 {subNo} 句是 Action，「文本」列必须写事件调用");
-                    optionBucket.Subs[subNo] = new DialogueSubStep { kind = kind, line = line, actions = actions };
+                    optionBucket.Subs[subNo] = new DialogueSubStep
+                    {
+                        kind = kind, line = line, actions = actions, sourceRow = excelRow,
+                    };
                 }
             }
 
@@ -281,7 +295,12 @@ namespace MasterHouse.EditorTools
                     var bucket = stepPair.Value;
                     if (bucket.Options.Count > 0)
                     {
-                        var step = new DialogueStep { kind = EDialogueStepKind.Branch };
+                        // 分支步的行号取第一个选项那一行——报错时策划跳过去正好落在这个分支上
+                        var step = new DialogueStep
+                        {
+                            kind = EDialogueStepKind.Branch,
+                            sourceRow = FirstRowOf(bucket.Options),
+                        };
                         foreach (var optionPair in bucket.Options)
                         {
                             var optionBucket = optionPair.Value;
@@ -321,6 +340,13 @@ namespace MasterHouse.EditorTools
             public DialogueOption Option;
             public int Row;
             public readonly SortedDictionary<int, DialogueSubStep> Subs = new SortedDictionary<int, DialogueSubStep>();
+        }
+
+        /// <summary>分支步的代表行号 = 选项号最小的那一项所在的 Excel 行。</summary>
+        private static int FirstRowOf(SortedDictionary<int, OptionBucket> options)
+        {
+            foreach (var pair in options) return pair.Value.Row; // SortedDictionary，第一项就是最小选项号
+            return 0;
         }
 
         // ─── 第一页：对话组 → 池 ────────────────────────────────────────────
@@ -502,10 +528,13 @@ namespace MasterHouse.EditorTools
                 reason = $"未知的事件函数「{call.func}」；可用：{string.Join(" / ", SortedKeys(DialogueFuncs.Actions.Keys))}";
                 return false;
             }
-            // 事件的参数允许省略（如 CompleteNeed 不填档位 = 完美），所以只在给多了时提示
-            if (call.args.Count > Math.Max(1, actionDef.ArgCount))
+            // 事件的参数允许**少给**（如 CompleteNeed 不填档位 = 完美），但多给一定是写错了。
+            // 注意别写成 Math.Max(1, ArgCount)——那会让零参事件的 `Accept(乱写)` 蒙混过关。
+            if (call.args.Count > actionDef.ArgCount)
             {
-                reason = $"事件 {call.func} 最多接受 {actionDef.ArgCount} 个参数（{actionDef.ArgsHint}），实际给了 {call.args.Count} 个";
+                reason = actionDef.ArgCount == 0
+                    ? $"事件 {call.func} 不接受参数，实际给了 {call.args.Count} 个"
+                    : $"事件 {call.func} 最多接受 {actionDef.ArgCount} 个参数（{actionDef.ArgsHint}），实际给了 {call.args.Count} 个";
                 return false;
             }
             return true;

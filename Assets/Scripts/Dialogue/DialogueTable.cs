@@ -109,35 +109,45 @@ namespace MasterHouse
         private static string IndexKey(string raceId, EDialogueCategory category) =>
             $"{raceId}|{(int)category}";
 
+        /// <summary>
+        /// 惰性建索引。**两张表在局部变量里建完再一次性赋值**：
+        /// 中途抛异常时字段仍是 null，下次调用会重来；若边建边赋值，
+        /// 早退守卫会看到「第一张已建好」而直接返回，留下一张永远为 null 的表——坏一次就再也自愈不了。
+        /// </summary>
         private void BuildIndex()
         {
-            if (groupById != null) return;
+            if (groupById != null && entriesByKey != null) return;
 
-            groupById = new Dictionary<int, DialogueGroup>();
-            foreach (var group in groups)
-            {
-                if (group == null) continue;
-                if (groupById.ContainsKey(group.id))
+            var byId = new Dictionary<int, DialogueGroup>();
+            if (groups != null)
+                foreach (var group in groups)
                 {
-                    Debug.LogError($"[对话表] 对话组ID {group.id} 重复，后一条被忽略；" +
-                                   "请在 Excel 第二页里改掉重复的 ID", this);
-                    continue;
+                    if (group == null) continue;
+                    if (byId.ContainsKey(group.id))
+                    {
+                        Debug.LogError($"[对话表] 对话组ID {group.id} 重复，后一条被忽略；" +
+                                       "请在 Excel 第二页里改掉重复的 ID", this);
+                        continue;
+                    }
+                    byId[group.id] = group;
                 }
-                groupById[group.id] = group;
-            }
 
-            entriesByKey = new Dictionary<string, List<DialoguePoolEntry>>();
-            foreach (var entry in entries)
-            {
-                if (entry == null || string.IsNullOrEmpty(entry.raceId)) continue;
-                var key = IndexKey(entry.raceId, entry.category);
-                if (!entriesByKey.TryGetValue(key, out var list))
+            var byKey = new Dictionary<string, List<DialoguePoolEntry>>();
+            if (entries != null)
+                foreach (var entry in entries)
                 {
-                    list = new List<DialoguePoolEntry>();
-                    entriesByKey[key] = list;
+                    if (entry == null || string.IsNullOrEmpty(entry.raceId)) continue;
+                    var key = IndexKey(entry.raceId, entry.category);
+                    if (!byKey.TryGetValue(key, out var list))
+                    {
+                        list = new List<DialoguePoolEntry>();
+                        byKey[key] = list;
+                    }
+                    list.Add(entry);
                 }
-                list.Add(entry);
-            }
+
+            groupById = byId;
+            entriesByKey = byKey;
         }
     }
 }

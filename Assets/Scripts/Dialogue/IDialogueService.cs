@@ -18,9 +18,14 @@ namespace MasterHouse
     {
         /// <summary>
         /// 请求播放一段访客对话。
-        /// 内容缺失（种族没配 / 分类为空 / 条件全不满足）时打 Error 但**不阻塞业务**——
+        /// 内容缺失（种族没配 / 分类为空 / 条件全不满足 / 组里全是事件）时打 Error 但**不阻塞业务**——
         /// 缺台词不该卡死接待，业务照常往下走。
+        ///
+        /// **返回值只表示「这一下有没有内容播出来」**，不表示播完了（模态播放仍是 fire-and-forget，
+        /// 没有回调、不需要等）。它存在的唯一理由是：玩家主动点访客却一个字都没出来时，
+        /// UI 得能给一句提示，而不是放个音效然后什么都不发生。
+        /// 被排队（当前还有对话在播）也算 true——那段迟早会播。
         /// </summary>
-        void RequestVisitorDialogue(VisitorInstance visitor, EDialogueCategory category);
+        bool RequestVisitorDialogue(VisitorInstance visitor, EDialogueCategory category);
     }
 }

@@ -33,11 +33,17 @@ namespace MasterHouse
         public string displayName;
 
         [Header("性格数值（tick / 整数百分比，§11.3）")]
-        [Tooltip("前台等搭话超时（tick）：超时按「被拒绝」口径结算并离开")] public int waitTalkTimeoutTicks = 1200;
-        [Tooltip("服务中等交货超时（tick）：超时按「被拒绝」口径结算并离开")] public int waitDeliverTimeoutTicks = 2400;
-        [Tooltip("闲逛时长上限（tick）：累计闲逛达到上限后自行离开")] public int wanderMaxTicks = 3600;
+        [Tooltip("前台等搭话超时（tick）：等太久他自己走了。**不播对话、不扣声望**")]
+        public int waitTalkTimeoutTicks = 1200;
+        [Tooltip("服务中超时（tick）：**从他开口示意那一刻起算**，不是从进屋起算。\n" +
+                 "超时不是「被拒绝」——他会说一句【需求反馈·失望】然后转停留，不扣声望，人也不当场走")]
+        public int waitDeliverTimeoutTicks = 2400;
+        [Tooltip("停留时长上限（tick）：需求了结（交付成功或超时）后在屋里待这么久，到点自行离开")]
+        public int wanderMaxTicks = 3600;
         [Range(0, 100)]
-        [Tooltip("跨天留宿概率（%）：打烊时仍在闲逛的访客按此概率保留到次日")] public int stayOvernightPercent = 20;
+        [Tooltip("⚠ **已无消费方**：跨天留宿 roll 已于 2026-08-14 删除（服务中/待分房都无条件跨天了，\n" +
+                 "单给闲逛的掷一次骰子不一致），现在统一按停留时长走。留字段等下一轮种族表清理")]
+        public int stayOvernightPercent = 20;
 
         // 需求生成（needTagWeights / needCountMin / needCountMax）已随 tag 需求体系退役（§9.1）：
         // 谁带什么需求来，改由访客日程表逐条配死（需求重做说明 §4.2），种族不再插手。

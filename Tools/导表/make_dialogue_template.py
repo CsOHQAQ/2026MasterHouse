@@ -122,6 +122,10 @@ def scan_races():
 def build_content(needs):
     groups = []
 
+    # ⚠ 第三个选项「（先想一下）」不是凑数的：接待与拒绝**都会让访客离开前台**
+    # （Accept → 待分房、Reject → 离场），而 ESC 中断不算「正常播完」、不置 MetPlayer。
+    # 少了这个「什么都不做但正常收尾」的出口，就不存在「前台 + 已打过招呼」的访客，
+    # 【等待接待】这一整类永远抽不到——写了台词没人听得见。
     groups.append((10001, [
         ("visitor", "calm", 1, "", "", "Line", "你好，打扰了……请问今晚还有空房吗？", ""),
         ("", "", 2, 1, "", "Branch", "有的，请进", "CanAcceptGuest"),
@@ -130,6 +134,8 @@ def build_content(needs):
         ("", "", 2, 2, "", "Branch", "抱歉，今天恐怕招待不了你", ""),
         ("", "", 2, 2, 1, "Action", "Reject", ""),
         ("visitor", "sad", 2, 2, 2, "Line", "这样啊……那我改天再来。", ""),
+        ("", "", 2, 3, "", "Branch", "（先想一下）", ""),
+        ("visitor", "calm", 2, 3, 1, "Line", "好的，我在这儿等着。", ""),
     ]))
 
     groups.append((20001, [

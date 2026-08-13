@@ -39,11 +39,22 @@ namespace MasterHouse
         /// <summary>按 (day, 出现时刻, 原始下标) 稳定排序后的日程（§4.4）；Index 指回 entries 原始下标（派生种子键，§6.1）。</summary>
         private readonly List<(int Day, int Minute, int Index)> sortedSchedule = new List<(int, int, int)>();
 
-        /// <summary>离场收集缓冲（tick 内复用，避免遍历中修改在场列表）。</summary>
+        // ── tick 内的收集缓冲 ──
+        // 存在的理由是同一条：**遍历 Data.Instances 期间不做任何对外广播、不改集合**。
+        // 广播是同步调用链，对话事件（Accept/Reject/CompleteNeed）会改在场列表。
+        // departBuffer 有两个消费点（TickStates 与 EndDay），各自 Clear 后即用即弃、**不可重入**。
+
+        /// <summary>离场。</summary>
         private readonly List<VisitorInstance> departBuffer = new List<VisitorInstance>();
 
-        /// <summary>服务超时收集缓冲（同上；超时的走结算而不是直接离场）。</summary>
+        /// <summary>服务超时（走结算而不是直接离场）。</summary>
         private readonly List<VisitorInstance> timeoutBuffer = new List<VisitorInstance>();
+
+        /// <summary>本 tick 刚开口示意的（循环外广播 InstanceChanged，好让访客卡亮提示）。</summary>
+        private readonly List<VisitorInstance> promptedBuffer = new List<VisitorInstance>();
+
+        /// <summary>本 tick 该冒闲聊气泡的。</summary>
+        private readonly List<VisitorInstance> bubbleBuffer = new List<VisitorInstance>();
 
         public VisitorData Data { get; } = new VisitorData();
 
@@ -196,6 +207,8 @@ namespace MasterHouse
         {
             departBuffer.Clear();
             timeoutBuffer.Clear();
+            promptedBuffer.Clear();
+            bubbleBuffer.Clear();
             foreach (var instance in Data.Instances) // 在场列表按 InstanceId 升序（§11.2）
             {
                 var elapsed = Data.BusinessTick - instance.StateEnterTick;
@@ -210,9 +223,9 @@ namespace MasterHouse
                     // 连拒绝都不给（接待时 CanAcceptGuest 已经保证有房，他一定分得到）。
                     // 它是唯一阻塞【结束今天】的状态——玩家想收工就必须先把人安顿好。
                     case EVisitorState.Serving:
-                        // 安顿结束、开口示意的那一 tick 广播一次，好让访客卡与演员把提示亮起来。
+                        // 安顿结束、开口示意的那一 tick 记一笔，循环外再广播。
                         // 用相等而不是 >=：BusinessTick 每 tick 加一，正好命中一次，不会连播。
-                        if (Data.BusinessTick == instance.NeedPromptTick) InstanceChanged?.Invoke(instance);
+                        if (Data.BusinessTick == instance.NeedPromptTick) promptedBuffer.Add(instance);
                         // 服务超时从**示意那一刻**起算，而不是从进屋起算：安顿的那段时间不该算玩家头上。
                         // 还没示意（NeedPromptTick 未到）时永远不会超时。
                         if (IsNeedPrompted(instance) &&
@@ -220,18 +233,22 @@ namespace MasterHouse
                             timeoutBuffer.Add(instance);
                         break;
                     case EVisitorState.Wandering:
-                        if (elapsed >= instance.Race.wanderMaxTicks)
-                        {
-                            departBuffer.Add(instance);
-                        }
+                        if (elapsed >= instance.Race.wanderMaxTicks) departBuffer.Add(instance);
                         else if (instance.NextBubbleTick > 0 && Data.BusinessTick >= instance.NextBubbleTick)
-                        {
-                            // 停留期冒泡调度器定期请求一句闲聊台词（场景气泡，不开模态）
-                            RequestDialogue(instance, EDialogueCategory.SmallTalk);
-                            ScheduleNextBubble(instance);
-                        }
+                            bubbleBuffer.Add(instance);
                         break;
                 }
+            }
+
+            // **一切对外广播都在遍历之后**：InstanceChanged / RequestDialogue 的调用链是同步的，
+            // 而对话事件（Accept/Reject/CompleteNeed）会改 Data.Instances——
+            // 今天闲聊冒泡不会走到那些事件，但把广播留在循环里等于给后来人埋一个
+            // InvalidOperationException。三个 buffer 的成本是零，规矩清楚。
+            foreach (var instance in promptedBuffer) InstanceChanged?.Invoke(instance);
+            foreach (var instance in bubbleBuffer)
+            {
+                RequestDialogue(instance, EDialogueCategory.SmallTalk);
+                ScheduleNextBubble(instance);
             }
             // 服务超时：与「完成需求」同一条路，只是档位是失望——播【需求反馈·失望】后转停留，
             // **不扣声望**（2026-08-14 第 6 题定案）。客人不会当场拂袖而去，还会在屋里待一会儿。
@@ -387,23 +404,52 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 这位访客现在点不点得动（View 用它决定要不要给提示图标、HubPage 用它分派点击）。
-        ///   前台 → 必须是队首，且现在确实接待得了（腾不出手就别搭话，省得开一段只能拒绝的对话）
-        ///   服务中 → 必须已经开口示意（安顿期点他只有一句提示）
-        ///   其余 → 不可交互
+        /// 「现在点他为什么没有对话」——**判据只有这一处**，访客卡与 Hub 的 Toast 都读它，
+        /// 免得两边各写一套 switch 然后慢慢漂开（曾经就漂过：卡上说「腾不出房间」，实际原因是别人在等分房）。
         /// </summary>
-        public bool CanInteract(VisitorInstance instance)
+        public enum ENoTalkReason
         {
-            if (instance == null) return false;
+            /// <summary>点得动，有对话。</summary>
+            None = 0,
+            /// <summary>前台但不是队首：先招呼前面那位。</summary>
+            NotFrontOfQueue,
+            /// <summary>已经有一位在等分房：前台是串行队列。</summary>
+            SomeoneAwaitingRoom,
+            /// <summary>客房住满。</summary>
+            NoFreeRoom,
+            /// <summary>已接待、等玩家拖进空房（这一态没有对话）。</summary>
+            AwaitingRoom,
+            /// <summary>入住后还在安顿，没到开口示意的时刻。</summary>
+            SettlingIn,
+            /// <summary>停留中（服务已了结）。</summary>
+            Wandering,
+        }
+
+        /// <summary>见 ENoTalkReason。返回 None 表示这一下点击应该有对话。</summary>
+        public ENoTalkReason NoTalkReason(VisitorInstance instance)
+        {
+            if (instance == null) return ENoTalkReason.Wandering;
             switch (instance.State)
             {
-                case EVisitorState.FrontDesk: return CanAcceptGuest && FrontDeskHead == instance;
-                case EVisitorState.Serving: return IsNeedPrompted(instance);
-                default: return false;
+                case EVisitorState.FrontDesk:
+                    // 队首判定放在最前：不是队首时，房间够不够根本轮不到他关心
+                    if (FrontDeskHead != instance) return ENoTalkReason.NotFrontOfQueue;
+                    if (HasAwaitingRoomVisitor) return ENoTalkReason.SomeoneAwaitingRoom;
+                    if (!HasFreeRoom) return ENoTalkReason.NoFreeRoom;
+                    return ENoTalkReason.None;
+                case EVisitorState.AwaitingRoom:
+                    return ENoTalkReason.AwaitingRoom;
+                case EVisitorState.Serving:
+                    return IsNeedPrompted(instance) ? ENoTalkReason.None : ENoTalkReason.SettlingIn;
+                default:
+                    return ENoTalkReason.Wandering;
             }
         }
 
-        /// <summary>头顶该不该亮「有话要说」的提示（表现层只读；与 CanInteract 同一判据）。</summary>
+        /// <summary>这位访客现在点不点得动（HubPage 用它分派点击）。</summary>
+        public bool CanInteract(VisitorInstance instance) => NoTalkReason(instance) == ENoTalkReason.None;
+
+        /// <summary>头顶/卡上该不该亮「有话要说」的提示（表现层只读；与 CanInteract 同一判据）。</summary>
         public bool WantsAttention(VisitorInstance instance) => CanInteract(instance);
 
         /// <summary>
@@ -523,10 +569,11 @@ namespace MasterHouse
         {
             var instance = Find(instanceId);
             if (instance == null || !CanInteract(instance)) return false;
-            RequestDialogue(instance, instance.State == EVisitorState.Serving
+            // 返回值一路透传到 UI：内容缺失（分类空 / 条件全不满足 / 组里全是事件）时对话不会出现，
+            // 那时得给玩家一句话，否则就是「点了、响了个音效、然后什么都没发生」
+            return RequestDialogue(instance, instance.State == EVisitorState.Serving
                 ? EDialogueCategory.NeedTalk
                 : instance.MetPlayer ? EDialogueCategory.WaitingReception : EDialogueCategory.FirstMeeting);
-            return true;
         }
 
         /// <summary>
@@ -717,10 +764,11 @@ namespace MasterHouse
         /// 请求播放一段对话（§8）。fire-and-forget：不等播完、不接返回值——
         /// 模态对话框期间闸门关闭，业务时间本来就停着，「等对话播完」对访客状态机是免费的。
         /// </summary>
-        private void RequestDialogue(VisitorInstance instance, EDialogueCategory category)
+        private bool RequestDialogue(VisitorInstance instance, EDialogueCategory category)
         {
-            dialogue?.RequestVisitorDialogue(instance, category);
+            var played = dialogue != null && dialogue.RequestVisitorDialogue(instance, category);
             DialogueRequested?.Invoke(instance, category);
+            return played;
         }
 
         // ── 存档接缝占位（§16.5，待定 #9）：留 Capture/Restore 但无调用方，与 EconomyManager 现有做法一致 ──

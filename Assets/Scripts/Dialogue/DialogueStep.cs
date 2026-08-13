@@ -34,6 +34,9 @@ namespace MasterHouse
 
         [Tooltip("kind == Action 时有效；按列表顺序依次执行")]
         public List<DialogueCall> actions = new List<DialogueCall>();
+
+        [Tooltip("来源 Excel 行号，报错指路用；不参与玩法")]
+        public int sourceRow;
     }
 
     /// <summary>
@@ -58,6 +61,9 @@ namespace MasterHouse
 
         [Tooltip("选中后播的子句（Line / Action，一层，不能再有分支）")]
         public List<DialogueSubStep> steps = new List<DialogueSubStep>();
+
+        [Tooltip("来源 Excel 行号，报错指路用；不参与玩法")]
+        public int sourceRow;
 
         /// <summary>
         /// 是否为无条件选项。
@@ -85,5 +91,10 @@ namespace MasterHouse
 
         [Tooltip("kind == Branch 时有效。分支可以出现在主线的任意位置，不限于末尾")]
         public List<DialogueOption> options = new List<DialogueOption>();
+
+        [Tooltip("来源 Excel 行号，报错指路用；不参与玩法。\n" +
+                 "**报错一律报这个，不报 List 下标**——「步骤」列允许留空隙（10/20/30），" +
+                 "说「第 1 步」策划在表里找不到对应的行")]
+        public int sourceRow;
     }
 }

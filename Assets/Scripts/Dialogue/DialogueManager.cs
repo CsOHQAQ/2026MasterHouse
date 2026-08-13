@@ -148,25 +148,23 @@ namespace MasterHouse
 
         // ══════════ 访客 → 对话（IDialogueService）══════════
 
-        public void RequestVisitorDialogue(VisitorInstance visitor, EDialogueCategory category)
+        public bool RequestVisitorDialogue(VisitorInstance visitor, EDialogueCategory category)
         {
-            if (visitor == null) return;
+            if (visitor == null) return false;
 
             // 闲聊走场景气泡，不开模态、不碰闸门
-            if (category == EDialogueCategory.SmallTalk)
-            {
-                RequestBubble(visitor);
-                return;
-            }
+            if (category == EDialogueCategory.SmallTalk) return RequestBubble(visitor);
 
             var request = new PendingRequest { Visitor = visitor, Category = category };
             if (runtime != null)
             {
+                // 排队也算「有内容」：当前这段播完就轮到它
                 pending.Enqueue(request);
-                return;
+                return true;
             }
-            if (TryBegin(request)) return;
+            if (TryBegin(request)) return true;
             AfterPlayback(); // 这段没选出内容：继续消化队列，或收框
+            return false;
         }
 
         // ══════════ 播放推进（由 DialogueOverlay 调用）══════════
@@ -468,10 +466,10 @@ namespace MasterHouse
 
         // ══════════ 内部：闲聊冒泡 ══════════
 
-        private void RequestBubble(VisitorInstance visitor)
+        private bool RequestBubble(VisitorInstance visitor)
         {
             var group = Select(visitor, EDialogueCategory.SmallTalk, out var categoryKey);
-            if (group == null) return;
+            if (group == null) return false;
 
             // 气泡只能显示一句，所以取组里的第一条台词。
             // 闲聊组里放事件或分支无处安放（气泡没有点击推进，也没有选项列），
@@ -488,12 +486,30 @@ namespace MasterHouse
             if (line == null)
             {
                 Debug.LogError($"[对话] 闲聊对话组 {group.DisplayId} 里没有任何台词行，无法冒泡");
-                return;
+                return false;
             }
 
             Data.MarkPlayed(categoryKey, group.id, RingLength);
             var ctx = BuildContext(visitor);
             BubbleRequested?.Invoke(visitor, DialogueTextFormatter.Format(line.text, ctx));
+            return true;
+        }
+
+        /// <summary>
+        /// 表现层拉框失败时的兜底（DialogueOverlay.Open 的两个 return 出口）。
+        ///
+        /// 没有这一条会**永久冻住时间**：TryBegin 里已经 `SetModalGate(true)` 并广播了 PlaybackStarted，
+        /// 而框没开出来 ⇒ 没有 overlay 实例、没人会调 Close ⇒ ModalDialogue 这条停走原因再也清不掉。
+        /// </summary>
+        public void AbortForMissingUi()
+        {
+            if (runtime == null && !modalOpen) return;
+            Debug.LogError("[对话] 对话层没能打开（Prefab 缺失或结构不对），本次播放已放弃并解闸；" +
+                           "修复 Resources/OutGameUI/Prefabs/DialogueView 之后重新点访客");
+            pending.Clear();
+            runtime = null;
+            modalOpen = false;
+            SetModalGate(false);
         }
 
         // ══════════ 内部：小工具 ══════════

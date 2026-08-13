@@ -86,8 +86,9 @@ namespace MasterHouse
             visitor.InstanceSpawned += OnVisitorListChanged;
             visitor.InstanceChanged += OnVisitorListChanged;
             visitor.InstanceDeparted += OnVisitorListChanged;
-            // 对话框的开合由业务驱动而非玩家点击驱动：接待成功会自动接上【开始等待服务】，
-            // 超时/拒绝会自动播【被拒绝】——UI 侧只管跟着开关（对话设计说明 §7）
+            // 对话框的开合由业务驱动而非玩家点击驱动：一段对话里的事件可能带出下一段
+            // （典型是需求结算 → 自动接上【需求反馈·档位】），UI 侧只管跟着开关。
+            // 注意「接待成功自动播需求」那条**已不成立**：进屋要先安顿，玩家再点他才说需求。
             var dialogue = GameManager.Instance.DialogueManager;
             dialogue.PlaybackStarted += OnDialogueStarted;
             dialogue.PlaybackEnded += OnDialogueEnded;
@@ -298,29 +299,28 @@ namespace MasterHouse
             SfxManager.Play(ESfx.GuestInteract);
 
             // 对话框由 DialogueManager.PlaybackStarted 事件拉起（见 OnDialogueStarted）
-            if (!visitors.RequestTalk(instanceId)) Toast(NoTalkHint(visitors, instance));
+            if (visitors.RequestTalk(instanceId)) return;
+
+            // 走到这里有两种可能：他本来就不该有对话（按原因给提示），
+            // 或者他该说话但对话表里没内容（分类空 / 条件全不满足 / 组里全是事件）——
+            // 后者绝不能静默，否则就是「点了、响了个音效、然后什么都没发生」，玩家会以为游戏坏了。
+            var reason = visitors.NoTalkReason(instance);
+            Toast(reason == VisitorManager.ENoTalkReason.None
+                ? $"{instance.DisplayName}现在没什么想说的 · 对话表里缺内容，详见 Console"
+                : NoTalkHint(reason, instance.DisplayName));
         }
 
-        /// <summary>点了但没有对话时的提示文案（与 VisitorManager.CanInteract 的判据一一对应）。</summary>
-        private static string NoTalkHint(VisitorManager visitors, VisitorInstance instance)
+        /// <summary>点了但没有对话时的提示文案。判据来自 VisitorManager.NoTalkReason，本方法只负责措辞。</summary>
+        public static string NoTalkHint(VisitorManager.ENoTalkReason reason, string who) => reason switch
         {
-            switch (instance.State)
-            {
-                case EVisitorState.FrontDesk:
-                    if (visitors.FrontDeskHead != instance)
-                        return $"{instance.DisplayName}还在后面排队 · 先招呼前面那位";
-                    if (visitors.HasAwaitingRoomVisitor)
-                        return "还有一位客人在等房间 · 先把他安顿好再接待下一位";
-                    return "客房都住满了 · 等有人离开再接待";
-                case EVisitorState.AwaitingRoom:
-                    // 这一态没有对话，唯一的推进方式是把人拖进空房（拒绝也不给：接待时已经保证有房）
-                    return $"把{instance.DisplayName}拖进一间空客房，他安顿好才会说出需求";
-                case EVisitorState.Serving:
-                    return $"{instance.DisplayName}还在安顿 · 等他开口再来";
-                default:
-                    return $"{instance.DisplayName} 正心满意足地在屋里逛着。";
-            }
-        }
+            VisitorManager.ENoTalkReason.NotFrontOfQueue => $"{who}还在后面排队 · 先招呼前面那位",
+            VisitorManager.ENoTalkReason.SomeoneAwaitingRoom => "还有一位客人在等房间 · 先把他安顿好再接待下一位",
+            VisitorManager.ENoTalkReason.NoFreeRoom => "客房都住满了 · 等有人离开再接待",
+            // 待分房这一态没有对话，唯一的推进方式是把人拖进空房（拒绝也不给：接待时已经保证有房）
+            VisitorManager.ENoTalkReason.AwaitingRoom => $"把{who}拖进一间空客房，他安顿好才会说出需求",
+            VisitorManager.ENoTalkReason.SettlingIn => $"{who}还在安顿 · 等他开口再来",
+            _ => $"{who} 正心满意足地在屋里逛着。",
+        };
 
         /// <summary>
         /// 结束今天（§7 日结）：只有「等待分配房间」的访客会阻塞（2026-08-14 第 11 题）——

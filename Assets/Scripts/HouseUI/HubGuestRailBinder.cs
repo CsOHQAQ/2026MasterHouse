@@ -65,24 +65,26 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 状态文案。前台与服务中各分两段（2026-08-14 对话重构）：
-        /// 排在后面 / 还在安顿的客人点了也没有对话，卡上就得说清楚为什么，
-        /// 否则玩家只会觉得「点了没反应」。判据与 VisitorManager.CanInteract 是同一个。
+        /// 状态文案。点了没有对话的客人，卡上就得说清楚为什么，否则玩家只会觉得「点了没反应」。
+        /// **判据一律走 `VisitorManager.NoTalkReason`**，与 Hub 的 Toast 同一个来源——
+        /// 卡上和 Toast 各写一套 switch 迟早会漂开（曾经就漂过：卡上说「腾不出房间」，
+        /// 实际原因却是别人在等分房）。
         /// </summary>
         private static string StatusText(VisitorManager visitor, VisitorInstance instance)
         {
-            var ready = visitor.WantsAttention(instance);
-            switch (instance.State)
+            var reason = visitor.NoTalkReason(instance);
+            if (reason == VisitorManager.ENoTalkReason.None)
+                return instance.State == EVisitorState.Serving ? "有话要说 · 点击交谈" : "门口等待接待 · 点击交谈";
+
+            return reason switch
             {
-                case EVisitorState.FrontDesk:
-                    return ready ? "门口等待接待 · 点击交谈"
-                        : visitor.FrontDeskHead != instance ? "门口排队中 · 等前面那位"
-                        : "门口等着 · 现在腾不出房间";
-                case EVisitorState.AwaitingRoom: return "待分房 · 拖进一间空房";
-                case EVisitorState.Serving: return ready ? "有话要说 · 点击交谈" : "正在安顿 · 稍等一会儿";
-                case EVisitorState.Wandering: return "心满意足 · 屋内闲逛";
-                default: return "正在离开";
-            }
+                VisitorManager.ENoTalkReason.NotFrontOfQueue => "门口排队中 · 等前面那位",
+                VisitorManager.ENoTalkReason.SomeoneAwaitingRoom => "门口等着 · 先安顿上一位",
+                VisitorManager.ENoTalkReason.NoFreeRoom => "门口等着 · 客房已住满",
+                VisitorManager.ENoTalkReason.AwaitingRoom => "待分房 · 拖进一间空房",
+                VisitorManager.ENoTalkReason.SettlingIn => "正在安顿 · 稍等一会儿",
+                _ => instance.State == EVisitorState.Wandering ? "心满意足 · 屋内闲逛" : "正在离开",
+            };
         }
 
         private static string TypeMark(EVisitorState state) => state switch

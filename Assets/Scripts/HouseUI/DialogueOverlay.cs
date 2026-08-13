@@ -65,11 +65,14 @@ namespace MasterHouse
                 return;
             }
 
+            // 拉框失败必须回执给 DialogueManager：它在广播 PlaybackStarted **之前**就关了营业闸门，
+            // 这里两个 return 出口若不通知，ModalDialogue 那条停走原因就再也没人清——时间永久冻住。
             var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.DialogueView);
             if (prefab == null)
             {
                 Debug.LogError("[HouseUI] 对话层 Prefab 缺失，无法打开（§16.2 不回退代码布局）：" +
                                OutGamePrefabResourcePaths.DialogueView);
+                GameManager.Instance.DialogueManager.AbortForMissingUi();
                 return;
             }
             var instance = Object.Instantiate(prefab, ui.PageRoot, false);
@@ -80,6 +83,7 @@ namespace MasterHouse
                 Debug.LogError("[HouseUI] 对话层 Prefab 缺少视图组件：OutGameDialogueView" +
                                "（旧版 Prefab 请删除后由生成器重建——本次落地改了字段结构）");
                 Object.Destroy(instance);
+                GameManager.Instance.DialogueManager.AbortForMissingUi();
                 return;
             }
 
@@ -110,7 +114,7 @@ namespace MasterHouse
         /// <summary>播放结束后收框（由 HubPage 响应 DialogueManager.PlaybackEnded 调用）。</summary>
         public static void CloseFromPlaybackEnded()
         {
-            // 走正常退栈：此时 DialogueManager.IsPlaying 已是 false，Close() 不会再触发中断补执行
+            // 走正常退栈：此时 DialogueManager.IsPlaying 已是 false，Close() 不会再走中断语义
             if (current != null) current.ui.PopOverlay();
         }
 
