@@ -65,13 +65,10 @@ namespace MasterHouse
         /// <summary>日结完成（携带当日累计快照，面板展示用；只展示不惩罚，§7）。</summary>
         public event Action<VisitorDaySummary> DayEnded;
 
-        /// <param name="cargo">
-        /// 全局仓库。**已不再被消费**——物品交付随 Item 链退役（需求重做说明 §9.1）。
-        /// 参数保留是因为 §9.2 要求 PlayerCargo 的构造与传参不动，等 NodeSim 包一起清理；
-        /// 不再存成字段，免得留一个永远读不到的死引用。
-        /// </param>
+        // PlayerCargoData 参数已随小游戏框架落地第 2 步删除：物品交付早在需求重做时就退役了，
+        // 参数当时只为等 NodeSim 包一起清理而留着（需求重做说明 §9.2），现在那一包已经清完。
         public VisitorManager(VisitorScheduleTable schedule, VisitorTuningConfig tuning,
-            HouseClockManager clock, EconomyManager economy, PlayerCargoData cargo, IDialogueService dialogue)
+            HouseClockManager clock, EconomyManager economy, IDialogueService dialogue)
         {
             this.schedule = schedule;
             this.tuning = tuning;

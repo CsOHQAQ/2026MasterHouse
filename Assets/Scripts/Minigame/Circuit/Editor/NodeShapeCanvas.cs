@@ -126,8 +126,7 @@ namespace MasterHouse.EditorTools
 
                 bool invalid = !def.Shape.ContainsDelta(p.LocalCell)
                                || def.Shape.ContainsDelta(p.LocalCell + Direction4.ToOffset(p.Facing));
-                var col = invalid ? kColInvalidPin
-                    : p.Pin.ItemType != null ? p.Pin.ItemType.DisplayColor : kColNoItemPin;
+                var col = invalid ? kColInvalidPin : CanvasDrawUtil.PinColor(def, p.Pin);
 
                 var r = CellRect(rect, p.LocalCell);
                 CanvasDrawUtil.DrawPinMarker(r, p.Facing, p.Pin.Direction, col, i == SelectedPin);
@@ -153,9 +152,7 @@ namespace MasterHouse.EditorTools
             var pin = def.Pins[SelectedPin];
             var facing = PreviewFacing(def, pin.Facing, cell);
             bool legal = IsLegalPinPlacement(def, SelectedPin, cell, facing);
-            var color = legal
-                ? pin.Pin.ItemType != null ? pin.Pin.ItemType.DisplayColor : kColNoItemPin
-                : kColInvalidPin;
+            var color = legal ? CanvasDrawUtil.PinColor(def, pin.Pin) : kColInvalidPin;
             color.a = 0.65f;
 
             var cellRect = CellRect(rect, cell);

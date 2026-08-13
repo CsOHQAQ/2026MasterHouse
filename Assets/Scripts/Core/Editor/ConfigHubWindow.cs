@@ -22,8 +22,8 @@ namespace MasterHouse.EditorTools
         private const string FurnitureRoomPath = "Assets/Resources/OutGameUI/FurnitureRoomTable.asset";
         private const string RaceDir = "Assets/Resources/OutGameUI/VisitorRaces";
         private const string NeedDir = NeedDefEditorWindow.NeedDir;
-        private const string TagDir = "Assets/GameData/Tags";
-        private const string ItemDir = "Assets/GameData/Items";
+        private const string CircuitNodeDir = "Assets/GameData/Nodes";
+        private const string CircuitLevelDir = "Assets/GameData/Levels";
         private const string DialogueTuningPath = "Assets/Resources/OutGameUI/DialogueTuningConfig.asset";
         private const string SfxPath = "Assets/Resources/OutGameUI/SfxTable.asset";
         private const string DialogueDir = "Assets/GameData/Dialogue";
@@ -97,14 +97,9 @@ namespace MasterHouse.EditorTools
                 EditorGUILayout.EndHorizontal();
             });
 
-            Section("标签森林（需求匹配，局内局外共用）", () =>
-            {
-                AssetList<TagDef>(TagDir, "标签",
-                    "单亲父链构成轴；物品只挂最具体的叶子，需求命中任意祖先",
-                    () => CreateAsset<TagDef>(TagDir, "Tag_新标签"));
-                if (GUILayout.Button("校验标签森林（成环/跨轴同名）", GUILayout.Height(22)))
-                    TagDefValidator.ValidateAll();
-            });
+            // 「标签森林」与「局内物资」两个分区已随 TagDef / ItemDef 删除：
+            // 访客需求早就不用 tag 了（需求重做说明 §9.1），最后的消费方是局内物资链，
+            // 已随小游戏框架落地第 2 步整体退役（§9.2）。
 
             Section("音效", () =>
             {
@@ -119,11 +114,20 @@ namespace MasterHouse.EditorTools
                     "初始值 / 满意度四档奖励 + 阈值A / 拒绝扣声望 / 装饰分权重", null);
             });
 
-            Section("局内物资", () =>
+            Section("小游戏·修理电路", () =>
             {
-                AssetList<ItemDef>(ItemDir, "物资",
-                    "带 tags 字段（访客需求匹配）；节点/配方在 Assets/GameData 对应目录",
-                    () => CreateAsset<ItemDef>(ItemDir, "新物资"));
+                AssetList<NodeDef>(CircuitNodeDir, "节点",
+                    "电源（各输出口的电量）/ 电池（需求电量 + 是否允许超额）/ 中转件（Pin 分组）",
+                    null);
+                AssetList<LevelDef>(CircuitLevelDir, "关卡",
+                    "画布形状 + 预置电源电池 + 可摆中转件上限 + 导线格数预算",
+                    () => CreateAsset<LevelDef>(CircuitLevelDir, "新关卡"));
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("打开节点编辑器", GUILayout.Height(22)))
+                    NodeDefEditorWindow.Open();
+                if (GUILayout.Button("打开关卡编辑器", GUILayout.Height(22)))
+                    LevelDefEditorWindow.Open();
+                EditorGUILayout.EndHorizontal();
             });
 
             Section("图鉴与家具", () =>

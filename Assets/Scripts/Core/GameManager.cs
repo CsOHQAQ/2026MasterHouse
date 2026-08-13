@@ -9,9 +9,10 @@ namespace MasterHouse
     {
         public static GameManager Instance { get; private set; }
 
-        public LevelManager LevelManager { get; private set; }
-        public LinkManager LinkManager { get; private set; }
-        public PlayerCargoData PlayerCargo { get; private set; }
+        // 局内节点玩法（LevelManager / LinkManager / PlayerCargo）已随小游戏框架落地退役：
+        // 「修理电路」是自包含的小游戏，自己持有 LevelManager/LinkManager，
+        // **不认识任何 Manager**（小游戏说明 §3.1 硬约束），因此这里不再注册它们。
+
         public HouseClockManager HouseClockManager { get; private set; }
         public EconomyManager EconomyManager { get; private set; }
         public VisitorManager VisitorManager { get; private set; }
@@ -33,9 +34,6 @@ namespace MasterHouse
         public FurnitureRoomTable FurnitureRoomTable { get; private set; }
         /// <summary>商店表：家具售卖配置（2026-08-13 从家具表拆出）；读取一律经 EconomyManager。</summary>
         public StoreTable StoreTable { get; private set; }
-
-        [Tooltip("启动时自动加载的小关（可空，便于搭测试场景）")]
-        [SerializeField] private LevelDef startLevel;
 
         /// <summary>真实时间累积器。仅存在于驱动壳层，逻辑内部禁止接触真实时间（§3.1）。</summary>
         private float tickAccumulator;
@@ -70,16 +68,13 @@ namespace MasterHouse
             RunTick();
         }
 
-        /// <summary>推进一个全局 tick：局内局外共用同一心跳（§16.4）。两侧测试场景当前隔离（待定 #19），推进顺序暂无耦合；
-        /// 局外内部时钟先走、访客后判（用刚推进的时间做整数比较）。</summary>
+        /// <summary>
+        /// 推进一个全局 tick。局内节点产线已随小游戏框架退役，本方法现在只驱动局外：
+        /// 时钟先走、访客后判（用刚推进的时间做整数比较）。
+        /// 小游戏**完全不在 tick 内**——它自治计时且期间闸门是关的（§3.3）。
+        /// </summary>
         private void RunTick()
         {
-            // 局内产线门控（§16.4 打烊闸门 + 对话设计说明 §8 模态对话框）：
-            // IsWorldFrozen = 打烊 或 模态对话框开启。**刻意不用 IsRunning**——
-            // 后者还含「不在 Hub 页」，而局内测试场景根本没有 HubPage，跟着它走产线就永不推进
-            // （待定 #19 联通前的隔离态，详见 HouseClockManager.IsWorldFrozen 注释）
-            if (!HouseClockManager.IsWorldFrozen)
-                LevelManager.TickAll();
             HouseClockManager.Tick();
             VisitorManager.Tick();
         }
@@ -93,9 +88,6 @@ namespace MasterHouse
             }
             Instance = this;
 
-            PlayerCargo = new PlayerCargoData();
-            LinkManager = new LinkManager();
-            LevelManager = new LevelManager(LinkManager, PlayerCargo);
             VisitorSchedule = Resources.Load<VisitorScheduleTable>("OutGameUI/VisitorScheduleTable");
             VisitorTuning = Resources.Load<VisitorTuningConfig>("OutGameUI/VisitorTuningConfig");
             DialogueTuning = Resources.Load<DialogueTuningConfig>("OutGameUI/DialogueTuningConfig");
@@ -123,14 +115,8 @@ namespace MasterHouse
             DialogueManager = new DialogueManager(DialogueTuning);
             // runSeed 由 VisitorManager 内部注入固定默认常量（§6.1，待定 #9），GM 面板可改写
             VisitorManager = new VisitorManager(VisitorSchedule, VisitorTuning, HouseClockManager,
-                EconomyManager, PlayerCargo, DialogueManager);
-            DialogueManager.Bind(VisitorManager, EconomyManager, HouseClockManager, PlayerCargo);
-        }
-
-        private void Start()
-        {
-            if (startLevel != null)
-                LevelManager.OpenLevel(startLevel);
+                EconomyManager, DialogueManager);
+            DialogueManager.Bind(VisitorManager, EconomyManager, HouseClockManager);
         }
 
         private void Update()

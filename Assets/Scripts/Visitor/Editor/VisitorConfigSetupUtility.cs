@@ -7,13 +7,12 @@ namespace MasterHouse.EditorTools
     /// <summary>
     /// 访客系统示例资产生成器（访客交付说明 §10：现有 4 个动物访客的立绘/序列帧素材保留，改挂到对应种族上作为示例内容）。
     /// 默认菜单只补齐缺失资产、不覆盖手工调整（与家具配置生成器同一策略）。
-    /// 生成物：标签森林（Assets/GameData/Tags，现仅供局内物资使用）、示例物资挂 tag、
-    /// 4 个种族 + 日程表 + 调参配置（Assets/Resources/OutGameUI，运行时经 Resources 加载）。
-    /// 种族的需求权重表已随 tag 需求体系退役（需求重做说明 §9.1），需求改由日程条目逐条配。
+    /// 生成物：4 个种族 + 日程表 + 调参配置（Assets/Resources/OutGameUI，运行时经 Resources 加载）。
+    /// 种族的需求权重表已随 tag 需求体系退役（需求重做说明 §9.1），需求改由日程条目逐条配；
+    /// 标签森林与示例物资的生成也已随 TagDef/ItemDef 一并删除（§9.2）。
     /// </summary>
     public static class VisitorConfigSetupUtility
     {
-        private const string TagDir = "Assets/GameData/Tags";
         private const string RaceDir = "Assets/Resources/OutGameUI/VisitorRaces";
         private const string ResourceDir = "Assets/Resources/OutGameUI";
         private const string SchedulePath = ResourceDir + "/VisitorScheduleTable.asset";
@@ -25,25 +24,8 @@ namespace MasterHouse.EditorTools
         [MenuItem("MasterHouse/访客系统/创建示例资产（补齐缺失）")]
         public static void CreateIfMissing()
         {
-            EnsureFolder(TagDir);
             EnsureFolder(RaceDir);
             var created = new List<string>();
-
-            // ── 标签森林（§4.1）：轴「品类」（名词）与轴「质地」（形容词），示例内容对齐现有局内物资 ──
-            // 访客需求已不再用 tag（需求重做说明 §9.1），这片森林现在**只服务于局内 ItemDef.tags**，
-            // 随 NodeSim 包一起清理（§9.2）
-            var axisCategory = Tag(created, "category", "品类", "品类的", null, ETagGrammarRole.Noun, 0);
-            var tagMaterial = Tag(created, "material", "材料", "材料", axisCategory, ETagGrammarRole.Noun, 0);
-            var tagWood = Tag(created, "wood", "木料", "木头做的", tagMaterial, ETagGrammarRole.Noun, 0);
-            var tagEnergy = Tag(created, "energy", "能源", "能源", axisCategory, ETagGrammarRole.Noun, 1);
-            var axisTexture = Tag(created, "texture", "质地", "质地的", null, ETagGrammarRole.Adjective, 1);
-            var tagNatural = Tag(created, "natural", "天然", "天然的", axisTexture, ETagGrammarRole.Adjective, 0);
-            var tagCrafted = Tag(created, "crafted", "精加工", "精加工的", axisTexture, ETagGrammarRole.Adjective, 1);
-
-            // ── 示例物资挂 tag（§4.2：只在 tags 为空时补，不覆盖策划手配）──
-            TagItem(created, "Assets/GameData/Items/木材.asset", tagWood, tagNatural);
-            TagItem(created, "Assets/GameData/Items/木板.asset", tagWood, tagCrafted);
-            TagItem(created, "Assets/GameData/Items/电力.asset", tagEnergy);
 
             // ── 种族（§4.3）：沿用原 4 个动物访客的立绘与序列帧素材 ──
             // 性格数值以 tick 计（10 tick/秒、10 tick/游戏分钟）：如 9000 tick = 15 现实分钟 = 900 游戏分钟
@@ -105,32 +87,9 @@ namespace MasterHouse.EditorTools
                 : "[Visitor] 访客示例资产已齐全，未做修改。");
         }
 
-        private static TagDef Tag(List<string> created, string id, string displayName, string phrase,
-            TagDef parent, ETagGrammarRole role, int sortOrder)
-        {
-            var path = $"{TagDir}/Tag_{id}.asset";
-            var tag = AssetDatabase.LoadAssetAtPath<TagDef>(path);
-            if (tag != null) return tag;
-            tag = ScriptableObject.CreateInstance<TagDef>();
-            tag.id = id;
-            tag.displayName = displayName;
-            tag.phrase = phrase;
-            tag.parent = parent;
-            tag.grammarRole = role;
-            tag.sortOrder = sortOrder;
-            AssetDatabase.CreateAsset(tag, path);
-            created.Add(path);
-            return tag;
-        }
-
-        private static void TagItem(List<string> created, string path, params TagDef[] tags)
-        {
-            var item = AssetDatabase.LoadAssetAtPath<ItemDef>(path);
-            if (item == null || (item.tags != null && item.tags.Count > 0)) return;
-            item.tags = new List<TagDef>(tags);
-            EditorUtility.SetDirty(item);
-            created.Add(path + "（补挂 tag）");
-        }
+        // 标签森林（Tag / TagItem 两个生成器）已随 TagDef、ItemDef 一并删除：
+        // 访客需求早在需求重做时就不用 tag 了（§9.1），最后的消费方 ItemDef.tags 属于局内物资链，
+        // 随小游戏框架落地第 2 步整体退役（§9.2）。
 
         private static VisitorRaceDef Race(List<string> created, string id, string displayName,
             string portraitPath, string sheetPath, int waitTalk, int waitDeliver, int wanderMax,

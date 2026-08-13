@@ -55,10 +55,9 @@ namespace MasterHouse.EditorTools
         {
             switch (def)
             {
-                case ResourceNodeDef _: return new Color(0.35f, 0.65f, 0.35f, 0.90f);
-                case ProcessorNodeDef _: return new Color(0.85f, 0.55f, 0.25f, 0.90f);
-                case StorageNodeDef _: return new Color(0.35f, 0.55f, 0.85f, 0.90f);
-                case TransitNodeDef _: return new Color(0.65f, 0.45f, 0.80f, 0.90f);
+                case ResourceNodeDef _: return new Color(0.35f, 0.65f, 0.35f, 0.90f); // 电源
+                case ConditionNodeDef _: return new Color(0.35f, 0.55f, 0.85f, 0.90f); // 电池
+                case TransitNodeDef _: return new Color(0.65f, 0.45f, 0.80f, 0.90f);  // 中转件
                 default: return Color.gray;
             }
         }
@@ -161,7 +160,7 @@ namespace MasterHouse.EditorTools
                 {
                     var pinCell = e.Cell + p.LocalCell;
                     if (!InView(pinCell)) continue;
-                    var pinCol = p.Pin.ItemType != null ? p.Pin.ItemType.DisplayColor : new Color(0.7f, 0.7f, 0.7f);
+                    var pinCol = CanvasDrawUtil.PinColor(e.Node, p.Pin);
                     CanvasDrawUtil.DrawPinMarker(CellRect(rect, pinCell), p.Facing, p.Pin.Direction, pinCol, false);
                 }
 

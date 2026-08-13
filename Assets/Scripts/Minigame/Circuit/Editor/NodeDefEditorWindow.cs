@@ -20,19 +20,20 @@ namespace MasterHouse.EditorTools
         const string kIdentifierUserDataPrefix = "MasterHouse.NodeIdentifier=";
         const string kTypeCodeUserDataPrefix = "MasterHouse.NodeTypeCode=";
 
+        // 四个数组按下标一一对应。加工型/仓库型已随物资链退役删除，
+        // 其余三种的 kTypeCodes **保持原值不变**——已有资产的文件名前缀依赖它（如 Input_2x3_*）。
         static readonly string[] kTypeNames =
         {
-            "Input（输入类）", "Processor（处理类）", "Connector（链接类）",
-            "Output（输出类）", "Condition（条件类）",
+            "Input（电源）", "Connector（中转件）", "Condition（电池）",
         };
         static readonly Type[] kTypes =
         {
-            typeof(ResourceNodeDef), typeof(ProcessorNodeDef), typeof(TransitNodeDef),
-            typeof(StorageNodeDef), typeof(ConditionNodeDef),
+            typeof(ResourceNodeDef), typeof(TransitNodeDef), typeof(ConditionNodeDef),
         };
-        static readonly string[] kTypeCodes = { "Input", "Pro", "Con", "Out", "Cond" };
-        static readonly string[] kNodeDefTypeNames = { "资源型", "加工型", "中转型", "仓库型", "条件型" };
-        static readonly string[] kFacingNames = { "上", "右", "下", "左" }; // 与 EDirection4 枚举顺序一致
+        static readonly string[] kTypeCodes = { "Input", "Con", "Cond" };
+        static readonly string[] kNodeDefTypeNames = { "电源", "中转件", "电池" };
+        static readonly string[] kFacingNames = { "上", "右", "下", "左" };      // 与 EDirection4 枚举顺序一致
+        static readonly string[] kPinDirectionNames = { "同步", "输入", "输出" }; // 与 EPinDirection 枚举顺序一致
 
         NodeDef _target;
         readonly NodeShapeCanvas _canvas = new NodeShapeCanvas();
@@ -478,8 +479,6 @@ namespace MasterHouse.EditorTools
             switch (_target)
             {
                 case ResourceNodeDef r: DrawResourceFields(r); break;
-                case ProcessorNodeDef p: DrawProcessorFields(p); break;
-                case StorageNodeDef s: DrawStorageFields(s); break;
                 case TransitNodeDef t: DrawTransitFields(t); break;
                 case ConditionNodeDef c: DrawConditionFields(c); break;
             }
@@ -564,10 +563,9 @@ namespace MasterHouse.EditorTools
                     Facing = layout.Facing,
                     Pin = new PinDef
                     {
-                        ItemType = pin != null ? pin.ItemType : null,
                         MaxRate = pin != null ? pin.MaxRate : 1,
                         Direction = pin != null ? pin.Direction : EPinDirection.None,
-                        PairedPinIndex = pin != null ? pin.PairedPinIndex : -1,
+                        PinGroup = pin != null ? pin.PinGroup : -1,
                     },
                 });
             }
@@ -575,22 +573,15 @@ namespace MasterHouse.EditorTools
 
         static void ApplyTargetPinRules(NodeDef def)
         {
-            if (def is ProcessorNodeDef processor)
-            {
-                // 加工节点的 Pin 完全从配方派生；新类型尚无配方，因此清空。
-                processor.Pins.Clear();
-                return;
-            }
-
             if (def is TransitNodeDef)
             {
+                // 转成中转件：方向与分组交给策划重配（转换前多半是电源/电池的单向口），
+                // 这里只把两两相邻的 Pin 归成一组作为起点——十字件正好是这个形状。
                 for (int i = 0; i < def.Pins.Count; i++)
                 {
                     var pin = def.Pins[i].Pin;
-                    pin.ItemType = null;
                     pin.Direction = EPinDirection.None;
-                    pin.PairedPinIndex = i % 2 == 0 && i + 1 < def.Pins.Count ? i + 1 :
-                        i % 2 == 1 ? i - 1 : -1;
+                    pin.PinGroup = i / 2;
                 }
                 return;
             }
@@ -603,112 +594,36 @@ namespace MasterHouse.EditorTools
 
         void DrawResourceFields(ResourceNodeDef r)
         {
-            EditorGUI.BeginChangeCheck();
-            var item = (ItemDef)EditorGUILayout.ObjectField("产出物资", r.OutputItem, typeof(ItemDef), false);
-            int ticks = EditorGUILayout.IntField("生产间隔（tick）", r.TicksPerProduction);
-            int amount = EditorGUILayout.IntField("每次产量", r.AmountPerProduction);
-            int cap = EditorGUILayout.IntField("暂存上限（满则停产）", r.StorageCap);
-            if (EditorGUI.EndChangeCheck())
-            {
-                Undo.RecordObject(r, "修改资源节点字段");
-                r.OutputItem = item;
-                r.TicksPerProduction = Mathf.Max(1, ticks);
-                r.AmountPerProduction = Mathf.Max(1, amount);
-                r.StorageCap = Mathf.Max(1, cap);
-                EditorUtility.SetDirty(r);
-            }
-        }
-
-        void DrawProcessorFields(ProcessorNodeDef p)
-        {
-            EditorGUI.BeginChangeCheck();
-            var recipe = (RecipeDef)EditorGUILayout.ObjectField("配方（待定 #3：单条）", p.Recipe, typeof(RecipeDef), false);
-            int inCap = EditorGUILayout.IntField("输入暂存上限/物资", p.InputStorageCapPerItem);
-            int outCap = EditorGUILayout.IntField("输出暂存上限/物资", p.OutputStorageCapPerItem);
-            if (EditorGUI.EndChangeCheck())
-            {
-                Undo.RecordObject(p, "修改加工节点字段");
-                bool recipeChanged = p.Recipe != recipe;
-                p.Recipe = recipe;
-                p.InputStorageCapPerItem = Mathf.Max(1, inCap);
-                p.OutputStorageCapPerItem = Mathf.Max(1, outCap);
-                EditorUtility.SetDirty(p);
-                // 配方即 Pin 的唯一来源：换配方立刻同步（同物资同方向的摆位保留）
-                if (recipeChanged)
-                {
-                    NodeDefEditUtil.SyncProcessorPins(p);
-                    _canvas.SelectedPin = -1;
-                    GUIUtility.ExitGUI(); // Pin 数量变化，结束本帧 GUI 防布局不匹配
-                }
-            }
-
-            // 展示配方内容，方便对照 Pin
-            if (p.Recipe != null)
-            {
-                EditorGUILayout.LabelField("配方内容：", EditorStyles.miniBoldLabel);
-                using (new EditorGUI.IndentLevelScope())
-                {
-                    foreach (var s in p.Recipe.Inputs)
-                        EditorGUILayout.LabelField($"输入  {(s.Item != null ? s.Item.name : "（空）")} × {s.Count}", EditorStyles.miniLabel);
-                    foreach (var s in p.Recipe.Outputs)
-                        EditorGUILayout.LabelField($"产出  {(s.Item != null ? s.Item.name : "（空）")} × {s.Count}", EditorStyles.miniLabel);
-                }
-            }
-        }
-
-        void DrawStorageFields(StorageNodeDef s)
-        {
-            GUILayout.Label("接收白名单（空 = 任意物资都收）", EditorStyles.miniBoldLabel);
-            for (int i = 0; i < s.Whitelist.Count; i++)
-            {
-                EditorGUILayout.BeginHorizontal();
-                EditorGUI.BeginChangeCheck();
-                var it = (ItemDef)EditorGUILayout.ObjectField(s.Whitelist[i], typeof(ItemDef), false);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    Undo.RecordObject(s, "修改白名单");
-                    s.Whitelist[i] = it;
-                    EditorUtility.SetDirty(s);
-                }
-                if (GUILayout.Button("×", GUILayout.Width(22)))
-                {
-                    Undo.RecordObject(s, "删除白名单物资");
-                    s.Whitelist.RemoveAt(i);
-                    EditorUtility.SetDirty(s);
-                    EditorGUILayout.EndHorizontal();
-                    GUIUtility.ExitGUI();
-                }
-                EditorGUILayout.EndHorizontal();
-            }
-            if (GUILayout.Button("+ 添加白名单物资"))
-            {
-                Undo.RecordObject(s, "添加白名单物资");
-                s.Whitelist.Add(null);
-                EditorUtility.SetDirty(s);
-                GUIUtility.ExitGUI();
-            }
+            int total = 0;
+            foreach (var layout in r.Pins)
+                if (layout?.Pin != null)
+                    total += Mathf.Max(0, layout.Pin.MaxRate);
+            EditorGUILayout.HelpBox(
+                $"电源没有自己的字段：供出多少电写在各输出 Pin 的「输出电量」上（下方 Pin 列表里改）。\n" +
+                $"当前共 {r.Pins.Count} 个输出口，合计供电 {total}。",
+                MessageType.None);
         }
 
         void DrawTransitFields(TransitNodeDef t)
         {
-            EditorGUI.BeginChangeCheck();
-            int cap = EditorGUILayout.IntField("暂存容量/物资（待定 #6）", t.StorageCapPerItem);
-            if (EditorGUI.EndChangeCheck())
-            {
-                Undo.RecordObject(t, "修改中转节点字段");
-                t.StorageCapPerItem = Mathf.Max(1, cap);
-                EditorUtility.SetDirty(t);
-            }
+            EditorGUILayout.HelpBox(
+                "中转件没有自己的字段：件型完全由 Pin 的分组与方向决定。\n" +
+                "  十字件 = 两个组，每组两个口都留「同步」方向（运行时定向，哪边进都行）\n" +
+                "  分流器 = 一个组，1 个输入口 + N 个输出口\n" +
+                "  合流器 = 一个组，N 个输入口 + 1 个输出口\n" +
+                "求解公式：每个输出口 = floor(组内输入之和 / 组内输出口总数)。" +
+                "分母按输出口总数算，没接线的口那一份会浪费掉。",
+                MessageType.None);
         }
 
         void DrawConditionFields(ConditionNodeDef c)
         {
             EditorGUILayout.HelpBox(
-                "条件节点判定「家具是否修好」：每条需求统计最近 W tick 内收到的量，" +
-                "全部达标才算本节点满足。收到的物资即刻蒸发，不占暂存、也不会背压上游。",
+                "电池收到的电量 = 各输入 Pin 上导线携带电量之和；多条条件之间为「全部满足」才点亮。\n" +
+                "「允许超额」不勾时必须刚好等于——这是把玩法从「尽量多连」变成「精确分配」的核心旋钮。",
                 MessageType.None);
 
-            GUILayout.Label("需求列表（留空 = 恒达标）", EditorStyles.miniBoldLabel);
+            GUILayout.Label("点亮条件（留空 = 恒亮）", EditorStyles.miniBoldLabel);
             for (int i = 0; i < c.Conditions.Count; i++)
             {
                 var entry = c.Conditions[i];
@@ -716,57 +631,43 @@ namespace MasterHouse.EditorTools
 
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-                EditorGUILayout.BeginHorizontal();
-                var swatch = GUILayoutUtility.GetRect(14, 14, GUILayout.Width(14), GUILayout.Height(14));
-                EditorGUI.DrawRect(swatch, entry.Item != null ? entry.Item.DisplayColor : Color.gray);
                 EditorGUI.BeginChangeCheck();
-                var item = (ItemDef)EditorGUILayout.ObjectField(entry.Item, typeof(ItemDef), false);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    Undo.RecordObject(c, "修改需求物资");
-                    entry.Item = item;
-                    EditorUtility.SetDirty(c);
-                }
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Label("需求电量", GUILayout.Width(58));
+                int amount = EditorGUILayout.IntField(entry.RequiredAmount, GUILayout.Width(50));
+                GUILayout.Space(10);
+                bool allowExcess = EditorGUILayout.ToggleLeft("允许超额", entry.AllowExcess, GUILayout.Width(80));
+                GUILayout.FlexibleSpace();
                 bool doRemove = GUILayout.Button("×", GUILayout.Width(22));
                 EditorGUILayout.EndHorizontal();
-
-                EditorGUI.BeginChangeCheck();
-                EditorGUILayout.BeginHorizontal();
-                GUILayout.Label("需求量", GUILayout.Width(46));
-                int amount = EditorGUILayout.IntField(entry.RequiredAmount, GUILayout.Width(50));
-                GUILayout.Label("窗口(tick)", GUILayout.Width(66));
-                int window = EditorGUILayout.IntField(entry.WindowTicks, GUILayout.Width(50));
-                GUILayout.FlexibleSpace();
-                EditorGUILayout.EndHorizontal();
                 if (EditorGUI.EndChangeCheck())
                 {
-                    Undo.RecordObject(c, "修改需求数值");
+                    Undo.RecordObject(c, "修改点亮条件");
                     entry.RequiredAmount = Mathf.Max(1, amount);
-                    entry.WindowTicks = Mathf.Max(1, window);
+                    entry.AllowExcess = allowExcess;
                     EditorUtility.SetDirty(c);
                 }
 
-                // 速率换算：策划配的是「窗口内几个」，这里换算成每秒直觉值（tick 频率见 GameConfig）
-                int tps = GameConfig.Instance != null ? Mathf.Max(1, GameConfig.Instance.TicksPerSecond) : 10;
-                float perSecond = entry.RequiredAmount * (float)tps / Mathf.Max(1, entry.WindowTicks);
                 EditorGUILayout.LabelField(
-                    $"≈ 每 {entry.WindowTicks} tick 需 {entry.RequiredAmount} 个（约 {perSecond:0.##} 个/秒）",
+                    entry.AllowExcess
+                        ? $"收到 ≥ {entry.RequiredAmount} 即点亮"
+                        : $"必须刚好收到 {entry.RequiredAmount}，多了也不亮",
                     EditorStyles.miniLabel);
 
                 EditorGUILayout.EndVertical();
 
                 if (doRemove)
                 {
-                    Undo.RecordObject(c, "删除需求");
+                    Undo.RecordObject(c, "删除点亮条件");
                     c.Conditions.RemoveAt(i);
                     EditorUtility.SetDirty(c);
                     GUIUtility.ExitGUI();
                 }
             }
 
-            if (GUILayout.Button("+ 添加需求"))
+            if (GUILayout.Button("+ 添加点亮条件"))
             {
-                Undo.RecordObject(c, "添加需求");
+                Undo.RecordObject(c, "添加点亮条件");
                 c.Conditions.Add(new ConditionEntry());
                 EditorUtility.SetDirty(c);
                 GUIUtility.ExitGUI();
@@ -784,35 +685,36 @@ namespace MasterHouse.EditorTools
             for (int i = 0; i < _target.Pins.Count; i++)
                 DrawPinRow(i);
 
-            if (NodeDefEditUtil.AllowFreePinEdit(_target))
+            if (GUILayout.Button("+ 添加 Pin"))
             {
-                if (GUILayout.Button("+ 添加 Pin"))
-                {
-                    NodeDefEditUtil.AddPin(_target);
-                    SelectPin(_target.Pins.Count - 1);
-                    GUIUtility.ExitGUI();
-                }
+                NodeDefEditUtil.AddPin(_target);
+                SelectPin(_target.Pins.Count - 1);
+                GUIUtility.ExitGUI();
             }
-            else if (_target is TransitNodeDef t)
+
+            // 中转件按「整组」添加更省事：件型就是组的形状，逐个加 Pin 再手填组号容易配错
+            if (_target is TransitNodeDef transit)
             {
-                if (GUILayout.Button("+ 添加一对配对 Pin"))
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("+ 十字组（1 进 1 出）"))
                 {
-                    NodeDefEditUtil.AddTransitPair(t);
+                    NodeDefEditUtil.AddTransitGroup(transit, 1, 1);
                     SelectPin(_target.Pins.Count - 2);
                     GUIUtility.ExitGUI();
                 }
-            }
-            else if (_target is ProcessorNodeDef proc)
-            {
-                using (new EditorGUI.DisabledScope(proc.Recipe == null))
+                if (GUILayout.Button("+ 分流组（1 进 3 出）"))
                 {
-                    if (GUILayout.Button("按配方同步 Pin"))
-                    {
-                        NodeDefEditUtil.SyncProcessorPins(proc);
-                        _canvas.SelectedPin = -1;
-                        GUIUtility.ExitGUI();
-                    }
+                    NodeDefEditUtil.AddTransitGroup(transit, 1, 3);
+                    SelectPin(_target.Pins.Count - 4);
+                    GUIUtility.ExitGUI();
                 }
+                if (GUILayout.Button("+ 合流组（3 进 1 出）"))
+                {
+                    NodeDefEditUtil.AddTransitGroup(transit, 3, 1);
+                    SelectPin(_target.Pins.Count - 4);
+                    GUIUtility.ExitGUI();
+                }
+                EditorGUILayout.EndHorizontal();
             }
         }
 
@@ -821,16 +723,15 @@ namespace MasterHouse.EditorTools
             switch (def)
             {
                 case ResourceNodeDef _:
-                    return "资源节点：可自由增删 Pin 与物资种类；方向固定为「输出」。";
-                case StorageNodeDef _:
-                    return "仓库节点：可自由增删 Pin 与物资种类；方向固定为「输入」。";
-                case ProcessorNodeDef _:
-                    return "加工节点：Pin 的数量与物资由配方的输入/产出一一对应决定，不能手动增删；改配方后自动同步，也可手动点「按配方同步 Pin」。";
+                    return "电源：每个 Pin 就是一个输出口，「输出电量」= 这个口供出多少电；方向固定「输出」。";
                 case ConditionNodeDef _:
-                    return "条件节点：可自由增删 Pin，方向固定为「输入」。同一种物资允许配多个 Pin 并联供货" +
-                           "（单条链接的速率有上限），到货合并计入同一条需求。";
+                    return "电池：每个 Pin 是一个输入口，收到的电量按各口求和；方向固定「输入」。" +
+                           "多配几个口，玩家不用合流器也能凑数。";
                 case TransitNodeDef _:
-                    return "中转节点：Pin 必须成对配置、互为配对 Pin（§6.3 立交）；删除任一个会连同配对一起删除。物资可留空，方向固定「同步」，运行时随连接确定。";
+                    return "中转件：Pin 按「分组」组织，同组内按方向分进出，" +
+                           "每个输出口 = floor(组内输入之和 / 组内输出口总数)。\n" +
+                           "十字件的组留「同步」方向（恰好两个口，运行时定向）；分流/合流请配死进出。" +
+                           "分组号与 Pin 下标无关，删 Pin 不影响其他 Pin 的分组。";
                 default:
                     return "";
             }
@@ -855,7 +756,9 @@ namespace MasterHouse.EditorTools
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             GUI.backgroundColor = oldBackground;
 
-            // 行 1：选中按钮 / 物资色块 / 物资 / 方向 / 删除
+            bool isTransit = _target is TransitNodeDef;
+
+            // 行 1：选中按钮 / 配色块 / 方向 /（中转）分组 / 删除
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Toggle(selected, $"#{i}", "Button", GUILayout.Width(34)) != selected)
             {
@@ -864,36 +767,45 @@ namespace MasterHouse.EditorTools
             }
 
             var swatch = GUILayoutUtility.GetRect(14, 14, GUILayout.Width(14), GUILayout.Height(14));
-            EditorGUI.DrawRect(swatch, pin.ItemType != null ? pin.ItemType.DisplayColor : Color.gray);
+            EditorGUI.DrawRect(swatch, CanvasDrawUtil.PinColor(_target, pin));
 
-            if (_target is ProcessorNodeDef)
+            if (isTransit)
             {
-                // 加工型物资来自配方，只读
-                GUILayout.Label(pin.ItemType != null ? pin.ItemType.name : "（配方未指定）");
-            }
-            else
-            {
+                // 中转件的方向由策划配：十字件留「同步」，分流/合流配死进出
                 EditorGUI.BeginChangeCheck();
-                var it = (ItemDef)EditorGUILayout.ObjectField(pin.ItemType, typeof(ItemDef), false);
+                GUILayout.Label("方向", GUILayout.Width(28));
+                var dir = (EPinDirection)EditorGUILayout.Popup((int)pin.Direction, kPinDirectionNames, GUILayout.Width(52));
+                GUILayout.Label("组", GUILayout.Width(18));
+                int group = EditorGUILayout.IntField(pin.PinGroup, GUILayout.Width(34));
                 if (EditorGUI.EndChangeCheck())
                 {
-                    Undo.RecordObject(_target, "修改 Pin 物资");
-                    pin.ItemType = it;
+                    Undo.RecordObject(_target, "修改 Pin 分组与方向");
+                    pin.Direction = dir;
+                    pin.PinGroup = group;
                     EditorUtility.SetDirty(_target);
                 }
             }
+            else
+            {
+                // 电源恒输出、电池恒输入，方向只读
+                GUILayout.Label(NodeDefEditUtil.DirName(pin.Direction), GUILayout.Width(30));
+            }
 
-            GUILayout.Label(NodeDefEditUtil.DirName(pin.Direction), GUILayout.Width(30));
-
+            GUILayout.FlexibleSpace();
             if (removable && GUILayout.Button("删", GUILayout.Width(26)))
                 doRemove = true;
             EditorGUILayout.EndHorizontal();
 
-            // 行 2：速率 / 所在格 / 朝向 /（中转）配对信息
+            // 行 2：输出电量（仅电源有效）/ 所在格 / 朝向
             EditorGUILayout.BeginHorizontal();
             EditorGUI.BeginChangeCheck();
-            GUILayout.Label("速率", GUILayout.Width(28));
-            int rate = EditorGUILayout.IntField(pin.MaxRate, GUILayout.Width(36));
+            bool ratePayload = _target is ResourceNodeDef;
+            GUILayout.Label(new GUIContent(ratePayload ? "供电" : "供电*",
+                    ratePayload ? "这个输出口供出多少电" : "只有电源的输出口用得到；中转与电池不参与限流"),
+                GUILayout.Width(34));
+            int rate;
+            using (new EditorGUI.DisabledScope(!ratePayload))
+                rate = EditorGUILayout.IntField(pin.MaxRate, GUILayout.Width(36));
             GUILayout.Label(new GUIContent("坐标", "用于精确输入；常规摆放请使用下方按钮或直接拖动画布中的 Pin。"), GUILayout.Width(28));
             var cell = EditorGUILayout.Vector2IntField(GUIContent.none, layout.LocalCell, GUILayout.Width(84));
             GUILayout.Label("朝向", GUILayout.Width(28));
@@ -906,8 +818,6 @@ namespace MasterHouse.EditorTools
                 layout.Facing = (EDirection4)facing;
                 EditorUtility.SetDirty(_target);
             }
-            if (_target is TransitNodeDef)
-                GUILayout.Label($"配对 #{pin.PairedPinIndex}", EditorStyles.miniLabel, GUILayout.Width(50));
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
 

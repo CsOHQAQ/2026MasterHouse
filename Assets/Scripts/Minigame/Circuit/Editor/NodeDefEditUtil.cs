@@ -5,11 +5,11 @@ using UnityEngine;
 namespace MasterHouse.EditorTools
 {
     /// <summary>
-    /// 节点编辑器的数据操作与校验工具（仅编辑器，待定 #11 的一部分）。
+    /// 节点编辑器的数据操作与校验工具（仅编辑器）。
     /// 对 NodeDef 的所有修改统一走这里，保证 Undo 记录与各节点类型的 Pin 规则一致：
-    /// - 资源型/仓库型：可自由增删 Pin 与物资种类，方向固定（资源=输出，仓库=输入）；
-    /// - 中转型：Pin 必须成对配置，互为配对 Pin，物资/方向留空由运行时同步（§6.3）；
-    /// - 加工型：Pin 数量与物资由配方的输入/产出一一对应决定，不允许手动增删。
+    /// - 电源：Pin 方向固定为输出，各 Pin 的 MaxRate 就是它供出的电量；
+    /// - 电池：Pin 方向固定为输入，收到的电量按各输入口求和；
+    /// - 中转件：Pin 按 PinGroup 分组，方向由策划配（十字件留「同步」，分流合流配死进出）。
     /// </summary>
     public static class NodeDefEditUtil
     {
@@ -69,193 +69,106 @@ namespace MasterHouse.EditorTools
         {
             switch (def)
             {
-                case ResourceNodeDef _: return "资源";
-                case ProcessorNodeDef _: return "加工";
-                case StorageNodeDef _: return "仓库";
+                case ResourceNodeDef _: return "电源";
                 case TransitNodeDef _: return "中转";
-                case ConditionNodeDef _: return "条件";
+                case ConditionNodeDef _: return "电池";
                 default: return "未知";
             }
         }
 
         // ==================== Pin 规则 ====================
 
-        /// <summary>该类型是否允许自由增删 Pin（§7：仓库/资源可自由调整数量与物资种类）。</summary>
-        public static bool AllowFreePinEdit(NodeDef def)
-        {
-            // 条件型同理：需求可以由多个输入 Pin 并联供给（单链接速率有上限）
-            return def is ResourceNodeDef || def is StorageNodeDef || def is ConditionNodeDef;
-        }
+        /// <summary>三种类型现在都可自由增删 Pin：电源多口供电、电池多口收电、中转件靠分组组织。</summary>
+        public static bool AllowFreePinEdit(NodeDef def) => def != null;
 
         /// <summary>
-        /// 按节点类型返回 Pin 的固定方向；加工型方向由配方逐 Pin 决定，返回 null。
-        /// 中转型固定 None——方向运行时随连接同步（§6.3）。
+        /// 按节点类型返回 Pin 的固定方向。
+        /// 中转件返回 null——它的方向由策划逐 Pin 配：十字件留「同步」(None)，
+        /// 分流器配 1 入 N 出、合流器配 N 入 1 出（§4.7）。
         /// </summary>
         public static EPinDirection? ForcedDirection(NodeDef def)
         {
             if (def is ResourceNodeDef) return EPinDirection.Output;
-            if (def is StorageNodeDef) return EPinDirection.Input;
             if (def is ConditionNodeDef) return EPinDirection.Input;
-            if (def is TransitNodeDef) return EPinDirection.None;
             return null;
         }
 
-        /// <summary>资源型/仓库型：添加一个 Pin，方向按类型固定，资源型默认物资为产出物资。</summary>
+        /// <summary>添加一个 Pin。方向按类型固定（电源=输出、电池=输入），中转件默认「同步」并归入 0 组。</summary>
         public static void AddPin(NodeDef def)
         {
             if (!AllowFreePinEdit(def)) return;
             Undo.RecordObject(def, "添加 Pin");
+            var forced = ForcedDirection(def);
             var layout = new PinLayout
             {
                 Pin = new PinDef
                 {
-                    ItemType = DefaultPinItem(def),
-                    Direction = ForcedDirection(def) ?? EPinDirection.Output,
+                    Direction = forced ?? EPinDirection.None,
                     MaxRate = 1,
-                    PairedPinIndex = -1,
+                    PinGroup = def is TransitNodeDef ? 0 : -1,
                 },
                 LocalCell = Vector2Int.zero,
-                // 输入型（仓库/条件）默认朝左接线，输出型朝右
-                Facing = ForcedDirection(def) == EPinDirection.Input ? EDirection4.Left : EDirection4.Right,
+                // 输入口默认朝左接线，输出口朝右
+                Facing = forced == EPinDirection.Input ? EDirection4.Left : EDirection4.Right,
             };
             AutoFacing(def, layout);
             def.Pins.Add(layout);
             EditorUtility.SetDirty(def);
         }
 
-        /// <summary>新增 Pin 的默认物资：资源型取产出物资，条件型取首条需求物资，其余留空。</summary>
-        static ItemDef DefaultPinItem(NodeDef def)
+        /// <summary>
+        /// 中转件：一次性添加一整个分组（§4.7）。
+        /// 十字件 = 两次调用 (1,1)；分流器 = 一次 (1,N)；合流器 = 一次 (N,1)。
+        /// 十字件那种 1 进 1 出的组允许留「同步」方向，交给运行时定向——
+        /// 所以 inputs==1 && outputs==1 时不写死方向。
+        /// </summary>
+        public static void AddTransitGroup(TransitNodeDef def, int inputs, int outputs)
         {
-            if (def is ResourceNodeDef r) return r.OutputItem;
-            if (def is ConditionNodeDef c)
-                foreach (var entry in c.Conditions)
-                    if (entry != null && entry.Item != null)
-                        return entry.Item;
-            return null;
-        }
+            inputs = Mathf.Max(1, inputs);
+            outputs = Mathf.Max(1, outputs);
+            Undo.RecordObject(def, "添加中转分组");
 
-        /// <summary>中转型：一次添加一对互为配对的 Pin（物资/方向留空，运行时同步）。</summary>
-        public static void AddTransitPair(TransitNodeDef def)
-        {
-            Undo.RecordObject(def, "添加配对 Pin");
-            int a = def.Pins.Count;
-            def.Pins.Add(new PinLayout
-            {
-                Pin = new PinDef { ItemType = null, Direction = EPinDirection.None, MaxRate = 1, PairedPinIndex = a + 1 },
-                LocalCell = Vector2Int.zero,
-                Facing = EDirection4.Left,
-            });
-            def.Pins.Add(new PinLayout
-            {
-                Pin = new PinDef { ItemType = null, Direction = EPinDirection.None, MaxRate = 1, PairedPinIndex = a },
-                LocalCell = Vector2Int.zero,
-                Facing = EDirection4.Right,
-            });
+            int group = NextFreeGroup(def);
+            bool bidirectional = inputs == 1 && outputs == 1; // 十字件：方向留给运行时
+
+            for (int i = 0; i < inputs; i++)
+                def.Pins.Add(NewGroupPin(group, bidirectional ? EPinDirection.None : EPinDirection.Input,
+                    EDirection4.Left));
+            for (int i = 0; i < outputs; i++)
+                def.Pins.Add(NewGroupPin(group, bidirectional ? EPinDirection.None : EPinDirection.Output,
+                    EDirection4.Right));
+
             EditorUtility.SetDirty(def);
         }
 
+        static PinLayout NewGroupPin(int group, EPinDirection direction, EDirection4 facing) =>
+            new PinLayout
+            {
+                Pin = new PinDef { Direction = direction, MaxRate = 1, PinGroup = group },
+                LocalCell = Vector2Int.zero,
+                Facing = facing,
+            };
+
+        /// <summary>当前未被占用的最小分组号。</summary>
+        public static int NextFreeGroup(NodeDef def)
+        {
+            int max = -1;
+            foreach (var p in def.Pins)
+                if (p?.Pin != null)
+                    max = Mathf.Max(max, p.Pin.PinGroup);
+            return max + 1;
+        }
+
         /// <summary>
-        /// 删除 Pin。中转型会连同其配对 Pin 一起删除，并修正其余 Pin 的配对索引；
-        /// 加工型不允许删除（由配方决定，UI 不应调到这里）。
+        /// 删除 Pin。分组号与 Pin 下标已经解耦（不再是"互指的配对索引"），
+        /// 所以删一个 Pin 不必连带删伙伴、也不用重映射任何索引——直接移除即可。
         /// </summary>
         public static void RemovePin(NodeDef def, int index)
         {
             if (index < 0 || index >= def.Pins.Count) return;
-            if (def is ProcessorNodeDef) return;
-
             Undo.RecordObject(def, "删除 Pin");
-            if (def is TransitNodeDef)
-            {
-                var removed = new HashSet<int> { index };
-                int pair = def.Pins[index].Pin.PairedPinIndex;
-                if (pair >= 0 && pair < def.Pins.Count)
-                    removed.Add(pair);
-
-                // 旧索引 → 新索引映射，修正剩余 Pin 的配对指向
-                var map = new Dictionary<int, int>();
-                int next = 0;
-                for (int i = 0; i < def.Pins.Count; i++)
-                    if (!removed.Contains(i))
-                        map[i] = next++;
-
-                var newPins = new List<PinLayout>();
-                for (int i = 0; i < def.Pins.Count; i++)
-                {
-                    if (removed.Contains(i)) continue;
-                    var p = def.Pins[i];
-                    p.Pin.PairedPinIndex = map.TryGetValue(p.Pin.PairedPinIndex, out int ni) ? ni : -1;
-                    newPins.Add(p);
-                }
-                def.Pins = newPins;
-            }
-            else
-            {
-                def.Pins.RemoveAt(index);
-            }
+            def.Pins.RemoveAt(index);
             EditorUtility.SetDirty(def);
-        }
-
-        /// <summary>
-        /// 加工型：Pin 完全由配方决定——每条输入物资生成一个输入 Pin、每条产出物资生成
-        /// 一个输出 Pin（一一对应）。同物资同方向的已有 Pin 保留摆位与速率配置。
-        /// </summary>
-        public static void SyncProcessorPins(ProcessorNodeDef def)
-        {
-            Undo.RecordObject(def, "按配方同步 Pin");
-            var old = new List<PinLayout>(def.Pins);
-            var result = new List<PinLayout>();
-            if (def.Recipe != null)
-            {
-                BuildPinsFor(def.Recipe.Inputs, EPinDirection.Input, EDirection4.Left, old, result);
-                BuildPinsFor(def.Recipe.Outputs, EPinDirection.Output, EDirection4.Right, old, result);
-            }
-            def.Pins = result;
-            EditorUtility.SetDirty(def);
-        }
-
-        static void BuildPinsFor(List<ItemStack> stacks, EPinDirection dir, EDirection4 defaultFacing,
-            List<PinLayout> old, List<PinLayout> result)
-        {
-            foreach (var s in stacks)
-            {
-                if (s.Item == null) continue;
-                int idx = old.FindIndex(p => p?.Pin != null && p.Pin.Direction == dir && p.Pin.ItemType == s.Item);
-                if (idx >= 0)
-                {
-                    result.Add(old[idx]);
-                    old.RemoveAt(idx);
-                }
-                else
-                {
-                    result.Add(new PinLayout
-                    {
-                        Pin = new PinDef { ItemType = s.Item, Direction = dir, MaxRate = 1, PairedPinIndex = -1 },
-                        LocalCell = Vector2Int.zero,
-                        Facing = defaultFacing,
-                    });
-                }
-            }
-        }
-
-        /// <summary>加工型 Pin 是否与配方一一对应（数量、物资、方向均匹配）。</summary>
-        public static bool ProcessorPinsInSync(ProcessorNodeDef def)
-        {
-            var expect = new List<(ItemDef item, EPinDirection dir)>();
-            if (def.Recipe != null)
-            {
-                foreach (var s in def.Recipe.Inputs)
-                    if (s.Item != null) expect.Add((s.Item, EPinDirection.Input));
-                foreach (var s in def.Recipe.Outputs)
-                    if (s.Item != null) expect.Add((s.Item, EPinDirection.Output));
-            }
-            if (def.Pins.Count != expect.Count) return false;
-            foreach (var p in def.Pins)
-            {
-                int i = expect.FindIndex(e => e.item == p.Pin.ItemType && e.dir == p.Pin.Direction);
-                if (i < 0) return false;
-                expect.RemoveAt(i);
-            }
-            return true;
         }
 
         /// <summary>按类型规则一键修正所有 Pin 的方向字段（加工型请走 SyncProcessorPins）。</summary>
@@ -312,7 +225,7 @@ namespace MasterHouse.EditorTools
             {
                 case EPinDirection.Input: return "输入";
                 case EPinDirection.Output: return "输出";
-                default: return "同步"; // None：运行时随连接同步（§6.3）
+                default: return "同步"; // None：方向随第一条接上的线确定（§4.7 十字件）
             }
         }
 
@@ -351,73 +264,96 @@ namespace MasterHouse.EditorTools
 
             switch (def)
             {
-                case ResourceNodeDef r:
-                    if (r.OutputItem == null)
-                        issues.Add("未配置产出物资。");
+                case ResourceNodeDef _:
+                    if (def.Pins.Count == 0)
+                        issues.Add("电源没有任何输出口，供不出电。");
                     for (int i = 0; i < def.Pins.Count; i++)
-                        if (def.Pins[i].Pin.ItemType == null)
-                            issues.Add($"Pin #{i} 未配置物资种类。");
-                    break;
-
-                case StorageNodeDef _:
-                    for (int i = 0; i < def.Pins.Count; i++)
-                        if (def.Pins[i].Pin.ItemType == null)
-                            issues.Add($"Pin #{i} 未配置物资种类。");
-                    break;
-
-                case ProcessorNodeDef proc:
-                    if (proc.Recipe == null)
-                        issues.Add("未配置配方——加工节点的 Pin 由配方决定（待定 #3：先按单条配方）。");
-                    else if (!ProcessorPinsInSync(proc))
-                        issues.Add("Pin 与配方不一致，请点「按配方同步 Pin」。");
+                        if (def.Pins[i].Pin.MaxRate <= 0)
+                            issues.Add($"Pin #{i} 的输出电量应大于 0。");
                     break;
 
                 case ConditionNodeDef c:
+                    if (def.Pins.Count == 0)
+                        issues.Add("电池没有任何输入口，永远收不到电。");
                     if (c.Conditions.Count == 0)
-                        issues.Add("未配置任何需求：该条件节点恒达标，关卡等同于没有它。");
+                        issues.Add("未配置任何点亮条件：该电池恒亮，等同于白送分。");
                     for (int i = 0; i < c.Conditions.Count; i++)
                     {
                         var entry = c.Conditions[i];
-                        if (entry == null || entry.Item == null)
+                        if (entry == null)
                         {
-                            issues.Add($"需求 #{i} 未配置物资。");
+                            issues.Add($"条件 #{i} 为空。");
                             continue;
                         }
                         if (entry.RequiredAmount <= 0)
-                            issues.Add($"需求「{entry.Item.name}」的需求量应大于 0。");
-                        if (entry.WindowTicks <= 0)
-                            issues.Add($"需求「{entry.Item.name}」的窗口长度应大于 0。");
-                        if (!def.Pins.Exists(p => p.Pin.ItemType == entry.Item))
-                            issues.Add($"需求「{entry.Item.name}」没有对应的输入 Pin，永远收不到货。");
-                    }
-                    for (int i = 0; i < def.Pins.Count; i++)
-                    {
-                        var item = def.Pins[i].Pin.ItemType;
-                        if (item == null)
-                        {
-                            issues.Add($"Pin #{i} 未配置物资种类。");
-                            continue;
-                        }
-                        if (!c.Conditions.Exists(e => e != null && e.Item == item))
-                            issues.Add($"Pin #{i}（{item.name}）不在需求列表中，收到的货不计入任何条件。");
+                            issues.Add($"条件 #{i} 的需求电量应大于 0。");
                     }
                     break;
 
                 case TransitNodeDef _:
-                    if (def.Pins.Count % 2 != 0)
-                        issues.Add("中转节点的 Pin 应成对出现，当前为奇数个。");
-                    for (int i = 0; i < def.Pins.Count; i++)
-                    {
-                        int pi = def.Pins[i].Pin.PairedPinIndex;
-                        if (pi < 0 || pi >= def.Pins.Count || pi == i)
-                            issues.Add($"Pin #{i} 的配对索引无效（{pi}）。");
-                        else if (def.Pins[pi].Pin.PairedPinIndex != i)
-                            issues.Add($"Pin #{i} 与 Pin #{pi} 的配对不互指。");
-                    }
+                    ValidateTransitGroups(def, issues);
                     break;
             }
 
             return issues;
+        }
+
+        /// <summary>
+        /// 中转件的分组校验（§4.7）。求解公式是
+        ///     每个输出口 = floor(组内输入之和 / 组内输出口总数)
+        /// 所以真正致命的只有「没分组」和「组里缺进或缺出」。
+        /// </summary>
+        static void ValidateTransitGroups(NodeDef def, List<string> issues)
+        {
+            if (def.Pins.Count == 0)
+            {
+                issues.Add("中转件没有任何 Pin。");
+                return;
+            }
+
+            // 分组号 → (输入数, 输出数, 未定向数)。按分组号排序输出，保证提示顺序稳定（§11.2）
+            var groups = new SortedDictionary<int, Vector3Int>();
+            for (int i = 0; i < def.Pins.Count; i++)
+            {
+                int g = def.Pins[i].Pin.PinGroup;
+                if (g < 0)
+                {
+                    issues.Add($"Pin #{i} 没有分组（组号 {g}）：不属于任何分组的中转口不导电。");
+                    continue;
+                }
+                groups.TryGetValue(g, out var counts);
+                switch (def.Pins[i].Pin.Direction)
+                {
+                    case EPinDirection.Input: counts.x++; break;
+                    case EPinDirection.Output: counts.y++; break;
+                    default: counts.z++; break;
+                }
+                groups[g] = counts;
+            }
+
+            foreach (var pair in groups)
+            {
+                int group = pair.Key;
+                int inputs = pair.Value.x, outputs = pair.Value.y, undirected = pair.Value.z;
+
+                if (undirected > 0)
+                {
+                    // 「同步」方向只在 1 进 1 出的十字件上成立：整组恰好两个口、且都留同步
+                    if (undirected != 2 || inputs + outputs > 0)
+                        issues.Add($"第 {group} 组混用了「同步」方向：只有恰好两个口且都留同步的组" +
+                                   $"（十字件那种 1 进 1 出）才能交给运行时定向，其余请配死进出。");
+                    continue;
+                }
+
+                if (inputs == 0)
+                    issues.Add($"第 {group} 组没有输入口，这组永远送不出电。");
+                if (outputs == 0)
+                    issues.Add($"第 {group} 组没有输出口，进来的电会原地消失。");
+                if (inputs > 1 && outputs > 1)
+                    issues.Add($"第 {group} 组是 {inputs} 进 {outputs} 出：公式照样成立" +
+                               $"（每个出口 = floor(总输入 / {outputs})），但本轮只验收了一对多与多对一，" +
+                               $"这种配法未经测试。");
+            }
         }
     }
 }

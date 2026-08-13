@@ -68,13 +68,11 @@ namespace MasterHouse
                                "请执行菜单 MasterHouse → 配置中心 补齐资产");
         }
 
-        /// <summary>第二阶段初始化（见字段区注释）。GameManager 在造完 VisitorManager 之后调用一次。</summary>
-        /// <param name="cargo">
-        /// 全局仓库。**已不再被消费**——GameplayContext.Cargo 随 Item 链退役删除（需求重做说明 §9.1）。
-        /// 参数保留是因为 §9.2 要求 PlayerCargo 的构造与传参不动，等 NodeSim 包一起清理；
-        /// 不再存成字段，免得留一个永远读不到的死引用。
-        /// </param>
-        public void Bind(VisitorManager visitors, EconomyManager economy, HouseClockManager clock, PlayerCargoData cargo)
+        /// <summary>
+        /// 第二阶段初始化（见字段区注释）。GameManager 在造完 VisitorManager 之后调用一次。
+        /// PlayerCargoData 参数已随小游戏框架落地第 2 步删除（同 VisitorManager 构造，需求重做说明 §9.2）。
+        /// </summary>
+        public void Bind(VisitorManager visitors, EconomyManager economy, HouseClockManager clock)
         {
             this.visitors = visitors;
             this.economy = economy;

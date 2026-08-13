@@ -59,7 +59,7 @@ namespace MasterHouse.EditorTools
             EditorUtility.SetDirty(def);
         }
 
-        /// <summary>把画布平移到以最左下格为 (0,0)，预置节点的放置格随同平移（WorldOrigin 不动）。</summary>
+        /// <summary>把画布平移到以最左下格为 (0,0)，预置节点的放置格随同平移。</summary>
         public static void Normalize(LevelDef def)
         {
             var grids = def.Canvas.Grids;
@@ -194,39 +194,83 @@ namespace MasterHouse.EditorTools
                     issues.Add($"可建列表中「{b.Node.name}」重复出现。");
                 if (b.MaxCount < 1)
                     issues.Add($"可建「{b.Node.name}」数量上限应 ≥ 1。");
-                if (b.Node is TransitNodeDef)
-                    issues.Add($"可建列表包含中转节点「{b.Node.name}」——§7：中转节点位置由策划在关卡中预置，请确认是否有意。");
-                if (b.Node is ConditionNodeDef)
-                    issues.Add($"可建列表包含条件节点「{b.Node.name}」——条件节点只能预置，玩家永远造不出来，本条无效，请删除。");
+                if (!(b.Node is TransitNodeDef))
+                    issues.Add($"可建列表里的「{b.Node.name}」不是中转件——电源与电池是题面，" +
+                               $"玩家永远摆不出来，本条无效，请删除。");
             }
 
-            // 家具效果产出（关卡生效后持续产出到玩家仓库）
-            for (int i = 0; i < def.Outputs.Count; i++)
-            {
-                var o = def.Outputs[i];
-                if (o == null || o.Item == null)
-                {
-                    issues.Add($"产出第 {i + 1} 条未指定物资。");
-                    continue;
-                }
-                if (o.Amount <= 0)
-                    issues.Add($"产出「{o.Item.name}」的数量应 ≥ 1。");
-                if (o.TicksPerOutput <= 0)
-                    issues.Add($"产出「{o.Item.name}」的间隔应 ≥ 1 tick。");
-            }
-
-            // 生效判据提示：没有条件节点的关卡恒生效，家具摆下去就在产出
-            bool hasCondition = false;
-            foreach (var e in def.PresetNodes)
-                if (e.Node is ConditionNodeDef)
-                {
-                    hasCondition = true;
-                    break;
-                }
-            if (!hasCondition && def.Outputs.Count > 0)
-                issues.Add("本关没有预置条件节点：家具将**恒定生效**、摆下即产出。若期望「修好才生效」，请预置条件节点。");
-
+            ValidateCircuit(def, issues);
             return issues;
+        }
+
+        /// <summary>
+        /// 电路层面的关卡校验（小游戏说明 §5.4）：
+        /// 报错 —— 画布为空 / 没有电源 / 没有电池；
+        /// 警告 —— 电源总供电 &lt; 电池总需求（本关不可能全亮）、导线预算小到显然连不通。
+        /// </summary>
+        static void ValidateCircuit(LevelDef def, List<string> issues)
+        {
+            int sources = 0, batteries = 0;
+            int totalSupply = 0, totalDemand = 0;
+
+            foreach (var e in def.PresetNodes)
+            {
+                if (e?.Node == null) continue;
+                switch (e.Node)
+                {
+                    case ResourceNodeDef _:
+                        sources++;
+                        foreach (var layout in e.Node.Pins)
+                            if (layout?.Pin != null && layout.Pin.Direction == EPinDirection.Output)
+                                totalSupply += Mathf.Max(0, layout.Pin.MaxRate);
+                        break;
+
+                    case ConditionNodeDef battery:
+                        batteries++;
+                        foreach (var entry in battery.Conditions)
+                            if (entry != null)
+                                totalDemand += Mathf.Max(0, entry.RequiredAmount);
+                        break;
+                }
+            }
+
+            if (sources == 0)
+                issues.Add("本关没有预置任何电源，一个电池也点不亮。");
+            if (batteries == 0)
+                issues.Add("本关没有预置任何电池：无从计分（分数 = 点亮数 / 电池总数），本关不可玩。");
+
+            if (sources > 0 && batteries > 0 && totalSupply < totalDemand)
+                issues.Add($"电源总供电 {totalSupply} < 电池总需求 {totalDemand}：本关**不可能全亮**，" +
+                           $"满分无法达成。若是有意设计的取舍关请忽略本条。");
+
+            // 计分粒度提醒：分数只有 (电池数 + 1) 种取值
+            if (batteries > 0 && batteries <= 3)
+                issues.Add($"本关只有 {batteries} 个电池，分数只可能是 " +
+                           $"{ScoreLadder(batteries)} 这几个值。想要更细的评分梯度就多放电池。");
+
+            if (def.MaxLinkCells > 0)
+            {
+                int canvasCells = def.Canvas.Grids.Count;
+                int occupied = 0;
+                foreach (var e in def.PresetNodes)
+                    if (e?.Node?.Shape != null)
+                        occupied += e.Node.Shape.Grids.Count;
+                int free = canvasCells - occupied;
+                if (def.MaxLinkCells > free)
+                    issues.Add($"导线预算 {def.MaxLinkCells} 格超过了画布的空闲格数 {free}，等同于不限。");
+                else if (batteries > 0 && def.MaxLinkCells < batteries * 2)
+                    issues.Add($"导线预算只有 {def.MaxLinkCells} 格，而本关有 {batteries} 个电池" +
+                               $"（每个至少要 2 格线才接得上）：多半连不通。");
+            }
+        }
+
+        /// <summary>可能出现的分数列表，用于粒度提醒（与 CircuitSolver.Score 同口径的整数四舍五入）。</summary>
+        static string ScoreLadder(int batteries)
+        {
+            var parts = new List<string>();
+            for (int lit = 0; lit <= batteries; lit++)
+                parts.Add(((lit * 100 + batteries / 2) / batteries).ToString());
+            return string.Join("/", parts);
         }
     }
 }

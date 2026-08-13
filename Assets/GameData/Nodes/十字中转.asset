@@ -19,31 +19,26 @@ MonoBehaviour:
       Type: 0
   Pins:
   - Pin:
-      ItemType: {fileID: 0}
       MaxRate: 1
       Direction: 0
-      PairedPinIndex: 2
+      PinGroup: 0
     LocalCell: {x: 0, y: 0}
     Facing: 0
   - Pin:
-      ItemType: {fileID: 0}
       MaxRate: 1
       Direction: 0
-      PairedPinIndex: 3
+      PinGroup: 1
     LocalCell: {x: 0, y: 0}
     Facing: 1
   - Pin:
-      ItemType: {fileID: 0}
       MaxRate: 1
       Direction: 0
-      PairedPinIndex: 0
+      PinGroup: 0
     LocalCell: {x: 0, y: 0}
     Facing: 2
   - Pin:
-      ItemType: {fileID: 0}
       MaxRate: 1
       Direction: 0
-      PairedPinIndex: 1
+      PinGroup: 1
     LocalCell: {x: 0, y: 0}
     Facing: 3
-  StorageCapPerItem: 1

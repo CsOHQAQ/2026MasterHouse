@@ -6,6 +6,35 @@ namespace MasterHouse.EditorTools
     /// <summary>节点编辑器 / 关卡编辑器共用的画布绘制原语。</summary>
     public static class CanvasDrawUtil
     {
+        /// <summary>中转件分组配色：同一件上的不同分组要一眼分得开（十字件的上下组 vs 左右组）。</summary>
+        static readonly Color[] GroupColors =
+        {
+            new Color(0.95f, 0.75f, 0.25f), // 0 黄
+            new Color(0.35f, 0.80f, 0.95f), // 1 青
+            new Color(0.95f, 0.45f, 0.75f), // 2 粉
+            new Color(0.55f, 0.90f, 0.45f), // 3 绿
+        };
+
+        /// <summary>
+        /// Pin 标记配色（物资链退役后的新口径）：
+        /// 中转件按分组号取色——分组是它唯一的语义；其余节点按方向取色。
+        /// </summary>
+        public static Color PinColor(NodeDef owner, PinDef pin)
+        {
+            if (pin == null) return Color.gray;
+            if (owner is TransitNodeDef)
+            {
+                if (pin.PinGroup < 0) return new Color(0.9f, 0.3f, 0.3f); // 未分组 = 红，校验也会报
+                return GroupColors[pin.PinGroup % GroupColors.Length];
+            }
+            switch (pin.Direction)
+            {
+                case EPinDirection.Output: return new Color(0.40f, 0.85f, 0.45f); // 供电 = 绿
+                case EPinDirection.Input: return new Color(0.45f, 0.65f, 0.95f);  // 收电 = 蓝
+                default: return new Color(0.70f, 0.70f, 0.70f);
+            }
+        }
+
         /// <summary>画矩形描边（四条细边）。</summary>
         public static void DrawBorder(Rect r, float w, Color c)
         {
