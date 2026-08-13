@@ -58,6 +58,14 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+echo [INFO] Exporting dialogue table...
+python "%~dp0export_dialogue.py"
+if %errorlevel% neq 0 (
+    echo [ERROR] Dialogue export failed!
+    pause
+    exit /b 1
+)
+
 echo.
 echo [DONE] All exports complete.
 echo        CSV written into Assets\Configs\ - Unity picks them up
