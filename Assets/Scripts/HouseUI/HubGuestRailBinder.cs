@@ -43,8 +43,8 @@ namespace MasterHouse
                 // 所在房间跟着显示（四宫格拖拽换房后靠这里一眼找到人）
                 card.eventLabel.text = $"VISITOR {instance.InstanceId:00} · {RoomLabel(instance)}";
                 card.guestName.text = instance.DisplayName;
-                card.status.text = StatusText(instance.State);
-                card.typeLabel.text = TypeMark(instance.State);
+                card.status.text = StatusText(visitor, instance);
+                card.typeLabel.text = visitor.WantsAttention(instance) ? "！" : TypeMark(instance.State);
                 HouseUIUtil.ApplyPanelSkin(card.background, .8f, 2.5f); // 访客卡换 common 框（半透明）
                 card.eventLabel.color = card.guestName.color = card.status.color = HouseUIUtil.White;
                 // 点击音关掉：访客卡响的是交互音（音效需求 #3），由 SelectGuest 统一发声
@@ -64,14 +64,26 @@ namespace MasterHouse
             return roomIndex >= 0 && roomIndex < rooms.Count ? rooms[roomIndex].displayName : "屋内";
         }
 
-        private static string StatusText(EVisitorState state) => state switch
+        /// <summary>
+        /// 状态文案。前台与服务中各分两段（2026-08-14 对话重构）：
+        /// 排在后面 / 还在安顿的客人点了也没有对话，卡上就得说清楚为什么，
+        /// 否则玩家只会觉得「点了没反应」。判据与 VisitorManager.CanInteract 是同一个。
+        /// </summary>
+        private static string StatusText(VisitorManager visitor, VisitorInstance instance)
         {
-            EVisitorState.FrontDesk => "门口等待接待 · 点击交谈",
-            EVisitorState.AwaitingRoom => "待分房 · 拖进一间空房",
-            EVisitorState.Serving => "服务中 · 点击交谈",
-            EVisitorState.Wandering => "心满意足 · 屋内闲逛",
-            _ => "正在离开",
-        };
+            var ready = visitor.WantsAttention(instance);
+            switch (instance.State)
+            {
+                case EVisitorState.FrontDesk:
+                    return ready ? "门口等待接待 · 点击交谈"
+                        : visitor.FrontDeskHead != instance ? "门口排队中 · 等前面那位"
+                        : "门口等着 · 现在腾不出房间";
+                case EVisitorState.AwaitingRoom: return "待分房 · 拖进一间空房";
+                case EVisitorState.Serving: return ready ? "有话要说 · 点击交谈" : "正在安顿 · 稍等一会儿";
+                case EVisitorState.Wandering: return "心满意足 · 屋内闲逛";
+                default: return "正在离开";
+            }
+        }
 
         private static string TypeMark(EVisitorState state) => state switch
         {

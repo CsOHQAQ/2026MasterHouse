@@ -48,9 +48,10 @@ namespace MasterHouse
         [Tooltip("序列帧前缀，实际资源为 前缀 + \"_await_sheet\"/\"_attack_sheet\" 的 PNG+JSON 组合")]
         public string sheetPath;
 
-        [Header("对话")]
-        [Tooltip("本种族的对话池：八个触发分类的对话组 + 四档交付预览单句（对话设计说明 §4.5）")]
-        public DialoguePoolDef dialoguePool;
+        // 对话池引用 dialoguePool 已于 2026-08-14 对话资源重构删除：
+        // 对话内容改由一张 DialogueTable 整表承载，按 raceId 查表（Excel 第一页的「种族」列），
+        // 不再需要每个种族挂一个 SO——也就顺带干掉了访客种族表 Excel 的「对话池」列
+        // 与「改资产名即断引用」那个固有问题。
 
         /// <summary>
         /// 取表情立绘路径；该差分缺失时回落到平静（默认表情）并打 Warning，不阻断播放（对话设计说明 §4.1）。

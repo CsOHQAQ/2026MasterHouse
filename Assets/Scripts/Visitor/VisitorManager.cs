@@ -39,8 +39,11 @@ namespace MasterHouse
         /// <summary>按 (day, 出现时刻, 原始下标) 稳定排序后的日程（§4.4）；Index 指回 entries 原始下标（派生种子键，§6.1）。</summary>
         private readonly List<(int Day, int Minute, int Index)> sortedSchedule = new List<(int, int, int)>();
 
-        /// <summary>超时/离场收集缓冲（tick 内复用，避免遍历中修改在场列表）。</summary>
+        /// <summary>离场收集缓冲（tick 内复用，避免遍历中修改在场列表）。</summary>
         private readonly List<VisitorInstance> departBuffer = new List<VisitorInstance>();
+
+        /// <summary>服务超时收集缓冲（同上；超时的走结算而不是直接离场）。</summary>
+        private readonly List<VisitorInstance> timeoutBuffer = new List<VisitorInstance>();
 
         public VisitorData Data { get; } = new VisitorData();
 
@@ -56,11 +59,10 @@ namespace MasterHouse
         public event Action<VisitorInstance> InstanceDeparted;
 
         /// <summary>
-        /// 对话触发点被请求（§8 五触发点）。对话本体的播放由 IDialogueService 实现方负责，
+        /// 对话分类被请求。对话本体的播放由 IDialogueService 实现方负责，
         /// 本事件只是给表现层的旁路通知（演员表情、日志、埋点）——**不要在订阅方里再播一次对话**。
-        /// 对话接缝改为 fire-and-forget 后不再有单句返回值（旧签名带 string 是占位实现时期的产物）。
         /// </summary>
-        public event Action<VisitorInstance, EVisitorDialogueTrigger> DialogueRequested;
+        public event Action<VisitorInstance, EDialogueCategory> DialogueRequested;
 
         /// <summary>日结完成（携带当日累计快照，面板展示用；只展示不惩罚，§7）。</summary>
         public event Action<VisitorDaySummary> DayEnded;
@@ -193,19 +195,29 @@ namespace MasterHouse
         private void TickStates()
         {
             departBuffer.Clear();
+            timeoutBuffer.Clear();
             foreach (var instance in Data.Instances) // 在场列表按 InstanceId 升序（§11.2）
             {
                 var elapsed = Data.BusinessTick - instance.StateEnterTick;
                 switch (instance.State)
                 {
                     case EVisitorState.FrontDesk:
+                        // 等搭话超时：**不播对话、不扣声望**，只是自己走了（2026-08-14 第 6 题定案）。
+                        // 玩家从没跟他说过话，播【被拒绝】没有道理——那个分类也已随之整个删除。
                         if (elapsed >= instance.Race.waitTalkTimeoutTicks) departBuffer.Add(instance);
                         break;
-                    // AwaitingRoom（等待分配房间）**刻意没有超时**：§5.3 的流程图上这一态只有「拖进空房」
-                    // 与「拒绝」两条出口。它同时阻塞【结束今天】（§10），玩家想清场就必须显式拒绝，
-                    // 不会出现「忘了分房 → 客人自己溜了 → 玩家不知道发生了什么」的静默流失。
+                    // AwaitingRoom（等待分配房间）**刻意没有超时**：这一态只有「拖进空房」一条出口，
+                    // 连拒绝都不给（接待时 CanAcceptGuest 已经保证有房，他一定分得到）。
+                    // 它是唯一阻塞【结束今天】的状态——玩家想收工就必须先把人安顿好。
                     case EVisitorState.Serving:
-                        if (elapsed >= instance.Race.waitDeliverTimeoutTicks) departBuffer.Add(instance);
+                        // 安顿结束、开口示意的那一 tick 广播一次，好让访客卡与演员把提示亮起来。
+                        // 用相等而不是 >=：BusinessTick 每 tick 加一，正好命中一次，不会连播。
+                        if (Data.BusinessTick == instance.NeedPromptTick) InstanceChanged?.Invoke(instance);
+                        // 服务超时从**示意那一刻**起算，而不是从进屋起算：安顿的那段时间不该算玩家头上。
+                        // 还没示意（NeedPromptTick 未到）时永远不会超时。
+                        if (IsNeedPrompted(instance) &&
+                            Data.BusinessTick - instance.NeedPromptTick >= instance.Race.waitDeliverTimeoutTicks)
+                            timeoutBuffer.Add(instance);
                         break;
                     case EVisitorState.Wandering:
                         if (elapsed >= instance.Race.wanderMaxTicks)
@@ -214,26 +226,41 @@ namespace MasterHouse
                         }
                         else if (instance.NextBubbleTick > 0 && Data.BusinessTick >= instance.NextBubbleTick)
                         {
-                            // 满意后闲逛（§8）：冒泡调度器定期请求一句闲逛台词
-                            RequestDialogue(instance, EVisitorDialogueTrigger.WanderChat);
+                            // 停留期冒泡调度器定期请求一句闲聊台词（场景气泡，不开模态）
+                            RequestDialogue(instance, EDialogueCategory.SmallTalk);
                             ScheduleNextBubble(instance);
                         }
                         break;
                 }
             }
+            // 服务超时：与「完成需求」同一条路，只是档位是失望——播【需求反馈·失望】后转停留，
+            // **不扣声望**（2026-08-14 第 6 题定案）。客人不会当场拂袖而去，还会在屋里待一会儿。
+            foreach (var instance in timeoutBuffer)
+                SettleNeedResult(instance, EServeSatisfaction.Mismatch, countAsServed: false);
+
             foreach (var instance in departBuffer)
             {
-                if (instance.State == EVisitorState.Wandering)
-                {
-                    Data.Today.WanderDepartCount++;
-                    Depart(instance); // 闲逛到点自行离开，无惩罚
-                }
-                else
-                {
-                    // 两段超时都走【被拒绝】对话分类；声望按超时时所处状态取档（交付页落地说明 §5.2）
-                    SettleRefusal(instance);
-                }
+                if (instance.State == EVisitorState.Wandering) Data.Today.WanderDepartCount++;
+                else Data.Today.RefusedCount++; // 前台等太久自己走了：计一次流失，但不扣声望
+                Depart(instance);
             }
+        }
+
+        /// <summary>访客是否已经「开口示意」（头顶提示亮起、可以点开需求对话）。</summary>
+        public bool IsNeedPrompted(VisitorInstance instance) =>
+            instance != null && instance.State == EVisitorState.Serving &&
+            instance.NeedPromptTick > 0 && Data.BusinessTick >= instance.NeedPromptTick;
+
+        /// <summary>
+        /// 入住后排一个「开口示意」的时刻：先安顿一段随机时间才有话说。
+        /// 走实例自己的确定性随机流（读档不刷），区间配在 VisitorTuningConfig。
+        /// </summary>
+        private void ScheduleNeedPrompt(VisitorInstance instance)
+        {
+            var min = tuning != null ? Mathf.Max(0, tuning.needPromptMinTicks) : 60;
+            var max = tuning != null ? Mathf.Max(min, tuning.needPromptMaxTicks) : 180;
+            var delay = min == max ? min : instance.Rng.Range(min, max + 1);
+            instance.NeedPromptTick = Data.BusinessTick + delay;
         }
 
         private void ScheduleNextBubble(VisitorInstance instance)
@@ -252,17 +279,19 @@ namespace MasterHouse
         /// **这里不进「服务中」、也不说需求**——「先盲选房、进房后才说需求」是硬要求：
         /// 玩家必须在不知道需求的情况下挑一间房，赌注才是真的。需求由 MoveVisitorToRoom 落房后才播。
         ///
-        /// 满房时返回 false。正常情况下【初次见面】的「接待」选项挂了 HasFreeRoomCondition 会自动置灰，
-        /// 这里再拦一道是防御——策划漏配条件时宁可接待不生效，也不能让访客卡在无房可住的中间态。
+        /// 接待不了时返回 false。正常情况下【初次见面】/【等待接待】的「接待」选项挂了
+        /// CanAcceptGuest 条件会自动置灰，这里再拦一道是防御——策划漏配条件时宁可接待不生效，
+        /// 也不能让访客卡在无房可住的中间态。
         /// </summary>
         public bool Accept(int instanceId)
         {
             var instance = Find(instanceId);
             if (instance == null || instance.State != EVisitorState.FrontDesk) return false;
-            if (!HasFreeRoom)
+            if (!CanAcceptGuest)
             {
-                Debug.LogWarning($"[VisitorManager] 接待未生效：客房已住满（实例 {instanceId}）；" +
-                                 "【初次见面】的「接待」选项应当挂上【访客/还有空客房】条件（§6.2）");
+                Debug.LogWarning($"[VisitorManager] 接待未生效（实例 {instanceId}）：客房住满，" +
+                                 "或者已经有一位客人在等分房（前台是串行队列，上一位安顿好才轮到下一位）；" +
+                                 "「接待」选项应当挂上 CanAcceptGuest 条件");
                 return false;
             }
             SetState(instance, EVisitorState.AwaitingRoom);
@@ -270,9 +299,13 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 拒绝：在「前台等待接待」「等待分配房间」「服务中」三个状态都可用
-        /// （打烊后玩家必须能手动清场，§5 / §5.3）。
-        /// 声望惩罚按当前状态分两档——已接待后反悔扣得更重（交付页落地说明 §5.2）。
+        /// 拒绝：在「前台等待接待」与「服务中」两个状态可用。
+        ///
+        /// **「等待分配房间」刻意不可拒绝**（2026-08-14 第 7/8 题定案）：接待的那一刻
+        /// CanAcceptGuest 已经保证了有一间空房留给他，玩家必须把他安顿好，不能反悔。
+        /// 也正因如此这一态永远不会卡死——房间一定在那儿等着。
+        ///
+        /// 声望惩罚按当前状态分两档——已入住后反悔扣得更重。
         /// </summary>
         public bool Reject(int instanceId)
         {
@@ -283,7 +316,7 @@ namespace MasterHouse
         }
 
         private static bool CanReject(EVisitorState state) =>
-            state == EVisitorState.FrontDesk || state == EVisitorState.AwaitingRoom || state == EVisitorState.Serving;
+            state == EVisitorState.FrontDesk || state == EVisitorState.Serving;
 
         // ── 房间占用（需求重做说明 §5.2）──
 
@@ -303,7 +336,7 @@ namespace MasterHouse
             return false;
         }
 
-        /// <summary>是否还有空客房（1~3 中至少一间未被占用）。接待分支的条件与投放前置条件都用它。</summary>
+        /// <summary>是否还有空客房（1~3 中至少一间未被占用）。**投放**的前置条件用它。</summary>
         public bool HasFreeRoom
         {
             get
@@ -313,6 +346,65 @@ namespace MasterHouse
                 return false;
             }
         }
+
+        /// <summary>场上是否已经有人在等分房（最多一位，见 CanAcceptGuest）。</summary>
+        public bool HasAwaitingRoomVisitor
+        {
+            get
+            {
+                foreach (var instance in Data.Instances)
+                    if (instance.State == EVisitorState.AwaitingRoom)
+                        return true;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 现在能不能接待新客人（2026-08-14 第 8/9 题定案）：**有空客房 且 没有别人正在等分房**。
+        ///
+        /// 「等分房」是一个串行环节——上一位没安顿好，下一位不开始排到。这条不变式换来两个好处：
+        /// 待分房的那位一定分得到房（所以不需要拒绝出口，也就不会在打烊时卡死），
+        /// 而且玩家不会同时欠着两个人的房间。
+        ///
+        /// **投放不受这条约束**（那用 HasFreeRoom）：门口本来就允许排队，前台额度 FrontDeskCapacity
+        /// 管着上限；只是队首访客点开时「接待」是灰的，得先把待分房那位安顿了。
+        /// </summary>
+        public bool CanAcceptGuest => HasFreeRoom && !HasAwaitingRoomVisitor;
+
+        /// <summary>
+        /// 前台队首：在场的 FrontDesk 访客里 InstanceId 最小的那位（自增 id = 到场先后）。
+        /// 严格 FIFO——**只有队首可交互**，排在后面的没有提示也点不动（2026-08-14 第 10 题定案·甲）。
+        /// </summary>
+        public VisitorInstance FrontDeskHead
+        {
+            get
+            {
+                VisitorInstance head = null;
+                foreach (var instance in Data.Instances) // 列表按 InstanceId 升序（§11.2）
+                    if (instance.State == EVisitorState.FrontDesk) { head = instance; break; }
+                return head;
+            }
+        }
+
+        /// <summary>
+        /// 这位访客现在点不点得动（View 用它决定要不要给提示图标、HubPage 用它分派点击）。
+        ///   前台 → 必须是队首，且现在确实接待得了（腾不出手就别搭话，省得开一段只能拒绝的对话）
+        ///   服务中 → 必须已经开口示意（安顿期点他只有一句提示）
+        ///   其余 → 不可交互
+        /// </summary>
+        public bool CanInteract(VisitorInstance instance)
+        {
+            if (instance == null) return false;
+            switch (instance.State)
+            {
+                case EVisitorState.FrontDesk: return CanAcceptGuest && FrontDeskHead == instance;
+                case EVisitorState.Serving: return IsNeedPrompted(instance);
+                default: return false;
+            }
+        }
+
+        /// <summary>头顶该不该亮「有话要说」的提示（表现层只读；与 CanInteract 同一判据）。</summary>
+        public bool WantsAttention(VisitorInstance instance) => CanInteract(instance);
 
         /// <summary>
         /// 前台在场人数：「前台等待接待」+「等待分配房间」（§5.4）。
@@ -335,12 +427,12 @@ namespace MasterHouse
         /// 与 Accept/Reject 同口径：公开方法 + 合法性校验，状态不对返回 false 而不是抛异常（§8）——
         /// 表现层的自动弹回机制会把演员送回业务房间。
         ///
-        /// | 状态         | 放行条件                | 行为                                             |
-        /// |--------------|-------------------------|--------------------------------------------------|
-        /// | AwaitingRoom | 目标 ∈ 1..3 且该房空闲  | **分房**：转 Serving + 播【开始等待服务】说出需求 |
-        /// | Wandering    | 目标 ∈ 1..3 且该房空闲  | 换房，纯位置变更，无业务影响                     |
-        /// | FrontDesk    | 否                      | 前台访客在门口排队，不可搬走                     |
-        /// | Serving      | 否                      | **服务中锁房**                                   |
+        /// | 状态         | 放行条件                | 行为                                               |
+        /// |--------------|-------------------------|----------------------------------------------------|
+        /// | AwaitingRoom | 目标 ∈ 1..3 且该房空闲  | **分房**：转 Serving，随后随机安顿一段才开口示意    |
+        /// | Wandering    | 目标 ∈ 1..3 且该房空闲  | 换房，纯位置变更，无业务影响                       |
+        /// | FrontDesk    | 否                      | 前台访客在门口排队，不可搬走                       |
+        /// | Serving      | 否                      | **服务中锁房**                                     |
         ///
         /// 服务中锁房是设计要点而不是保守：不锁的话条件类需求会退化成
         /// 「把客人搬去已经有那件家具的房间」，盲选房的赌注就不存在了。
@@ -367,8 +459,11 @@ namespace MasterHouse
             // SetState 会广播 InstanceChanged，订阅方（访客卡、任务卡）读到的必须已经是新房间
             instance.RoomIndex = roomIndex;
             SetState(instance, EVisitorState.Serving);
-            // 到这一刻才说出需求（§5.3 硬要求：【初次见面】绝不能提前透露需求内容）
-            RequestDialogue(instance, EVisitorDialogueTrigger.ServiceStart);
+            // 2026-08-14 起**进屋不再自动弹对话**（第 4/5 题定案）：先安顿一段随机时间，
+            // 到点头顶亮提示，玩家点他才播【需求对话】说出需求。自动弹模态会在玩家逛商店 /
+            // 摆家具时冷不丁盖上来（那两处时钟照走），而家具模式还禁着整个壳 Canvas——
+            // 那会变成「看不见的对话框 + 关不掉的闸门」。
+            ScheduleNeedPrompt(instance);
             return true;
         }
 
@@ -386,64 +481,81 @@ namespace MasterHouse
         {
             var instance = Find(instanceId);
             if (instance == null || instance.State != EVisitorState.Serving) return false;
+            SettleNeedResult(instance, satisfaction, countAsServed: true);
+            return true;
+        }
+
+        /// <summary>
+        /// 需求结算的统一出口：记账 → 播【需求反馈·档位】→ **一律转停留**。
+        ///
+        /// 两条来路走同一个形状（2026-08-14 第 6 题定案）：
+        ///   玩家在【需求对话】里选「交付」→ CompleteNeed(完美 / 小游戏分数档)
+        ///   服务超时                        → 这里传失望档、countAsServed = false
+        ///
+        /// 超时那条**不扣声望、也不计入当日服务数**，只是拿不到奖励；而且客人不会当场走人——
+        /// 他还会在屋里停留一段（停留时长从转 Wandering 这一刻起算）再离开。
+        /// 房间在停留期间**不释放**，直到真正离场才腾出来。
+        /// </summary>
+        private void SettleNeedResult(VisitorInstance instance, EServeSatisfaction satisfaction, bool countAsServed)
+        {
             instance.Satisfaction = satisfaction;
-            var (currency, reputation) = economy.CompleteGuestService(satisfaction);
-            Data.Today.ServedBySatisfaction[(int)satisfaction]++;
-            Data.Today.CurrencyEarned += currency;
-            Data.Today.ReputationEarned += reputation;
-            RequestDialogue(instance, EVisitorDialogueTrigger.ServiceDone);
-            if (satisfaction == EServeSatisfaction.Mismatch)
+            if (countAsServed)
             {
-                Depart(instance); // 不对味：直接离开，不进闲逛（§5）
+                var (currency, reputation) = economy.CompleteGuestService(satisfaction);
+                Data.Today.ServedBySatisfaction[(int)satisfaction]++;
+                Data.Today.CurrencyEarned += currency;
+                Data.Today.ReputationEarned += reputation;
             }
-            else
-            {
-                // 转闲逛但**房间不释放**——访客在自己房间里游走，直到离场才腾出来（§5.2）
-                SetState(instance, EVisitorState.Wandering);
-                ScheduleNextBubble(instance);
-            }
+            RequestDialogue(instance, DialogueCategoryText.FeedbackOf(satisfaction));
+            SetState(instance, EVisitorState.Wandering);
+            ScheduleNextBubble(instance);
+        }
+
+        /// <summary>
+        /// 玩家点击访客时的对话分派（2026-08-14 重构）：由本方法而不是 UI 决定说哪一类。
+        /// 返回 false 表示「这一下点击不该有对话」，调用方自行给 Toast。
+        ///
+        ///   前台队首 + 现在接待得了 → 【初次见面】（首次）/【等待接待】（已打过招呼）
+        ///   服务中 + 已开口示意     → 【需求对话】（说需求 + 交付/推迟/放弃分支）
+        ///   其余                    → false
+        /// </summary>
+        public bool RequestTalk(int instanceId)
+        {
+            var instance = Find(instanceId);
+            if (instance == null || !CanInteract(instance)) return false;
+            RequestDialogue(instance, instance.State == EVisitorState.Serving
+                ? EDialogueCategory.NeedTalk
+                : instance.MetPlayer ? EDialogueCategory.WaitingReception : EDialogueCategory.FirstMeeting);
             return true;
         }
 
         /// <summary>
-        /// 服务中再次交谈（需求重做说明 §6.4）：玩家点击「服务中」的访客时请求【服务中交谈】对话。
-        /// 与 serviceStart（刚进屋说出需求）分开是刻意的——每次点击都重播完整需求对话体验很差；
-        /// 条件类的验收分支就挂在这一类的对话组上。
+        /// 记下「已经打过招呼」（由 DialogueManager 在【初次见面】**正常播完**时回调）。
+        /// ESC 中断不会走到这里——中断视为这段对话没发生，下次点他仍是初次见面。
         /// </summary>
-        public bool RequestServiceCheck(int instanceId)
+        public void MarkMetPlayer(int instanceId)
         {
             var instance = Find(instanceId);
-            if (instance == null || instance.State != EVisitorState.Serving) return false;
-            RequestDialogue(instance, EVisitorDialogueTrigger.ServiceCheck);
-            return true;
-        }
-
-        /// <summary>
-        /// 初次见面（§8）：玩家交互「前台等待接待」的访客时请求；状态不变，仍在前台。
-        /// 返回是否真的发起了请求（访客不存在或不在前台时为 false）。
-        /// </summary>
-        public bool RequestFirstMeeting(int instanceId)
-        {
-            var instance = Find(instanceId);
-            if (instance == null || instance.State != EVisitorState.FrontDesk) return false;
-            RequestDialogue(instance, EVisitorDialogueTrigger.FirstMeeting);
-            return true;
+            if (instance != null) instance.MetPlayer = true;
         }
 
         // ── 日结（§7）──
 
         /// <summary>
-        /// 场上是否还有未处理访客（前台等待 / 等待分配房间 / 服务中）；闲逛中的不阻塞【结束今天】。
-        /// 待确认 #5（§10）：AwaitingRoom **默认算**未处理——它没有超时，不阻塞的话
-        /// 会跨天挂在门口，且玩家永远得不到「你还欠人家一间房」的提示。
+        /// 场上是否还有未处理访客——**只剩「等待分配房间」这一种**（2026-08-14 第 11 题定案）。
+        ///
+        /// 打烊后时钟停走、所有超时一并停表，所以「阻塞」意味着玩家必须有办法亲手解开它：
+        ///   前台等待 → 不阻塞：EndDay 里自动清场（从没答应过他们什么，店打烊了自然就散了）
+        ///   服务中   → 不阻塞：原样跨天，次日续算延迟与超时，玩家可以选择今天办还是明天办
+        ///   等待分房 → **阻塞**：他是你已经点头答应的客人，而 CanAcceptGuest 保证了一定有空房，
+        ///              拖进去就解开了，不会死锁
         /// </summary>
         public bool HasBlockingVisitors
         {
             get
             {
                 foreach (var instance in Data.Instances)
-                    if (instance.State == EVisitorState.FrontDesk || instance.State == EVisitorState.AwaitingRoom ||
-                        instance.State == EVisitorState.Serving)
+                    if (instance.State == EVisitorState.AwaitingRoom)
                         return true;
                 return false;
             }
@@ -452,25 +564,24 @@ namespace MasterHouse
         public bool CanEndDay => !HasBlockingVisitors;
 
         /// <summary>
-        /// 结束今天（§7）：闲逛访客按种族概率 roll 跨天留宿（其余离场）→ 生成当日结算快照 →
-        /// 时钟跳次日开门时刻并解冻。场上有未处理访客时不可用（返回 null）。
-        /// 日结只展示不惩罚——惩罚已在超时/拒绝当时结清，这里不重复扣。
+        /// 结束今天（§7）：前台访客自动离场 → 生成当日结算快照 → 时钟跳次日开门时刻并解冻。
+        /// 场上还有待分房访客时不可用（返回 null）。
+        /// 日结只展示不惩罚——惩罚已在拒绝当时结清，这里不重复扣。
+        ///
+        /// 闲逛访客的「跨天留宿 roll」已于 2026-08-14 删除：服务中/待分房都无条件跨天了，
+        /// 单给闲逛的掷一次骰子不一致；现在统一按停留时长走，到点自己离开。
+        /// （VisitorRaceDef.stayOvernightPercent 因此失去消费方，留着等下一轮种族表清理。）
         /// </summary>
         public VisitorDaySummary EndDay()
         {
             if (HasBlockingVisitors) return null;
             departBuffer.Clear();
             foreach (var instance in Data.Instances)
-            {
-                if (instance.State != EVisitorState.Wandering) continue;
-                if (instance.Rng.Chance(instance.Race.stayOvernightPercent))
-                    Data.Today.StayOvernightCount++; // 留宿：保留到次日继续闲逛
-                else
-                    departBuffer.Add(instance);
-            }
+                if (instance.State == EVisitorState.FrontDesk)
+                    departBuffer.Add(instance); // 打烊清场：门口没被接待的客人自己走了，不扣声望
             foreach (var instance in departBuffer)
             {
-                Data.Today.WanderDepartCount++;
+                Data.Today.RefusedCount++;
                 Depart(instance);
             }
             var summary = Data.Today.Clone();
@@ -557,25 +668,24 @@ namespace MasterHouse
         // ── 内部结算 ──
 
         /// <summary>
-        /// 拒绝口径结算（玩家拒绝 / 等搭话超时 / 等交货超时共用，§5）：扣声望 + 播【被拒绝】+ 离场。
+        /// 主动拒绝的结算：扣声望 + 离场。**只有玩家显式选「拒绝」这一条路会走到这里**
+        /// （2026-08-14 第 6 题定案）——两段超时都不再走拒绝口径：
+        ///   等搭话超时 → 直接离场，不扣声望、不播对话（他是自己走的，玩家没拒绝他）
+        ///   服务超时   → 走 SettleNeedResult 的失望档，不扣声望
+        /// 【被拒绝】这个对话分类也因此整个删除了：拒绝的台词现在是【初次见面】/【等待接待】
+        /// 组里那个「拒绝」选项的子句，说完就结束。
         ///
-        /// 惩罚**分两档**（交付页落地说明 §5.2）：接待后反悔比在前台谢客更失礼，扣得更多。
-        /// 两段超时按「超时发生时所处状态」取档——语义一致（这位访客在哪个阶段被辜负），
-        /// 且实现上就是下面这个三元，不必特判超时与手动拒绝。
+        /// 惩罚**分两档**：已入住后反悔比在前台谢客更失礼，扣得更多。
         /// </summary>
         private void SettleRefusal(VisitorInstance instance)
         {
-            // 「等待分配房间」算**已接待**档（与服务中同档）：EconomyConfig 里那两条的口径分别写着
-            // 「在前台等待接待谢客」与「已接待后反悔」，而 AwaitingRoom 的客人已经被请进门了。
-            // 需求重做说明没有明写这一态归哪档（待确认 #2 只说保留现状两档），此处按语义归档。
-            var accepted = instance.State == EVisitorState.Serving || instance.State == EVisitorState.AwaitingRoom;
+            var accepted = instance.State == EVisitorState.Serving;
             if (accepted) economy.RefuseServingGuest();
             else economy.RefuseGuestService();
             Data.Today.RefusedCount++;
             Data.Today.ReputationLost += accepted
                 ? economy.ServiceFailedReputationPenalty
                 : economy.RefuseReputationPenalty;
-            RequestDialogue(instance, EVisitorDialogueTrigger.Rejected);
             Depart(instance);
         }
 
@@ -607,10 +717,10 @@ namespace MasterHouse
         /// 请求播放一段对话（§8）。fire-and-forget：不等播完、不接返回值——
         /// 模态对话框期间闸门关闭，业务时间本来就停着，「等对话播完」对访客状态机是免费的。
         /// </summary>
-        private void RequestDialogue(VisitorInstance instance, EVisitorDialogueTrigger trigger)
+        private void RequestDialogue(VisitorInstance instance, EDialogueCategory category)
         {
-            dialogue?.RequestVisitorDialogue(instance, trigger, instance.Satisfaction);
-            DialogueRequested?.Invoke(instance, trigger);
+            dialogue?.RequestVisitorDialogue(instance, category);
+            DialogueRequested?.Invoke(instance, category);
         }
 
         // ── 存档接缝占位（§16.5，待定 #9）：留 Capture/Restore 但无调用方，与 EconomyManager 现有做法一致 ──

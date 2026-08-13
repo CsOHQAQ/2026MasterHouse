@@ -16,7 +16,8 @@ namespace MasterHouse.EditorTools
     ///   日程 → VisitorScheduleTable.asset（整表重建；§4.4 重排会改需求 roll，加内容请追加在 Excel 表尾）
     ///   调参/氛围 → VisitorTuningConfig.asset
     /// 引用列写法：立绘差分「表情=Resources路径」以 / 分隔（表情写中文名，如 平静/高兴）；
-    /// 对话池与日程的「需求」列写资产名（如 Pool_fox / Need_lamp）。
+    /// 日程的「需求」列写 NeedDef 资产名（如 Need_修理电路）。
+    /// 种族表的「对话池」列已随 2026-08-14 对话资源重构退役——对话内容按 raceId 查 DialogueTable。
     /// </summary>
     public static class VisitorCsvImporter
     {
@@ -102,7 +103,6 @@ namespace MasterHouse.EditorTools
         {
             var rows = ReadCsv(RaceCsvPath, out var col);
             var existing = LoadAll<VisitorRaceDef>();
-            var pools = LoadAll<DialoguePoolDef>();
             var seen = new HashSet<string>();
 
             foreach (var row in rows)
@@ -137,7 +137,8 @@ namespace MasterHouse.EditorTools
                 race.stayOvernightPercent = Int(row, col, "跨天留宿概率%", race.stayOvernightPercent);
                 race.portraits = ParsePortraits(Cell(row, col, "立绘差分"), raceId);
                 race.sheetPath = Cell(row, col, "序列帧");
-                race.dialoguePool = ResolveByAssetName(pools, Cell(row, col, "对话池"), raceId, "对话池");
+                // 「对话池」列已随 2026-08-14 对话资源重构退役：对话内容按 raceId 查 DialogueTable，
+                // 种族资产上不再挂引用。表里若还留着这一列会被静默忽略。
                 EditorUtility.SetDirty(race);
             }
 
@@ -235,6 +236,8 @@ namespace MasterHouse.EditorTools
                 {
                     case "openMinute": config.openMinute = value; break;
                     case "closeMinute": config.closeMinute = value; break;
+                    case "needPromptMinTicks": config.needPromptMinTicks = value; break;
+                    case "needPromptMaxTicks": config.needPromptMaxTicks = value; break;
                     case "bubbleIntervalTicks": config.bubbleIntervalTicks = value; break;
                     case "bubbleJitterTicks": config.bubbleJitterTicks = value; break;
                     case "bubbleHoldTicks": config.bubbleHoldTicks = value; break;
@@ -269,7 +272,7 @@ namespace MasterHouse.EditorTools
             var lines = new List<string>
             {
                 Line("种族id", "显示名", "等搭话超时tick", "等交货超时tick", "闲逛上限tick", "跨天留宿概率%",
-                    "立绘差分", "序列帧", "对话池"),
+                    "立绘差分", "序列帧"),
             };
             foreach (var race in LoadAll<VisitorRaceDef>())
             {
@@ -278,8 +281,7 @@ namespace MasterHouse.EditorTools
                     if (entry != null)
                         portraits.Add($"{DialogueEmotionText.NameOf(entry.expression)}={entry.portraitPath}");
                 lines.Add(Line(race.raceId, race.displayName, race.waitTalkTimeoutTicks, race.waitDeliverTimeoutTicks,
-                    race.wanderMaxTicks, race.stayOvernightPercent, string.Join("/", portraits), race.sheetPath,
-                    race.dialoguePool != null ? race.dialoguePool.name : ""));
+                    race.wanderMaxTicks, race.stayOvernightPercent, string.Join("/", portraits), race.sheetPath));
             }
             WriteCsv(RaceCsvPath, lines);
         }
@@ -305,6 +307,8 @@ namespace MasterHouse.EditorTools
             {
                 lines.Add(Line("openMinute", config.openMinute, "开门时刻（当天分钟数）"));
                 lines.Add(Line("closeMinute", config.closeMinute, "打烊时刻（当天分钟数）"));
+                lines.Add(Line("needPromptMinTicks", config.needPromptMinTicks, "入住后到开口示意的最短间隔（tick）"));
+                lines.Add(Line("needPromptMaxTicks", config.needPromptMaxTicks, "入住后到开口示意的最长间隔（tick）"));
                 lines.Add(Line("bubbleIntervalTicks", config.bubbleIntervalTicks, "闲逛冒泡间隔（tick）"));
                 lines.Add(Line("bubbleJitterTicks", config.bubbleJitterTicks, "冒泡间隔抖动（tick）"));
                 lines.Add(Line("bubbleHoldTicks", config.bubbleHoldTicks, "气泡停留时长（tick）"));

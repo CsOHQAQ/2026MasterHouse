@@ -1,5 +1,5 @@
-﻿种族id,显示名,等搭话超时tick,等交货超时tick,闲逛上限tick,跨天留宿概率%,立绘差分,序列帧,对话池
-fox,狐族,3000,6000,3600,30,平静=OutGameUI/Guests/fox,OutGameUI/Visitors/orange_cat,Pool_fox
-crow,鸦族,1800,3600,2400,10,平静=OutGameUI/Guests/crow,OutGameUI/Visitors/rottweiler,Pool_crow
-hedgehog,猬族,2400,4800,3000,20,平静=OutGameUI/Guests/hedgehog,OutGameUI/Visitors/wangcai,Pool_hedgehog
-rabbit,兔族,4200,7200,6000,60,平静=OutGameUI/Guests/rabbit,OutGameUI/Visitors/xueqiu,Pool_rabbit
+﻿种族id,显示名,等搭话超时tick,等交货超时tick,闲逛上限tick,跨天留宿概率%,立绘差分,序列帧
+fox,狐族,3000,6000,3600,30,平静=OutGameUI/Guests/fox,OutGameUI/Visitors/orange_cat
+crow,鸦族,1800,3600,2400,10,平静=OutGameUI/Guests/crow,OutGameUI/Visitors/rottweiler
+hedgehog,猬族,2400,4800,3000,20,平静=OutGameUI/Guests/hedgehog,OutGameUI/Visitors/wangcai
+rabbit,兔族,4200,7200,6000,60,平静=OutGameUI/Guests/rabbit,OutGameUI/Visitors/xueqiu

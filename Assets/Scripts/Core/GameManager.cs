@@ -27,6 +27,10 @@ namespace MasterHouse
         public VisitorScheduleTable VisitorSchedule { get; private set; }
         public VisitorTuningConfig VisitorTuning { get; private set; }
         public DialogueTuningConfig DialogueTuning { get; private set; }
+
+        /// <summary>对话整表（2026-08-14 重构）：全部对话组与池挂载，由 Excel 导表整表重建。</summary>
+        public DialogueTable DialogueTable { get; private set; }
+
         public CodexTable CodexTable { get; private set; }
 
         /// <summary>家具配置表（Model，§16.7 并入 Def 体系：统一由此加载，消费方不再散落 Resources.Load）。</summary>
@@ -91,6 +95,7 @@ namespace MasterHouse
             VisitorSchedule = Resources.Load<VisitorScheduleTable>("OutGameUI/VisitorScheduleTable");
             VisitorTuning = Resources.Load<VisitorTuningConfig>("OutGameUI/VisitorTuningConfig");
             DialogueTuning = Resources.Load<DialogueTuningConfig>("OutGameUI/DialogueTuningConfig");
+            DialogueTable = Resources.Load<DialogueTable>("OutGameUI/DialogueTable");
             CodexTable = Resources.Load<CodexTable>("OutGameUI/CodexTable");
             if (VisitorSchedule == null || VisitorTuning == null || CodexTable == null)
                 Debug.LogError("局外内容表缺失或损坏（Resources/OutGameUI/VisitorScheduleTable|VisitorTuningConfig|CodexTable）：" +
@@ -112,7 +117,7 @@ namespace MasterHouse
             // 对话与访客的**两阶段初始化**：VisitorManager 的构造需要 IDialogueService，
             // DialogueManager 又需要 VisitorManager——构造期循环依赖，靠先造后 Bind 解开。
             // 顺序不能颠倒，Bind 也不能漏（漏了对话里的事件与条件全部拿不到上下文）。
-            DialogueManager = new DialogueManager(DialogueTuning);
+            DialogueManager = new DialogueManager(DialogueTuning, DialogueTable);
             // runSeed 由 VisitorManager 内部注入固定默认常量（§6.1，待定 #9），GM 面板可改写
             VisitorManager = new VisitorManager(VisitorSchedule, VisitorTuning, HouseClockManager,
                 EconomyManager, DialogueManager);

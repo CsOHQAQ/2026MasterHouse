@@ -4,198 +4,106 @@ using UnityEngine;
 
 namespace MasterHouse.EditorTools
 {
-    /// <summary>一条校验结果。</summary>
-    public struct DialogueIssue
-    {
-        /// <summary>true = 阻断性错误（内容跑不起来）；false = 提示性警告（能跑，但多半配错了）。</summary>
-        public bool IsError;
-
-        public string Message;
-
-        /// <summary>点击日志能定位到的资产。</summary>
-        public Object Context;
-    }
-
     /// <summary>
-    /// 对话资产校验器（设计说明 §11.3）。
+    /// 对话内容校验器（2026-08-14 重构：报错口径从「SO 里第几步」改成「Excel 第几行」）。
+    ///
+    /// 对话编辑器已退役、Excel 是唯一源，所以策划能改的只有 Excel——报错必须指回那里，
+    /// 说「对话组 Group_xxx 第 3 步」对他没有任何用处。
+    ///
+    /// 与导表共用同一份规则（DialogueCsvImporter.CrossValidate 直接调 ValidateContent），
+    /// 「导表能过」等价于「校验能过」，不会出现两套口径。
     ///
     /// 错误（跑不起来，必须改）：
-    ///   · 分支缺无条件选项——条件全不满足时对话卡死，玩家只能 ESC（§4.3 硬校验）
-    ///   · 分类列表为空——该触发点没话可说（§4.5）
-    ///   · 跨组引用断链——选了「跳到组」却没填目标
-    /// 警告（能跑，但很可能是事故）：
-    ///   · 奖励类事件放在对话组中途——中途给奖励 + 玩家 ESC = 反复领取（§5.3 铁律②）
-    ///   · 对话组之间成环——运行时有跳转上限兜底，但成环基本是配错了
-    ///   · 闲逛组含分支/事件或多条台词——气泡只显示第一句，其余内容永远走不到
-    ///   · 空台词、空步骤列表
+    ///   · 分支缺无条件选项——条件全不满足时对话卡死，玩家只能 ESC
+    ///   · 分支没有任何选项 / 选项没有文本
+    ///   · 某条需求没有配【需求对话】——那位访客点开什么都不会发生，只能等超时
+    ///   · 某个种族的必备分类整个是空的
+    /// 警告（能跑，但多半是事故）：
+    ///   · 奖励事件不在所在路径的末尾——中途给奖励 + 玩家 ESC = 反复领取（§5.3 铁律②）
+    ///   · 闲聊组含分支/事件或多条台词——气泡只显示第一句，其余永远走不到
+    ///   · 空台词、空组
     /// </summary>
     public static class DialogueAssetValidator
     {
-        [MenuItem("MasterHouse/对话系统/校验全部对话资产")]
-        public static void ValidateAllFromMenu()
+        /// <summary>四档反馈之外，每个种族都必须配到的分类（缺了对应时机就没话可说）。</summary>
+        private static readonly EDialogueCategory[] RequiredPerRace =
         {
-            var issues = ValidateAll();
-            var errors = 0;
-            foreach (var issue in issues)
-            {
-                if (issue.IsError) errors++;
-                if (issue.IsError) Debug.LogError("[对话校验] " + issue.Message, issue.Context);
-                else Debug.LogWarning("[对话校验] " + issue.Message, issue.Context);
-            }
-            if (issues.Count == 0) Debug.Log("[对话校验] 全部对话资产通过校验。");
-            else Debug.Log($"[对话校验] 完成：{errors} 个错误、{issues.Count - errors} 个警告。");
-        }
+            EDialogueCategory.FirstMeeting,
+            EDialogueCategory.WaitingReception,
+            EDialogueCategory.SmallTalk,
+        };
 
-        /// <summary>扫描工程里全部对话池与对话组。</summary>
-        public static List<DialogueIssue> ValidateAll()
+        [MenuItem("MasterHouse/对话系统/校验对话表")]
+        public static void ValidateFromMenu()
         {
-            var issues = new List<DialogueIssue>();
-
-            // 按资产路径排序后再校验，保证同一份工程每次得到同样顺序的报告（便于 diff）
-            var poolPaths = new List<string>();
-            foreach (var guid in AssetDatabase.FindAssets("t:DialoguePoolDef"))
-                poolPaths.Add(AssetDatabase.GUIDToAssetPath(guid));
-            poolPaths.Sort(System.StringComparer.Ordinal);
-            foreach (var path in poolPaths)
+            var table = AssetDatabase.LoadAssetAtPath<DialogueTable>(DialogueCsvImporter.TableAssetPath);
+            if (table == null)
             {
-                var pool = AssetDatabase.LoadAssetAtPath<DialoguePoolDef>(path);
-                if (pool != null) Validate(pool, issues);
-            }
-
-            var groupPaths = new List<string>();
-            foreach (var guid in AssetDatabase.FindAssets("t:DialogueGroupDef"))
-                groupPaths.Add(AssetDatabase.GUIDToAssetPath(guid));
-            groupPaths.Sort(System.StringComparer.Ordinal);
-            var groups = new List<DialogueGroupDef>();
-            foreach (var path in groupPaths)
-            {
-                var group = AssetDatabase.LoadAssetAtPath<DialogueGroupDef>(path);
-                if (group == null) continue;
-                groups.Add(group);
-                Validate(group, issues);
-            }
-
-            DetectCycles(groups, issues);
-            return issues;
-        }
-
-        // ══════════ 对话池 ══════════
-
-        public static void Validate(DialoguePoolDef pool, List<DialogueIssue> issues)
-        {
-            if (pool == null) return;
-            var name = pool.name;
-            Category(issues, pool, name, "初次见面", pool.firstMeeting);
-            Category(issues, pool, name, "开始等待服务", pool.serviceStart);
-            Category(issues, pool, name, "服务中交谈", pool.serviceCheck);
-            Category(issues, pool, name, "被拒绝", pool.rejected);
-            Category(issues, pool, name, "完成服务·不对味", pool.doneMismatch);
-            Category(issues, pool, name, "完成服务·一般", pool.donePlain);
-            Category(issues, pool, name, "完成服务·满意", pool.doneSatisfied);
-            Category(issues, pool, name, "完成服务·完美", pool.donePerfect);
-            Category(issues, pool, name, "满意后闲逛", pool.wanderChat);
-
-            // 闲逛组的内容形态另有约束：气泡只显示第一条台词
-            foreach (var entry in pool.wanderChat)
-            {
-                if (entry == null || entry.group == null) continue;
-                ValidateWanderGroup(entry.group, issues);
-            }
-        }
-
-        private static void Category(List<DialogueIssue> issues, Object context, string poolName,
-            string categoryName, List<DialogueGroupEntry> entries)
-        {
-            if (entries == null || entries.Count == 0)
-            {
-                Error(issues, context, $"对话池「{poolName}」的分类「{categoryName}」是空的——该触发点没话可说（§4.5）");
+                Debug.LogError("[对话校验] 找不到对话整表：" + DialogueCsvImporter.TableAssetPath +
+                               "；请先执行菜单 MasterHouse → 对话系统 → 从 CSV 导入对话");
                 return;
             }
-            var usable = 0;
-            for (var i = 0; i < entries.Count; i++)
-            {
-                var entry = entries[i];
-                if (entry == null || entry.group == null)
-                {
-                    Error(issues, context, $"对话池「{poolName}」·「{categoryName}」第 {i} 行没有引用对话组");
-                    continue;
-                }
-                if (entry.weight <= 0)
-                {
-                    Warn(issues, context, $"对话池「{poolName}」·「{categoryName}」的「{entry.group.DisplayId}」权重为 {entry.weight}，不会被抽中");
-                    continue;
-                }
-                if (entry.conditions == null || entry.conditions.Count == 0) usable++;
-            }
-            if (usable == 0)
-                Warn(issues, context, $"对话池「{poolName}」·「{categoryName}」里每一条都带条件——" +
-                                      "条件同时不满足时该分类会没有候选，建议至少留一条无条件的兜底");
+            var report = new DialogueReport();
+            ValidateContent(table.groups, table.entries, report);
+            foreach (var message in report.ErrorMessages) Debug.LogError("[对话校验] " + message);
+            foreach (var message in report.WarningMessages) Debug.LogWarning("[对话校验] " + message);
+            Debug.Log(report.Errors == 0 && report.Warnings == 0
+                ? "[对话校验] 对话表通过校验。"
+                : $"[对话校验] 完成：{report.Errors} 个错误、{report.Warnings} 条警告。");
         }
 
-        // ══════════ 对话组 ══════════
-
-        public static void Validate(DialogueGroupDef group, List<DialogueIssue> issues)
+        /// <summary>
+        /// 内容层校验。导表流程与菜单校验共用本方法，规则只有一份。
+        /// </summary>
+        public static void ValidateContent(List<DialogueGroup> groups, List<DialoguePoolEntry> entries,
+            DialogueReport report)
         {
-            if (group == null) return;
-            var id = group.DisplayId;
+            foreach (var group in groups) ValidateGroup(group, report);
+            ValidateCoverage(entries, report);
+            ValidateSmallTalkShape(groups, entries, report);
+        }
+
+        // ══════════ 单组结构 ══════════
+
+        private static void ValidateGroup(DialogueGroup group, DialogueReport report)
+        {
             if (group.steps == null || group.steps.Count == 0)
             {
-                Warn(issues, group, $"对话组「{id}」没有任何步骤");
+                report.Warn("对话内容", group.sourceRow, $"对话组 {group.id} 没有任何步骤");
                 return;
             }
 
             for (var i = 0; i < group.steps.Count; i++)
             {
                 var step = group.steps[i];
-                if (step == null)
-                {
-                    Error(issues, group, $"对话组「{id}」第 {i} 步是空的");
-                    continue;
-                }
-                var isLast = i == group.steps.Count - 1;
+                if (step == null) continue;
+                var where = $"对话组 {group.id} 第 {i + 1} 步";
+
                 switch (step.kind)
                 {
                     case EDialogueStepKind.Line:
                         if (step.line == null || string.IsNullOrWhiteSpace(step.line.text))
-                            Warn(issues, group, $"对话组「{id}」第 {i} 步是空台词");
+                            report.Warn("对话内容", group.sourceRow, $"{where} 是空台词");
                         break;
 
                     case EDialogueStepKind.Action:
-                        if (step.actions == null || step.actions.Count == 0)
-                        {
-                            Warn(issues, group, $"对话组「{id}」第 {i} 步是事件步却没有配任何事件");
-                            break;
-                        }
-                        for (var a = 0; a < step.actions.Count; a++)
-                        {
-                            if (step.actions[a] == null)
-                            {
-                                Warn(issues, group, $"对话组「{id}」第 {i} 步的第 {a} 个事件没有选类型");
-                                continue;
-                            }
-                            // §5.3 铁律②：奖励只允许放在组末尾或分支选项上。
-                            // 中途给奖励 + 玩家 ESC 重进 = 反复领取。提示性校验，不阻断。
-                            if (!isLast && step.actions[a] is IRewardAction)
-                                Warn(issues, group, $"对话组「{id}」第 {i} 步的奖励事件" +
-                                                    $"（{step.actions[a].GetType().Name}）不在组末尾——" +
-                                                    "玩家中途 ESC 可能反复领取（§5.3 铁律②）");
-                        }
+                        // 主线上的奖励事件必须是主线的最后一步（否则 ESC 重进可反复领取）
+                        if (i != group.steps.Count - 1) WarnIfReward(step.actions, report, group.sourceRow, where);
                         break;
 
                     case EDialogueStepKind.Branch:
-                        ValidateBranch(group, i, step, issues);
+                        ValidateBranch(group, i, step, report);
                         break;
                 }
             }
         }
 
-        private static void ValidateBranch(DialogueGroupDef group, int index, DialogueStep step,
-            List<DialogueIssue> issues)
+        private static void ValidateBranch(DialogueGroup group, int index, DialogueStep step, DialogueReport report)
         {
-            var id = group.DisplayId;
+            var where = $"对话组 {group.id} 第 {index + 1} 步";
             if (step.options == null || step.options.Count == 0)
             {
-                Error(issues, group, $"对话组「{id}」第 {index} 步是分支却没有任何选项");
+                report.Error("对话内容", group.sourceRow, $"{where} 是分支却没有任何选项");
                 return;
             }
 
@@ -203,93 +111,123 @@ namespace MasterHouse.EditorTools
             for (var i = 0; i < step.options.Count; i++)
             {
                 var option = step.options[i];
-                if (option == null)
-                {
-                    Error(issues, group, $"对话组「{id}」第 {index} 步的第 {i} 个选项是空的");
-                    continue;
-                }
+                if (option == null) continue;
                 if (option.IsUnconditional) hasUnconditional = true;
                 if (string.IsNullOrWhiteSpace(option.text))
-                    Warn(issues, group, $"对话组「{id}」第 {index} 步的第 {i} 个选项没有文本");
-                if (option.next == EBranchNext.JumpToGroup && option.nextGroup == null)
-                    Error(issues, group, $"对话组「{id}」第 {index} 步的选项「{option.text}」选了「跳到组」却没填目标组（断链）");
-                if (option.actions != null)
-                    for (var a = 0; a < option.actions.Count; a++)
-                        if (option.actions[a] == null)
-                            Warn(issues, group, $"对话组「{id}」第 {index} 步选项「{option.text}」的第 {a} 个事件没有选类型");
+                    report.Warn("对话内容", group.sourceRow, $"{where} 第 {i + 1} 个选项没有文本");
+
+                // 子句里的奖励事件必须是这条路径的最后一个事件位
+                if (option.steps == null) continue;
+                var lastActionAt = -1;
+                for (var s = option.steps.Count - 1; s >= 0; s--)
+                    if (option.steps[s] != null && option.steps[s].kind == EDialogueStepKind.Action)
+                    { lastActionAt = s; break; }
+                for (var s = 0; s < option.steps.Count; s++)
+                {
+                    var sub = option.steps[s];
+                    if (sub == null || sub.kind != EDialogueStepKind.Action || s == lastActionAt) continue;
+                    WarnIfReward(sub.actions, report, group.sourceRow,
+                        $"{where} 第 {i + 1} 个选项的第 {s + 1} 句");
+                }
             }
 
-            // §4.3 硬校验：没有无条件选项时，条件全不满足就会卡死——玩家只能 ESC 退出
+            // 硬校验：没有无条件选项时，条件全不满足就会卡死——玩家只能 ESC 退出
             if (!hasUnconditional)
-                Error(issues, group, $"对话组「{id}」第 {index} 步的分支**没有无条件选项**：" +
-                                     "条件全不满足时对话会卡死（§4.3 硬校验，必须至少留一个无条件选项）");
+                report.Error("对话内容", group.sourceRow,
+                    $"{where} 的分支**没有无条件选项**：条件全不满足时对话会卡死，必须至少留一个不填条件的选项");
         }
 
-        /// <summary>闲逛组的额外约束：气泡只显示第一条台词，其余内容永远走不到。</summary>
-        private static void ValidateWanderGroup(DialogueGroupDef group, List<DialogueIssue> issues)
+        private static void WarnIfReward(List<DialogueCall> actions, DialogueReport report, int row, string where)
         {
-            if (group.steps == null) return;
-            var lineCount = 0;
-            var hasOther = false;
-            foreach (var step in group.steps)
-            {
-                if (step == null) continue;
-                if (step.kind == EDialogueStepKind.Line) lineCount++;
-                else hasOther = true;
-            }
-            if (lineCount == 0)
-                Error(issues, group, $"闲逛对话组「{group.DisplayId}」没有任何台词行，冒不出泡");
-            else if (lineCount > 1)
-                Warn(issues, group, $"闲逛对话组「{group.DisplayId}」有 {lineCount} 条台词，" +
-                                    "但气泡只显示第一条——想要多句请拆成多个单句组（靠 recent 环轮换）");
-            if (hasOther)
-                Warn(issues, group, $"闲逛对话组「{group.DisplayId}」含有事件或分支步骤，" +
-                                    "但气泡没有点击推进与选项列，这些步骤永远走不到");
+            if (actions == null) return;
+            foreach (var call in actions)
+                if (DialogueFuncs.IsReward(call))
+                    report.Warn("对话内容", row,
+                        $"{where} 的奖励事件 {call.func} 不在这条路径的最后一个事件位——" +
+                        "玩家播到这里按 ESC 再点开可能反复领取（§5.3 铁律②）");
         }
 
-        // ══════════ 跨组成环 ══════════
+        // ══════════ 覆盖度 ══════════
 
         /// <summary>
-        /// 对话组之间的跳转成环检测。组内不可能成环（跳转无位置寻址，§4.3），但跨组可以：A 跳 B、B 跳 A。
-        /// 运行时有跳转次数上限兜底（DialogueRuntime.MaxGroupJumps），所以这里报警告而非错误——
-        /// 环也可能是策划有意做的循环菜单，只是多半不是。
+        /// 每个种族的必备分类不能空；每条需求必须有【需求对话】。
+        /// 后者是新模型下最容易踩的坑——加了一条需求却忘了写台词，那位访客点开什么都不会发生。
         /// </summary>
-        private static void DetectCycles(List<DialogueGroupDef> groups, List<DialogueIssue> issues)
+        private static void ValidateCoverage(List<DialoguePoolEntry> entries, DialogueReport report)
         {
-            var visiting = new HashSet<DialogueGroupDef>();
-            var settled = new HashSet<DialogueGroupDef>();
-            foreach (var group in groups) // groups 已按资产路径排序，报告顺序稳定
-                Walk(group, visiting, settled, issues);
+            var covered = new HashSet<string>();
+            var needTalkNeeds = new HashSet<string>();
+            var races = new HashSet<string>();
+            foreach (var entry in entries)
+            {
+                if (entry == null || string.IsNullOrEmpty(entry.raceId)) continue;
+                races.Add(entry.raceId);
+                covered.Add($"{entry.raceId}|{(int)entry.category}");
+                if (entry.category == EDialogueCategory.NeedTalk && !string.IsNullOrEmpty(entry.needId))
+                    needTalkNeeds.Add($"{entry.raceId}|{entry.needId}");
+            }
+
+            var allRaces = DialogueCsvImporter.AllRaceIds();
+            foreach (var raceId in allRaces)
+            {
+                if (!races.Contains(raceId))
+                {
+                    report.Error("对话组", 0, $"种族 {raceId} 在对话表里一行都没有——他一句话都说不出来");
+                    continue;
+                }
+                foreach (var category in RequiredPerRace)
+                    if (!covered.Contains($"{raceId}|{(int)category}"))
+                        report.Error("对话组", 0,
+                            $"种族 {raceId} 缺少分类「{DialogueCategoryText.NameOf(category)}」" +
+                            $"（{DialogueCategoryText.KeyOf(category)}）的对话组");
+                // 四档反馈：至少要有「失望」与「完美」两档兜底（条件类只会走到这两档）
+                foreach (var category in new[] { EDialogueCategory.FeedbackDisappointed, EDialogueCategory.FeedbackPerfect })
+                    if (!covered.Contains($"{raceId}|{(int)category}"))
+                        report.Error("对话组", 0,
+                            $"种族 {raceId} 缺少分类「{DialogueCategoryText.NameOf(category)}」" +
+                            $"（{DialogueCategoryText.KeyOf(category)}）的对话组");
+            }
+
+            foreach (var needName in DialogueCsvImporter.AllNeedNames())
+            foreach (var raceId in allRaces)
+                if (!needTalkNeeds.Contains($"{raceId}|{needName}"))
+                    report.Error("对话组", 0,
+                        $"需求「{needName}」没有给种族 {raceId} 配【需求对话】（needTalk）——" +
+                        "带这条需求的访客点开不会有任何反应，只能等超时");
         }
 
-        private static void Walk(DialogueGroupDef group, HashSet<DialogueGroupDef> visiting,
-            HashSet<DialogueGroupDef> settled, List<DialogueIssue> issues)
+        // ══════════ 闲聊组的形态 ══════════
+
+        /// <summary>闲聊走场景气泡：只显示第一条台词，事件与分支都走不到。</summary>
+        private static void ValidateSmallTalkShape(List<DialogueGroup> groups, List<DialoguePoolEntry> entries,
+            DialogueReport report)
         {
-            if (group == null || settled.Contains(group)) return;
-            if (!visiting.Add(group))
+            var smallTalkIds = new HashSet<int>();
+            foreach (var entry in entries)
+                if (entry != null && entry.category == EDialogueCategory.SmallTalk)
+                    smallTalkIds.Add(entry.groupId);
+
+            foreach (var group in groups)
             {
-                Warn(issues, group, $"对话组「{group.DisplayId}」参与了一个跨组跳转环——" +
-                                    $"运行时超过 {DialogueRuntime.MaxGroupJumps} 次跳转会被强制结束");
-                return;
-            }
-            if (group.steps != null)
+                if (!smallTalkIds.Contains(group.id) || group.steps == null) continue;
+                var lines = 0;
+                var hasOther = false;
                 foreach (var step in group.steps)
                 {
-                    if (step == null || step.kind != EDialogueStepKind.Branch || step.options == null) continue;
-                    foreach (var option in step.options)
-                        if (option != null && option.next == EBranchNext.JumpToGroup)
-                            Walk(option.nextGroup, visiting, settled, issues);
+                    if (step == null) continue;
+                    if (step.kind == EDialogueStepKind.Line) lines++;
+                    else hasOther = true;
                 }
-            visiting.Remove(group);
-            settled.Add(group);
+                if (lines == 0)
+                    report.Error("对话内容", group.sourceRow, $"闲聊组 {group.id} 没有任何台词行，冒不出泡");
+                else if (lines > 1)
+                    report.Warn("对话内容", group.sourceRow,
+                        $"闲聊组 {group.id} 有 {lines} 条台词，但气泡只显示第一条——" +
+                        "想要多句请拆成多个单句组（靠 recent 环轮换）");
+                if (hasOther)
+                    report.Warn("对话内容", group.sourceRow,
+                        $"闲聊组 {group.id} 含有事件或分支，但气泡没有点击推进与选项列，这些步骤永远走不到");
+            }
         }
-
-        // ══════════ 小工具 ══════════
-
-        private static void Error(List<DialogueIssue> issues, Object context, string message) =>
-            issues.Add(new DialogueIssue { IsError = true, Message = message, Context = context });
-
-        private static void Warn(List<DialogueIssue> issues, Object context, string message) =>
-            issues.Add(new DialogueIssue { IsError = false, Message = message, Context = context });
     }
 }

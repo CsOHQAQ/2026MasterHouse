@@ -31,7 +31,6 @@ namespace MasterHouse.EditorTools
         private const string MinigameDefPath = Folder + "/Minigame_修理电路.asset";
         private const string NeedDefPath = "Assets/GameData/Needs/Need_修理电路.asset";
         private const string SampleLevelPath = "Assets/GameData/Levels/General_1_Intro00.asset";
-        private const string ServiceCheckGroupPath = "Assets/GameData/Dialogue/通用/Group_service_check_circuit.asset";
         private const string SchedulePath = "Assets/Resources/OutGameUI/VisitorScheduleTable.asset";
 
         // 占位配色（无美术阶段）
@@ -104,19 +103,23 @@ namespace MasterHouse.EditorTools
 
             Debug.Log(created.Count > 0
                 ? "[修理电路] 已创建：\n" + string.Join("\n", created) +
-                  "\n\n本菜单只建小游戏自己的资产。要真正跑起来还缺两样共享内容" +
-                  "（一个能触发小游戏的对话分支、一条带需求的日程），" +
-                  "执行菜单 MasterHouse → 小游戏 → 接通测试链路（只补空缺）。"
+                  "\n\n本菜单只建小游戏自己的资产。要真正跑起来还缺两样共享内容：" +
+                  "\n① 一条带需求的日程 → 菜单 MasterHouse → 小游戏 → 接通测试链路（只补空缺）" +
+                  "\n② 一段能触发小游戏的对话 → 在 Excel/对话表.xlsx 里给 Need_修理电路 配 needTalk"
                 : "[修理电路] 资产已齐全，未做修改。");
         }
 
         // ══════════ 测试链路：补共享内容里的空缺 ══════════
 
         /// <summary>
-        /// 把「日程表 → 需求 → 对话分支 → 小游戏」这条链路上属于**共享内容**的两处空缺补上。
+        /// 把「日程表 → 需求 → 对话 → 小游戏」这条链路上属于**共享内容**的空缺补上。
         ///
-        /// 与上面的生成器分开成两个菜单，是因为这里动的是策划的数据（对话池、日程表）而不是小游戏自己的资产。
-        /// 所以只做加法、**只填空缺**：对话池的 serviceCheck 非空就不动，日程条目已配需求就跳过。
+        /// 与上面的生成器分开成两个菜单，是因为这里动的是策划的数据（日程表）而不是小游戏自己的资产。
+        /// 所以只做加法、**只填空缺**：日程条目已配需求就跳过。
+        ///
+        /// **对话那一段本菜单不再插手**（2026-08-14 对话资源重构）：对话内容的唯一源是
+        /// Excel/对话表.xlsx，代码生成对话组只会和它打架。小游戏类需求的开局分支请在 Excel 第一页
+        /// 给 Need_修理电路 配一行 needTalk、第二页写一个带 StartMinigame 事件的选项。
         /// </summary>
         [MenuItem("MasterHouse/小游戏/接通测试链路（只补空缺）")]
         public static void WireTestPath()
@@ -131,80 +134,16 @@ namespace MasterHouse.EditorTools
             }
 
             var log = new List<string>();
-            var group = EnsureServiceCheckGroup(log);
-            WireGroupIntoPools(group, log);
             WireScheduleNeed(need, log);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            Debug.Log(log.Count > 0
-                ? "[修理电路] 测试链路已接通：\n" + string.Join("\n", log) +
-                  "\n\n现在进 OutGameTest 场景开始游戏：等第一位客人到前台 → 点他接待 → " +
-                  "把他拖进一间空客房 → 再点他，选「我来看看」即可进入修理电路。"
-                : "[修理电路] 测试链路已经是通的，未做修改。");
-        }
-
-        /// <summary>
-        /// 【服务中交谈】分类的对话组：一句需求 + 一个带「开始小游戏」事件的分支。
-        /// 现有对话资产里这个分类整个是空的，没有它玩家点服务中的访客不会有任何反应。
-        /// </summary>
-        private static DialogueGroupDef EnsureServiceCheckGroup(List<string> log)
-        {
-            var existing = AssetDatabase.LoadAssetAtPath<DialogueGroupDef>(ServiceCheckGroupPath);
-            if (existing != null) return existing;
-
-            var group = ScriptableObject.CreateInstance<DialogueGroupDef>();
-            group.id = "service_check_circuit";
-            group.note = "小游戏类需求的验收分支。由修理电路落地时自动生成的示例，台词请随意改写。";
-            group.steps = new List<DialogueStep>
-            {
-                new DialogueStep
-                {
-                    kind = EDialogueStepKind.Line,
-                    line = new DialogueLine
-                    {
-                        speaker = EDialogueSpeaker.Visitor,
-                        text = "{需求}",
-                        emotion = EDialogueEmotion.Confused,
-                    },
-                },
-                new DialogueStep
-                {
-                    kind = EDialogueStepKind.Branch,
-                    options = new List<BranchOption>
-                    {
-                        new BranchOption
-                        {
-                            text = "我来看看",
-                            // SerializeReference 的多态赋值在 C# 里直接 new 即可，Unity 序列化时自行分配 rid
-                            actions = new List<IGameplayAction> { new StartMinigameAction() },
-                            next = EBranchNext.End,
-                        },
-                        // 每个分支至少要有一个无条件选项，否则条件全不满足时对话会卡死（DialogueStep 注释里的硬校验）
-                        new BranchOption { text = "等下再说", next = EBranchNext.End },
-                    },
-                },
-            };
-
-            AssetDatabase.CreateAsset(group, ServiceCheckGroupPath);
-            log.Add(ServiceCheckGroupPath + "（新建：一句需求 + 「我来看看」分支）");
-            return group;
-        }
-
-        /// <summary>挂进各种族对话池的 serviceCheck 分类——**只填空的**，已配的一律不动。</summary>
-        private static void WireGroupIntoPools(DialogueGroupDef group, List<string> log)
-        {
-            foreach (var guid in AssetDatabase.FindAssets("t:DialoguePoolDef"))
-            {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                var pool = AssetDatabase.LoadAssetAtPath<DialoguePoolDef>(path);
-                if (pool == null || pool.serviceCheck.Count > 0) continue;
-
-                pool.serviceCheck.Add(new DialogueGroupEntry { group = group, weight = 1 });
-                EditorUtility.SetDirty(pool);
-                log.Add(path + "（serviceCheck 原本是空的，已挂上）");
-            }
+            Debug.Log((log.Count > 0
+                          ? "[修理电路] 日程已接通：\n" + string.Join("\n", log)
+                          : "[修理电路] 日程条目都已配过需求，未改动") +
+                      "\n\n对话内容请在 Excel/对话表.xlsx 里配：第一页给 Need_修理电路 加一行 needTalk，" +
+                      "第二页写一个带 StartMinigame 事件的选项，然后跑 Tools/导表/export_config.bat。");
         }
 
         /// <summary>

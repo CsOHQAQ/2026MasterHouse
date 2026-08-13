@@ -280,13 +280,13 @@ namespace MasterHouse
         /// 旧版那套「按访客状态硬生成接待/拒绝/递物品按钮」的 debug 驱动层已随对话系统落地删除
         /// （访客交付说明 §8 的临时许可到此为止）。
         ///
-        /// 2026-08-13 需求重做后**四态各有各的去处**：前台 → 初次见面对话；待分房 → 只有提示
-        /// （这一态的唯一推进方式是拖拽，不走对话）；服务中 → 服务中交谈对话（验收分支在里面）；
-        /// 闲逛 → 只有提示。UI 不再直接开任何业务页面。
+        /// 2026-08-14 对话重构后**说哪一类由 VisitorManager.RequestTalk 决定**，UI 只负责在
+        /// 「这一下点击不该有对话」时给一句提示。四种没有对话的情形各有各的说法（见 NoTalkHint）。
         /// </summary>
         public void SelectGuest(int instanceId)
         {
-            var instance = GameManager.Instance.VisitorManager.Find(instanceId);
+            var visitors = GameManager.Instance.VisitorManager;
+            var instance = visitors.Find(instanceId);
             if (instance == null)
             {
                 Toast("这位访客已经离开了");
@@ -297,38 +297,42 @@ namespace MasterHouse
             // 音效需求 #3：点访客卡/NPC 的交互音在此统一发（两条点击路径都汇到这里；访客卡按钮的基础点击音已关避免叠响）
             SfxManager.Play(ESfx.GuestInteract);
 
+            // 对话框由 DialogueManager.PlaybackStarted 事件拉起（见 OnDialogueStarted）
+            if (!visitors.RequestTalk(instanceId)) Toast(NoTalkHint(visitors, instance));
+        }
+
+        /// <summary>点了但没有对话时的提示文案（与 VisitorManager.CanInteract 的判据一一对应）。</summary>
+        private static string NoTalkHint(VisitorManager visitors, VisitorInstance instance)
+        {
             switch (instance.State)
             {
                 case EVisitorState.FrontDesk:
-                    // 播【初次见面】：对话框由 DialogueManager.PlaybackStarted 事件拉起（见 OnDialogueStarted）
-                    GameManager.Instance.VisitorManager.RequestFirstMeeting(instanceId);
-                    break;
+                    if (visitors.FrontDeskHead != instance)
+                        return $"{instance.DisplayName}还在后面排队 · 先招呼前面那位";
+                    if (visitors.HasAwaitingRoomVisitor)
+                        return "还有一位客人在等房间 · 先把他安顿好再接待下一位";
+                    return "客房都住满了 · 等有人离开再接待";
                 case EVisitorState.AwaitingRoom:
-                    // 已接待、还没分房：这一态没有对话，唯一的推进方式是把人拖进空房（§5.3/§6.4）
-                    Toast($"把{instance.DisplayName}拖进一间空客房，他进屋后才会说出需求");
-                    break;
+                    // 这一态没有对话，唯一的推进方式是把人拖进空房（拒绝也不给：接待时已经保证有房）
+                    return $"把{instance.DisplayName}拖进一间空客房，他安顿好才会说出需求";
                 case EVisitorState.Serving:
-                    // 播【服务中交谈】：条件类的验收分支就挂在这一类的对话组上（需求重做说明 §6.4）。
-                    // 与【开始等待服务】分开——后者是「刚进屋说出需求」，每次点击都重播完整需求对话体验很差。
-                    // 交付页（拖物品 → 确认交付）已随 Item 链退役，验收现在完全由对话分支承担
-                    GameManager.Instance.VisitorManager.RequestServiceCheck(instanceId);
-                    break;
+                    return $"{instance.DisplayName}还在安顿 · 等他开口再来";
                 default:
-                    Toast($"{instance.DisplayName} 正心满意足地在屋里逛着。");
-                    break;
+                    return $"{instance.DisplayName} 正心满意足地在屋里逛着。";
             }
         }
 
         /// <summary>
-        /// 结束今天（§7 日结）：场上有未处理访客（前台/服务中）时不可用，须逐个处理；闲逛中的不阻塞。
-        /// 成功后弹当日结算面板（只展示不惩罚），时间已跳到次日开门时刻。
+        /// 结束今天（§7 日结）：只有「等待分配房间」的访客会阻塞（2026-08-14 第 11 题）——
+        /// 前台的到点自动清场，服务中的原样跨天。成功后弹当日结算面板（只展示不惩罚），
+        /// 时间已跳到次日开门时刻。
         /// </summary>
         public void TryEndDay()
         {
             var gm = GameManager.Instance;
             if (gm.VisitorManager.HasBlockingVisitors)
             {
-                Toast("还有访客在等待接待或服务中 · 请逐个完成服务或拒绝后再结束今天");
+                Toast("还有客人在等房间 · 把他拖进一间空客房再结束今天");
                 return;
             }
             var endedDay = gm.HouseClockManager.Data.Day;

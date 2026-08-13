@@ -4,3 +4,5 @@ closeMinute,1320,打烊时刻（当天分钟数，1320=22:00）
 bubbleIntervalTicks,120,闲逛冒泡间隔（tick）
 bubbleJitterTicks,40,冒泡间隔抖动（tick），实际=间隔±抖动
 bubbleHoldTicks,40,气泡停留时长（tick）
+needPromptMinTicks,60,入住后到开口示意的最短间隔（tick）
+needPromptMaxTicks,180,入住后到开口示意的最长间隔（tick）；服务超时从示意那一刻起算

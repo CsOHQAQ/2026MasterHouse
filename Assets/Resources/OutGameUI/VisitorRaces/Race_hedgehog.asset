@@ -29,4 +29,3 @@ MonoBehaviour:
   - expression: 0
     portraitPath: hedgehog
   sheetPath: OutGameUI/Visitors/wangcai
-  dialoguePool: {fileID: 11400000, guid: 6b8f1c78d86ece441810d67a8dff2bff, type: 2}

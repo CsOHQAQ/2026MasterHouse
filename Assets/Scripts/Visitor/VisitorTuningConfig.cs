@@ -29,8 +29,15 @@ namespace MasterHouse
         [Tooltip("打烊时刻（分钟）：到点后一切 tick 业务统一冻结（§7 打烊闸门）")]
         public int closeMinute = 22 * 60;
 
+        [Header("需求示意（tick，2026-08-14 对话重构）")]
+        [Tooltip("入住后到「开口示意」的最短间隔（tick）：客人先安顿一会儿才会有话说")]
+        public int needPromptMinTicks = 60;
+        [Tooltip("入住后到「开口示意」的最长间隔（tick）：实际值在 [最短, 最长] 之间由实例随机流取（读档不刷）。\n" +
+                 "这段时间里点访客只会得到一句提示，不播对话；**服务超时也从示意那一刻才开始倒计时**")]
+        public int needPromptMaxTicks = 180;
+
         [Header("闲逛节奏（tick，§4.5/§5）")]
-        [Tooltip("冒泡间隔（tick）：闲逛访客每隔约这么久自动抽一句闲逛台词")]
+        [Tooltip("冒泡间隔（tick）：闲逛访客每隔约这么久自动抽一句闲聊台词")]
         public int bubbleIntervalTicks = 120;
         [Tooltip("冒泡间隔抖动（tick）：实际间隔 = 间隔 ± 抖动（确定性随机流取值）")]
         public int bubbleJitterTicks = 40;

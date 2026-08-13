@@ -172,7 +172,7 @@ namespace MasterHouse
             RebuildOptions(dialogue);
         }
 
-        /// <summary>三种说话人样式（§4.1）：访客=立绘+名字条；玩家=无立绘、名字条换色；旁白=居中无框。</summary>
+        /// <summary>三种说话人样式：访客=立绘+名字条；玩家=无立绘、名字条换色；旁白=居中无框。</summary>
         private void ApplySpeaker(DialogueLine line, DialogueManager dialogue)
         {
             var visitor = dialogue.CurrentVisitor;

@@ -26,8 +26,7 @@ namespace MasterHouse.EditorTools
         private const string CircuitLevelDir = "Assets/GameData/Levels";
         private const string DialogueTuningPath = "Assets/Resources/OutGameUI/DialogueTuningConfig.asset";
         private const string SfxPath = "Assets/Resources/OutGameUI/SfxTable.asset";
-        private const string DialogueDir = "Assets/GameData/Dialogue";
-        private const string DialogueGroupDir = DialogueDir + "/通用";
+        private const string DialogueTablePath = DialogueCsvImporter.TableAssetPath;
 
         private Vector2 scroll;
         private readonly Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
@@ -66,7 +65,7 @@ namespace MasterHouse.EditorTools
                 InlineAsset<VisitorScheduleTable>(SchedulePath, "日程表",
                     "谁在第几天几点出现。注意：已有条目别重排别插行（下标是需求随机的种子键），加内容追加表尾", FixVisitorAssets);
                 AssetList<VisitorRaceDef>(RaceDir, "种族模板",
-                    "性格数值（tick）/ 立绘差分 / 序列帧 / 对话池",
+                    "性格数值（tick）/ 立绘差分 / 序列帧（对话内容按 raceId 查对话整表，种族上不再挂对话池）",
                     () => CreateAsset<VisitorRaceDef>(RaceDir, "Race_新种族"));
                 // 新建不走通用按钮：NeedDef 是抽象基类，CreateInstance 造不出来，两个子类统一在编辑器窗口里建
                 AssetList<NeedDef>(NeedDir, "需求",
@@ -82,18 +81,19 @@ namespace MasterHouse.EditorTools
             Section("对话", () =>
             {
                 InlineAsset<DialogueTuningConfig>(DialogueTuningPath, "调参配置",
-                    "打字机速度 / recent 去重环长度 N（气泡时长在访客调参里，不重复配）", FixDialogueAssets);
-                AssetList<DialoguePoolDef>(DialogueDir, "种族对话池",
-                    "八个触发分类的对话组 + 四档交付预览单句；由 VisitorRaceDef.dialoguePool 引用",
-                    () => CreateAsset<DialoguePoolDef>(DialogueDir, "Pool_新种族"));
-                AssetList<DialogueGroupDef>(DialogueGroupDir, "对话组",
-                    "单句/事件/分支组成；分支跳转无位置寻址，插行删行安全",
-                    () => CreateAsset<DialogueGroupDef>(DialogueGroupDir, "Group_新对话组"));
+                    "打字机速度 / recent 去重环长度 N（气泡时长与需求示意延迟在访客调参里，不重复配）",
+                    FixDialogueAssets);
+                InlineAsset<DialogueTable>(DialogueTablePath, "对话整表",
+                    "**只读产物**：唯一数据源是 Excel/对话表.xlsx，在这里手改会被下次导表覆盖", null);
+                EditorGUILayout.HelpBox(
+                    "改台词 = 改 Excel/对话表.xlsx（两页：对话组 / 对话内容）→ 双击 Tools/导表/export_config.bat\n" +
+                    "→ 切回 Unity 自动导表。对话编辑器已于 2026-08-14 退役，配置只有 Excel 一个家。",
+                    MessageType.Info);
                 EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button("打开对话编辑器（左树右编辑）", GUILayout.Height(22)))
-                    DialogueEditorWindow.Open();
-                if (GUILayout.Button("校验对话资产", GUILayout.Height(22), GUILayout.Width(110)))
-                    DialogueAssetValidator.ValidateAllFromMenu();
+                if (GUILayout.Button("从 CSV 导入对话", GUILayout.Height(22)))
+                    DialogueCsvImporter.ImportFromCsvMenu();
+                if (GUILayout.Button("校验对话表", GUILayout.Height(22), GUILayout.Width(110)))
+                    DialogueAssetValidator.ValidateFromMenu();
                 EditorGUILayout.EndHorizontal();
             });
 
@@ -250,8 +250,21 @@ namespace MasterHouse.EditorTools
         }
 
         private static void FixVisitorAssets() => VisitorConfigSetupUtility.CreateIfMissing();
-        private static void FixDialogueAssets() => DialogueConfigSetupUtility.CreateIfMissing();
         private static void FixFurnitureAssets() => FurnitureConfigSetupUtility.CreateIfMissing();
+
+        /// <summary>
+        /// 对话侧只需要补一个调参配置——对话内容整表由导表生成，示例资产生成器
+        /// （DialogueConfigSetupUtility）已随对话编辑器一起退役：造一份"示例台词"只会和 Excel 打架。
+        /// </summary>
+        private static void FixDialogueAssets()
+        {
+            const string path = DialogueTuningPath;
+            if (AssetDatabase.LoadAssetAtPath<DialogueTuningConfig>(path) != null) return;
+            var asset = ScriptableObject.CreateInstance<DialogueTuningConfig>();
+            AssetDatabase.CreateAsset(asset, path);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[配置中心] 已创建对话调参配置：" + path);
+        }
 
         private bool GetFoldout(string key)
         {

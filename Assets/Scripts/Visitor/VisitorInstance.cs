@@ -25,19 +25,28 @@ namespace MasterHouse
         AwaitingRoom = 4,
     }
 
-    /// <summary>服务满意度四档（访客交付说明 §4.7）。</summary>
+    /// <summary>
+    /// 服务满意度四档，对应四个【需求反馈】对话分类（DialogueCategoryText.FeedbackOf）。
+    ///
+    /// **枚举名保持历史值不动**（存档接缝与 EconomyConfig 的字段名都按它对齐），
+    /// 但语义已随 2026-08-14 重构更新，展示文案见下面的 Names：
+    ///   Mismatch  → 失望：服务超时，需求没办到
+    ///   Plain     → 一般：小游戏低分（条件类走不到）
+    ///   Satisfied → 还行：小游戏中间分（条件类走不到）
+    ///   Perfect   → 完美：条件类交付成功 / 小游戏满分
+    /// </summary>
     public enum EServeSatisfaction
     {
-        Mismatch = 0,  // 不对味：任一必要需求未命中
-        Plain = 1,     // 一般：加分项命中比例低于阈值A
-        Satisfied = 2, // 满意：加分项命中比例 ≥ 阈值A 且未全中
-        Perfect = 3,   // 完美：加分项全命中（或需求里没有加分项）
+        Mismatch = 0,
+        Plain = 1,
+        Satisfied = 2,
+        Perfect = 3,
     }
 
     /// <summary>满意度展示文案（下标 = (int)EServeSatisfaction）。</summary>
     public static class ServeSatisfactionText
     {
-        public static readonly string[] Names = { "不对味", "一般", "满意", "完美" };
+        public static readonly string[] Names = { "失望", "一般", "还行", "完美" };
 
         public static string NameOf(EServeSatisfaction satisfaction) => Names[(int)satisfaction];
     }
@@ -85,8 +94,26 @@ namespace MasterHouse
         /// <summary>满意度（CompleteNeed 结算之后有效）。</summary>
         public EServeSatisfaction Satisfaction;
 
-        /// <summary>下次闲逛冒泡的业务 tick（0 = 未排程）。</summary>
+        /// <summary>下次闲聊冒泡的业务 tick（0 = 未排程）。</summary>
         public long NextBubbleTick;
+
+        /// <summary>
+        /// 玩家是否已经跟他打过招呼（【初次见面】**正常播完**才置位；ESC 中断视为没播过）。
+        /// 前台访客的二次点击据此改抽【等待接待】，不会把开场白重放一遍。
+        ///
+        /// **不进存档**（2026-08-14 定案）：对话侧整体只留接缝、不接存档（待定 #9），
+        /// 这一格跟着一起等。
+        /// </summary>
+        public bool MetPlayer;
+
+        /// <summary>
+        /// 「已示意」的业务 tick：入住之后随机安顿一段时间才开口（VisitorTuningConfig.needPrompt*）。
+        /// 0 = 还没排程（不该出现在 Serving 态上）。
+        ///
+        /// 这一格同时是**服务超时的起算点**——超时从他示意那一刻开始算，而不是从进屋开始算，
+        /// 玩家不该为客人安顿的那段时间买单（2026-08-14 第 4/5 题定案）。
+        /// </summary>
+        public long NeedPromptTick;
 
         /// <summary>实例随机流：派生自 rollSeed（§6.1），需求 roll 之后继续用于冒泡抖动与跨天留宿 roll。</summary>
         public DeterministicRng Rng;

@@ -8,731 +8,584 @@ using UnityEngine;
 namespace MasterHouse.EditorTools
 {
     /// <summary>
-    /// 对话表导入/导出工具。
-    /// CSV 格式（对话内容表.csv）：
-    ///   对话组ID, 备注, 文件夹, 步骤, 类型, 说话人, 表情, 文本, 动作, 动作参数, 跳转, 跳转目标组, 选项条件
-    ///   类型：台词 | 选项 | 事件
-    ///   动作：接待|拒绝|完成需求|小游戏|货币|声望|日志
-    ///   跳转：结束|继续|跳到组
-    ///   选项条件：天数>=N / 货币>=N / 声望>=N / 种族:资产名 / 满意度>=档位 /
-    ///             访客状态:枚举名 / 有空房 / 房间有家具 — 多个用;分隔
-    /// CSV 格式（对话池表.csv）：
-    ///   对话组ID, 文件夹, 种族, 触发分类, 权重, 进入条件
-    ///   触发分类：firstMeeting|serviceStart|serviceCheck|rejected|
-    ///             doneMismatch|donePlain|doneSatisfied|donePerfect|wanderChat
+    /// 对话导表（2026-08-14 重构）：Assets/Configs/对话组表.csv + 对话内容表.csv → DialogueTable.asset **整表重建**。
+    ///
+    /// 唯一数据源是 Excel/对话表.xlsx；CSV 由 Tools/导表/export_dialogue.py 生成，本类只负责 CSV → SO。
+    /// **没有反向导出**：SO 是产物不是源，回写会造出第二个家（旧版那套 SO → CSV 已随本次重构删除）。
+    ///
+    /// 两张表的列（列名即契约，与导出脚本一一对应；「行号」由导出脚本追加，用于把报错指回 Excel）：
+    ///   对话组表.csv ：对话组ID, 种族, 需求ID, 所属对话池, 进入条件, 备注, 行号
+    ///   对话内容表.csv：对话组ID, 说话人, 表情, 步骤, 选项, 句序, 类型, 文本, 条件, 行号
+    ///
+    /// 解析要点：
+    ///   · 种族列支持 `/` 多选与特殊值 `通用`（展开成工程里实际存在的全部 VisitorRaceDef）
+    ///   · 「条件」「文本（Action 行）」写函数调用串，`;` 分隔多条；语法由 DialogueCallParser 解析，
+    ///     函数名与参数个数对着 DialogueFuncs 的注册表校验——写错当场报出 Excel 行号
+    ///   · 步骤/选项/句序三列全是数字，**行序没有语义**，可以在 Excel 里任意排序
     /// </summary>
     public static class DialogueCsvImporter
     {
-        private const string ContentCsvPath = "Assets/Configs/对话内容表.csv";
-        private const string PoolCsvPath    = "Assets/Configs/对话池表.csv";
-        private const string GroupBaseDir   = "Assets/GameData/Dialogue";
+        public const string GroupCsvPath = "Assets/Configs/对话组表.csv";
+        public const string ContentCsvPath = "Assets/Configs/对话内容表.csv";
+        public const string TableAssetPath = "Assets/Resources/OutGameUI/DialogueTable.asset";
 
-        private static readonly string[] AllRaces = { "crow", "fox", "hedgehog", "rabbit" };
+        private const string AutoImportPrefKey = "MasterHouse.Dialogue.AutoImport";
 
-        private static readonly string[] TriggerNames =
+        // ─── 菜单 ───────────────────────────────────────────────────────────
+
+        [MenuItem("MasterHouse/对话系统/从 CSV 导入对话")]
+        public static void ImportFromCsvMenu()
         {
-            "firstMeeting", "serviceStart", "serviceCheck", "rejected",
-            "doneMismatch", "donePlain", "doneSatisfied", "donePerfect", "wanderChat"
-        };
+            var report = Import();
+            report.Dump();
+            if (report.Errors == 0)
+                EditorUtility.DisplayDialog("导表完成",
+                    $"对话组 {report.GroupCount} 组 · 池挂载 {report.EntryCount} 条" +
+                    (report.Warnings > 0 ? $"\n\n{report.Warnings} 条警告，详见 Console。" : "\n\n没有问题。"), "好");
+            else
+                EditorUtility.DisplayDialog("导表失败",
+                    $"{report.Errors} 个错误，对话表**没有**被改写。\n\n" +
+                    "错误明细在 Console 里，每条都带 Excel 的 sheet 与行号。", "好");
+        }
 
-        // ─── Asset Postprocessor ───────────────────────────────────────────
+        [MenuItem("MasterHouse/对话系统/自动导表（CSV 变化时）", true)]
+        private static bool ToggleAutoImportValidate()
+        {
+            Menu.SetChecked("MasterHouse/对话系统/自动导表（CSV 变化时）", AutoImport);
+            return true;
+        }
+
+        [MenuItem("MasterHouse/对话系统/自动导表（CSV 变化时）")]
+        private static void ToggleAutoImport() => AutoImport = !AutoImport;
+
+        private static bool AutoImport
+        {
+            get => EditorPrefs.GetBool(AutoImportPrefKey, true);
+            set => EditorPrefs.SetBool(AutoImportPrefKey, value);
+        }
 
         private sealed class CsvPostprocessor : AssetPostprocessor
         {
-            private static void OnPostprocessAllAssets(
-                string[] importedAssets, string[] deletedAssets,
-                string[] movedAssets, string[] movedFromAssetPaths)
+            private static void OnPostprocessAllAssets(string[] imported, string[] deleted,
+                string[] moved, string[] movedFrom)
             {
-                bool needImport = false;
-                foreach (var path in importedAssets)
-                    if (path == ContentCsvPath || path == PoolCsvPath)
-                        needImport = true;
-
-                if (needImport) RunImport();
+                if (!AutoImport) return;
+                foreach (var path in imported)
+                    if (path == GroupCsvPath || path == ContentCsvPath)
+                    {
+                        // 延后一帧：导入回调里改资产会与当前这轮导入打架
+                        EditorApplication.delayCall += () => Import().Dump();
+                        return;
+                    }
             }
         }
 
-        // ─── Menu items ────────────────────────────────────────────────────
+        // ─── 导入主流程 ─────────────────────────────────────────────────────
 
-        [MenuItem("MasterHouse/对话系统/从 CSV 导入对话")]
-        public static void ImportFromCsvMenu() => RunImport();
-
-        [MenuItem("MasterHouse/对话系统/导出对话到 CSV（生成 Excel 底稿）")]
-        public static void ExportToCsv()
+        /// <summary>
+        /// 整表重建。**先全部解析并校验，一个错误都没有才落盘**——半张表比没有表更难查。
+        /// </summary>
+        public static DialogueReport Import()
         {
-            ExportContentCsv();
-            ExportPoolCsv();
-            AssetDatabase.Refresh();
-            Debug.Log("[对话导表] 导出完成 → 对话内容表.csv + 对话池表.csv");
-            EditorUtility.DisplayDialog("导出完成",
-                "已写入 Assets/Configs/ 下两张 CSV。\n\n" +
-                "可用 Excel 打开编辑后，运行 Tools/导表/export_config.bat 回写。", "好");
-        }
-
-        // ─── Import main ───────────────────────────────────────────────────
-
-        private static void RunImport()
-        {
+            var report = new DialogueReport();
             try
             {
-                var groups = File.Exists(ContentCsvPath) ? ImportGroupContent() : new Dictionary<string, string>();
-                if (File.Exists(PoolCsvPath)) ImportPoolAssignments(groups);
+                var groups = ParseContent(report);
+                var entries = ParseGroups(report, groups);
+                CrossValidate(report, groups, entries);
+
+                report.GroupCount = groups.Count;
+                report.EntryCount = entries.Count;
+                if (report.Errors > 0) return report;
+
+                var table = LoadOrCreateTable();
+                table.groups = groups;
+                table.entries = entries;
+                table.InvalidateIndex();
+                EditorUtility.SetDirty(table);
                 AssetDatabase.SaveAssets();
-                Debug.Log("[对话导表] 导入完成");
+                report.Applied = true;
             }
             catch (Exception e)
             {
-                Debug.LogError($"[对话导表] 导入失败：{e.Message}\n{e.StackTrace}");
+                report.Error("导表", 0, $"导入过程抛异常：{e.Message}\n{e.StackTrace}");
             }
+            return report;
         }
 
-        // ─── 对话内容导入 ──────────────────────────────────────────────────
-
-        private static Dictionary<string, string> ImportGroupContent()
+        private static DialogueTable LoadOrCreateTable()
         {
-            var groupPaths = new Dictionary<string, string>();
-            var rows = ReadCsv(ContentCsvPath);
-            if (rows.Count < 2) return groupPaths;
+            var table = AssetDatabase.LoadAssetAtPath<DialogueTable>(TableAssetPath);
+            if (table != null) return table;
 
-            var h = rows[0];
-            int iGroupId  = Col(h, "对话组ID");
-            int iNote     = Col(h, "备注");
-            int iFolder   = Col(h, "文件夹");
-            int iStep     = Col(h, "步骤");
-            int iKind     = Col(h, "类型");
-            int iSpeaker  = Col(h, "说话人");
-            int iEmotion  = Col(h, "表情");
-            int iText     = Col(h, "文本");
-            int iAction   = Col(h, "动作");
-            int iActionP  = ColOpt(h, "动作参数");
-            int iJump     = ColOpt(h, "跳转");
-            int iJumpGrp  = ColOpt(h, "跳转目标组");
-            int iCond     = ColOpt(h, "选项条件");
+            var dir = Path.GetDirectoryName(TableAssetPath)?.Replace('\\', '/');
+            EnsureFolder(dir);
+            table = ScriptableObject.CreateInstance<DialogueTable>();
+            AssetDatabase.CreateAsset(table, TableAssetPath);
+            Debug.Log("[对话导表] 新建对话整表：" + TableAssetPath);
+            return table;
+        }
 
-            var groupRows   = new Dictionary<string, List<string[]>>();
-            var groupFolder = new Dictionary<string, string>();
-            var groupNote   = new Dictionary<string, string>();
+        // ─── 第二页：对话内容 ───────────────────────────────────────────────
 
-            for (int r = 1; r < rows.Count; r++)
+        private static List<DialogueGroup> ParseContent(DialogueReport report)
+        {
+            var result = new List<DialogueGroup>();
+            var rows = ReadCsv(ContentCsvPath, report, "对话内容");
+            if (rows.Count < 2) return result;
+
+            var head = rows[0];
+            int cId = Col(head, "对话组ID"), cSpeaker = Col(head, "说话人"), cEmotion = Col(head, "表情");
+            int cStep = Col(head, "步骤"), cOption = Col(head, "选项"), cSub = Col(head, "句序");
+            int cKind = Col(head, "类型"), cText = Col(head, "文本"), cCond = Col(head, "条件");
+            int cRow = Col(head, "行号");
+            if (cId < 0 || cStep < 0 || cKind < 0)
             {
-                var row = rows[r];
-                string id = Get(row, iGroupId);
-                if (string.IsNullOrEmpty(id)) continue;
-
-                if (!groupRows.ContainsKey(id))
-                {
-                    groupRows[id]   = new List<string[]>();
-                    groupFolder[id] = Fallback(Get(row, iFolder), "通用");
-                    groupNote[id]   = Get(row, iNote);
-                }
-                else if (!string.IsNullOrEmpty(Get(row, iNote)))
-                    groupNote[id] = Get(row, iNote);
-
-                groupRows[id].Add(row);
+                report.Error("对话内容", 1, "缺少必需列（对话组ID / 步骤 / 类型）；请用最新的 Excel 模板重导");
+                return result;
             }
 
-            foreach (var kv in groupRows)
+            // 先按 (组, 步骤, 选项, 句序) 收拢成三层结构，再按数字排序 —— 行序完全不参与解析
+            var byGroup = new SortedDictionary<int, SortedDictionary<int, StepBucket>>();
+            var firstRowOf = new Dictionary<int, int>();
+
+            for (var i = 1; i < rows.Count; i++)
             {
-                string id     = kv.Key;
-                string folder = groupFolder[id];
-                string note   = groupNote[id];
-
-                string assetDir  = $"{GroupBaseDir}/{folder}";
-                string assetPath = $"{assetDir}/{id}.asset";
-
-                if (!AssetDatabase.IsValidFolder(assetDir))
-                    AssetDatabase.CreateFolder(
-                        assetDir.Substring(0, assetDir.LastIndexOf('/')),
-                        assetDir.Substring(assetDir.LastIndexOf('/') + 1));
-
-                var so    = AssetDatabase.LoadAssetAtPath<DialogueGroupDef>(assetPath);
-                bool isNew = so == null;
-                if (isNew) so = ScriptableObject.CreateInstance<DialogueGroupDef>();
-
-                so.id   = id;
-                so.note = note;
-
-                var stepGroups = new SortedDictionary<int, List<string[]>>();
-                foreach (var row in kv.Value)
+                var row = rows[i];
+                var excelRow = ParseInt(Get(row, cRow), i + 1);
+                var rawId = Get(row, cId);
+                if (string.IsNullOrWhiteSpace(rawId)) continue;
+                if (!int.TryParse(rawId.Trim(), out var groupId))
                 {
-                    if (!int.TryParse(Get(row, iStep), out int sn)) continue;
-                    if (!stepGroups.ContainsKey(sn)) stepGroups[sn] = new List<string[]>();
-                    stepGroups[sn].Add(row);
+                    report.Error("对话内容", excelRow, $"「对话组ID」不是整数：{rawId}");
+                    continue;
+                }
+                if (!int.TryParse(Get(row, cStep).Trim(), out var stepNo))
+                {
+                    report.Error("对话内容", excelRow, $"组 {groupId} 的「步骤」不是整数：{Get(row, cStep)}");
+                    continue;
                 }
 
-                so.steps = new List<DialogueStep>();
-                foreach (var sg in stepGroups)
+                var optionNo = ParseOptional(Get(row, cOption));
+                var subNo = ParseOptional(Get(row, cSub));
+                var kindRaw = Get(row, cKind).Trim();
+                if (!TryParseKind(kindRaw, out var kind))
                 {
-                    string firstKind = Get(sg.Value[0], iKind);
+                    report.Error("对话内容", excelRow, $"组 {groupId} 第 {stepNo} 步的「类型」无法识别：{kindRaw}（只能是 Line / Action / Branch）");
+                    continue;
+                }
 
-                    if (firstKind == "选项")
+                if (!byGroup.TryGetValue(groupId, out var steps))
+                {
+                    steps = new SortedDictionary<int, StepBucket>();
+                    byGroup[groupId] = steps;
+                    firstRowOf[groupId] = excelRow;
+                }
+                if (!steps.TryGetValue(stepNo, out var bucket))
+                {
+                    bucket = new StepBucket();
+                    steps[stepNo] = bucket;
+                }
+
+                var line = new DialogueLine { text = Get(row, cText) };
+                if (!DialogueSpeakerText.TryParse(Get(row, cSpeaker), out var speaker))
+                    report.Warn("对话内容", excelRow, $"「说话人」无法识别：{Get(row, cSpeaker)}，按 visitor 处理");
+                if (!DialogueEmotionText.TryParse(Get(row, cEmotion), out var emotion))
+                    report.Warn("对话内容", excelRow, $"「表情」无法识别：{Get(row, cEmotion)}，按 calm 处理");
+                line.speaker = speaker;
+                line.emotion = emotion;
+
+                // 「文本」列**只有 Action 行**才是调用串；Line 行是台词、Branch 行是选项文字，
+                // 拿去当函数名解析会把每一句台词都报成「未知函数」
+                var actions = kind == EDialogueStepKind.Action
+                    ? ParseCalls(Get(row, cText), report, "对话内容", excelRow, false)
+                    : new List<DialogueCall>();
+                var conditions = ParseCalls(Get(row, cCond), report, "对话内容", excelRow, true);
+
+                // ── 三种归位 ──
+                if (optionNo < 0)
+                {
+                    // 主线行（选项/句序都空）
+                    if (kind == EDialogueStepKind.Branch)
+                    {
+                        report.Error("对话内容", excelRow,
+                            $"组 {groupId} 第 {stepNo} 步是 Branch 却没填「选项」列——每个选项各占一行，选项号从 1 开始");
+                        continue;
+                    }
+                    if (bucket.Main != null)
+                    {
+                        report.Error("对话内容", excelRow, $"组 {groupId} 的第 {stepNo} 步出现了两行主线内容（步骤号重复）");
+                        continue;
+                    }
+                    bucket.Main = new DialogueStep { kind = kind, line = line, actions = actions };
+                    if (kind == EDialogueStepKind.Action && actions.Count == 0)
+                        report.Error("对话内容", excelRow, $"组 {groupId} 第 {stepNo} 步是 Action，「文本」列必须写事件调用（如 Accept）");
+                }
+                else if (subNo < 0)
+                {
+                    // 选项行（填了选项、没填句序）
+                    if (kind != EDialogueStepKind.Branch)
+                    {
+                        report.Error("对话内容", excelRow,
+                            $"组 {groupId} 第 {stepNo} 步第 {optionNo} 项填了「选项」却不是 Branch 类型" +
+                            "（选项本身写 Branch，选项后面的台词/事件要另填「句序」）");
+                        continue;
+                    }
+                    // 子句行可能排在选项行前面（三列序号让行序不重要），那时已经建过占位桶——
+                    // 填进去而不是当成重复
+                    if (!bucket.Options.TryGetValue(optionNo, out var slot))
+                    {
+                        slot = new OptionBucket();
+                        bucket.Options[optionNo] = slot;
+                    }
+                    else if (slot.Option != null)
+                    {
+                        report.Error("对话内容", excelRow, $"组 {groupId} 第 {stepNo} 步的选项号 {optionNo} 重复");
+                        continue;
+                    }
+                    slot.Option = new DialogueOption { text = Get(row, cText), conditions = conditions };
+                    slot.Row = excelRow;
+                }
+                else
+                {
+                    // 子句行（选项 + 句序都填了）
+                    if (kind == EDialogueStepKind.Branch)
+                    {
+                        report.Error("对话内容", excelRow,
+                            $"组 {groupId} 第 {stepNo} 步第 {optionNo} 项的子句里出现了 Branch——**不支持嵌套分支**");
+                        continue;
+                    }
+                    if (!bucket.Options.TryGetValue(optionNo, out var optionBucket))
+                    {
+                        optionBucket = new OptionBucket { Row = excelRow }; // 选项行可能排在子句后面，先占位
+                        bucket.Options[optionNo] = optionBucket;
+                    }
+                    if (optionBucket.Subs.ContainsKey(subNo))
+                    {
+                        report.Error("对话内容", excelRow, $"组 {groupId} 第 {stepNo} 步第 {optionNo} 项的句序 {subNo} 重复");
+                        continue;
+                    }
+                    if (kind == EDialogueStepKind.Action && actions.Count == 0)
+                        report.Error("对话内容", excelRow,
+                            $"组 {groupId} 第 {stepNo} 步第 {optionNo} 项第 {subNo} 句是 Action，「文本」列必须写事件调用");
+                    optionBucket.Subs[subNo] = new DialogueSubStep { kind = kind, line = line, actions = actions };
+                }
+            }
+
+            // ── 组装 ──
+            foreach (var pair in byGroup)
+            {
+                var group = new DialogueGroup { id = pair.Key, sourceRow = firstRowOf[pair.Key] };
+                foreach (var stepPair in pair.Value)
+                {
+                    var bucket = stepPair.Value;
+                    if (bucket.Options.Count > 0)
                     {
                         var step = new DialogueStep { kind = EDialogueStepKind.Branch };
-                        step.options = new List<BranchOption>();
-                        foreach (var optRow in sg.Value)
+                        foreach (var optionPair in bucket.Options)
                         {
-                            var opt = new BranchOption
+                            var optionBucket = optionPair.Value;
+                            if (optionBucket.Option == null)
                             {
-                                text       = Get(optRow, iText),
-                                conditions = ParseConditions(Get(optRow, iCond)),
-                                actions    = ParseActions(Get(optRow, iAction), Get(optRow, iActionP)),
-                                next       = ParseJump(Get(optRow, iJump)),
-                                nextGroup  = null,
-                            };
-                            string jumpGroupId = Get(optRow, iJumpGrp);
-                            if (opt.next == EBranchNext.JumpToGroup && !string.IsNullOrEmpty(jumpGroupId))
-                            {
-                                string jPath = FindGroupPath(jumpGroupId, groupPaths);
-                                if (jPath != null)
-                                    opt.nextGroup = AssetDatabase.LoadAssetAtPath<DialogueGroupDef>(jPath);
+                                report.Error("对话内容", optionBucket.Row,
+                                    $"组 {group.id} 第 {stepPair.Key} 步第 {optionPair.Key} 项只有子句、没有选项本身那一行" +
+                                    "（选项行 = 填「选项」不填「句序」、类型 Branch）");
+                                continue;
                             }
-                            step.options.Add(opt);
+                            foreach (var sub in optionBucket.Subs) optionBucket.Option.steps.Add(sub.Value);
+                            step.options.Add(optionBucket.Option);
                         }
-                        so.steps.Add(step);
+                        if (bucket.Main != null)
+                            report.Error("对话内容", group.sourceRow,
+                                $"组 {group.id} 第 {stepPair.Key} 步同时有主线内容和分支选项——一个步骤号只能是其中一种");
+                        group.steps.Add(step);
                     }
-                    else if (firstKind == "事件")
+                    else if (bucket.Main != null)
                     {
-                        var row  = sg.Value[0];
-                        var step = new DialogueStep { kind = EDialogueStepKind.Action };
-                        step.line    = new DialogueLine();
-                        step.options = new List<BranchOption>();
-                        step.actions = ParseActions(Get(row, iAction), Get(row, iActionP));
-                        so.steps.Add(step);
-                    }
-                    else // 台词
-                    {
-                        var row  = sg.Value[0];
-                        var step = new DialogueStep { kind = EDialogueStepKind.Line };
-                        step.line = new DialogueLine
-                        {
-                            speaker = ParseSpeaker(Get(row, iSpeaker)),
-                            emotion = ParseEmotion(Get(row, iEmotion)),
-                            text    = Get(row, iText),
-                        };
-                        step.options = new List<BranchOption>();
-                        step.actions = new List<IGameplayAction>();
-                        so.steps.Add(step);
+                        group.steps.Add(bucket.Main);
                     }
                 }
-
-                if (isNew) AssetDatabase.CreateAsset(so, assetPath);
-                else       EditorUtility.SetDirty(so);
-
-                groupPaths[id] = assetPath;
-            }
-
-            return groupPaths;
-        }
-
-        // ─── 对话池导入 ────────────────────────────────────────────────────
-
-        private static void ImportPoolAssignments(Dictionary<string, string> groupPaths)
-        {
-            var rows = ReadCsv(PoolCsvPath);
-            if (rows.Count < 2) return;
-
-            var h = rows[0];
-            int iGroupId  = Col(h, "对话组ID");
-            int iFolder   = Col(h, "文件夹");
-            int iRace     = Col(h, "种族");
-            int iTrigger  = Col(h, "触发分类");
-            int iWeight   = Col(h, "权重");
-            int iCond     = ColOpt(h, "进入条件");
-
-            var assign = new Dictionary<string, Dictionary<string, List<(string id, string folder, int w, string cond)>>>();
-            foreach (var race in AllRaces)
-                assign[race] = new Dictionary<string, List<(string, string, int, string)>>();
-
-            for (int r = 1; r < rows.Count; r++)
-            {
-                var row    = rows[r];
-                string gid = Get(row, iGroupId);
-                if (string.IsNullOrEmpty(gid)) continue;
-
-                string folder  = Fallback(Get(row, iFolder), "通用");
-                string race    = Get(row, iRace);
-                string trigger = Get(row, iTrigger);
-                int.TryParse(Get(row, iWeight), out int weight);
-                if (weight <= 0) weight = 1;
-                string cond = Get(row, iCond);
-
-                IEnumerable<string> targets = race == "通用"
-                    ? (IEnumerable<string>)AllRaces : new[] { race };
-
-                foreach (var r2 in targets)
-                {
-                    if (!assign.ContainsKey(r2)) continue;
-                    if (!assign[r2].ContainsKey(trigger))
-                        assign[r2][trigger] = new List<(string, string, int, string)>();
-                    assign[r2][trigger].Add((gid, folder, weight, cond));
-                }
-            }
-
-            foreach (var race in AllRaces)
-            {
-                string poolPath = $"{GroupBaseDir}/Pool_{race}.asset";
-                var pool = AssetDatabase.LoadAssetAtPath<DialoguePoolDef>(poolPath);
-                if (pool == null) { Debug.LogWarning($"[对话导表] Pool 不存在：{poolPath}"); continue; }
-
-                var ra = assign[race];
-                foreach (var trigger in TriggerNames)
-                    ApplyTrigger(pool, trigger, ra, groupPaths);
-
-                EditorUtility.SetDirty(pool);
-            }
-        }
-
-        private static void ApplyTrigger(
-            DialoguePoolDef pool, string trigger,
-            Dictionary<string, List<(string id, string folder, int w, string cond)>> raceAssign,
-            Dictionary<string, string> groupPaths)
-        {
-            if (!raceAssign.TryGetValue(trigger, out var entries)) return;
-
-            var list = new List<DialogueGroupEntry>();
-            foreach (var (gid, folder, w, cond) in entries)
-            {
-                string path = FindGroupPath(gid, groupPaths) ?? $"{GroupBaseDir}/{folder}/{gid}.asset";
-                var grp = AssetDatabase.LoadAssetAtPath<DialogueGroupDef>(path);
-                if (grp == null) { Debug.LogWarning($"[对话导表] 找不到对话组：{path}"); continue; }
-
-                list.Add(new DialogueGroupEntry
-                {
-                    group      = grp,
-                    weight     = w,
-                    conditions = ParseConditions(cond),
-                });
-            }
-
-            SetTriggerList(pool, trigger, list);
-        }
-
-        // ─── 导出（SO → CSV）──────────────────────────────────────────────
-
-        private static void ExportContentCsv()
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("对话组ID,备注,文件夹,步骤,类型,说话人,表情,文本,动作,动作参数,跳转,跳转目标组,选项条件");
-
-            var guids = AssetDatabase.FindAssets($"t:{nameof(DialogueGroupDef)}", new[] { GroupBaseDir });
-            foreach (var guid in guids)
-            {
-                string path  = AssetDatabase.GUIDToAssetPath(guid);
-                var group    = AssetDatabase.LoadAssetAtPath<DialogueGroupDef>(path);
-                if (group == null) continue;
-
-                string rel    = path.Replace($"{GroupBaseDir}/", "");
-                string folder = rel.Contains("/") ? rel.Substring(0, rel.LastIndexOf('/')) : "通用";
-                bool first    = true;
-
-                for (int i = 0; i < group.steps.Count; i++)
-                {
-                    var step = group.steps[i];
-
-                    if (step.kind == EDialogueStepKind.Line)
-                    {
-                        sb.AppendLine(CsvRow(
-                            group.name, first ? group.note : "", first ? folder : "",
-                            (i + 1).ToString(), "台词",
-                            SpeakerStr(step.line.speaker),
-                            step.line.speaker == EDialogueSpeaker.Visitor ? EmotionStr(step.line.emotion) : "",
-                            step.line.text, "", "", "", "", ""));
-                        first = false;
-                    }
-                    else if (step.kind == EDialogueStepKind.Action)
-                    {
-                        ActionToStr(step.actions, out string act, out string par);
-                        sb.AppendLine(CsvRow(
-                            group.name, first ? group.note : "", first ? folder : "",
-                            (i + 1).ToString(), "事件",
-                            "", "", "", act, par, "", "", ""));
-                        first = false;
-                    }
-                    else if (step.kind == EDialogueStepKind.Branch)
-                    {
-                        foreach (var opt in step.options)
-                        {
-                            ActionToStr(opt.actions, out string act, out string par);
-                            string jump = JumpStr(opt.next);
-                            string jgrp = opt.next == EBranchNext.JumpToGroup && opt.nextGroup != null
-                                ? opt.nextGroup.name : "";
-                            string cond = ConditionsToStr(opt.conditions);
-                            sb.AppendLine(CsvRow(
-                                group.name, first ? group.note : "", first ? folder : "",
-                                (i + 1).ToString(), "选项",
-                                "", "", opt.text, act, par, jump, jgrp, cond));
-                            first = false;
-                        }
-                    }
-                }
-
-                if (first)
-                    sb.AppendLine(CsvRow(group.name, group.note, folder, "", "", "", "", "", "", "", "", "", ""));
-            }
-
-            Directory.CreateDirectory("Assets/Configs");
-            File.WriteAllText(ContentCsvPath, sb.ToString(), Encoding.UTF8);
-        }
-
-        private static void ExportPoolCsv()
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("对话组ID,文件夹,种族,触发分类,权重,进入条件");
-
-            foreach (var race in AllRaces)
-            {
-                string poolPath = $"{GroupBaseDir}/Pool_{race}.asset";
-                var pool = AssetDatabase.LoadAssetAtPath<DialoguePoolDef>(poolPath);
-                if (pool == null) continue;
-
-                foreach (var trigger in TriggerNames)
-                {
-                    foreach (var entry in GetTriggerList(pool, trigger))
-                    {
-                        if (entry.group == null) continue;
-                        string p      = AssetDatabase.GetAssetPath(entry.group);
-                        string rel    = p.Replace($"{GroupBaseDir}/", "");
-                        string folder = rel.Contains("/") ? rel.Substring(0, rel.LastIndexOf('/')) : "通用";
-                        string cond   = ConditionsToStr(entry.conditions);
-                        sb.AppendLine(CsvRow(entry.group.name, folder, race, trigger,
-                            entry.weight.ToString(), cond));
-                    }
-                }
-            }
-
-            Directory.CreateDirectory("Assets/Configs");
-            File.WriteAllText(PoolCsvPath, sb.ToString(), Encoding.UTF8);
-        }
-
-        // ─── Condition parsing ─────────────────────────────────────────────
-        // 格式（;分隔）：
-        //   天数>=N  货币>=N  声望>=N
-        //   种族:VisitorRaceDef资产名  满意度>=不对味|一般|满意|完美
-        //   访客状态:EVisitorState枚举名  有空房  房间有家具
-
-        private static List<IGameplayCondition> ParseConditions(string raw)
-        {
-            var result = new List<IGameplayCondition>();
-            if (string.IsNullOrWhiteSpace(raw)) return result;
-
-            foreach (var part in raw.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
-            {
-                var s = part.Trim();
-                if (string.IsNullOrEmpty(s)) continue;
-
-                if (s.StartsWith("天数>="))
-                {
-                    if (int.TryParse(s.Substring(4), out int v))
-                        result.Add(new DayAtLeastCondition { day = v });
-                }
-                else if (s.StartsWith("货币>="))
-                {
-                    if (int.TryParse(s.Substring(4), out int v))
-                        result.Add(new CurrencyAtLeastCondition { amount = v });
-                }
-                else if (s.StartsWith("声望>="))
-                {
-                    if (int.TryParse(s.Substring(4), out int v))
-                        result.Add(new ReputationAtLeastCondition { amount = v });
-                }
-                else if (s.StartsWith("种族:"))
-                {
-                    var raceDef = FindAsset<VisitorRaceDef>(s.Substring(3));
-                    if (raceDef != null)
-                        result.Add(new VisitorRaceCondition { race = raceDef });
-                    else
-                        Debug.LogWarning($"[对话导表] 找不到 VisitorRaceDef：{s.Substring(3)}，条件跳过");
-                }
-                else if (s.StartsWith("满意度>="))
-                {
-                    result.Add(new SatisfactionAtLeastCondition { satisfaction = ParseSatisfaction(s.Substring(5)) });
-                }
-                else if (s.StartsWith("访客状态:"))
-                {
-                    if (Enum.TryParse(s.Substring(5), out EVisitorState st))
-                        result.Add(new VisitorStateCondition { state = st });
-                    else
-                        Debug.LogWarning($"[对话导表] 无法解析 EVisitorState：{s.Substring(5)}，条件跳过");
-                }
-                else if (s == "有空房")
-                {
-                    result.Add(new HasFreeRoomCondition());
-                }
-                else if (s == "房间有家具")
-                {
-                    result.Add(new RoomHasAnyFurnitureCondition());
-                }
+                result.Add(group);
             }
             return result;
         }
 
-        private static string ConditionsToStr(List<IGameplayCondition> conds)
+        private sealed class StepBucket
         {
-            if (conds == null || conds.Count == 0) return "";
-            var parts = new List<string>();
-            foreach (var c in conds)
-            {
-                if      (c is DayAtLeastCondition d)           parts.Add($"天数>={d.day}");
-                else if (c is CurrencyAtLeastCondition cu)     parts.Add($"货币>={cu.amount}");
-                else if (c is ReputationAtLeastCondition r)    parts.Add($"声望>={r.amount}");
-                else if (c is VisitorRaceCondition vr)
-                    parts.Add(vr.race != null ? $"种族:{vr.race.name}" : "种族:?");
-                else if (c is SatisfactionAtLeastCondition s)
-                    parts.Add($"满意度>={SatisfactionStr(s.satisfaction)}");
-                else if (c is VisitorStateCondition vs)
-                    parts.Add($"访客状态:{vs.state}");
-                else if (c is HasFreeRoomCondition)
-                    parts.Add("有空房");
-                else if (c is RoomHasAnyFurnitureCondition)
-                    parts.Add("房间有家具");
-            }
-            return string.Join(";", parts);
+            public DialogueStep Main;
+            public readonly SortedDictionary<int, OptionBucket> Options = new SortedDictionary<int, OptionBucket>();
         }
 
-        // ─── Action parsing ────────────────────────────────────────────────
-        // 动作 + 动作参数：
-        //   接待/拒绝 → 无参数
-        //   完成需求  → 参数为满意度档位（不对味/一般/满意/完美，默认完美）
-        //   小游戏    → 无参数
-        //   货币/声望 → ±整数
-        //   日志      → 消息文本
-
-        private static List<IGameplayAction> ParseActions(string act, string param)
+        private sealed class OptionBucket
         {
-            var list = new List<IGameplayAction>();
-            if (string.IsNullOrEmpty(act)) return list;
+            public DialogueOption Option;
+            public int Row;
+            public readonly SortedDictionary<int, DialogueSubStep> Subs = new SortedDictionary<int, DialogueSubStep>();
+        }
 
-            switch (act)
+        // ─── 第一页：对话组 → 池 ────────────────────────────────────────────
+
+        private static List<DialoguePoolEntry> ParseGroups(DialogueReport report, List<DialogueGroup> groups)
+        {
+            var result = new List<DialoguePoolEntry>();
+            var rows = ReadCsv(GroupCsvPath, report, "对话组");
+            if (rows.Count < 2) return result;
+
+            var head = rows[0];
+            int cId = Col(head, "对话组ID"), cRace = Col(head, "种族"), cNeed = Col(head, "需求ID");
+            int cCategory = Col(head, "所属对话池"), cCond = Col(head, "进入条件"), cRow = Col(head, "行号");
+            if (cId < 0 || cRace < 0 || cCategory < 0)
             {
-                case "接待":
-                    list.Add(new AcceptVisitorAction()); break;
-                case "拒绝":
-                    list.Add(new RejectVisitorAction()); break;
-                case "完成需求":
-                    list.Add(new CompleteNeedAction
-                    {
-                        satisfaction = string.IsNullOrEmpty(param)
-                            ? EServeSatisfaction.Perfect
-                            : ParseSatisfaction(param)
-                    }); break;
-                case "小游戏":
-                    list.Add(new StartMinigameAction()); break;
-                case "货币":
-                    int.TryParse(param, out int cv);
-                    list.Add(new AddCurrencyAction { amount = cv }); break;
-                case "声望":
-                    int.TryParse(param, out int rv);
-                    list.Add(new AddReputationAction { amount = rv }); break;
-                case "日志":
-                    list.Add(new LogAction { message = param }); break;
+                report.Error("对话组", 1, "缺少必需列（对话组ID / 种族 / 所属对话池）；请用最新的 Excel 模板重导");
+                return result;
             }
+
+            var allRaceIds = AllRaceIds();
+            if (allRaceIds.Count == 0)
+                report.Warn("对话组", 1, "工程里一个 VisitorRaceDef 都没有，「通用」种族展开不出任何行");
+            var knownNeeds = AllNeedNames();
+
+            for (var i = 1; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                var excelRow = ParseInt(Get(row, cRow), i + 1);
+                var rawId = Get(row, cId);
+                if (string.IsNullOrWhiteSpace(rawId)) continue;
+                if (!int.TryParse(rawId.Trim(), out var groupId))
+                {
+                    report.Error("对话组", excelRow, $"「对话组ID」不是整数：{rawId}");
+                    continue;
+                }
+
+                var categoryRaw = Get(row, cCategory);
+                if (!DialogueCategoryText.TryParse(categoryRaw, out var category))
+                {
+                    report.Error("对话组", excelRow,
+                        $"「所属对话池」无法识别：{categoryRaw}（可选：{string.Join(" / ", DialogueCategoryText.Keys)}）");
+                    continue;
+                }
+
+                var needId = Get(row, cNeed).Trim();
+                if (needId.Length > 0)
+                {
+                    if (!DialogueCategoryText.AllowsNeedId(category))
+                    {
+                        report.Error("对话组", excelRow,
+                            $"分类「{DialogueCategoryText.NameOf(category)}」不该填需求ID" +
+                            "（需求还没透露 / 已经办完了）；请清空这一格");
+                        continue;
+                    }
+                    if (knownNeeds.Count > 0 && !knownNeeds.Contains(needId))
+                        report.Error("对话组", excelRow, $"「需求ID」在工程里找不到对应的需求资产：{needId}");
+                }
+                else if (DialogueCategoryText.RequiresNeedId(category))
+                {
+                    report.Error("对话组", excelRow,
+                        $"分类「{DialogueCategoryText.NameOf(category)}」**必须填需求ID**——一条需求配自己的一套说辞");
+                    continue;
+                }
+
+                var conditions = ParseCalls(Get(row, cCond), report, "对话组", excelRow, true);
+
+                foreach (var raceId in ExpandRaces(Get(row, cRace), allRaceIds, report, excelRow))
+                    result.Add(new DialoguePoolEntry
+                    {
+                        groupId = groupId,
+                        raceId = raceId,
+                        needId = needId,
+                        category = category,
+                        conditions = conditions,
+                        sourceRow = excelRow,
+                    });
+            }
+            return result;
+        }
+
+        /// <summary>种族列：`通用` 展开成全部；`/`（兼容 `、` `,`）分隔多选；未知 id 报错。</summary>
+        private static IEnumerable<string> ExpandRaces(string raw, List<string> all, DialogueReport report, int excelRow)
+        {
+            var text = (raw ?? string.Empty).Trim();
+            if (text.Length == 0)
+            {
+                report.Error("对话组", excelRow, "「种族」是空的（填 raceId、多选用 / 分隔，或填「通用」）");
+                yield break;
+            }
+            if (text == "通用" || string.Equals(text, "all", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var id in all) yield return id;
+                yield break;
+            }
+            foreach (var part in text.Split('/', '、', ','))
+            {
+                var id = part.Trim();
+                if (id.Length == 0) continue;
+                if (all.Count > 0 && !all.Contains(id))
+                {
+                    report.Error("对话组", excelRow, $"「种族」里的 {id} 在工程里找不到对应的 VisitorRaceDef.raceId");
+                    continue;
+                }
+                yield return id;
+            }
+        }
+
+        // ─── 跨表校验 ───────────────────────────────────────────────────────
+
+        private static void CrossValidate(DialogueReport report, List<DialogueGroup> groups, List<DialoguePoolEntry> entries)
+        {
+            var groupIds = new HashSet<int>();
+            foreach (var group in groups)
+                if (!groupIds.Add(group.id))
+                    report.Error("对话内容", group.sourceRow, $"对话组ID {group.id} 重复");
+
+            var referenced = new HashSet<int>();
+            foreach (var entry in entries)
+            {
+                referenced.Add(entry.groupId);
+                if (!groupIds.Contains(entry.groupId))
+                    report.Error("对话组", entry.sourceRow, $"引用了第二页里不存在的对话组 {entry.groupId}");
+            }
+            foreach (var group in groups)
+                if (!referenced.Contains(group.id))
+                    report.Warn("对话内容", group.sourceRow,
+                        $"对话组 {group.id} 没有被第一页挂到任何池上，永远抽不到");
+
+            // 内容层校验（分支必须有无条件选项、闲聊组的形态、奖励事件的位置）交给校验器，
+            // 这样「导表」与「随时校验全部资产」共用同一份规则
+            DialogueAssetValidator.ValidateContent(groups, entries, report);
+        }
+
+        // ─── 调用串解析 ─────────────────────────────────────────────────────
+
+        /// <summary>解析一格里的调用串（`;` 分隔）。isCondition 决定对着哪张注册表校验。</summary>
+        private static List<DialogueCall> ParseCalls(string raw, DialogueReport report, string sheet, int excelRow,
+            bool isCondition)
+        {
+            var result = new List<DialogueCall>();
+            foreach (var piece in DialogueCallParser.SplitCalls(raw))
+            {
+                if (!DialogueCallParser.TryParse(piece, out var call, out var error))
+                {
+                    report.Error(sheet, excelRow, error);
+                    continue;
+                }
+                if (!ValidateCall(call, isCondition, out var reason))
+                {
+                    report.Error(sheet, excelRow, reason);
+                    continue;
+                }
+                result.Add(call);
+            }
+            return result;
+        }
+
+        /// <summary>对着 DialogueFuncs 的注册表校验函数名与参数个数（导表期就拦，不留到运行时）。</summary>
+        public static bool ValidateCall(DialogueCall call, bool isCondition, out string reason)
+        {
+            reason = null;
+            if (isCondition)
+            {
+                if (!DialogueFuncs.Conditions.TryGetValue(call.func, out var def))
+                {
+                    reason = $"未知的条件函数「{call.func}」；可用：{string.Join(" / ", SortedKeys(DialogueFuncs.Conditions.Keys))}";
+                    return false;
+                }
+                if (call.args.Count < def.ArgCount)
+                {
+                    reason = $"条件 {call.func} 需要 {def.ArgCount} 个参数（{def.ArgsHint}），实际给了 {call.args.Count} 个";
+                    return false;
+                }
+                return true;
+            }
+
+            if (!DialogueFuncs.Actions.TryGetValue(call.func, out var actionDef))
+            {
+                reason = $"未知的事件函数「{call.func}」；可用：{string.Join(" / ", SortedKeys(DialogueFuncs.Actions.Keys))}";
+                return false;
+            }
+            // 事件的参数允许省略（如 CompleteNeed 不填档位 = 完美），所以只在给多了时提示
+            if (call.args.Count > Math.Max(1, actionDef.ArgCount))
+            {
+                reason = $"事件 {call.func} 最多接受 {actionDef.ArgCount} 个参数（{actionDef.ArgsHint}），实际给了 {call.args.Count} 个";
+                return false;
+            }
+            return true;
+        }
+
+        private static List<string> SortedKeys(IEnumerable<string> keys)
+        {
+            var list = new List<string>(keys);
+            list.Sort(StringComparer.Ordinal); // 报错文案要稳定，字典枚举顺序不稳（§11.2）
             return list;
         }
 
-        private static void ActionToStr(List<IGameplayAction> actions, out string act, out string par)
-        {
-            act = ""; par = "";
-            if (actions == null || actions.Count == 0) return;
+        // ─── 工程侧查询 ─────────────────────────────────────────────────────
 
-            var a = actions[0];
-            if      (a is AcceptVisitorAction)                      act = "接待";
-            else if (a is RejectVisitorAction)                      act = "拒绝";
-            else if (a is CompleteNeedAction cn)
+        /// <summary>工程里全部 VisitorRaceDef 的 raceId（按 id 排序，稳定）。</summary>
+        public static List<string> AllRaceIds()
+        {
+            var result = new List<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:VisitorRaceDef"))
             {
-                act = "完成需求";
-                par = cn.satisfaction != EServeSatisfaction.Perfect ? SatisfactionStr(cn.satisfaction) : "";
+                var race = AssetDatabase.LoadAssetAtPath<VisitorRaceDef>(AssetDatabase.GUIDToAssetPath(guid));
+                if (race != null && !string.IsNullOrEmpty(race.raceId) && !result.Contains(race.raceId))
+                    result.Add(race.raceId);
             }
-            else if (a is StartMinigameAction)                      act = "小游戏";
-            else if (a is AddCurrencyAction ac)  { act = "货币";   par = ac.amount.ToString(); }
-            else if (a is AddReputationAction ar){ act = "声望";   par = ar.amount.ToString(); }
-            else if (a is LogAction la)          { act = "日志";   par = la.message; }
+            result.Sort(StringComparer.Ordinal);
+            return result;
         }
 
-        // ─── Helpers ───────────────────────────────────────────────────────
-
-        private static EServeSatisfaction ParseSatisfaction(string s)
+        /// <summary>工程里全部 NeedDef 的资产名（第一页「需求ID」列填的就是它）。</summary>
+        public static HashSet<string> AllNeedNames()
         {
-            if (s == "一般")   return EServeSatisfaction.Plain;
-            if (s == "满意")   return EServeSatisfaction.Satisfied;
-            if (s == "完美")   return EServeSatisfaction.Perfect;
-            return EServeSatisfaction.Mismatch;
-        }
-
-        private static string SatisfactionStr(EServeSatisfaction l)
-        {
-            if (l == EServeSatisfaction.Plain)      return "一般";
-            if (l == EServeSatisfaction.Satisfied)  return "满意";
-            if (l == EServeSatisfaction.Perfect)    return "完美";
-            return "不对味";
-        }
-
-        private static EBranchNext ParseJump(string s)
-        {
-            if (s == "继续")   return EBranchNext.ContinueGroup;
-            if (s == "跳到组") return EBranchNext.JumpToGroup;
-            return EBranchNext.End;
-        }
-
-        private static string JumpStr(EBranchNext j)
-        {
-            if (j == EBranchNext.ContinueGroup) return "继续";
-            if (j == EBranchNext.JumpToGroup)   return "跳到组";
-            return "结束";
-        }
-
-        private static EDialogueSpeaker ParseSpeaker(string s)
-        {
-            if (s == "玩家") return EDialogueSpeaker.Player;
-            if (s == "旁白") return EDialogueSpeaker.Narration;
-            return EDialogueSpeaker.Visitor;
-        }
-
-        private static EDialogueEmotion ParseEmotion(string s)
-        {
-            if (s == "高兴") return EDialogueEmotion.Happy;
-            if (s == "困惑") return EDialogueEmotion.Confused;
-            if (s == "失望") return EDialogueEmotion.Sad;
-            if (s == "惊讶") return EDialogueEmotion.Surprised;
-            return EDialogueEmotion.Calm;
-        }
-
-        private static string SpeakerStr(EDialogueSpeaker s)
-        {
-            if (s == EDialogueSpeaker.Player)    return "玩家";
-            if (s == EDialogueSpeaker.Narration) return "旁白";
-            return "访客";
-        }
-
-        private static string EmotionStr(EDialogueEmotion e)
-        {
-            if (e == EDialogueEmotion.Happy)     return "高兴";
-            if (e == EDialogueEmotion.Confused)  return "困惑";
-            if (e == EDialogueEmotion.Sad)       return "失望";
-            if (e == EDialogueEmotion.Surprised) return "惊讶";
-            return "平静";
-        }
-
-        private static string FindGroupPath(string id, Dictionary<string, string> known)
-        {
-            if (known != null && known.TryGetValue(id, out string p)) return p;
-            var guids = AssetDatabase.FindAssets(id, new[] { GroupBaseDir });
-            foreach (var g in guids)
+            var result = new HashSet<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:NeedDef"))
             {
-                string ap = AssetDatabase.GUIDToAssetPath(g);
-                if (Path.GetFileNameWithoutExtension(ap) == id) return ap;
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var name = Path.GetFileNameWithoutExtension(path);
+                if (!string.IsNullOrEmpty(name)) result.Add(name);
             }
-            return null;
+            return result;
         }
 
-        private static T FindAsset<T>(string name) where T : UnityEngine.Object
-        {
-            if (string.IsNullOrEmpty(name)) return null;
-            var guids = AssetDatabase.FindAssets($"t:{typeof(T).Name} {name}");
-            foreach (var g in guids)
-            {
-                string p = AssetDatabase.GUIDToAssetPath(g);
-                if (Path.GetFileNameWithoutExtension(p) == name)
-                    return AssetDatabase.LoadAssetAtPath<T>(p);
-            }
-            return null;
-        }
+        // ─── CSV 读取 ───────────────────────────────────────────────────────
 
-        private static void SetTriggerList(DialoguePoolDef pool, string trigger, List<DialogueGroupEntry> list)
-        {
-            switch (trigger)
-            {
-                case "firstMeeting":  pool.firstMeeting  = list; break;
-                case "serviceStart":  pool.serviceStart  = list; break;
-                case "serviceCheck":  pool.serviceCheck  = list; break;
-                case "rejected":      pool.rejected       = list; break;
-                case "doneMismatch":  pool.doneMismatch   = list; break;
-                case "donePlain":     pool.donePlain      = list; break;
-                case "doneSatisfied": pool.doneSatisfied  = list; break;
-                case "donePerfect":   pool.donePerfect    = list; break;
-                case "wanderChat":    pool.wanderChat     = list; break;
-            }
-        }
-
-        private static List<DialogueGroupEntry> GetTriggerList(DialoguePoolDef pool, string trigger)
-        {
-            switch (trigger)
-            {
-                case "firstMeeting":  return pool.firstMeeting  ?? new List<DialogueGroupEntry>();
-                case "serviceStart":  return pool.serviceStart  ?? new List<DialogueGroupEntry>();
-                case "serviceCheck":  return pool.serviceCheck  ?? new List<DialogueGroupEntry>();
-                case "rejected":      return pool.rejected       ?? new List<DialogueGroupEntry>();
-                case "doneMismatch":  return pool.doneMismatch   ?? new List<DialogueGroupEntry>();
-                case "donePlain":     return pool.donePlain      ?? new List<DialogueGroupEntry>();
-                case "doneSatisfied": return pool.doneSatisfied  ?? new List<DialogueGroupEntry>();
-                case "donePerfect":   return pool.donePerfect    ?? new List<DialogueGroupEntry>();
-                case "wanderChat":    return pool.wanderChat     ?? new List<DialogueGroupEntry>();
-                default:              return new List<DialogueGroupEntry>();
-            }
-        }
-
-        private static string CsvRow(params string[] fields)
-        {
-            var parts = new string[fields.Length];
-            for (int i = 0; i < fields.Length; i++)
-            {
-                string v = fields[i] ?? "";
-                if (v.IndexOfAny(new[] { ',', '"', '\n', '\r' }) >= 0)
-                    v = "\"" + v.Replace("\"", "\"\"") + "\"";
-                parts[i] = v;
-            }
-            return string.Join(",", parts);
-        }
-
-        private static int Col(string[] h, string name)
-        {
-            int idx = Array.IndexOf(h, name);
-            if (idx < 0) throw new Exception($"[对话导表] CSV 缺少列：{name}");
-            return idx;
-        }
-
-        private static int ColOpt(string[] h, string name) => Array.IndexOf(h, name);
-
-        private static string Get(string[] row, int col)
-            => col >= 0 && col < row.Length ? row[col] : "";
-
-        private static string Fallback(string val, string def)
-            => string.IsNullOrWhiteSpace(val) ? def : val;
-
-        private static List<string[]> ReadCsv(string path)
+        private static List<string[]> ReadCsv(string path, DialogueReport report, string sheet)
         {
             var result = new List<string[]>();
-            string full = Path.GetFullPath(path);
-            if (!File.Exists(full)) return result;
-
-            string text = File.ReadAllText(full, Encoding.UTF8);
-            var lines   = new List<string>();
-            var cur     = new StringBuilder();
-            bool inQ    = false;
-
-            for (int i = 0; i < text.Length; i++)
+            var full = Path.GetFullPath(path);
+            if (!File.Exists(full))
             {
-                char c = text[i];
-                if (c == '"') { inQ = !inQ; cur.Append(c); }
-                else if (!inQ && c == '\n') { lines.Add(cur.ToString().TrimEnd('\r')); cur.Clear(); }
-                else cur.Append(c);
+                report.Error(sheet, 0, $"找不到 {path}——请编辑 Excel/对话表.xlsx 后运行 Tools/导表/export_config.bat");
+                return result;
             }
-            if (cur.Length > 0) lines.Add(cur.ToString());
+
+            var text = File.ReadAllText(full, Encoding.UTF8);
+            if (text.Length > 0 && text[0] == '\uFEFF') text = text.Substring(1); // 导出脚本写的是 UTF-8 BOM
+
+            var lines = new List<string>();
+            var current = new StringBuilder();
+            var inQuote = false;
+            foreach (var c in text)
+            {
+                if (c == '"') { inQuote = !inQuote; current.Append(c); }
+                else if (!inQuote && c == '\n') { lines.Add(current.ToString().TrimEnd('\r')); current.Clear(); }
+                else current.Append(c);
+            }
+            if (current.Length > 0) lines.Add(current.ToString());
 
             foreach (var line in lines)
                 if (!string.IsNullOrWhiteSpace(line))
                     result.Add(ParseCsvLine(line));
-
             return result;
         }
 
         private static string[] ParseCsvLine(string line)
         {
             var fields = new List<string>();
-            int i = 0;
+            var i = 0;
             while (i <= line.Length)
             {
-                if (i == line.Length) { fields.Add(""); break; }
-
+                if (i == line.Length) { fields.Add(string.Empty); break; }
                 if (line[i] == '"')
                 {
                     i++;
@@ -752,13 +605,90 @@ namespace MasterHouse.EditorTools
                 }
                 else
                 {
-                    int comma = line.IndexOf(',', i);
+                    var comma = line.IndexOf(',', i);
                     if (comma < 0) { fields.Add(line.Substring(i).Trim()); break; }
                     fields.Add(line.Substring(i, comma - i).Trim());
                     i = comma + 1;
                 }
             }
             return fields.ToArray();
+        }
+
+        // ─── 小工具 ─────────────────────────────────────────────────────────
+
+        private static int Col(string[] head, string name) => Array.IndexOf(head, name);
+
+        private static string Get(string[] row, int col) =>
+            col >= 0 && col < row.Length ? row[col] : string.Empty;
+
+        private static int ParseInt(string raw, int fallback) =>
+            int.TryParse((raw ?? string.Empty).Trim(), out var value) ? value : fallback;
+
+        /// <summary>可选数字列：空 = -1。</summary>
+        private static int ParseOptional(string raw) =>
+            int.TryParse((raw ?? string.Empty).Trim(), out var value) ? value : -1;
+
+        private static bool TryParseKind(string raw, out EDialogueStepKind kind)
+        {
+            kind = EDialogueStepKind.Line;
+            if (string.IsNullOrWhiteSpace(raw)) return false;
+            switch (raw.Trim().ToLowerInvariant())
+            {
+                case "line": case "台词": kind = EDialogueStepKind.Line; return true;
+                case "action": case "事件": kind = EDialogueStepKind.Action; return true;
+                case "branch": case "选项": case "分支": kind = EDialogueStepKind.Branch; return true;
+                default: return false;
+            }
+        }
+
+        private static void EnsureFolder(string path)
+        {
+            if (string.IsNullOrEmpty(path) || AssetDatabase.IsValidFolder(path)) return;
+            var parent = path.Substring(0, path.LastIndexOf('/'));
+            var leaf = path.Substring(path.LastIndexOf('/') + 1);
+            EnsureFolder(parent);
+            AssetDatabase.CreateFolder(parent, leaf);
+        }
+    }
+
+    /// <summary>
+    /// 导表 / 校验的结果收集器。**每条消息都带 Excel 的 sheet 名与行号**——
+    /// 策划拿到「对话内容 第 37 行」能直接跳过去改，比「对话组 Group_xxx 第 3 步」有用得多
+    /// （编辑器退役之后，SO 里的位置对策划已经没有意义了）。
+    /// </summary>
+    public sealed class DialogueReport
+    {
+        public readonly List<string> ErrorMessages = new List<string>();
+        public readonly List<string> WarningMessages = new List<string>();
+
+        public int GroupCount;
+        public int EntryCount;
+
+        /// <summary>是否真的改写了资产（有错误时不落盘）。</summary>
+        public bool Applied;
+
+        public int Errors => ErrorMessages.Count;
+        public int Warnings => WarningMessages.Count;
+
+        public void Error(string sheet, int excelRow, string message) =>
+            ErrorMessages.Add(Format(sheet, excelRow, message));
+
+        public void Warn(string sheet, int excelRow, string message) =>
+            WarningMessages.Add(Format(sheet, excelRow, message));
+
+        private static string Format(string sheet, int excelRow, string message) =>
+            excelRow > 0 ? $"对话表.xlsx[{sheet}] 第 {excelRow} 行：{message}" : $"对话表.xlsx[{sheet}]：{message}";
+
+        /// <summary>把结果打进 Console。</summary>
+        public void Dump()
+        {
+            foreach (var message in ErrorMessages) Debug.LogError("[对话导表] " + message);
+            foreach (var message in WarningMessages) Debug.LogWarning("[对话导表] " + message);
+            if (Errors > 0)
+                Debug.LogError($"[对话导表] 失败：{Errors} 个错误、{Warnings} 条警告；**对话表没有被改写**（半张表比没有表更难查）");
+            else if (Applied)
+                Debug.Log($"[对话导表] 完成：{GroupCount} 组对话、{EntryCount} 条池挂载" +
+                          (Warnings > 0 ? $"（{Warnings} 条警告）" : string.Empty));
         }
     }
 }
