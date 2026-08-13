@@ -14,20 +14,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: service_start
   note: "\u5F00\u59CB\u7B49\u5F85\u670D\u52A1\uFF1A\u8BF4\u51FA\u9700\u6C42\uFF08{\u9700\u6C42}
-    \u5360\u4F4D\u7B26\uFF09"
+    \u5360\u4F4D\u7B26"
   steps:
-  - kind: 0
-    line:
-      speaker: 0
-      text: "\u90A3\u5C31\u9EBB\u70E6\u4F60\u4E86\u3002\u6211\u60F3\u8981{\u9700\u6C42}\u3002"
-      emotion: 1
-    actions: []
-    options: []
   - kind: 0
     line:
       speaker: 1
       text: "\u6211\u627E\u627E\u770B\u3002"
       emotion: 0
+    actions: []
+    options: []
+  - kind: 0
+    line:
+      speaker: 0
+      text: "\u90A3\u5C31\u9EBB\u70E6\u4F60\u4E86\u3002\u6211\u60F3\u8981{\u9700\u6C42}\u3002"
+      emotion: 1
     actions: []
     options: []
   references:
