@@ -15,5 +15,5 @@ MonoBehaviour:
   needId: "\u6D4B\u8BD5\u9700\u6C42"
   description: "\u6211\u662F\u6D4B\u8BD5\u9700\u6C42\uFF0C\u6211\u8981\u84DD\u8272\u5706\u67F1\u684C"
   furnitureIds:
-  - 006
-  - 011
+  - round_table_06
+  - round_table_08
