@@ -1,0 +1,688 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace MasterHouse
+{
+    /// <summary>
+    /// 棋盘：坐标换算 + 渲染 + 鼠标交互。普通 C# 类，由 CircuitMinigame 每帧驱动。
+    ///
+    /// 渲染全部走 UGUI（Image/RectTransform），不碰 SpriteRenderer / 世界空间 / Camera。
+    /// 所有画出来的件 `raycastTarget = false`：命中判定统一用「鼠标屏幕坐标 → 棋盘局部坐标 → 格」
+    /// 一条路，不靠逐件 raycast——格子数量大时那样既慢又难保证优先级。
+    ///
+    /// **关于 §16.2「Prefab 是布局唯一真相源」**：本类会写 boardArea 下四个 Root 的尺寸与位置，
+    /// 那不是绕过硬约定——格子大小取决于关卡画布的行列数，是运行时数据，Prefab 无从预知。
+    /// Prefab 权威定义的是 boardArea **在屏幕上的位置与大小**，本类只负责把格子摆进它里面。
+    ///
+    /// 交互属 View 层豁免区（小游戏说明 §3.3）：允许 Time.unscaledTime、允许 Input 轮询。
+    /// </summary>
+    public sealed class CircuitBoard
+    {
+        /// <summary>格子中心死区半径（相对格子边长）：press 落在这个圈内算「抓节点」，圈外算「抓最近边的 Pin」。
+        /// 1×1 的十字件四个 Pin 全在同一格上，没有这个死区就永远拖不动它。</summary>
+        private const float NodeGrabDeadZone = 0.30f;
+
+        private const float WireWidthFactor = 0.30f;
+        private const float PinMarkerFactor = 0.24f;
+        private const float CellGap = 2f;
+        private const float MessageSeconds = 3.5f;
+
+        private readonly LevelData level;
+        private readonly LevelManager levelManager;
+        private readonly LinkManager linkManager;
+        private readonly CircuitMinigameView view;
+        private readonly Camera uiCamera;
+
+        private readonly Pool<Image> gridPool;
+        private readonly Pool<Image> nodePool;
+        private readonly Pool<Image> linkPool;
+        private readonly Pool<Image> previewPool;
+        private readonly Pool<Text> labelPool;
+
+        private float cellSize;
+        private Vector2Int boardOrigin; // 画布最小格（LevelDefEditUtil 归一化后通常是 0,0，但不假设）
+
+        // ── 描格状态（§4.6）──
+        private PinData drawFromPin;
+        private readonly List<Vector2Int> drawPath = new List<Vector2Int>();
+
+        // ── 摆件 / 移动状态：一律先幽灵预览、松手才提交 ──
+        private NodeDef pendingPlacement;
+        private NodeData draggingNode;
+        private Vector2Int dragGrabOffset;
+        private Vector2Int hoverCell;
+        private bool hoverValid;
+
+        // ── 右键短击（拖动不算，留给将来的平移）──
+        private bool rmbHeld;
+        private Vector3 rmbDownScreen;
+        private const float DragThresholdPixels = 6f;
+
+        private float messageEndTime;
+
+        /// <summary>布局发生了改变（增删线、摆件、移件）：预算条与件库余量要重刷。</summary>
+        public event Action LayoutChanged;
+
+        /// <summary>玩家当前从件库选中的中转件；null = 没选。</summary>
+        public NodeDef PendingPlacement => pendingPlacement;
+
+        public CircuitBoard(LevelData level, LevelManager levelManager, LinkManager linkManager,
+            CircuitMinigameView view, Camera uiCamera)
+        {
+            this.level = level;
+            this.levelManager = levelManager;
+            this.linkManager = linkManager;
+            this.view = view;
+            this.uiCamera = uiCamera;
+
+            gridPool = new Pool<Image>(view.gridRoot, NewImage);
+            nodePool = new Pool<Image>(view.nodeRoot, NewImage);
+            linkPool = new Pool<Image>(view.linkRoot, NewImage);
+            previewPool = new Pool<Image>(view.previewRoot, NewImage);
+            labelPool = new Pool<Text>(view.nodeRoot, NewLabel);
+        }
+
+        // ═══════════ 布局与坐标 ═══════════
+
+        /// <summary>按画布行列数把四个 Root 摆进 boardArea 并算出格子大小。开局与分辨率变化时调。</summary>
+        public void LayoutRoots()
+        {
+            int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
+            foreach (var grid in level.Def.Canvas.Grids)
+            {
+                minX = Mathf.Min(minX, grid.DeltaPosition.x);
+                minY = Mathf.Min(minY, grid.DeltaPosition.y);
+                maxX = Mathf.Max(maxX, grid.DeltaPosition.x);
+                maxY = Mathf.Max(maxY, grid.DeltaPosition.y);
+            }
+            if (minX > maxX)
+            {
+                // 空画布：编辑器校验会报错，这里只保证不除零
+                boardOrigin = Vector2Int.zero;
+                cellSize = 32f;
+                return;
+            }
+
+            boardOrigin = new Vector2Int(minX, minY);
+            int cols = maxX - minX + 1;
+            int rows = maxY - minY + 1;
+
+            var area = view.boardArea.rect.size;
+            cellSize = Mathf.Clamp(Mathf.Min(area.x / cols, area.y / rows), 12f, 96f);
+
+            var size = new Vector2(cols * cellSize, rows * cellSize);
+            SetupRoot(view.gridRoot, size);
+            SetupRoot(view.nodeRoot, size);
+            SetupRoot(view.linkRoot, size);
+            SetupRoot(view.previewRoot, size);
+        }
+
+        /// <summary>四个 Root 共用同一坐标系：pivot 左下、在 boardArea 中居中。</summary>
+        private static void SetupRoot(RectTransform root, Vector2 size)
+        {
+            root.anchorMin = root.anchorMax = new Vector2(.5f, .5f);
+            root.pivot = Vector2.zero;
+            root.sizeDelta = size;
+            root.anchoredPosition = -size * .5f;
+        }
+
+        private Vector2 CellToLocal(Vector2Int cell) => new Vector2(
+            (cell.x - boardOrigin.x + .5f) * cellSize,
+            (cell.y - boardOrigin.y + .5f) * cellSize);
+
+        /// <summary>鼠标 → 棋盘格；指针不在棋盘范围内时返回 false。</summary>
+        private bool TryGetPointerCell(out Vector2Int cell, out Vector2 offsetInCell)
+        {
+            cell = default;
+            offsetInCell = default;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    view.gridRoot, Input.mousePosition, uiCamera, out var local))
+                return false;
+
+            var fx = local.x / cellSize;
+            var fy = local.y / cellSize;
+            cell = new Vector2Int(Mathf.FloorToInt(fx) + boardOrigin.x, Mathf.FloorToInt(fy) + boardOrigin.y);
+            // 相对格心的偏移，单位 = 格边长；用于「按最近边挑 Pin」与中心死区判定
+            offsetInCell = new Vector2(fx - Mathf.Floor(fx) - .5f, fy - Mathf.Floor(fy) - .5f);
+            return level.IsInCanvas(cell);
+        }
+
+        // ═══════════ 输入 ═══════════
+
+        /// <summary>由 CircuitMinigame 每帧调用一次。</summary>
+        public void HandleInput()
+        {
+            bool overBoard = TryGetPointerCell(out var cell, out var offset);
+            hoverValid = overBoard;
+            hoverCell = cell;
+
+            HandleLeftButton(overBoard, cell, offset);
+            HandleRightButton(overBoard, cell);
+
+            if (Time.unscaledTime > messageEndTime && view.messageLabel != null &&
+                !string.IsNullOrEmpty(view.messageLabel.text))
+                view.messageLabel.text = string.Empty;
+
+            DrawPreview();
+        }
+
+        private void HandleLeftButton(bool overBoard, Vector2Int cell, Vector2 offset)
+        {
+            if (Input.GetMouseButtonDown(0) && overBoard)
+                BeginLeftGesture(cell, offset);
+
+            if (drawFromPin != null)
+                UpdateDrawPath();
+
+            if (!Input.GetMouseButtonUp(0)) return;
+
+            if (drawFromPin != null) FinishLinkDrag();
+            else if (draggingNode != null) FinishNodeDrag();
+
+            drawFromPin = null;
+            draggingNode = null;
+            drawPath.Clear();
+        }
+
+        private void BeginLeftGesture(Vector2Int cell, Vector2 offset)
+        {
+            // 件库选中状态下，左键就是落子
+            if (pendingPlacement != null)
+            {
+                TryPlacePending(cell);
+                return;
+            }
+
+            var node = PickNode(cell);
+            if (node == null) return; // 空格或线上：左键无操作（删线走右键）
+
+            var pin = PickPinOnCell(node, cell, offset);
+            if (pin != null)
+            {
+                if (pin.Link != null)
+                {
+                    ShowMessage("这个接口已经接了线，先右键删掉它");
+                    return;
+                }
+                drawFromPin = pin;
+                drawPath.Clear();
+                drawPath.Add(pin.Owner.GetPinPortCell(pin.IndexInNode));
+                return;
+            }
+
+            // 落在中心死区：抓件移动（题面的电源电池 CanMove 为 false，MoveNode 会拒）
+            if (node.Def.NodeType != ENodeType.Transit || !node.CanMove) return;
+            draggingNode = node;
+            dragGrabOffset = cell - node.Origin;
+        }
+
+        /// <summary>
+        /// 描格（§4.6，手感规则原样沿用旧实现）：
+        /// - 鼠标落回已描过的格 → 截断到那一格（可一次退多格，鼠标快也不卡）；
+        /// - 斜向移动 → 优先沿上一段方向先走一格再转弯（拐角更少）；
+        /// - 撞到非法格或预算耗尽 → **停住不延伸、不作废**，玩家绕开或退回继续描。
+        /// </summary>
+        private void UpdateDrawPath()
+        {
+            if (drawPath.Count == 0) return;
+            if (!TryGetPointerCell(out var target, out _)) return;
+
+            var tail = drawPath[drawPath.Count - 1];
+            if (target == tail) return;
+
+            int back = drawPath.LastIndexOf(target);
+            if (back >= 0)
+            {
+                drawPath.RemoveRange(back + 1, drawPath.Count - back - 1);
+                return;
+            }
+
+            int guard = 256; // 鼠标跨屏跳跃时的步数上限，防单帧死循环
+            while (tail != target && guard-- > 0)
+            {
+                var next = tail + NextStepToward(tail, target);
+                if (!CanDrawInto(next)) break;
+                drawPath.Add(next);
+                tail = next;
+            }
+        }
+
+        /// <summary>下一格走向：能延续上一段方向就延续（减少拐角），否则先走横向。</summary>
+        private Vector2Int NextStepToward(Vector2Int from, Vector2Int target)
+        {
+            var diff = target - from;
+            var lastDir = drawPath.Count >= 2
+                ? drawPath[drawPath.Count - 1] - drawPath[drawPath.Count - 2]
+                : Vector2Int.zero;
+
+            if (lastDir.x != 0 && diff.x != 0 && lastDir.x > 0 == diff.x > 0)
+                return new Vector2Int(diff.x > 0 ? 1 : -1, 0);
+            if (lastDir.y != 0 && diff.y != 0 && lastDir.y > 0 == diff.y > 0)
+                return new Vector2Int(0, diff.y > 0 ? 1 : -1);
+            if (diff.x != 0)
+                return new Vector2Int(diff.x > 0 ? 1 : -1, 0);
+            return new Vector2Int(0, diff.y > 0 ? 1 : -1);
+        }
+
+        private bool CanDrawInto(Vector2Int cell)
+        {
+            // 预算耗尽即停住不延伸，与撞墙同一手感（§4.3）。首格也计入，所以是 >=
+            if (drawPath.Count >= level.RemainingLinkCells) return false;
+            if (!level.IsInCanvas(cell) || level.IsOccupied(cell)) return false;
+            return !drawPath.Contains(cell);
+        }
+
+        private void FinishLinkDrag()
+        {
+            if (drawPath.Count == 0) return;
+            var endCell = drawPath[drawPath.Count - 1];
+
+            var toPin = FindPinAtPortCell(endCell, drawFromPin.Owner);
+            if (toPin == null) return; // 没描到任何 Pin 的接口格：本次绘制静默作废（§4.6）
+
+            var link = linkManager.TryCreateLink(level, drawFromPin, toPin, out var reason, drawPath);
+            if (link == null)
+            {
+                ShowMessage($"连线失败：{reason}"); // 失败原因必须在界面可见
+                return;
+            }
+            RebuildLinks();
+            RebuildNodes(); // 点亮状态可能变了
+            LayoutChanged?.Invoke();
+        }
+
+        private void FinishNodeDrag()
+        {
+            var target = hoverCell - dragGrabOffset;
+            if (target == draggingNode.Origin) return; // 原地松手：当作一次点击，什么都不做
+            if (!hoverValid || !levelManager.CanMoveNodeTo(level, draggingNode, target)) return;
+            if (!levelManager.MoveNode(level, draggingNode, target)) return;
+
+            RebuildLinks(); // 附着导线已被删除并退还预算
+            RebuildNodes();
+            LayoutChanged?.Invoke();
+        }
+
+        private void TryPlacePending(Vector2Int cell)
+        {
+            if (!levelManager.CanBuild(level, pendingPlacement))
+            {
+                ShowMessage("这种中转件已经用完了");
+                return;
+            }
+            if (!levelManager.CanPlaceNode(level, pendingPlacement, cell))
+            {
+                ShowMessage("这里放不下");
+                return;
+            }
+            levelManager.PlaceNode(level, pendingPlacement, cell);
+            RebuildNodes();
+            LayoutChanged?.Invoke();
+
+            // 摆满上限就自动取消选中，免得玩家一直点空气
+            if (!levelManager.CanBuild(level, pendingPlacement))
+                SetPendingPlacement(null);
+        }
+
+        private void HandleRightButton(bool overBoard, Vector2Int cell)
+        {
+            if (Input.GetMouseButtonDown(1))
+            {
+                rmbHeld = true;
+                rmbDownScreen = Input.mousePosition;
+            }
+            if (!rmbHeld || !Input.GetMouseButtonUp(1)) return;
+            rmbHeld = false;
+
+            // 右键选中件库时，第一下先取消选中而不是删东西
+            if (pendingPlacement != null)
+            {
+                SetPendingPlacement(null);
+                return;
+            }
+            if (!overBoard) return;
+            if (((Vector2)(Input.mousePosition - rmbDownScreen)).magnitude > DragThresholdPixels) return;
+
+            var occupant = level.GetOccupant(cell);
+            if (occupant == null) return;
+
+            if (occupant.Link != null)
+            {
+                linkManager.DeleteLink(level, occupant.Link);
+                RebuildLinks();
+                RebuildNodes();
+                LayoutChanged?.Invoke();
+                return;
+            }
+
+            if (occupant.Node != null && occupant.Node.Def.NodeType == ENodeType.Transit)
+            {
+                if (!levelManager.RemoveNode(level, occupant.Node)) return;
+                RebuildLinks();
+                RebuildNodes();
+                LayoutChanged?.Invoke();
+            }
+        }
+
+        // ═══════════ 拾取 ═══════════
+
+        private NodeData PickNode(Vector2Int cell)
+        {
+            var occupant = level.GetOccupant(cell);
+            return occupant?.Node;
+        }
+
+        /// <summary>
+        /// 这一格上、离按下点最近的那条边所对应的 Pin。
+        /// 按下点落在格心死区内返回 null（表示玩家想抓的是件本身而不是接口）。
+        /// </summary>
+        private static PinData PickPinOnCell(NodeData node, Vector2Int cell, Vector2 offsetInCell)
+        {
+            if (offsetInCell.magnitude < NodeGrabDeadZone) return null;
+
+            var localCell = cell - node.Origin;
+            PinData best = null;
+            float bestDot = float.NegativeInfinity;
+            foreach (var pin in node.Pins)
+            {
+                if (pin.Layout.LocalCell != localCell) continue;
+                var outward = Direction4.ToOffset(pin.Layout.Facing);
+                // 按下方向与 Pin 朝向的贴合度：同一格上多个 Pin 时取最贴合的那个
+                float dot = offsetInCell.x * outward.x + offsetInCell.y * outward.y;
+                if (dot <= 0f || dot <= bestDot) continue;
+                bestDot = dot;
+                best = pin;
+            }
+            return best;
+        }
+
+        /// <summary>按接线格反查 Pin（排除起点所在节点）。遍历按 NodeId 稳定顺序。</summary>
+        private PinData FindPinAtPortCell(Vector2Int cell, NodeData exclude)
+        {
+            foreach (var node in level.Nodes)
+            {
+                if (node == exclude) continue;
+                for (int i = 0; i < node.Pins.Count; i++)
+                    if (node.GetPinPortCell(i) == cell)
+                        return node.Pins[i];
+            }
+            return null;
+        }
+
+        // ═══════════ 件库联动 ═══════════
+
+        public void SetPendingPlacement(NodeDef def)
+        {
+            pendingPlacement = def;
+            LayoutChanged?.Invoke(); // 件库高亮跟着变
+        }
+
+        // ═══════════ 渲染 ═══════════
+
+        public void RebuildAll()
+        {
+            RebuildGrid();
+            RebuildNodes();
+            RebuildLinks();
+            DrawPreview();
+        }
+
+        private void RebuildGrid()
+        {
+            gridPool.Begin();
+            foreach (var grid in level.Def.Canvas.Grids)
+            {
+                var image = gridPool.Next();
+                image.color = view.cellColor;
+                var rect = image.rectTransform;
+                rect.sizeDelta = new Vector2(cellSize - CellGap, cellSize - CellGap);
+                rect.anchoredPosition = CellToLocal(grid.DeltaPosition);
+            }
+            gridPool.End();
+        }
+
+        private void RebuildNodes()
+        {
+            nodePool.Begin();
+            labelPool.Begin();
+
+            foreach (var node in level.Nodes) // NodeId 稳定顺序
+            {
+                var body = BodyColor(node);
+                foreach (var cell in node.Def.Shape.CellsAt(node.Origin))
+                {
+                    var image = nodePool.Next();
+                    image.color = body;
+                    var rect = image.rectTransform;
+                    rect.sizeDelta = new Vector2(cellSize - CellGap, cellSize - CellGap);
+                    rect.anchoredPosition = CellToLocal(cell);
+                }
+
+                for (int i = 0; i < node.Pins.Count; i++)
+                    DrawPinMarker(node, node.Pins[i]);
+
+                var caption = Caption(node);
+                if (string.IsNullOrEmpty(caption)) continue;
+                var label = labelPool.Next();
+                label.text = caption;
+                label.fontSize = Mathf.Max(10, Mathf.RoundToInt(cellSize * 0.34f));
+                var labelRect = label.rectTransform;
+                labelRect.sizeDelta = new Vector2(cellSize * 2.4f, cellSize);
+                labelRect.anchoredPosition = CellToLocal(node.Origin) + new Vector2(0, cellSize * .1f);
+            }
+
+            nodePool.End();
+            labelPool.End();
+        }
+
+        private void DrawPinMarker(NodeData node, PinData pin)
+        {
+            var layout = pin.Layout;
+            var outward = Direction4.ToOffset(layout.Facing);
+            var image = nodePool.Next();
+            image.color = PinColor(node, pin);
+            var rect = image.rectTransform;
+            float s = cellSize * PinMarkerFactor;
+            rect.sizeDelta = new Vector2(s, s);
+            rect.anchoredPosition = CellToLocal(node.Origin + layout.LocalCell) +
+                                    new Vector2(outward.x, outward.y) * (cellSize * .34f);
+        }
+
+        private void RebuildLinks()
+        {
+            linkPool.Begin();
+            foreach (var link in level.Links) // LinkId 稳定顺序
+                DrawPolyline(linkPool, link.PathCells,
+                    link.Power > 0 ? view.wireColor : view.wireDeadColor, WireWidthFactor);
+            linkPool.End();
+        }
+
+        /// <summary>每帧重画：描线轨迹、摆件/移件的幽灵预览。</summary>
+        private void DrawPreview()
+        {
+            previewPool.Begin();
+
+            if (drawFromPin != null && drawPath.Count > 0)
+                DrawPolyline(previewPool, drawPath, view.previewColor, WireWidthFactor * 0.85f);
+
+            var ghostDef = pendingPlacement ?? draggingNode?.Def;
+            if (ghostDef != null && hoverValid)
+            {
+                var ghostOrigin = draggingNode != null ? hoverCell - dragGrabOffset : hoverCell;
+                bool legal = draggingNode != null
+                    ? levelManager.CanMoveNodeTo(level, draggingNode, ghostOrigin)
+                    : levelManager.CanPlaceNode(level, ghostDef, ghostOrigin);
+                var color = legal ? view.legalColor : view.illegalColor;
+                foreach (var cell in ghostDef.Shape.CellsAt(ghostOrigin))
+                {
+                    var image = previewPool.Next();
+                    image.color = color;
+                    var rect = image.rectTransform;
+                    rect.sizeDelta = new Vector2(cellSize - CellGap, cellSize - CellGap);
+                    rect.anchoredPosition = CellToLocal(cell);
+                }
+            }
+
+            previewPool.End();
+        }
+
+        private void DrawPolyline(Pool<Image> pool, IReadOnlyList<Vector2Int> cells, Color color, float widthFactor)
+        {
+            float w = cellSize * widthFactor;
+            for (int i = 0; i < cells.Count; i++)
+            {
+                var joint = pool.Next();
+                joint.color = color;
+                var jointRect = joint.rectTransform;
+                jointRect.sizeDelta = new Vector2(w, w);
+                jointRect.anchoredPosition = CellToLocal(cells[i]);
+
+                if (i == 0) continue;
+                // 相邻格必然 4 向相接，所以连接段长度恒为一个格边长
+                var a = CellToLocal(cells[i - 1]);
+                var b = CellToLocal(cells[i]);
+                var segment = pool.Next();
+                segment.color = color;
+                var segmentRect = segment.rectTransform;
+                segmentRect.anchoredPosition = (a + b) * .5f;
+                segmentRect.sizeDelta = Mathf.Approximately(a.x, b.x)
+                    ? new Vector2(w, cellSize)
+                    : new Vector2(cellSize, w);
+            }
+        }
+
+        private Color BodyColor(NodeData node)
+        {
+            switch (node.Def.NodeType)
+            {
+                case ENodeType.Resource: return view.sourceColor;
+                case ENodeType.Condition: return node.IsLit ? view.batteryLitColor : view.batteryColor;
+                default: return view.transitColor;
+            }
+        }
+
+        /// <summary>中转件的 Pin 按分组配色（分组是它唯一的语义），其余按方向。</summary>
+        private Color PinColor(NodeData node, PinData pin)
+        {
+            if (node.Def.NodeType == ENodeType.Transit)
+                return CircuitPalette.GroupColor(pin.Group);
+            switch (pin.RuntimeDirection)
+            {
+                case EPinDirection.Output: return new Color(0.55f, 0.95f, 0.60f);
+                case EPinDirection.Input: return new Color(0.60f, 0.78f, 1f);
+                default: return new Color(0.75f, 0.75f, 0.75f);
+            }
+        }
+
+        private static string Caption(NodeData node)
+        {
+            switch (node.Def.NodeType)
+            {
+                case ENodeType.Resource:
+                    int supply = 0;
+                    foreach (var pin in node.Pins)
+                        if (pin.RuntimeDirection == EPinDirection.Output)
+                            supply += Mathf.Max(0, pin.Def.MaxRate);
+                    return supply.ToString();
+
+                case ENodeType.Condition:
+                    var conditions = ((ConditionNodeDef)node.Def).Conditions;
+                    int required = 0;
+                    foreach (var entry in conditions)
+                        if (entry != null)
+                            required = Mathf.Max(required, entry.RequiredAmount);
+                    return $"{node.ReceivedPower}/{required}";
+
+                default:
+                    return null;
+            }
+        }
+
+        public void ShowMessage(string text)
+        {
+            if (view.messageLabel == null) return;
+            view.messageLabel.text = text;
+            messageEndTime = Time.unscaledTime + MessageSeconds; // View 层豁免区（§3.3）
+        }
+
+        // ═══════════ 对象池 ═══════════
+
+        /// <summary>只启停不销毁：描线预览逐帧重画，Instantiate/Destroy 会churn 出一堆 GC。</summary>
+        private sealed class Pool<T> where T : Component
+        {
+            private readonly RectTransform root;
+            private readonly Func<RectTransform, T> factory;
+            private readonly List<T> items = new List<T>();
+            private int used;
+
+            public Pool(RectTransform root, Func<RectTransform, T> factory)
+            {
+                this.root = root;
+                this.factory = factory;
+            }
+
+            public void Begin() => used = 0;
+
+            public T Next()
+            {
+                if (used == items.Count) items.Add(factory(root));
+                var item = items[used++];
+                if (!item.gameObject.activeSelf) item.gameObject.SetActive(true);
+                return item;
+            }
+
+            public void End()
+            {
+                for (int i = used; i < items.Count; i++)
+                    if (items[i].gameObject.activeSelf)
+                        items[i].gameObject.SetActive(false);
+            }
+        }
+
+        private static Image NewImage(RectTransform parent)
+        {
+            var go = new GameObject("cell", typeof(RectTransform), typeof(Image));
+            go.layer = 5;
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(parent, false);
+            rect.anchorMin = rect.anchorMax = Vector2.zero;
+            rect.pivot = new Vector2(.5f, .5f);
+            var image = go.GetComponent<Image>();
+            image.raycastTarget = false; // 命中判定统一走坐标换算（见类注释）
+            return image;
+        }
+
+        private static Text NewLabel(RectTransform parent)
+        {
+            var go = new GameObject("label", typeof(RectTransform), typeof(Text));
+            go.layer = 5;
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(parent, false);
+            rect.anchorMin = rect.anchorMax = Vector2.zero;
+            rect.pivot = new Vector2(.5f, .5f);
+            var text = go.GetComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+            return text;
+        }
+    }
+
+    /// <summary>棋盘与件库共用的分组配色（同一件上的不同分组要一眼分得开）。</summary>
+    public static class CircuitPalette
+    {
+        private static readonly Color[] GroupColors =
+        {
+            new Color(0.95f, 0.75f, 0.25f),
+            new Color(0.35f, 0.80f, 0.95f),
+            new Color(0.95f, 0.45f, 0.75f),
+            new Color(0.55f, 0.90f, 0.45f),
+        };
+
+        public static Color GroupColor(int group) =>
+            group < 0 ? new Color(0.9f, 0.3f, 0.3f) : GroupColors[group % GroupColors.Length];
+    }
+}
