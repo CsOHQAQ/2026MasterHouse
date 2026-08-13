@@ -9,8 +9,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 097fb1725642958408eb3c179c280e97, type: 3}
-  m_Name: Out_2x3_DeviceIntro00
+  m_Script: {fileID: 11500000, guid: 971427e70e2d55448ac0c6ac091c734a, type: 3}
+  m_Name: Out_2x3_DeviceIntro00.asset.type-conversion
   m_EditorClassIdentifier: 
   DisplayName: DeviceIntro00
   Shape:
@@ -35,4 +35,7 @@ MonoBehaviour:
       PairedPinIndex: -1
     LocalCell: {x: 0, y: 1}
     Facing: 3
-  Whitelist: []
+  Conditions:
+  - Item: {fileID: 11400000, guid: ee29202ad5bca734f9366d84a23f9b2f, type: 2}
+    RequiredAmount: 1
+    WindowTicks: 100
