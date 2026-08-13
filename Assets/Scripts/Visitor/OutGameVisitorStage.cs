@@ -11,40 +11,28 @@ namespace MasterHouse
     /// ①业务访客：每帧轮询 VisitorManager 的在场实例列表生成/回收演员（实例动态增删，§9），
     ///   演员状态随实例业务状态同步（表现不回写业务），点击转发 instanceId 给 HubPage 触发对话；
     ///   闲逛台词经 DialogueManager.BubbleRequested 事件推给对应演员的句子气泡（内容选取在对话系统侧）。
-    /// ②串门邻居（ambient）：随机轮换进场，在门口排队等玩家决定去留（名册在 VisitorTuningConfig）。
-    /// ③把场景归一化坐标换算成锚点（跟随观景模式的 uvRect 平移缩放），并按深度排序前后遮挡。
-    /// 只在起居室出现。
+    /// ②串门邻居（ambient）：随机轮换进场，在门口排队等玩家决定去留（名册在 VisitorTuningConfig）；只待在起居室。
+    /// ③四宫格世界（2026-08-13）：舞台层挂在世界根下、覆盖全部 4 个房间；演员持 (房间, 房内归一化坐标)，
+    ///   经 HubWorldGrid 换算成世界锚点，平移缩放由世界根的 transform 承担（不再做 uvRect 数学）。
+    /// ④拖拽换房：按住业务访客拖到别的房间松手 → 经页面回调走 VisitorManager.MoveVisitorToRoom；
+    ///   业务层拒绝时下一帧的实例同步会把演员弹回原房间。
+    /// 大门与前台在起居室（房间 0）。
     /// </summary>
     internal sealed class OutGameVisitorStage : MonoBehaviour
     {
-        // 起居室的入口大门与门前地面（场景归一化坐标，左下为原点）
-        private static readonly Vector2 DoorPoint = new Vector2(.115f, .32f);
-        // 前台站位区（访客接待前待在这里，§9）：按同样的手摆方式补的门厅前台坐标，多房间随家具二轮再说（§16.7）
-        private static readonly Vector2[] FrontDeskPoints =
+        /// <summary>入口区兜底（房间表缺配时）：旧版起居室大门附近。</summary>
+        private static readonly Rect DefaultEntryArea = Rect.MinMaxRect(.08f, .15f, .18f, .33f);
+        // 等待/排队点在入口区内的相对位置（分数坐标）：业务访客与邻居都在门口等，
+        // 请进来（接待/请进屋）才走进屋内；错开站位避免叠在一起
+        private static readonly Vector2[] EntrySlots =
         {
-            new Vector2(.20f, .26f),
-            new Vector2(.155f, .21f),
-            new Vector2(.245f, .215f),
-            new Vector2(.115f, .16f),
+            new Vector2(.35f, .45f),
+            new Vector2(.65f, .25f),
+            new Vector2(.20f, .15f),
+            new Vector2(.80f, .55f),
         };
-        // 邻居在门口的排队点（同时最多 MaxAmbient 只，队伍前移时依次补位）
-        private static readonly Vector2[] QueuePoints =
-        {
-            new Vector2(.185f, .225f),
-            new Vector2(.13f, .175f),
-            new Vector2(.235f, .19f),
-        };
-        // 手摆的可行走落点：避开沙发、茶几、书架与背景人物
-        private static readonly Vector2[] WanderPoints =
-        {
-            new Vector2(.30f, .22f),
-            new Vector2(.25f, .12f),
-            new Vector2(.42f, .10f),
-            new Vector2(.58f, .07f),
-            new Vector2(.66f, .05f),
-            new Vector2(.78f, .15f),
-            new Vector2(.36f, .27f),
-        };
+        /// <summary>活动区兜底（房间表缺配时）：与旧的手摆游走带大致等价。</summary>
+        private static readonly Rect DefaultWalkArea = Rect.MinMaxRect(.04f, .03f, .96f, .35f);
         private const int MaxAmbient = 3;
 
         /// <summary>访客业务状态（只读轮询，§2.1；表现结果不回写业务，§16.4）。</summary>
@@ -53,9 +41,12 @@ namespace MasterHouse
         /// <summary>氛围邻居名册（调参配置，§4.5）。</summary>
         private static VisitorTuningConfig Tuning => GameManager.Instance.VisitorTuning;
 
-        private RawImage sceneArt;
+        /// <summary>四宫格世界根（指针坐标换算用；舞台层是它的子物体，平移缩放天然跟随）。</summary>
+        private RectTransform worldRoot;
         private RectTransform layerRoot;
         private Action<int> onGuestClicked;
+        /// <summary>拖拽松手回调（instanceId, 目标房间）：页面翻译成 VisitorManager.MoveVisitorToRoom。</summary>
+        private Action<int, int> onGuestDropped;
         private bool initialSpawnDone;
         private int frontDeskSlot;
         private readonly List<OutGameVisitorActor> actors = new List<OutGameVisitorActor>();
@@ -67,18 +58,19 @@ namespace MasterHouse
         private readonly HashSet<int> activeAmbient = new HashSet<int>();
         private readonly List<float> respawnTimers = new List<float>();
 
-        /// <summary>在场景根下创建访客层。业务访客按 VisitorManager 的在场实例生成：建层时已在场 → 按状态直接落位；
-        /// 此后新实例由 Update 轮询捕捉，从大门走进前台。</summary>
-        public static OutGameVisitorStage Build(RectTransform sceneRoot, RawImage art, Action<int> onGuestClicked)
+        /// <summary>在四宫格世界根下创建访客层（覆盖全部房间）。业务访客按 VisitorManager 的在场实例生成：
+        /// 建层时已在场 → 按 (状态, 房间) 直接落位；此后新实例由 Update 轮询捕捉，从起居室大门走进前台。</summary>
+        public static OutGameVisitorStage Build(RectTransform worldRoot, Action<int> onGuestClicked,
+            Action<int, int> onGuestDropped)
         {
-            var existing = sceneRoot.Find("VisitorStage");
+            var existing = worldRoot.Find("VisitorStage");
             if (existing != null) Destroy(existing.gameObject);
-            var root = F.Stretch(sceneRoot, "VisitorStage");
-            root.gameObject.AddComponent<RectMask2D>(); // 观景模式缩放时裁掉跑出画面的演员
+            var root = F.Stretch(worldRoot, "VisitorStage");
             var stage = root.gameObject.AddComponent<OutGameVisitorStage>();
-            stage.sceneArt = art;
+            stage.worldRoot = worldRoot;
             stage.layerRoot = root;
             stage.onGuestClicked = onGuestClicked;
+            stage.onGuestDropped = onGuestDropped;
             // 建层时已在场的实例：直接落位淡入（错峰）
             var spawned = 0;
             foreach (var instance in Visitor.Data.Instances)
@@ -120,23 +112,130 @@ namespace MasterHouse
             actor.ShowLine(line, holdTicks / (float)ticksPerSecond);
         }
 
-        /// <summary>生成一位业务访客演员。walkIn=true 从大门走到前台；false 按业务状态直接落位淡入（建层回填）。</summary>
+        /// <summary>生成一位业务访客演员：出现在起居室入口区并**在门口等待接待**（请进来了才进屋，接待成功
+        /// 由业务状态推进触发 EnterWandering 走进屋内）。false = 按业务状态直接落位淡入（建层回填，
+        /// 所在房间由 Update 的实例同步按 instance.RoomIndex 校正）。</summary>
         private void SpawnBusiness(VisitorInstance instance, bool walkIn, float delay = 0f)
         {
             var race = instance.Race;
-            var frontPoint = FrontDeskPoints[frontDeskSlot % FrontDeskPoints.Length];
+            var frontPoint = EntrySlotPoint(0, frontDeskSlot);
             frontDeskSlot++;
             var instanceId = instance.InstanceId;
             var actor = OutGameVisitorActor.Create(layerRoot, "i" + instanceId, instance.DisplayName,
                 race != null ? race.sheetPath : string.Empty,
                 isAmbient: false, spawnDelay: walkIn ? UnityEngine.Random.Range(0f, .6f) : delay,
-                DoorPoint, frontPoint, WanderPoints,
+                RandomEntryPoint(0), frontPoint, WalkArea, EntryArea,
                 () => onGuestClicked?.Invoke(instanceId), null,
                 spawnInside: !walkIn);
             if (actor == null) return;
             actor.SyncBusinessState(instance.State);
+            AttachDrag(actor, instanceId);
             actors.Add(actor);
             businessActors[instanceId] = actor;
+        }
+
+        // ── 拖拽换房（§16.4：拖动只改表现坐标，松手经页面回调走业务方法）──
+
+        /// <summary>给业务访客演员挂拖拽事件（演员建层时已有 EventTrigger，直接续加条目）。</summary>
+        private void AttachDrag(OutGameVisitorActor actor, int instanceId)
+        {
+            var trigger = actor.gameObject.GetComponent<UnityEngine.EventSystems.EventTrigger>();
+            if (trigger == null) trigger = actor.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+            AddTrigger(trigger, UnityEngine.EventSystems.EventTriggerType.BeginDrag,
+                _ => { if (actor != null) actor.BeginPlayerDrag(); });
+            AddTrigger(trigger, UnityEngine.EventSystems.EventTriggerType.Drag, data =>
+            {
+                if (actor != null && data is UnityEngine.EventSystems.PointerEventData pointer)
+                    DragActor(actor, pointer);
+            });
+            AddTrigger(trigger, UnityEngine.EventSystems.EventTriggerType.EndDrag,
+                _ => { if (actor != null) DropActor(actor, instanceId); });
+        }
+
+        private static void AddTrigger(UnityEngine.EventSystems.EventTrigger trigger,
+            UnityEngine.EventSystems.EventTriggerType type,
+            UnityEngine.Events.UnityAction<UnityEngine.EventSystems.BaseEventData> callback)
+        {
+            var entry = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = type };
+            entry.callback.AddListener(callback);
+            trigger.triggers.Add(entry);
+        }
+
+        /// <summary>房间的访客活动区（归一化矩形，房间表可配、按房间美术红框标定；缺配回落默认带）。</summary>
+        internal static Rect WalkArea(int roomIndex)
+        {
+            var table = GameManager.Instance != null ? GameManager.Instance.FurnitureRoomTable : null;
+            if (table != null && roomIndex >= 0 && roomIndex < table.rooms.Count && table.rooms[roomIndex] != null)
+            {
+                var area = table.rooms[roomIndex].visitorWalkArea;
+                if (area.width > .01f && area.height > .01f) return area;
+            }
+            return DefaultWalkArea;
+        }
+
+        /// <summary>活动区内随机取一个落点。</summary>
+        private static Vector2 RandomWalkPoint(int roomIndex)
+        {
+            var area = WalkArea(roomIndex);
+            return new Vector2(
+                UnityEngine.Random.Range(area.xMin, area.xMax),
+                UnityEngine.Random.Range(area.yMin, area.yMax));
+        }
+
+        /// <summary>房间的访客入口区（归一化矩形，房间表可配、按房间美术门位标定；缺配回落默认门位）。</summary>
+        internal static Rect EntryArea(int roomIndex)
+        {
+            var table = GameManager.Instance != null ? GameManager.Instance.FurnitureRoomTable : null;
+            if (table != null && roomIndex >= 0 && roomIndex < table.rooms.Count && table.rooms[roomIndex] != null)
+            {
+                var area = table.rooms[roomIndex].visitorEntryArea;
+                if (area.width > .01f && area.height > .01f) return area;
+            }
+            return DefaultEntryArea;
+        }
+
+        /// <summary>入口区内随机取一个出现/离场点。</summary>
+        private static Vector2 RandomEntryPoint(int roomIndex)
+        {
+            var area = EntryArea(roomIndex);
+            return new Vector2(
+                UnityEngine.Random.Range(area.xMin, area.xMax),
+                UnityEngine.Random.Range(area.yMin, area.yMax));
+        }
+
+        /// <summary>入口区内的第 slot 个等待站位（分数坐标 → 归一化坐标，错开不叠人）。</summary>
+        private static Vector2 EntrySlotPoint(int roomIndex, int slot)
+        {
+            var area = EntryArea(roomIndex);
+            var f = EntrySlots[slot % EntrySlots.Length];
+            return new Vector2(area.xMin + f.x * area.width, area.yMin + f.y * area.height);
+        }
+
+        /// <summary>拖拽跟随：屏幕坐标 → 世界归一化坐标 → (房间, 房内坐标)，钳在该房间的活动区内。</summary>
+        private void DragActor(OutGameVisitorActor actor, UnityEngine.EventSystems.PointerEventData pointer)
+        {
+            if (!actor.Dragging || worldRoot == null) return;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    worldRoot, pointer.position, pointer.pressEventCamera, out var local)) return;
+            var rect = worldRoot.rect;
+            var world = new Vector2(
+                Mathf.Clamp01((local.x - rect.xMin) / Mathf.Max(rect.width, 1f)),
+                Mathf.Clamp01((local.y - rect.yMin) / Mathf.Max(rect.height, 1f)));
+            var room = HubWorldGrid.RoomAt(world);
+            var point = HubWorldGrid.WorldToLocal(room, world);
+            var area = WalkArea(room);
+            point.x = Mathf.Clamp(point.x, area.xMin, area.xMax);
+            point.y = Mathf.Clamp(point.y, area.yMin, area.yMax);
+            actor.UpdatePlayerDrag(room, point);
+        }
+
+        /// <summary>松手：表现先落位，业务经页面回调结算；业务拒绝时实例同步会在下一帧把演员弹回。</summary>
+        private void DropActor(OutGameVisitorActor actor, int instanceId)
+        {
+            if (!actor.Dragging) return;
+            var room = actor.RoomIndex;
+            actor.EndPlayerDrag();
+            onGuestDropped?.Invoke(instanceId, room);
         }
 
         private void SpawnAmbient(int rosterIndex, float delay)
@@ -145,7 +244,7 @@ namespace MasterHouse
             var actor = OutGameVisitorActor.Create(layerRoot, "neighbor_" + neighbor.id,
                 neighbor.displayName, neighbor.sheetPath,
                 isAmbient: true, spawnDelay: delay,
-                DoorPoint, QueuePoints[0], WanderPoints,
+                RandomEntryPoint(0), EntrySlotPoint(0, 0), WalkArea, EntryArea,
                 null, () => OnAmbientGone(rosterIndex));
             if (actor == null) return;
             activeAmbient.Add(rosterIndex);
@@ -169,6 +268,10 @@ namespace MasterHouse
                 if (businessActors.TryGetValue(instance.InstanceId, out var actor) && actor != null)
                 {
                     actor.SyncBusinessState(instance.State);
+                    // 房间同步：业务真相在 instance.RoomIndex（拖拽被业务层拒绝时这里把演员弹回原房间；
+                    // 舞台重建回填时把演员落到上次所在的房间）
+                    if (!actor.Dragging && actor.RoomIndex != instance.RoomIndex)
+                        actor.TeleportToRoom(instance.RoomIndex, RandomWalkPoint(instance.RoomIndex));
                 }
                 else
                 {
@@ -200,32 +303,32 @@ namespace MasterHouse
                 if (candidates.Count > 0)
                     SpawnAmbient(candidates[UnityEngine.Random.Range(0, candidates.Count)], 0f);
             }
-            // ③门口队位动态分配：还在排队的邻居按进场顺序占 QueuePoints，前面走了后面补位
+            // ③门口队位动态分配：还在排队的邻居按进场顺序占入口区站位，前面走了后面补位
             ambientOrder.RemoveAll(actor => actor == null);
             var slot = 0;
             foreach (var actor in ambientOrder)
             {
                 if (!actor.IsQueuingAtDoor) continue;
-                actor.SetWaitPoint(QueuePoints[Mathf.Min(slot, QueuePoints.Length - 1)]);
+                actor.SetWaitPoint(EntrySlotPoint(0, slot));
                 slot++;
             }
         }
 
         private void LateUpdate()
         {
-            if (sceneArt == null) return;
-            var uv = sceneArt.uvRect;
             actors.RemoveAll(actor => actor == null);
-            // 按深度排前后：y 大（远）在前面的兄弟位，y 小（近）在后，天然形成近处遮挡远处
-            actors.Sort((a, b) => b.ScenePosition.y.CompareTo(a.ScenePosition.y));
+            // 按世界 y 深度排前后：y 大（远/上排房间）在前面的兄弟位，y 小（近）在后，
+            // 同房间内天然形成近处遮挡远处；跨房间不重叠、排序无副作用
+            actors.Sort((a, b) =>
+                HubWorldGrid.RoomToWorld(b.RoomIndex, b.ScenePosition).y
+                    .CompareTo(HubWorldGrid.RoomToWorld(a.RoomIndex, a.ScenePosition).y));
             for (var i = 0; i < actors.Count; i++)
             {
                 var actor = actors[i];
                 var rect = (RectTransform)actor.transform;
                 rect.SetSiblingIndex(i);
-                var anchor = new Vector2(
-                    (actor.ScenePosition.x - uv.x) / Mathf.Max(uv.width, .0001f),
-                    (actor.ScenePosition.y - uv.y) / Mathf.Max(uv.height, .0001f));
+                // 平移缩放由世界根的 transform 承担，这里只需把 (房间, 房内坐标) 换算成世界锚点
+                var anchor = HubWorldGrid.RoomToWorld(actor.RoomIndex, actor.ScenePosition);
                 rect.anchorMin = rect.anchorMax = anchor;
                 rect.anchoredPosition = Vector2.zero;
             }

@@ -40,7 +40,8 @@ namespace MasterHouse
                 var instance = instances[i];
                 var instanceId = instance.InstanceId;
                 card.portrait.texture = Resources.Load<Texture2D>(instance.Race.GetPortraitPath());
-                card.eventLabel.text = $"VISITOR {instance.InstanceId:00}";
+                // 所在房间跟着显示（四宫格拖拽换房后靠这里一眼找到人）
+                card.eventLabel.text = $"VISITOR {instance.InstanceId:00} · {RoomName(instance.RoomIndex)}";
                 card.guestName.text = instance.DisplayName;
                 card.status.text = StatusText(instance.State);
                 card.typeLabel.text = TypeMark(instance.State);
@@ -51,9 +52,15 @@ namespace MasterHouse
             }
         }
 
+        private static string RoomName(int roomIndex)
+        {
+            var rooms = GameManager.Instance.CodexTable.rooms;
+            return roomIndex >= 0 && roomIndex < rooms.Count ? rooms[roomIndex].displayName : "屋内";
+        }
+
         private static string StatusText(EVisitorState state) => state switch
         {
-            EVisitorState.FrontDesk => "前台等待接待 · 点击交谈",
+            EVisitorState.FrontDesk => "门口等待接待 · 点击交谈",
             EVisitorState.Serving => "服务中 · 等待递上物品",
             EVisitorState.Wandering => "心满意足 · 屋内闲逛",
             _ => "正在离开",

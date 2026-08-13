@@ -264,6 +264,23 @@ namespace MasterHouse
         }
 
         /// <summary>
+        /// 玩家把访客拖到另一个房间（Hub 四宫格，2026-08-13）。与 Accept/Reject 同口径：
+        /// 公开方法 + 合法性校验，状态不对返回 false 而不是抛异常（§8）。
+        /// 纯位置变更，不影响超时/评分；任何在场状态都允许拖动（前台访客拖走也不改变其等待语义）。
+        /// </summary>
+        public bool MoveVisitorToRoom(int instanceId, int roomIndex)
+        {
+            // 房间数暂与 Hub 四宫格一致（CodexTable.rooms 前 4 间；地下仓库未解锁不算）
+            if (roomIndex < 0 || roomIndex > 3) return false;
+            var instance = Find(instanceId);
+            if (instance == null) return false;
+            if (instance.RoomIndex == roomIndex) return true;
+            instance.RoomIndex = roomIndex;
+            InstanceChanged?.Invoke(instance);
+            return true;
+        }
+
+        /// <summary>
         /// 提交物品并结算（§5/§6.2）：服务一次性、不可补交——提交一次即定生死，交错了照样扣物品。
         /// 仓库无货返回 false（不存在的东西交不出去）；扣减发生在评分之前。
         /// </summary>
@@ -524,6 +541,7 @@ namespace MasterHouse
                     scheduleIndex = instance.ScheduleIndex,
                     state = (int)instance.State,
                     stateEnterTick = instance.StateEnterTick,
+                    roomIndex = instance.RoomIndex,
                     satisfaction = (int)instance.Satisfaction,
                     nextBubbleTick = instance.NextBubbleTick,
                     rngState = instance.Rng.State,
@@ -554,6 +572,7 @@ namespace MasterHouse
                     ScheduleIndex = saved.scheduleIndex,
                     State = (EVisitorState)saved.state,
                     StateEnterTick = saved.stateEnterTick,
+                    RoomIndex = saved.roomIndex,
                     Satisfaction = (EServeSatisfaction)saved.satisfaction,
                     NextBubbleTick = saved.nextBubbleTick,
                 };
@@ -586,6 +605,7 @@ namespace MasterHouse
         public int scheduleIndex;
         public int state;
         public long stateEnterTick;
+        public int roomIndex;
         public int satisfaction;
         public long nextBubbleTick;
         public ulong rngState;

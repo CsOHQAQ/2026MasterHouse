@@ -46,7 +46,10 @@ namespace MasterHouse
         private bool spawnInside; // 常驻回填：不走进门流程，直接在屋内/前台淡入
         private Vector2 doorPoint;
         private Vector2 waitPoint;
-        private Vector2[] waypoints;
+        /// <summary>所在房间的访客活动区（房间表可配；由舞台层注入，游走落点与拖拽钳制共用）。</summary>
+        private Func<int, Rect> walkArea;
+        /// <summary>所在房间的访客入口区（房间表可配）：离场时走向本房间的门口范围。</summary>
+        private Func<int, Rect> entryArea;
         private Vector2 moveTarget;
         private bool moving;
         private bool facingRight;
@@ -61,8 +64,17 @@ namespace MasterHouse
         /// <summary>业务访客当前同步到的业务状态；-1 = 尚未同步/氛围邻居。</summary>
         private int businessState = -1;
 
-        /// <summary>场景归一化坐标（0~1，相对整幅背景图），供舞台层换算锚点与深度排序。</summary>
+        /// <summary>房间内归一化坐标（0~1，相对所在房间的背景图），供舞台层换算世界锚点与深度排序。</summary>
         public Vector2 ScenePosition { get; private set; }
+
+        /// <summary>所在房间（Hub 四宫格下标；表现层副本，业务真相在 VisitorInstance.RoomIndex）。</summary>
+        public int RoomIndex { get; private set; }
+
+        /// <summary>玩家正拖着这只访客（拖拽期间状态机停走、点击吞掉）。</summary>
+        public bool Dragging { get; private set; }
+
+        /// <summary>业务访客在等待/闲逛时可被拖到其他房间；邻居与过场状态不可拖。</summary>
+        public bool IsDraggable => !ambient && IsInteractable;
 
         public bool IsInteractable => state == ActorState.Waiting || state == ActorState.Wandering;
 
@@ -73,7 +85,8 @@ namespace MasterHouse
         public bool IsLeaving => state == ActorState.Leaving || state == ActorState.Gone;
 
         public static OutGameVisitorActor Create(Transform parent, string actorId, string actorName, string sheetBase,
-            bool isAmbient, float spawnDelay, Vector2 door, Vector2 wait, Vector2[] wanderPoints,
+            bool isAmbient, float spawnDelay, Vector2 door, Vector2 wait,
+            Func<int, Rect> walkArea, Func<int, Rect> entryArea,
             Action clicked, Action gone, bool spawnInside = false)
         {
             var awaitMeta = OutGameVisitorSheet.Load(sheetBase + "_await_sheet", out var awaitTex);
@@ -92,7 +105,8 @@ namespace MasterHouse
             actor.celebrateSheet = OutGameVisitorSheet.Load(sheetBase + "_attack_sheet", out actor.celebrateTexture);
             actor.doorPoint = door;
             actor.waitPoint = wait;
-            actor.waypoints = wanderPoints;
+            actor.walkArea = walkArea;
+            actor.entryArea = entryArea;
             actor.onClicked = clicked;
             actor.onGone = gone;
             actor.spawnInside = spawnInside;
@@ -170,6 +184,8 @@ namespace MasterHouse
 
         private void OnClickSelf()
         {
+            // uGUI 的 Click 在 EndDrag 之前派发，拖拽中标记仍在——正好用它吞掉拖完抬手的误点
+            if (Dragging) return;
             if (!IsInteractable) return;
             if (!ambient)
             {
@@ -212,6 +228,43 @@ namespace MasterHouse
             ToggleChoice(false);
             walkSpeed *= 1.3f;
             EnterLeaving();
+        }
+
+        // ── 玩家拖拽换房（2026-08-13 四宫格）：舞台层做屏幕→世界换算，这里只管表现状态 ──
+
+        /// <summary>开始拖拽：状态机停走，吞掉随后的点击（拖完抬手不该触发对话）。</summary>
+        public void BeginPlayerDrag()
+        {
+            if (!IsDraggable) return;
+            Dragging = true;
+            moving = false;
+        }
+
+        /// <summary>拖拽跟随：舞台层换算好的 (房间, 房内归一化坐标)。跨房时名牌上的房间名实时跟着换。</summary>
+        public void UpdatePlayerDrag(int roomIndex, Vector2 localPosition)
+        {
+            if (!Dragging) return;
+            var roomChanged = RoomIndex != roomIndex;
+            RoomIndex = roomIndex;
+            ScenePosition = localPosition;
+            if (roomChanged) UpdateStatusCard();
+        }
+
+        /// <summary>拖拽结束；业务层拒绝换房时由舞台层再调 TeleportToRoom 弹回。</summary>
+        public void EndPlayerDrag()
+        {
+            if (!Dragging) return;
+            Dragging = false;
+            if (state == ActorState.Wandering) stateTimer = UnityEngine.Random.Range(1.5f, 3f); // 落地后歇口气再逛
+        }
+
+        /// <summary>直接落位到某房间（业务同步/拖拽弹回共用；不走进门流程）。</summary>
+        public void TeleportToRoom(int roomIndex, Vector2 localPosition)
+        {
+            RoomIndex = roomIndex;
+            ScenePosition = localPosition;
+            moving = false;
+            UpdateStatusCard();
         }
 
         /// <summary>舞台层动态分配的门口排队点（队伍前移时演员会挪过去）。</summary>
@@ -305,6 +358,13 @@ namespace MasterHouse
         private void Update()
         {
             var dt = Time.unscaledDeltaTime;
+            if (Dragging)
+            {
+                // 拖拽期间状态机整体停走，位置完全由玩家指针接管
+                ApplyDepth();
+                group.blocksRaycasts = true;
+                return;
+            }
             if (choiceOpen)
             {
                 choiceTimer -= dt;
@@ -400,9 +460,7 @@ namespace MasterHouse
                 UpdateStatusCard();
                 return;
             }
-            ScenePosition = waypoints != null && waypoints.Length > 0
-                ? waypoints[UnityEngine.Random.Range(0, waypoints.Length)]
-                : waitPoint;
+            ScenePosition = RandomWalkPoint();
             EnterWandering(UnityEngine.Random.Range(.5f, 3f));
         }
 
@@ -417,18 +475,37 @@ namespace MasterHouse
         private void EnterLeaving()
         {
             state = ActorState.Leaving;
-            moveTarget = doorPoint;
+            // 离场走向**当前所在房间**的入口区（每个房间的门位在房间表里配）；未注入时回落进场门点
+            if (entryArea != null)
+            {
+                var area = entryArea(RoomIndex);
+                moveTarget = new Vector2(
+                    UnityEngine.Random.Range(area.xMin, area.xMax),
+                    UnityEngine.Random.Range(area.yMin, area.yMax));
+            }
+            else
+            {
+                moveTarget = doorPoint;
+            }
             moving = true;
             UpdateStatusCard();
         }
 
+        /// <summary>所在房间活动区内随机取落点（活动区按房间美术红框配置在房间表）。</summary>
+        private Vector2 RandomWalkPoint()
+        {
+            var area = walkArea != null ? walkArea(RoomIndex) : Rect.MinMaxRect(.04f, .03f, .96f, .35f);
+            return new Vector2(
+                UnityEngine.Random.Range(area.xMin, area.xMax),
+                UnityEngine.Random.Range(area.yMin, area.yMax));
+        }
+
         private void PickNextWaypoint()
         {
-            if (waypoints == null || waypoints.Length == 0) return;
             // 随机挑一个与当前位置有一定距离的落点，避免原地抖动
             for (var attempt = 0; attempt < 6; attempt++)
             {
-                var candidate = waypoints[UnityEngine.Random.Range(0, waypoints.Length)];
+                var candidate = RandomWalkPoint();
                 if ((candidate - ScenePosition).sqrMagnitude < .01f) continue;
                 moveTarget = candidate;
                 moving = true;
@@ -560,13 +637,25 @@ namespace MasterHouse
             {
                 status = businessState switch
                 {
-                    (int)EVisitorState.FrontDesk => "在前台等待接待 · 点击交谈",
+                    (int)EVisitorState.FrontDesk => "在门口等待接待 · 点击交谈",
                     (int)EVisitorState.Serving => "等待服务 · 点击递上物品",
                     (int)EVisitorState.Wandering => "心满意足 · 屋内闲逛中",
                     _ => "刚刚进门",
                 };
+                // 业务访客标注所在房间（四宫格拖拽换房后一眼可辨）；邻居只待起居室不标
+                status = RoomLabel() + status;
             }
             cardLabel.text = displayName + "\n<size=13>" + status + "</size>";
+        }
+
+        /// <summary>所在房间前缀，如「@卧室 · 」；图鉴表异常时退空串不阻断。</summary>
+        private string RoomLabel()
+        {
+            var gm = GameManager.Instance;
+            if (gm == null || gm.CodexTable == null) return string.Empty;
+            var rooms = gm.CodexTable.rooms;
+            if (RoomIndex < 0 || RoomIndex >= rooms.Count) return string.Empty;
+            return "@" + rooms[RoomIndex].displayName + " · ";
         }
     }
 }

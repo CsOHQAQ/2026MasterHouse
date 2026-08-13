@@ -7,21 +7,38 @@ using UnityEngine.UI;
 namespace MasterHouse
 {
     /// <summary>
-    /// Hub 场景层绑定：房间背景（起居室优先家具烘焙图）、场景说明卡、家具热点、访客舞台挂接、
-    /// 观景模式的平移缩放（uvRect）与热点锚点跟随。背景/热点是动态表现件，允许运行时生成（§16.2）。
+    /// Hub 场景层绑定（2026-08-13 四宫格重做）：
+    /// 四个房间平铺成 2×2 连续世界（HubWorldGrid），世界根挂在裁剪容器下，
+    /// 相机 = 世界根的 anchoredPosition（平移）+ localScale（缩放）；滚轮以鼠标为中心缩放、
+    /// 按住左键拖拽平移，缩到 0.5 倍时四个房间尽收眼底。「当前房间」由视口中心落在哪个象限决定，
+    /// 变化时回调 HubPage 刷新导航高亮与说明卡。
+    /// 房间背景取家具烘焙图；热点按房间建在世界坐标上（跟随相机，无需逐帧换算）；
+    /// 访客舞台覆盖整个世界（拖拽访客换房见 OutGameVisitorStage）。
+    /// 背景/热点是动态表现件，允许运行时生成（§16.2）。
     /// </summary>
     public sealed class HubSceneBinder
     {
+        private const float MinZoom = .5f;   // 恰好看全 2×2 四个房间
+        private const float MaxZoom = 3.5f;
+
         private HubPage page;
         private RectTransform sceneRoot;
-        private RawImage sceneArt;
+        private RectTransform worldRoot;
+        private readonly RawImage[] roomArts = new RawImage[HubWorldGrid.RoomCount];
         private Image sceneWash;
         private OutGameHubSceneOverlayView overlay;
         private OutGameVisitorStage stage;
-        private readonly List<(RectTransform rect, Rect viewport)> hotspots =
-            new List<(RectTransform, Rect)>();
+        private RectTransform hotspotRoot;
+
+        /// <summary>相机状态：世界根左下角相对视口左下角的偏移（视口坐标）与缩放。</summary>
+        private Vector2 camPan;
+        private float camZoom = 1f;
         private bool panning;
-        private Vector3 lastPanPosition;
+        private Vector2 lastPointerLocal;
+        /// <summary>本次按下的起点与有效性（区分「点一下聚焦房间」和「按住拖拽平移」）。</summary>
+        private Vector2 pressPointerLocal;
+        private bool pressValid;
+        private Tween focusTween;
 
         private static CodexTable Codex => GameManager.Instance.CodexTable;
 
@@ -30,45 +47,217 @@ namespace MasterHouse
             page = owner;
             sceneRoot = view.sceneRoot;
             overlay = view.sceneOverlay;
-            sceneArt = HouseUIRuntime.StretchTexture(sceneRoot, "SceneArt", Codex.rooms[page.RoomIndex].artPath);
-            sceneArt.raycastTarget = false; // 场景图不拦截指针，观景模式拖拽与家具热点都依赖穿透
-            ApplySceneArt();
-            sceneWash = HouseUIRuntime.StretchPanel(sceneRoot, "SceneWash", new Color(.015f, .02f, .04f, .22f));
-            sceneWash.raycastTarget = false;
-            BuildHotspots();
-            BuildVisitorStage();
-            BindOverlay();
-        }
 
-        /// <summary>房间切换：背景交叉淡入 + 热点/舞台/说明卡重建。</summary>
-        public void SwapRoom()
-        {
-            if (sceneArt != null)
+            // 裁剪容器：世界总比视口大，缩放平移时裁掉溢出画面，避免盖住四周 UI
+            var clip = HouseUIRuntime.Stretch(sceneRoot, "WorldClip");
+            clip.gameObject.AddComponent<RectMask2D>();
+
+            // 世界根：2× 视口大小（每个房间一个视口大），pivot 左下，位置/缩放即相机
+            worldRoot = HouseUIRuntime.Rect(clip, "World", Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
+            worldRoot.pivot = Vector2.zero;
+
+            for (var room = 0; room < HubWorldGrid.RoomCount; room++)
             {
-                var old = sceneArt;
-                var next = HouseUIRuntime.StretchTexture(sceneRoot, "SceneArtNext",
-                    Codex.rooms[page.RoomIndex].artPath, new Color(1, 1, 1, 0));
-                next.raycastTarget = false;
-                next.transform.SetAsFirstSibling();
-                next.DOFade(1, .5f).SetUpdate(true);
-                old.DOFade(0, .5f).SetUpdate(true).OnComplete(() => Object.Destroy(old.gameObject));
-                sceneArt = next;
-                ApplySceneArt();
+                var origin = HubWorldGrid.CellOrigin(room);
+                var art = HouseUIRuntime.Rect(worldRoot, "RoomArt" + room,
+                    origin, origin + new Vector2(.5f, .5f), Vector2.zero, Vector2.zero);
+                roomArts[room] = art.gameObject.AddComponent<RawImage>();
+                roomArts[room].raycastTarget = false; // 场景图不拦截指针：拖拽平移与热点/演员都依赖穿透
             }
+            ApplySceneArt();
+
+            // 洗色层盖在房间图之上、热点与演员之下（与旧版层序一致）；随世界一起缩放（纯色无所谓拉伸）
+            sceneWash = HouseUIRuntime.StretchPanel(worldRoot, "SceneWash", new Color(.015f, .02f, .04f, .22f));
+            sceneWash.raycastTarget = false;
+
+            hotspotRoot = HouseUIRuntime.Stretch(worldRoot, "FurnitureHotspots");
             BuildHotspots();
             BuildVisitorStage();
             BindOverlay();
+
+            // 初始相机：满屏当前房间
+            SnapToRoom(page.RoomIndex);
         }
 
-        /// <summary>房间背景优先使用家具布局合成图（背景+当前摆放；缺失时立即烘焙——一进游戏默认家具就可见）。</summary>
+        // ══════════ 相机 ══════════
+
+        /// <summary>
+        /// 每帧相机输入（HubPage.HandleInput 调，叠加层开着时页面输入被壳拦下、天然不抢滚轮）：
+        /// 滚轮以鼠标为中心缩放；指针不在 UI 控件上时按住左键拖拽平移。
+        /// </summary>
+        public void HandleCamera()
+        {
+            if (worldRoot == null || sceneRoot == null) return;
+            var viewport = sceneRoot.rect.size;
+            if (viewport.x < 1f || viewport.y < 1f) return;
+            SyncWorldSize(viewport);
+
+            var pointerLocal = PointerInViewport(out var insideScene);
+
+            var scroll = Input.mouseScrollDelta.y;
+            if (Mathf.Abs(scroll) > .01f && insideScene)
+            {
+                KillFocusTween();
+                var nextZoom = Mathf.Clamp(camZoom * (1f + scroll * .12f), MinZoom, MaxZoom);
+                if (!Mathf.Approximately(nextZoom, camZoom))
+                {
+                    // 以鼠标为锚缩放：光标下的世界点在缩放前后保持不动
+                    var worldAtPointer = (pointerLocal - camPan) / camZoom;
+                    camZoom = nextZoom;
+                    camPan = pointerLocal - worldAtPointer * camZoom;
+                }
+            }
+
+            if (Input.GetMouseButtonDown(0) && insideScene && !IsPointerOverBlockingUI())
+            {
+                KillFocusTween();
+                panning = true;
+                pressValid = true;
+                pressPointerLocal = pointerLocal;
+                lastPointerLocal = pointerLocal;
+            }
+            if (Input.GetMouseButtonUp(0))
+            {
+                panning = false;
+                // 缩小状态下的一次点击（几乎没拖动）= 聚焦点中的房间：镜头平滑推满屏
+                if (pressValid && camZoom < 1f && (pointerLocal - pressPointerLocal).sqrMagnitude < 81f)
+                {
+                    var worldPoint = (pointerLocal - camPan) / camZoom;
+                    var world01 = new Vector2(
+                        Mathf.Clamp01(worldPoint.x / (viewport.x * 2f)),
+                        Mathf.Clamp01(worldPoint.y / (viewport.y * 2f)));
+                    SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：切换房间即转场
+                    FocusRoom(HubWorldGrid.RoomAt(world01));
+                }
+                pressValid = false;
+            }
+            if (panning)
+            {
+                camPan += pointerLocal - lastPointerLocal;
+                lastPointerLocal = pointerLocal;
+            }
+
+            ClampCamera(viewport);
+            ApplyCamera();
+            DetectCurrentRoom(viewport);
+        }
+
+        /// <summary>房间导航/方向键切换：相机平滑推到目标房间（1 倍缩放满屏该房间）。</summary>
+        public void FocusRoom(int roomIndex)
+        {
+            if (worldRoot == null || sceneRoot == null) return;
+            var viewport = sceneRoot.rect.size;
+            if (viewport.x < 1f) { SnapToRoom(roomIndex); return; }
+            SyncWorldSize(viewport);
+            var targetZoom = Mathf.Max(1f, camZoom);
+            var targetPan = PanCenteredOn(roomIndex, targetZoom, viewport);
+            KillFocusTween();
+            var fromPan = camPan;
+            var fromZoom = camZoom;
+            focusTween = DOTween.To(() => 0f, t =>
+            {
+                camZoom = Mathf.Lerp(fromZoom, targetZoom, t);
+                camPan = Vector2.Lerp(fromPan, targetPan, t);
+                var size = sceneRoot.rect.size;
+                ClampCamera(size);
+                ApplyCamera();
+                DetectCurrentRoom(size);
+            }, 1f, .55f).SetEase(Ease.InOutCubic).SetUpdate(true);
+        }
+
+        /// <summary>无动画直达（建层初始化/布局未就绪时的回退）。</summary>
+        private void SnapToRoom(int roomIndex)
+        {
+            var viewport = sceneRoot.rect.size;
+            if (viewport.x < 1f) viewport = new Vector2(1920f, 1080f); // 首帧布局未算完，用设计分辨率近似
+            SyncWorldSize(viewport);
+            camZoom = 1f;
+            camPan = PanCenteredOn(roomIndex, camZoom, viewport);
+            ClampCamera(viewport);
+            ApplyCamera();
+        }
+
+        /// <summary>让某房间中心对准视口中心时的平移量。</summary>
+        private Vector2 PanCenteredOn(int roomIndex, float zoom, Vector2 viewport)
+        {
+            var worldCenter01 = HubWorldGrid.CellOrigin(roomIndex) + new Vector2(.25f, .25f);
+            var worldPoint = Vector2.Scale(worldCenter01, viewport * 2f); // 世界尺寸 = 2× 视口
+            return viewport * .5f - worldPoint * zoom;
+        }
+
+        /// <summary>世界根尺寸恒为 2× 视口（分辨率变化时跟随）。</summary>
+        private void SyncWorldSize(Vector2 viewport)
+        {
+            var target = viewport * 2f;
+            if ((worldRoot.sizeDelta - target).sqrMagnitude > .5f) worldRoot.sizeDelta = target;
+        }
+
+        private void ApplyCamera()
+        {
+            worldRoot.localScale = new Vector3(camZoom, camZoom, 1f);
+            worldRoot.anchoredPosition = camPan;
+        }
+
+        /// <summary>把世界钳在视口内：任何缩放下画面边缘都不露底。</summary>
+        private void ClampCamera(Vector2 viewport)
+        {
+            camZoom = Mathf.Clamp(camZoom, MinZoom, MaxZoom);
+            var worldSize = viewport * 2f * camZoom;
+            camPan.x = Mathf.Clamp(camPan.x, viewport.x - worldSize.x, 0f);
+            camPan.y = Mathf.Clamp(camPan.y, viewport.y - worldSize.y, 0f);
+        }
+
+        /// <summary>视口中心落在哪个象限即当前房间；变化时回调页面刷新导航与说明卡。</summary>
+        private void DetectCurrentRoom(Vector2 viewport)
+        {
+            var worldPoint = (viewport * .5f - camPan) / camZoom;
+            var world01 = new Vector2(
+                Mathf.Clamp01(worldPoint.x / (viewport.x * 2f)),
+                Mathf.Clamp01(worldPoint.y / (viewport.y * 2f)));
+            var room = HubWorldGrid.RoomAt(world01);
+            if (room != page.RoomIndex)
+            {
+                page.NotifyCameraRoomChanged(room);
+                BindOverlay();
+            }
+        }
+
+        /// <summary>鼠标在场景视口里的位置（视口左下为原点）。</summary>
+        private Vector2 PointerInViewport(out bool inside)
+        {
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                sceneRoot, Input.mousePosition, null, out var local);
+            var rect = sceneRoot.rect;
+            inside = rect.Contains(local);
+            return new Vector2(local.x - rect.xMin, local.y - rect.yMin);
+        }
+
+        /// <summary>指针是否压在会吃点击的 UI 上（演员/热点/四周卡片）：是则不启动拖拽平移。场景图本身不吃射线。</summary>
+        private static bool IsPointerOverBlockingUI()
+        {
+            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+        }
+
+        private void KillFocusTween()
+        {
+            if (focusTween != null && focusTween.IsActive()) focusTween.Kill();
+            focusTween = null;
+        }
+
+        // ══════════ 内容 ══════════
+
+        /// <summary>房间背景 = 家具布局合成图（背景+当前摆放；缺失时立即烘焙——一进游戏默认家具就可见）。</summary>
         public void ApplySceneArt()
         {
-            if (sceneArt == null) return;
-            var baked = FurnitureSceneComposer.EnsureBaked(page.RoomIndex);
-            if (baked != null) sceneArt.texture = baked;
+            for (var room = 0; room < HubWorldGrid.RoomCount; room++)
+            {
+                if (roomArts[room] == null) continue;
+                var baked = FurnitureSceneComposer.EnsureBaked(room);
+                if (baked != null) roomArts[room].texture = baked;
+            }
         }
 
-        /// <summary>观景模式切换的场景侧表现：洗色层显隐、复位画面平移缩放。</summary>
+        /// <summary>观景模式切换的场景侧表现：洗色层显隐（相机不复位，视角保持玩家现状）。</summary>
         public void SetImmersiveVisual(bool on)
         {
             panning = false;
@@ -78,47 +267,9 @@ namespace MasterHouse
                 washGroup.DOKill();
                 washGroup.DOFade(on ? 0f : 1f, .25f).SetUpdate(true);
             }
-            if (!on && sceneArt != null) sceneArt.uvRect = new Rect(0f, 0f, 1f, 1f);
-            UpdateHotspotAnchors();
         }
 
-        /// <summary>观景模式：滚轮以鼠标为中心缩放（1~3.5 倍），按住左键拖拽平移，边界钳制在图内。</summary>
-        public void HandleBrowse()
-        {
-            if (sceneArt == null) return;
-            var uv = sceneArt.uvRect;
-            var scroll = Input.mouseScrollDelta.y;
-            if (Mathf.Abs(scroll) > .01f && Screen.width > 0 && Screen.height > 0)
-            {
-                var zoom = Mathf.Clamp(1f / uv.width + scroll * .12f / uv.width, 1f, 3.5f);
-                var size = 1f / zoom;
-                var nx = Mathf.Clamp01(Input.mousePosition.x / Screen.width);
-                var ny = Mathf.Clamp01(Input.mousePosition.y / Screen.height);
-                var pivotX = uv.x + nx * uv.width;
-                var pivotY = uv.y + ny * uv.height;
-                uv = new Rect(pivotX - nx * size, pivotY - ny * size, size, size);
-            }
-            if (Input.GetMouseButtonDown(0))
-            {
-                panning = true;
-                lastPanPosition = Input.mousePosition;
-            }
-            if (Input.GetMouseButtonUp(0)) panning = false;
-            if (panning && Screen.width > 0 && Screen.height > 0)
-            {
-                var delta = Input.mousePosition - lastPanPosition;
-                lastPanPosition = Input.mousePosition;
-                uv.x -= delta.x / Screen.width * uv.width;
-                uv.y -= delta.y / Screen.height * uv.height;
-            }
-            uv.x = Mathf.Clamp(uv.x, 0f, 1f - uv.width);
-            uv.y = Mathf.Clamp(uv.y, 0f, 1f - uv.height);
-            sceneArt.uvRect = uv;
-            // 热点跟随平移缩放，收起状态下家具依然可悬停/点击
-            UpdateHotspotAnchors();
-        }
-
-        /// <summary>家具摆放退出后：重新烘焙当前房间背景并重建热点。</summary>
+        /// <summary>家具摆放退出后：重烘焙当前房间背景并重建热点。</summary>
         public void RefreshAfterFurniture()
         {
             FurnitureSceneComposer.RequestBake(page.RoomIndex, _ =>
@@ -128,82 +279,62 @@ namespace MasterHouse
             });
         }
 
-        /// <summary>背景中的已摆放家具热点：悬停弹提示卡，点击暂接设备面板（3.5c）。按当前房间取布局。</summary>
+        /// <summary>四个房间的已摆放家具热点：悬停弹提示卡，点击暂接设备面板（3.5c）。
+        /// 热点建在世界坐标上，跟随相机无需逐帧换算。</summary>
         private void BuildHotspots()
         {
-            if (sceneRoot == null) return;
-            var existing = sceneRoot.Find("FurnitureHotspots");
-            if (existing != null) Object.Destroy(existing.gameObject);
-            hotspots.Clear();
-            var root = HouseUIRuntime.Stretch(sceneRoot, "FurnitureHotspots");
-            foreach (var info in FurnitureSceneComposer.GetPlacedFurniture(page.RoomIndex))
+            if (hotspotRoot == null) return;
+            for (var i = hotspotRoot.childCount - 1; i >= 0; i--)
+                Object.Destroy(hotspotRoot.GetChild(i).gameObject);
+            for (var room = 0; room < HubWorldGrid.RoomCount; room++)
             {
-                var viewport = info.ViewportRect;
-                var hotspot = HouseUIRuntime.Rect(root, "Hotspot_" + info.Entry.id,
-                    new Vector2(viewport.xMin, viewport.yMin), new Vector2(viewport.xMax, viewport.yMax),
-                    Vector2.zero, Vector2.zero);
-                hotspots.Add((hotspot, viewport));
-                var image = hotspot.gameObject.AddComponent<Image>();
-                image.sprite = HouseUIRuntime.WhiteSprite;
-                image.color = Color.clear;
-                var button = hotspot.gameObject.AddComponent<Button>();
-                button.transition = Selectable.Transition.None;
-                button.onClick.AddListener(() => page.OpenPanel(EHousePanel.Device));
+                foreach (var info in FurnitureSceneComposer.GetPlacedFurniture(room))
+                {
+                    var viewport = info.ViewportRect; // 房内归一化矩形
+                    var min = HubWorldGrid.RoomToWorld(room, viewport.min);
+                    var max = HubWorldGrid.RoomToWorld(room, viewport.max);
+                    var hotspot = HouseUIRuntime.Rect(hotspotRoot, $"Hotspot_{room}_{info.Entry.id}",
+                        min, max, Vector2.zero, Vector2.zero);
+                    var image = hotspot.gameObject.AddComponent<Image>();
+                    image.sprite = HouseUIRuntime.WhiteSprite;
+                    image.color = Color.clear;
+                    var button = hotspot.gameObject.AddComponent<Button>();
+                    button.transition = Selectable.Transition.None;
+                    button.onClick.AddListener(() => page.OpenPanel(EHousePanel.Device));
 
-                var card = HouseUIRuntime.Panel(hotspot, "Card", new Vector2(.5f, 1),
-                    new Vector2(0, 46), new Vector2(250, 76), new Color(.32f, .06f, .18f, .92f));
-                HouseUIRuntime.StretchLabel(card.transform, "Text",
-                    $"＋  {info.Entry.displayName}\n<size=13>查看设备</size>", 19, HouseUIUtil.White,
-                    TextAnchor.MiddleCenter, FontStyle.Bold);
-                var cardGroup = HouseUIUtil.Group(card.gameObject, 0f);
-                cardGroup.blocksRaycasts = false;
-                cardGroup.interactable = false;
+                    var card = HouseUIRuntime.Panel(hotspot, "Card", new Vector2(.5f, 1),
+                        new Vector2(0, 46), new Vector2(250, 76), new Color(.32f, .06f, .18f, .92f));
+                    HouseUIRuntime.StretchLabel(card.transform, "Text",
+                        $"＋  {info.Entry.displayName}\n<size=13>查看设备</size>", 19, HouseUIUtil.White,
+                        TextAnchor.MiddleCenter, FontStyle.Bold);
+                    var cardGroup = HouseUIUtil.Group(card.gameObject, 0f);
+                    cardGroup.blocksRaycasts = false;
+                    cardGroup.interactable = false;
 
-                var trigger = hotspot.gameObject.AddComponent<EventTrigger>();
-                var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
-                enter.callback.AddListener(_ => { cardGroup.DOKill(); cardGroup.DOFade(1f, .16f).SetUpdate(true); });
-                trigger.triggers.Add(enter);
-                var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
-                exit.callback.AddListener(_ => { cardGroup.DOKill(); cardGroup.DOFade(0f, .16f).SetUpdate(true); });
-                trigger.triggers.Add(exit);
-            }
-            UpdateHotspotAnchors();
-        }
-
-        /// <summary>按当前画面平移缩放（uvRect）换算热点锚点，保证观景模式下热点始终贴住家具。</summary>
-        private void UpdateHotspotAnchors()
-        {
-            if (sceneArt == null) return;
-            var uv = sceneArt.uvRect;
-            foreach (var (rect, viewport) in hotspots)
-            {
-                if (rect == null) continue;
-                rect.anchorMin = new Vector2((viewport.xMin - uv.x) / uv.width, (viewport.yMin - uv.y) / uv.height);
-                rect.anchorMax = new Vector2((viewport.xMax - uv.x) / uv.width, (viewport.yMax - uv.y) / uv.height);
-                rect.offsetMin = Vector2.zero;
-                rect.offsetMax = Vector2.zero;
+                    var trigger = hotspot.gameObject.AddComponent<EventTrigger>();
+                    var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+                    enter.callback.AddListener(_ => { cardGroup.DOKill(); cardGroup.DOFade(1f, .16f).SetUpdate(true); });
+                    trigger.triggers.Add(enter);
+                    var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+                    exit.callback.AddListener(_ => { cardGroup.DOKill(); cardGroup.DOFade(0f, .16f).SetUpdate(true); });
+                    trigger.triggers.Add(exit);
+                }
             }
         }
 
         /// <summary>整体重建舞台（GM 重置后访客重新进场）。庆祝/离场等状态表现由舞台层轮询实例状态自驱（§9）。</summary>
         public void RebuildStage() => BuildVisitorStage();
 
-        /// <summary>重建场景访客 NPC 层（仅起居室）。舞台只读 VisitorManager 状态，表现不回写业务（§16.4）。</summary>
+        /// <summary>重建访客 NPC 层（覆盖整个四宫格世界）。舞台只读 VisitorManager 状态，表现不回写业务（§16.4）；
+        /// 拖拽换房经页面回调走业务方法。</summary>
         private void BuildVisitorStage()
         {
-            if (sceneRoot == null) return;
-            stage = null;
-            if (page.RoomIndex != 0)
-            {
-                var existing = sceneRoot.Find("VisitorStage");
-                if (existing != null) Object.Destroy(existing.gameObject);
-                return;
-            }
-            stage = OutGameVisitorStage.Build(sceneRoot, sceneArt, page.OnVisitorClicked);
+            if (worldRoot == null) return;
+            stage = OutGameVisitorStage.Build(worldRoot, page.OnVisitorClicked, page.OnVisitorDropped);
         }
 
-        /// <summary>场景说明卡与设备热点按钮（Prefab 字段可能因手动编辑缺失，逐项判空）。</summary>
-        private void BindOverlay()
+        /// <summary>场景说明卡与设备热点按钮（Prefab 字段可能因手动编辑缺失，逐项判空）。相机换房时刷新。</summary>
+        public void BindOverlay()
         {
             if (overlay == null) return;
             var room = Codex.rooms[page.RoomIndex];

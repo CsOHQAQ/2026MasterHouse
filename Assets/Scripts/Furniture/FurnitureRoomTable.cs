@@ -51,6 +51,10 @@ namespace MasterHouse
         [Tooltip("远景渐变模糊层（常驻，做景深）")] public Sprite depthBlurOverlay;
         [Tooltip("整幅模糊层（拖拽时淡入，做失焦）")] public Sprite focusBlurOverlay;
         [Tooltip("初始 HOUSE CREDIT")] public int startCredit = 2480;
+        [Tooltip("访客活动区（归一化坐标，左下原点）：Hub 场景里访客游走/拖拽落点被钳在此矩形内，按房间美术的红框标定")]
+        public Rect visitorWalkArea = Rect.MinMaxRect(.04f, .03f, .96f, .35f);
+        [Tooltip("访客入口区（归一化坐标，左下原点）：访客进场出现/离场走向的门口范围，按房间美术的门位标定")]
+        public Rect visitorEntryArea = Rect.MinMaxRect(.08f, .15f, .18f, .33f);
         public List<FurnitureGridConfig> grids = new List<FurnitureGridConfig>();
         public List<FurnitureBlockedCellConfig> blockedCells = new List<FurnitureBlockedCellConfig>();
         public List<FurniturePlacementConfig> initialPlacements = new List<FurniturePlacementConfig>();

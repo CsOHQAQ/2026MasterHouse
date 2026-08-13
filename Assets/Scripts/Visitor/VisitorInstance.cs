@@ -64,6 +64,13 @@ namespace MasterHouse
         /// <summary>进入当前状态时的业务 tick（算超时用，整数比较）。</summary>
         public long StateEnterTick;
 
+        /// <summary>
+        /// 当前所在房间（Hub 四宫格下标，0 = 起居室/门厅）。进场默认 0；
+        /// 玩家在 Hub 场景把访客拖到其他房间时经 VisitorManager.MoveVisitorToRoom 修改（2026-08-13）。
+        /// 纯位置信息，不参与超时/评分等业务判定。
+        /// </summary>
+        public int RoomIndex;
+
         /// <summary>需求项列表（roll 顺序即派生随机流顺序，天然稳定）。</summary>
         public readonly List<VisitorNeed> Needs = new List<VisitorNeed>();
 

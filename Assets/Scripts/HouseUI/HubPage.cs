@@ -25,10 +25,9 @@ namespace MasterHouse
 
         private Text immersiveLabel;
         private bool immersive;
-        private bool roomTransitioning;
         private bool furnitureModeOpen;
 
-        /// <summary>当前房间下标（列表顺序 = 导航顺序）。</summary>
+        /// <summary>当前房间下标（四宫格：由场景相机的视口中心决定，见 HubSceneBinder.DetectCurrentRoom）。</summary>
         public int RoomIndex { get; private set; }
 
         /// <summary>当前选中的访客实例 id（任务卡与对话层共用；-1 = 未选中）。</summary>
@@ -151,11 +150,9 @@ namespace MasterHouse
         public override void HandleInput()
         {
             if (view == null || furnitureModeOpen) return;
-            if (immersive)
-            {
-                scene.HandleBrowse();
-                return;
-            }
+            // 四宫格相机常开（观景/普通模式都可滚轮缩放、拖拽平移）；叠加层开着时壳不派发本方法，天然不抢滚轮
+            scene.HandleCamera();
+            if (immersive) return;
             if (Input.GetKeyDown(KeyCode.LeftArrow)) SelectRoom((RoomIndex + 3) % 4);
             if (Input.GetKeyDown(KeyCode.RightArrow)) SelectRoom((RoomIndex + 1) % 4);
             if (Input.GetKeyDown(KeyCode.I)) OpenPanel(EHousePanel.Inventory);
@@ -189,44 +186,41 @@ namespace MasterHouse
             SettingsOverlay.Open(UI);
         }
 
+        /// <summary>房间导航/方向键：相机平滑推到目标房间（四宫格连续世界，2026-08-13；旧的开关门/交叉淡入转场随之退役）。</summary>
         public void SelectRoom(int index)
         {
             if (view == null) return;
-            if (index == RoomIndex || roomTransitioning)
+            var rooms = GameManager.Instance.CodexTable.rooms;
+            if (index == RoomIndex)
             {
-                var rooms = GameManager.Instance.CodexTable.rooms;
-                if (index == RoomIndex) Toast($"当前位于{rooms[index].displayName} · {rooms[index].note}");
+                Toast($"当前位于{rooms[index].displayName} · {rooms[index].note}");
+                scene.FocusRoom(index); // 已在此房间：仍推一次镜头，把缩放/平移复位到满屏
                 return;
             }
             SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：切换房间即转场
+            scene.FocusRoom(index);
+            Toast($"镜头推向{rooms[index].displayName}");
+        }
 
-            // 进出卧室走开关门过渡，其余房间直接交叉淡入（与旧壳一致）
-            var usesDoor = index == 1 || RoomIndex == 1;
-            if (!usesDoor)
+        /// <summary>场景相机的视口中心换了房间（HubSceneBinder 回调）：同步下标并刷新导航高亮。</summary>
+        public void NotifyCameraRoomChanged(int index)
+        {
+            RoomIndex = index;
+            roomNav.Refresh();
+        }
+
+        /// <summary>访客被拖到某房间后松手（舞台层回调）：翻译成业务动作（§8 同口径，失败时舞台自会弹回）。</summary>
+        public void OnVisitorDropped(int instanceId, int roomIndex)
+        {
+            var visitor = GameManager.Instance.VisitorManager;
+            var instance = visitor.Find(instanceId);
+            var fromRoom = instance != null ? instance.RoomIndex : -1;
+            if (!visitor.MoveVisitorToRoom(instanceId, roomIndex)) return;
+            if (instance != null && fromRoom != roomIndex)
             {
-                SwapRoom(index);
-                Toast(index == 2 ? "镜头聚焦至厨房料理台" : index == 3 ? "视角旋转 90° · 已进入书房" : "已回到起居室");
-                return;
+                var rooms = GameManager.Instance.CodexTable.rooms;
+                Toast($"已把{instance.DisplayName}带到{rooms[roomIndex].displayName}");
             }
-
-            roomTransitioning = true;
-            var transition = HouseUIRuntime.Stretch(Root, "RoomDoorTransition");
-            transition.SetAsLastSibling();
-            var left = HouseUIRuntime.Panel(transition, "LeftDoor", new Vector2(0, .5f),
-                new Vector2(-480, 0), new Vector2(960, 1080), HouseUIUtil.Hex("251820"));
-            var right = HouseUIRuntime.Panel(transition, "RightDoor", new Vector2(1, .5f),
-                new Vector2(480, 0), new Vector2(960, 1080), HouseUIUtil.Hex("251820"));
-            DOTween.Sequence().SetTarget(transition).SetUpdate(true)
-                .Append(left.rectTransform.DOAnchorPosX(480, .42f).SetEase(Ease.InCubic))
-                .Join(right.rectTransform.DOAnchorPosX(-480, .42f).SetEase(Ease.InCubic))
-                .AppendCallback(() => SwapRoom(index))
-                .Append(left.rectTransform.DOAnchorPosX(-480, .72f).SetEase(Ease.OutCubic))
-                .Join(right.rectTransform.DOAnchorPosX(480, .72f).SetEase(Ease.OutCubic))
-                .OnComplete(() =>
-                {
-                    roomTransitioning = false;
-                    if (transition != null) Object.Destroy(transition.gameObject);
-                });
         }
 
         /// <summary>
@@ -292,7 +286,7 @@ namespace MasterHouse
         /// <summary>点击场景中的访客 NPC（观景模式下先展开界面）。</summary>
         public void OnVisitorClicked(int instanceId)
         {
-            if (furnitureModeOpen || roomTransitioning) return;
+            if (furnitureModeOpen) return;
             if (immersive) SetImmersive(false);
             SelectGuest(instanceId);
         }
@@ -321,13 +315,6 @@ namespace MasterHouse
             {
                 SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：进入家具模式
             }
-        }
-
-        private void SwapRoom(int index)
-        {
-            RoomIndex = index;
-            scene.SwapRoom();
-            roomNav.Refresh();
         }
 
         /// <summary>收起/展开四周 UI。收起后进入观景模式：拖拽平移背景、滚轮缩放。</summary>
