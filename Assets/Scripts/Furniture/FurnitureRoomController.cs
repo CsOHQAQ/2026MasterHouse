@@ -495,7 +495,8 @@ namespace MasterHouse
 
         private void BeginDrag(FurnitureEntry entry, FurnitureRuntimeItem item)
         {
-            SfxManager.Play(ESfx.FurniturePickup); // 音效需求 #2：拾起（收纳栏拖出与场上拿起两条路径都汇到这里）
+            // 音效需求 #2：拾起（收纳栏拖出与场上拿起两条路径都汇到这里）；家具表可配专属音，空则全局默认
+            SfxManager.PlayOverride(entry.pickupSound, ESfx.FurniturePickup);
             drag = new DragState { Entry = entry, Item = item, Flipped = item != null && item.Flipped };
             hud.SetDragDimming(true); // 布置中顶部 UI 淡出让位（收纳栏保留作拖回落点）
             drag.Ghost = new GameObject("DragGhost");
@@ -657,14 +658,14 @@ namespace MasterHouse
 
             if (commit && state.OverInventory && state.Item != null)
             {
-                SfxManager.Play(ESfx.FurniturePlace); // 音效需求 #2：放置（收回收纳栏也算落定）
+                SfxManager.PlayOverride(state.Entry.putdownSound, ESfx.FurniturePlace); // 音效需求 #2：放置（收回收纳栏也算落定）
                 RestoreDragged();
                 Destroy(state.Ghost);
                 StoreItem(state.Item, false);
             }
             else if (commit && state.CandidateGrid != null && state.CandidateOk)
             {
-                SfxManager.Play(ESfx.FurniturePlace); // 音效需求 #2：放置（落地）
+                SfxManager.PlayOverride(state.Entry.putdownSound, ESfx.FurniturePlace); // 音效需求 #2：放置（落地）
                 Destroy(state.Ghost);
                 if (state.Item != null)
                 {

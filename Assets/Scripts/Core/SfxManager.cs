@@ -37,11 +37,31 @@ namespace MasterHouse
             return go.GetComponent<SfxManager>();
         }
 
-        /// <summary>播放一个音效。None 静默；表缺条目/缺剪辑只警告一次，不阻断调用方。</summary>
-        public static void Play(ESfx id)
+        /// <summary>播放一个音效。None 静默；表缺条目/缺剪辑只警告一次，不阻断调用方。
+        /// bypassThrottle：跳过同 ID 最短间隔节流——打字机逐字音要求「有多少字就响多少声」（音效需求 #8 优化），
+        /// 由调用方自己排节奏时用；普通播放点别传。</summary>
+        public static void Play(ESfx id, bool bypassThrottle = false)
         {
             if (id == ESfx.None || !Application.isPlaying) return;
-            Ensure().PlayInternal(id);
+            Ensure().PlayInternal(id, bypassThrottle);
+        }
+
+        /// <summary>
+        /// 播放指定剪辑，clip 为空时回落到全局音效 fallback——家具的专属拿起/放下音（家具表可配）走这里。
+        /// 音量吃全局 SFX 音量，不做同 ID 节流（拿起/放下是单发事件）。
+        /// </summary>
+        public static void PlayOverride(AudioClip clip, ESfx fallback)
+        {
+            if (!Application.isPlaying) return;
+            if (clip == null)
+            {
+                Play(fallback);
+                return;
+            }
+            var manager = Ensure();
+            var volume = Mathf.Clamp01(HouseSettings.Data.sfxVolume / 100f);
+            if (volume <= 0f || manager.source == null) return;
+            manager.source.PlayOneShot(clip, volume);
         }
 
         private void Awake()
@@ -80,7 +100,7 @@ namespace MasterHouse
             if (Instance == this) Instance = null;
         }
 
-        private void PlayInternal(ESfx id)
+        private void PlayInternal(ESfx id, bool bypassThrottle = false)
         {
             if (!entries.TryGetValue(id, out var entry) || entry.clip == null)
             {
@@ -89,14 +109,21 @@ namespace MasterHouse
                 return;
             }
 
-            // 同 ID 节流：防同帧多处触发叠爆；打字机逐字音的节奏也由 minInterval 控制
+            // 同 ID 节流：防同帧多处触发叠爆（打字机逐字音自排节奏，走 bypassThrottle）
             var now = Time.unscaledTime;
-            if (lastPlayTime.TryGetValue(id, out var last) && now - last < entry.minInterval) return;
+            if (!bypassThrottle && lastPlayTime.TryGetValue(id, out var last) && now - last < entry.minInterval) return;
             lastPlayTime[id] = now;
 
             var volume = Mathf.Clamp01(HouseSettings.Data.sfxVolume / 100f) * entry.volume;
             if (volume <= 0f) return;
-            source.PlayOneShot(entry.clip, volume);
+            // 有随机变体时在 clip+variants 里随机挑一个（打字机击键声不重复感）
+            var clip = entry.clip;
+            if (entry.variants != null && entry.variants.Count > 0)
+            {
+                var pick = Random.Range(0, entry.variants.Count + 1);
+                if (pick > 0 && entry.variants[pick - 1] != null) clip = entry.variants[pick - 1];
+            }
+            source.PlayOneShot(clip, volume);
         }
 
         // ── 业务事件音（需求 #4 数值变化、#6 访客到来/离开）──

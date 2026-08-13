@@ -90,10 +90,12 @@ namespace MasterHouse.EditorTools
                     Debug.LogWarning($"[导表] 音效id 重复：{id}，后一行已跳过");
                     continue;
                 }
+                var (clip, variants) = LoadClips(Cell(row, col, "剪辑"));
                 table.entries.Add(new SfxEntry
                 {
                     id = id,
-                    clip = LoadClip(Cell(row, col, "剪辑")),
+                    clip = clip,
+                    variants = variants,
                     volume = Float(row, col, "音量", 1f),
                     minInterval = Float(row, col, "最短间隔秒", 0.05f),
                 });
@@ -112,7 +114,7 @@ namespace MasterHouse.EditorTools
             var table = AssetDatabase.LoadAssetAtPath<SfxTable>(SfxAssetPath);
             if (table != null)
                 foreach (var entry in table.entries)
-                    lines.Add(Line(entry.id.ToString(), "", ClipPath(entry.clip),
+                    lines.Add(Line(entry.id.ToString(), "", ClipsText(entry),
                         entry.volume.ToString(CultureInfo.InvariantCulture),
                         entry.minInterval.ToString(CultureInfo.InvariantCulture)));
             // UTF-8 带 BOM：Excel 双击打开中文不乱码
@@ -134,16 +136,52 @@ namespace MasterHouse.EditorTools
             return false;
         }
 
-        /// <summary>剪辑列两种写法：①Assets/ 开头完整路径（含扩展名）；②Resources 相对路径（不带扩展名）。</summary>
-        private static AudioClip LoadClip(string path)
+        /// <summary>
+        /// 剪辑列写法：①Assets/ 开头完整路径（含扩展名）；②Resources 相对路径（不带扩展名）；
+        /// ③多剪辑随机变体：`路径1|路径2|…`（| 分隔）或 `Resources目录/*`（整个文件夹全收，
+        /// 打字机单声击键采样这类拆分产物用）。首个为主剪辑，其余进 variants。
+        /// </summary>
+        private static (AudioClip clip, List<AudioClip> variants) LoadClips(string text)
         {
-            if (string.IsNullOrEmpty(path)) return null;
-            var clip = path.StartsWith("Assets/")
-                ? AssetDatabase.LoadAssetAtPath<AudioClip>(path)
-                : Resources.Load<AudioClip>(path);
-            if (clip == null)
-                Debug.LogWarning($"[导表] 音效剪辑未找到：{path}（该行 clip 置空，播放时会告警）");
-            return clip;
+            var clips = new List<AudioClip>();
+            if (!string.IsNullOrEmpty(text))
+            {
+                if (text.EndsWith("/*"))
+                {
+                    var folder = text.Substring(0, text.Length - 2);
+                    clips.AddRange(Resources.LoadAll<AudioClip>(folder));
+                    if (clips.Count == 0)
+                        Debug.LogWarning($"[导表] 音效剪辑目录为空或不存在：{folder}（Resources 相对路径）");
+                }
+                else
+                {
+                    foreach (var token in text.Split('|'))
+                    {
+                        var path = token.Trim();
+                        if (string.IsNullOrEmpty(path)) continue;
+                        var clip = path.StartsWith("Assets/")
+                            ? AssetDatabase.LoadAssetAtPath<AudioClip>(path)
+                            : Resources.Load<AudioClip>(path);
+                        if (clip == null)
+                            Debug.LogWarning($"[导表] 音效剪辑未找到：{path}");
+                        else clips.Add(clip);
+                    }
+                }
+            }
+            if (clips.Count == 0)
+                Debug.LogWarning("[导表] 音效行没有可用剪辑（播放时会告警）");
+            var variants = clips.Count > 1 ? clips.GetRange(1, clips.Count - 1) : new List<AudioClip>();
+            return (clips.Count > 0 ? clips[0] : null, variants);
+        }
+
+        /// <summary>反向导出：主剪辑与变体用 | 连回一格（`目录/*` 简写不可逆，导出为逐个路径）。</summary>
+        private static string ClipsText(SfxEntry entry)
+        {
+            var parts = new List<string> { ClipPath(entry.clip) };
+            if (entry.variants != null)
+                foreach (var clip in entry.variants)
+                    if (clip != null) parts.Add(ClipPath(clip));
+            return string.Join("|", parts);
         }
 
         private static string ClipPath(AudioClip clip)

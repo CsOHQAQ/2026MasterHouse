@@ -14,11 +14,16 @@ namespace MasterHouse
     /// </summary>
     public sealed class DialogueTypewriter : MonoBehaviour
     {
+        /// <summary>每个新字符配的打字音数（音效需求 #8 优化：一字一声单个击键采样，有多少字响多少声）。</summary>
+        private const int SoundsPerChar = 1;
+
         private Text target;
         private string full = string.Empty;
         private float charsPerSecond = 30f;
         private float shown;
-        private int voicedCount; // 已发过逐字音的字符数：只有新字符出现才请求发声（音效需求 #8）
+        private int voicedCount;   // 已配过打字音的字符数：只有新字符出现才积累声音（音效需求 #8）
+        private int pendingSounds; // 待播的打字音数（新字符 ×2 入队，按节奏逐个放，不吞不叠）
+        private float soundTimer;
 
         /// <summary>全文是否已显完（点击语义分岔点：未显完 ⇒ 立即全文；已显完 ⇒ 下一步）。</summary>
         public bool IsComplete => target == null || shown >= full.Length;
@@ -30,6 +35,8 @@ namespace MasterHouse
             charsPerSecond = speed;
             shown = 0f;
             voicedCount = 0;
+            pendingSounds = 0;
+            soundTimer = 0f;
             if (target == null) return;
             // 速度为无穷大（配置里关了打字机）时一步到位
             if (float.IsInfinity(charsPerSecond) || charsPerSecond <= 0f)
@@ -40,11 +47,12 @@ namespace MasterHouse
             target.text = string.Empty;
         }
 
-        /// <summary>立即显满。跳全文不补发逐字音（一次点击不该带出一串打字声）。</summary>
+        /// <summary>立即显满。跳全文不补发逐字音（一次点击不该带出一串打字声），已排队的也清掉。</summary>
         public void SkipToEnd()
         {
             shown = full.Length;
             voicedCount = full.Length;
+            pendingSounds = 0;
             if (target != null) target.text = full;
         }
 
@@ -55,22 +63,39 @@ namespace MasterHouse
             full = string.Empty;
             shown = 0f;
             voicedCount = 0;
+            pendingSounds = 0;
         }
 
         private void Update()
         {
+            TickTypingSound();
             if (IsComplete) return;
             shown += Time.unscaledDeltaTime * charsPerSecond;
             var count = Mathf.Clamp(Mathf.FloorToInt(shown), 0, full.Length);
-            // 逐字音（音效需求 #8）：每有新字符落上屏请求一次，节奏由音效表 DialogueTyping 的 minInterval 节流
+            // 逐字音（音效需求 #8 优化）：每个新字符配 SoundsPerChar 声入队，由 TickTypingSound
+            // 按均匀节奏逐个播——有多少字就响多少声，既不被节流吞掉、也不同帧叠爆
             if (count > voicedCount)
             {
+                pendingSounds += (count - voicedCount) * SoundsPerChar;
                 voicedCount = count;
-                SfxManager.Play(ESfx.DialogueTyping);
             }
             // 注意：按字符截断，台词里若写了富文本标签会在标签中间被切开。
             // 现阶段台词是纯文本，需要富文本时再在这里做标签感知的截断。
             target.text = full.Substring(0, count);
+        }
+
+        /// <summary>按「字符速率 × 每字声数」的均匀间隔消化打字音队列（绕开 SfxManager 的同 ID 节流，节奏在这里排）。</summary>
+        private void TickTypingSound()
+        {
+            if (pendingSounds <= 0) { soundTimer = 0f; return; }
+            var interval = 1f / Mathf.Max(1f, charsPerSecond * SoundsPerChar);
+            soundTimer -= Time.unscaledDeltaTime;
+            while (soundTimer <= 0f && pendingSounds > 0)
+            {
+                pendingSounds--;
+                soundTimer += interval;
+                SfxManager.Play(ESfx.DialogueTyping, bypassThrottle: true);
+            }
         }
     }
 }

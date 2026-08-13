@@ -44,6 +44,9 @@ namespace MasterHouse
         public ESfx id;
         public AudioClip clip;
 
+        [Tooltip("随机变体（可空）：非空时每次播放在 clip+variants 里随机挑一个——打字机单声击键这类需要不重复感的音效用")]
+        public List<AudioClip> variants = new List<AudioClip>();
+
         [Tooltip("单条音量倍率，乘在全局 SFX 音量（设置文件 sfxVolume）之上")]
         [Range(0f, 2f)] public float volume = 1f;
 
