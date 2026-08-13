@@ -206,7 +206,7 @@ namespace MasterHouse
                     card.thumb.color = owned ? new Color(1f, 1f, 1f, .45f) : Color.white;
                 }
                 if (card.priceLabel != null)
-                    card.priceLabel.text = revealed ? $"◈ {entry.price:N0}" : string.Empty;
+                    card.priceLabel.text = revealed ? $"◈ {Economy.PriceOf(entry):N0}" : string.Empty;
                 if (card.mark != null)
                     card.mark.text = !revealed ? "？" : owned ? "已售罄" : string.Empty;
             }
@@ -228,11 +228,11 @@ namespace MasterHouse
                 view.itemName.text = entry == null ? string.Empty : revealed ? entry.displayName : "？？？";
             if (view.itemDesc != null)
                 view.itemDesc.text = entry == null ? string.Empty
-                    : !revealed ? $"声望达到 {entry.unlockReputation} 后解禁（当前 {Economy.Data.Reputation}）"
+                    : !revealed ? $"声望达到 {Economy.UnlockReputationOf(entry)} 后解禁（当前 {Economy.Data.Reputation}）"
                     : string.IsNullOrEmpty(entry.description) ? "还没有人为它写下介绍……" : entry.description;
             var owned = entry != null && Economy.IsFurnitureOwned(entry.id);
             if (view.priceLabel != null)
-                view.priceLabel.text = entry == null ? string.Empty : owned ? "已拥有" : revealed ? $"{entry.price:N0}" : "？";
+                view.priceLabel.text = entry == null ? string.Empty : owned ? "已拥有" : revealed ? $"{Economy.PriceOf(entry):N0}" : "？";
             if (view.buyButton != null) view.buyButton.interactable = entry != null && revealed && !owned;
         }
 
@@ -250,10 +250,10 @@ namespace MasterHouse
                     ShowObtained(entry);
                     break;
                 case FurniturePurchaseResult.NotEnoughCurrency:
-                    ui.ShowToast($"货币不足：需要 ◈ {entry.price:N0}，先去完成客人服务吧");
+                    ui.ShowToast($"货币不足：需要 ◈ {Economy.PriceOf(entry):N0}，先去完成客人服务吧");
                     break;
                 case FurniturePurchaseResult.ReputationLocked:
-                    ui.ShowToast($"声望达到 {entry.unlockReputation} 后解禁");
+                    ui.ShowToast($"声望达到 {Economy.UnlockReputationOf(entry)} 后解禁");
                     break;
                 default:
                     ui.ShowToast("已经拥有这件家具了");

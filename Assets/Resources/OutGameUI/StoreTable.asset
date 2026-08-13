@@ -1,0 +1,135 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5d25f10dd9c2ab4597882d73fc625ab, type: 3}
+  m_Name: StoreTable
+  m_EditorClassIdentifier: 
+  entries:
+  - furnitureId: 002
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 003
+    price: 100
+    unlockReputation: 0
+  - furnitureId: 004
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 005
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 006
+    price: 70
+    unlockReputation: 0
+  - furnitureId: 007
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 008
+    price: 70
+    unlockReputation: 0
+  - furnitureId: 010
+    price: 70
+    unlockReputation: 0
+  - furnitureId: 011
+    price: 70
+    unlockReputation: 0
+  - furnitureId: 012
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 013
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 014
+    price: 80
+    unlockReputation: 0
+  - furnitureId: 016
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 017
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 018
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 020
+    price: 40
+    unlockReputation: 0
+  - furnitureId: 021
+    price: 40
+    unlockReputation: 0
+  - furnitureId: 023
+    price: 130
+    unlockReputation: 0
+  - furnitureId: 024
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 032
+    price: 70
+    unlockReputation: 0
+  - furnitureId: 035
+    price: 40
+    unlockReputation: 0
+  - furnitureId: 036
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 037
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 038
+    price: 90
+    unlockReputation: 0
+  - furnitureId: 040
+    price: 200
+    unlockReputation: 0
+  - furnitureId: 041
+    price: 70
+    unlockReputation: 0
+  - furnitureId: 043
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 049
+    price: 60
+    unlockReputation: 0
+  - furnitureId: 051
+    price: 130
+    unlockReputation: 0
+  - furnitureId: 053
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 054
+    price: 100
+    unlockReputation: 0
+  - furnitureId: 055
+    price: 100
+    unlockReputation: 0
+  - furnitureId: 056
+    price: 220
+    unlockReputation: 0
+  - furnitureId: 057
+    price: 0
+    unlockReputation: 0
+  - furnitureId: 059
+    price: 120
+    unlockReputation: 0
+  - furnitureId: 060
+    price: 140
+    unlockReputation: 0
+  - furnitureId: 063
+    price: 80
+    unlockReputation: 0
+  - furnitureId: 064
+    price: 90
+    unlockReputation: 0
+  - furnitureId: 075
+    price: 200
+    unlockReputation: 0
+  - furnitureId: 077
+    price: 600
+    unlockReputation: 0

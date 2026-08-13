@@ -42,7 +42,7 @@ MonoBehaviour:
     rows: 2
     displayWidth: 77
     displayHeight: 194
-    price: 100
+    price: 0
     unlockReputation: 0
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 6fd2604882f672444b3e4f4f30322816, type: 3}
@@ -102,7 +102,7 @@ MonoBehaviour:
     rows: 1
     displayWidth: 94
     displayHeight: 113
-    price: 70
+    price: 0
     unlockReputation: 0
     decorationScore: 11
     sprite: {fileID: 21300000, guid: 9859e757e7ad85a4aa9d51f74ff36695, type: 3}
@@ -142,7 +142,7 @@ MonoBehaviour:
     rows: 2
     displayWidth: 76
     displayHeight: 137
-    price: 70
+    price: 0
     unlockReputation: 0
     decorationScore: 10
     sprite: {fileID: 21300000, guid: e3c494522300fa143b7258c3bded3071, type: 3}
@@ -162,7 +162,7 @@ MonoBehaviour:
     rows: 2
     displayWidth: 90
     displayHeight: 124
-    price: 70
+    price: 0
     unlockReputation: 0
     decorationScore: 11
     sprite: {fileID: 21300000, guid: ea40e911d19ff804da46fdaac87cc479, type: 3}
@@ -182,7 +182,7 @@ MonoBehaviour:
     rows: 1
     displayWidth: 131
     displayHeight: 84
-    price: 70
+    price: 0
     unlockReputation: 0
     decorationScore: 11
     sprite: {fileID: 21300000, guid: e1ba5871266aa024a975ba256c71c0de, type: 3}
@@ -242,7 +242,7 @@ MonoBehaviour:
     rows: 1
     displayWidth: 102
     displayHeight: 119
-    price: 80
+    price: 0
     unlockReputation: 0
     decorationScore: 12
     sprite: {fileID: 21300000, guid: d16f1b95b3f6db34baf4f4301f1a2b2c, type: 3}
@@ -322,7 +322,7 @@ MonoBehaviour:
     rows: 1
     displayWidth: 52
     displayHeight: 38
-    price: 40
+    price: 0
     unlockReputation: 0
     decorationScore: 5
     sprite: {fileID: 21300000, guid: 935fd1be942895a4da0eb258d3bfc229, type: 3}
@@ -342,7 +342,7 @@ MonoBehaviour:
     rows: 1
     displayWidth: 51
     displayHeight: 38
-    price: 40
+    price: 0
     unlockReputation: 0
     decorationScore: 5
     sprite: {fileID: 21300000, guid: 4c2bf5088826ccb4e8bfc2e0c86686a3, type: 3}
@@ -362,7 +362,7 @@ MonoBehaviour:
     rows: 3
     displayWidth: 95
     displayHeight: 209
-    price: 130
+    price: 0
     unlockReputation: 0
     decorationScore: 20
     sprite: {fileID: 21300000, guid: d41d8d1b5eaff5448ae5b274cb93ec87, type: 3}
@@ -402,7 +402,7 @@ MonoBehaviour:
     rows: 1
     displayWidth: 111
     displayHeight: 95
-    price: 70
+    price: 0
     unlockReputation: 0
     decorationScore: 11
     sprite: {fileID: 21300000, guid: 058ea7091fbc8bf48b0a4be9b7085c91, type: 3}
@@ -422,7 +422,7 @@ MonoBehaviour:
     rows: 1
     displayWidth: 92
     displayHeight: 72
-    price: 40
+    price: 0
     unlockReputation: 0
     decorationScore: 7
     sprite: {fileID: 21300000, guid: c4f525f5a83a5984090232bc99146412, type: 3}
@@ -482,7 +482,7 @@ MonoBehaviour:
     rows: 2
     displayWidth: 85
     displayHeight: 165
-    price: 90
+    price: 0
     unlockReputation: 0
     decorationScore: 14
     sprite: {fileID: 21300000, guid: ecc70caa0ed483847a6da792cafcc1ec, type: 3}
@@ -502,7 +502,7 @@ MonoBehaviour:
     rows: 2
     displayWidth: 158
     displayHeight: 187
-    price: 200
+    price: 0
     unlockReputation: 0
     decorationScore: 30
     sprite: {fileID: 21300000, guid: 7241903ce71a4c744a87b3bf4b21615c, type: 3}
@@ -522,7 +522,7 @@ MonoBehaviour:
     rows: 2
     displayWidth: 60
     displayHeight: 183
-    price: 70
+    price: 0
     unlockReputation: 0
     decorationScore: 11
     sprite: {fileID: 21300000, guid: 5e03d7e7337b41a4c8abab133b596676, type: 3}
@@ -562,7 +562,7 @@ MonoBehaviour:
     rows: 1
     displayWidth: 70
     displayHeight: 121
-    price: 60
+    price: 0
     unlockReputation: 0
     decorationScore: 8
     sprite: {fileID: 21300000, guid: ca12aca76629a674cbe7d6e021ce73ec, type: 3}
@@ -582,7 +582,7 @@ MonoBehaviour:
     rows: 2
     displayWidth: 124
     displayHeight: 163
-    price: 130
+    price: 0
     unlockReputation: 0
     decorationScore: 20
     sprite: {fileID: 21300000, guid: 8ec509d189b214e4c82fbf843bb0f254, type: 3}
@@ -622,7 +622,7 @@ MonoBehaviour:
     rows: 1
     displayWidth: 140
     displayHeight: 112
-    price: 100
+    price: 0
     unlockReputation: 0
     decorationScore: 16
     sprite: {fileID: 21300000, guid: ab992e58d10fd57489b5f9c3ec43602d, type: 3}
@@ -642,7 +642,7 @@ MonoBehaviour:
     rows: 1
     displayWidth: 194
     displayHeight: 79
-    price: 100
+    price: 0
     unlockReputation: 0
     decorationScore: 15
     sprite: {fileID: 21300000, guid: b6fa0d471928f574bb43a0e9b9a5e566, type: 3}
@@ -662,7 +662,7 @@ MonoBehaviour:
     rows: 1
     displayWidth: 275
     displayHeight: 119
-    price: 220
+    price: 0
     unlockReputation: 0
     decorationScore: 33
     sprite: {fileID: 21300000, guid: 6f9591961231cee419654d526084f37b, type: 3}
@@ -702,7 +702,7 @@ MonoBehaviour:
     rows: 2
     displayWidth: 114
     displayHeight: 160
-    price: 120
+    price: 0
     unlockReputation: 0
     decorationScore: 18
     sprite: {fileID: 21300000, guid: d1071e6e344400c40b5eebd31f75b17c, type: 3}
@@ -722,7 +722,7 @@ MonoBehaviour:
     rows: 2
     displayWidth: 148
     displayHeight: 140
-    price: 140
+    price: 0
     unlockReputation: 0
     decorationScore: 21
     sprite: {fileID: 21300000, guid: e83c74f2a2765a447bbf531c96621e6e, type: 3}
@@ -742,7 +742,7 @@ MonoBehaviour:
     rows: 2
     displayWidth: 65
     displayHeight: 181
-    price: 80
+    price: 0
     unlockReputation: 0
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 0cd655c153c77d6408600f7281ee3977, type: 3}
@@ -762,7 +762,7 @@ MonoBehaviour:
     rows: 2
     displayWidth: 62
     displayHeight: 208
-    price: 90
+    price: 0
     unlockReputation: 0
     decorationScore: 13
     sprite: {fileID: 21300000, guid: 14b6b22d829086742b37c108b40daf1d, type: 3}
@@ -782,7 +782,7 @@ MonoBehaviour:
     rows: 2
     displayWidth: 161
     displayHeight: 188
-    price: 200
+    price: 0
     unlockReputation: 0
     decorationScore: 30
     sprite: {fileID: 21300000, guid: d5160ece572442049a44adc97f5071d5, type: 3}
@@ -802,7 +802,7 @@ MonoBehaviour:
     rows: 3
     displayWidth: 363
     displayHeight: 294
-    price: 600
+    price: 0
     unlockReputation: 0
     decorationScore: 60
     sprite: {fileID: 21300000, guid: c3ebdb8ef5334ad43a772ea4dca4bc9b, type: 3}

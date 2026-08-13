@@ -51,16 +51,22 @@ namespace MasterHouse
         private readonly List<GameObject> slotInstances = new List<GameObject>();
         private FurnitureTable table;
         private Func<string, FurnitureSlotState> stateGetter;
+        /// <summary>售卖配置读取口（商店表，2026-08-13 拆表）：View 不摸表，由 Controller 注入（§11.4）。</summary>
+        private Func<FurnitureEntry, int> priceGetter;
+        private Func<FurnitureEntry, int> unlockGetter;
         private FurnitureSurfaceType currentTab = FurnitureSurfaceType.Floor;
         private int page;
         private bool chromeHidden;
         private Tween toastTween;
         private string popupFurnitureId;
 
-        public void Build(FurnitureTable table, Func<string, FurnitureSlotState> stateGetter)
+        public void Build(FurnitureTable table, Func<string, FurnitureSlotState> stateGetter,
+            Func<FurnitureEntry, int> priceGetter, Func<FurnitureEntry, int> unlockGetter)
         {
             this.table = table;
             this.stateGetter = stateGetter;
+            this.priceGetter = priceGetter;
+            this.unlockGetter = unlockGetter;
 
             // 画布生命周期归代码，布局归 Prefab（§16.2）
             root = new GameObject("FurnitureModeHud", typeof(RectTransform), typeof(Canvas),
@@ -221,10 +227,10 @@ namespace MasterHouse
             if (slot.placedLabel != null) slot.placedLabel.gameObject.SetActive(state == FurnitureSlotState.Placed);
             if (slot.lockMask != null) slot.lockMask.SetActive(state == FurnitureSlotState.Locked);
             if (slot.priceLabel != null && state == FurnitureSlotState.Locked)
-                slot.priceLabel.text = $"可购买\n<color=#D4A46B>◈ {entry.price}</color>";
+                slot.priceLabel.text = $"可购买\n<color=#D4A46B>◈ {priceGetter(entry)}</color>";
             if (slot.unknownMask != null) slot.unknownMask.SetActive(state == FurnitureSlotState.Unknown);
             if (slot.unknownRequirement != null && state == FurnitureSlotState.Unknown)
-                slot.unknownRequirement.text = $"声望 {entry.unlockReputation} 解禁";
+                slot.unknownRequirement.text = $"声望 {unlockGetter(entry)} 解禁";
 
             var trigger = go.AddComponent<EventTrigger>();
             var press = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
@@ -313,12 +319,13 @@ namespace MasterHouse
             if (view == null || view.purchaseGroup == null) return;
             PopupOpen = true;
             popupFurnitureId = entry.id;
-            var enough = currency >= entry.price;
+            var price = priceGetter(entry);
+            var enough = currency >= price;
             if (view.purchaseTitle != null) view.purchaseTitle.text = $"购买「{entry.displayName}」";
             if (view.purchaseDesc != null)
                 view.purchaseDesc.text = enough
-                    ? $"花费 <color=#D4A46B>◈ {entry.price}</color>（当前 ◈ {currency:N0}）"
-                    : $"需要 <color=#D4A46B>◈ {entry.price}</color>，当前只有 ◈ {currency:N0}";
+                    ? $"花费 <color=#D4A46B>◈ {price}</color>（当前 ◈ {currency:N0}）"
+                    : $"需要 <color=#D4A46B>◈ {price}</color>，当前只有 ◈ {currency:N0}";
             if (view.purchaseConfirmButton != null) view.purchaseConfirmButton.interactable = enough;
             FadeGroup(view.purchaseGroup, 1f, true);
         }

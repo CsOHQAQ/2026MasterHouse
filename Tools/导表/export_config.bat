@@ -26,6 +26,14 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+echo [INFO] Exporting store table...
+python "%~dp0export_store.py"
+if %errorlevel% neq 0 (
+    echo [ERROR] Store export failed!
+    pause
+    exit /b 1
+)
+
 echo [INFO] Exporting furniture room table...
 python "%~dp0export_furniture_room.py"
 if %errorlevel% neq 0 (

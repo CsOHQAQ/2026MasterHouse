@@ -9,8 +9,8 @@ using UnityEngine;
 namespace MasterHouse.EditorTools
 {
     /// <summary>
-    /// 家具两表导表工具（流程仿 CatVsDog 的 export_config.bat）：
-    /// 策划编辑 Excel/家具表.xlsx / 家具房间表.xlsx → 双击 Tools/导表/export_config.bat
+    /// 家具三表导表工具（流程仿 CatVsDog 的 export_config.bat）：
+    /// 策划编辑 Excel/家具表.xlsx / 商店表.xlsx / 家具房间表.xlsx → 双击 Tools/导表/export_config.bat
     /// 导出 Assets/Configs/*.csv → CSV 在 Assets 内，资产管线检测到变化即由 CsvPostprocessor
     /// **自动整表重建**对应 SO（FurnitureTable / FurnitureRoomTable），Unity 开着关着都不需要额外步骤。
     /// 精灵图在表里写 Resources 相对路径（如 OutGameUI/Furniture/table），导入时解析回 Sprite 引用。
@@ -19,11 +19,13 @@ namespace MasterHouse.EditorTools
     public static class FurnitureCsvImporter
     {
         private const string FurnitureAssetPath = "Assets/Resources/OutGameUI/FurnitureTable.asset";
+        private const string StoreAssetPath = "Assets/Resources/OutGameUI/StoreTable.asset";
         private const string RoomAssetPath = "Assets/Resources/OutGameUI/FurnitureRoomTable.asset";
         private const string AutoImportPrefKey = "MasterHouse.FurnitureCsvAutoImport";
         /// <summary>CSV 落在 Assets 内（Assets/Configs/），资产管线才能自动感知变化。</summary>
         private const string ConfigsDir = "Assets/Configs";
         private const string FurnitureCsvPath = ConfigsDir + "/家具表.csv";
+        private const string StoreCsvPath = ConfigsDir + "/商店表.csv";
         private const string RoomCsvPath = ConfigsDir + "/家具房间表.csv";
 
         /// <summary>ExportAll 写 CSV 会触发资产重导入，用此标记跳过随之而来的一次自动导入（内容本就来自资产）。</summary>
@@ -56,7 +58,7 @@ namespace MasterHouse.EditorTools
             {
                 foreach (var path in imported)
                 {
-                    if (path != FurnitureCsvPath && path != RoomCsvPath) continue;
+                    if (path != FurnitureCsvPath && path != StoreCsvPath && path != RoomCsvPath) continue;
                     if (suppressNextAutoImport) { suppressNextAutoImport = false; return; }
                     if (!AutoImportEnabled) return;
                     Debug.Log("[导表] 检测到 Assets/Configs 配置表更新，自动导入…（可在菜单 MasterHouse → 家具系统 关闭）");
@@ -69,9 +71,12 @@ namespace MasterHouse.EditorTools
 
         private static readonly string[] FurnitureHeader =
         {
-            "id", "显示名", "分类", "描述", "表面类型", "占格列", "占格行", "显示宽", "显示高", "价格", "解禁声望", "装饰分", "精灵图",
+            "id", "显示名", "分类", "描述", "表面类型", "占格列", "占格行", "显示宽", "显示高", "装饰分", "精灵图",
             "桌面格启用", "桌面格列数", "桌面格宽", "桌面格高", "桌面格偏移X", "桌面高度",
         };
+
+        /// <summary>商店表（售卖配置）：按 id 合回 FurnitureTable 对应条目（2026-08-13 从家具表拆出）。</summary>
+        private static readonly string[] StoreHeader = { "id", "显示名", "价格", "解禁声望" };
 
         private static readonly string[] RoomHeader =
         {
@@ -81,29 +86,32 @@ namespace MasterHouse.EditorTools
 
         // ── 入口 ──
 
-        [MenuItem("MasterHouse/家具系统/从 CSV 导入家具两表")]
+        [MenuItem("MasterHouse/家具系统/从 CSV 导入家具三表")]
         public static void ImportAll()
         {
             var furniture = ImportFurnitureCsv();
+            var store = ImportStoreCsv(furniture);
             var rooms = ImportRoomCsv();
             AssetDatabase.SaveAssets();
-            Debug.Log($"[导表] 完成：家具 {furniture} 行、房间记录 {rooms} 行 → FurnitureTable / FurnitureRoomTable");
+            Debug.Log($"[导表] 完成：家具 {furniture.entries.Count} 行、商店 {store} 行、房间记录 {rooms} 行 " +
+                      "→ FurnitureTable / StoreTable / FurnitureRoomTable");
         }
 
-        [MenuItem("MasterHouse/家具系统/导出家具两表到 CSV")]
+        [MenuItem("MasterHouse/家具系统/导出家具三表到 CSV")]
         public static void ExportAll()
         {
             Directory.CreateDirectory(ConfigsDir);
             suppressNextAutoImport = true; // 导出内容本就来自资产，跳过随之而来的自动回导
             ExportFurnitureCsv();
+            ExportStoreCsv();
             ExportRoomCsv();
             AssetDatabase.Refresh();
-            Debug.Log($"[导表] 已导出到 {ConfigsDir}/家具表.csv、家具房间表.csv");
+            Debug.Log($"[导表] 已导出到 {ConfigsDir}/家具表.csv、商店表.csv、家具房间表.csv");
         }
 
         // ── 导入 ──
 
-        private static int ImportFurnitureCsv()
+        private static FurnitureTable ImportFurnitureCsv()
         {
             var rows = ReadCsv(FurnitureCsvPath, out var col);
             var table = LoadOrCreate<FurnitureTable>(FurnitureAssetPath);
@@ -121,8 +129,6 @@ namespace MasterHouse.EditorTools
                     rows = Int(row, col, "占格行", 1),
                     displayWidth = Float(row, col, "显示宽", 100f),
                     displayHeight = Float(row, col, "显示高", 100f),
-                    price = Int(row, col, "价格", 0),
-                    unlockReputation = Int(row, col, "解禁声望", 0),
                     decorationScore = Int(row, col, "装饰分", 0),
                     sprite = LoadSprite(Cell(row, col, "精灵图")),
                     tableSurface = new FurnitureTableSurfaceConfig
@@ -141,6 +147,41 @@ namespace MasterHouse.EditorTools
                     continue;
                 }
                 table.entries.Add(entry);
+            }
+            EditorUtility.SetDirty(table);
+            return table;
+        }
+
+        /// <summary>
+        /// 商店表 → StoreTable.asset（售卖配置独立成表，2026-08-13）。按 furnitureId 关联家具表：
+        /// 引用不存在的家具打 Warning 并跳过；家具不在商店表里 = 非卖品（价格 0 / 解禁 0，见 StoreTable 注释）。
+        /// </summary>
+        private static int ImportStoreCsv(FurnitureTable furniture)
+        {
+            var rows = ReadCsv(StoreCsvPath, out var col);
+            var table = LoadOrCreate<StoreTable>(StoreAssetPath);
+            table.entries.Clear();
+            var seen = new HashSet<string>();
+            foreach (var row in rows)
+            {
+                var id = Cell(row, col, "id");
+                if (string.IsNullOrEmpty(id)) continue;
+                if (furniture != null && furniture.Find(id) == null)
+                {
+                    Debug.LogWarning($"[导表] 商店表的 id「{id}」在家具表里不存在，该行已跳过");
+                    continue;
+                }
+                if (!seen.Add(id))
+                {
+                    Debug.LogWarning($"[导表] 商店表 id 重复：{id}，后一行已跳过");
+                    continue;
+                }
+                table.entries.Add(new StoreEntry
+                {
+                    furnitureId = id,
+                    price = Int(row, col, "价格", 0),
+                    unlockReputation = Int(row, col, "解禁声望", 0),
+                });
             }
             EditorUtility.SetDirty(table);
             return table.entries.Count;
@@ -240,13 +281,30 @@ namespace MasterHouse.EditorTools
             {
                 if (e == null) continue;
                 lines.Add(Line(e.id, e.displayName, e.category, e.description, SurfacesText(e.surfaces), e.cols, e.rows,
-                    e.displayWidth, e.displayHeight, e.price, e.unlockReputation, e.decorationScore,
+                    e.displayWidth, e.displayHeight, e.decorationScore,
                     SpritePath(e.sprite),
                     e.tableSurface != null && e.tableSurface.enabled ? "是" : "否",
                     e.tableSurface?.cols ?? 3, e.tableSurface?.cellWidth ?? 64f, e.tableSurface?.cellHeight ?? 56f,
                     e.tableSurface?.offsetX ?? 50f, e.tableSurface?.surfaceHeight ?? 146f));
             }
             WriteCsv(FurnitureCsvPath, lines);
+        }
+
+        private static void ExportStoreCsv()
+        {
+            var store = AssetDatabase.LoadAssetAtPath<StoreTable>(StoreAssetPath);
+            if (store == null) { Debug.LogError("[导表] 导出失败：StoreTable.asset 缺失"); return; }
+            var furniture = AssetDatabase.LoadAssetAtPath<FurnitureTable>(FurnitureAssetPath);
+            var lines = new List<string> { string.Join(",", StoreHeader) };
+            foreach (var e in store.entries)
+            {
+                if (e == null) continue;
+                // 显示名只为对照阅读，从家具表取
+                var known = furniture != null ? furniture.Find(e.furnitureId) : null;
+                lines.Add(Line(e.furnitureId, known != null ? known.displayName : string.Empty,
+                    e.price, e.unlockReputation));
+            }
+            WriteCsv(StoreCsvPath, lines);
         }
 
         private static void ExportRoomCsv()
@@ -280,7 +338,7 @@ namespace MasterHouse.EditorTools
         private static List<string[]> ReadCsv(string path, out Dictionary<string, int> columns)
         {
             if (!File.Exists(path))
-                throw new FileNotFoundException($"配置表缺失：{path}（可先用菜单「导出家具两表到 CSV」从当前资产生成）");
+                throw new FileNotFoundException($"配置表缺失：{path}（可先用菜单「导出家具三表到 CSV」从当前资产生成）");
             var rows = new List<string[]>();
             columns = null;
             foreach (var rawLine in File.ReadAllLines(path, Encoding.UTF8))

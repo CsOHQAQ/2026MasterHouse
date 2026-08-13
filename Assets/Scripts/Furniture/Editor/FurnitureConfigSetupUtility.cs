@@ -13,6 +13,7 @@ namespace MasterHouse.EditorTools
         private const string ResourceDir = "Assets/Resources/OutGameUI";
         private const string SpriteDir = ResourceDir + "/Furniture";
         private const string FurnitureTablePath = ResourceDir + "/FurnitureTable.asset";
+        private const string StoreTablePath = ResourceDir + "/StoreTable.asset";
         private const string RoomTablePath = ResourceDir + "/FurnitureRoomTable.asset";
         private const string EconomyConfigPath = ResourceDir + "/HouseEconomyConfig.asset";
 
@@ -27,6 +28,14 @@ namespace MasterHouse.EditorTools
                 FillDefaultFurniture(furniture);
                 AssetDatabase.CreateAsset(furniture, FurnitureTablePath);
                 created.Add(FurnitureTablePath);
+            }
+            var store = AssetDatabase.LoadAssetAtPath<StoreTable>(StoreTablePath);
+            if (store == null)
+            {
+                store = ScriptableObject.CreateInstance<StoreTable>();
+                FillDefaultStore(store);
+                AssetDatabase.CreateAsset(store, StoreTablePath);
+                created.Add(StoreTablePath);
             }
             var rooms = AssetDatabase.LoadAssetAtPath<FurnitureRoomTable>(RoomTablePath);
             if (rooms == null)
@@ -53,7 +62,7 @@ namespace MasterHouse.EditorTools
         public static void RebuildDefaults()
         {
             if (!EditorUtility.DisplayDialog("重建默认配置表",
-                    "将覆盖 FurnitureTable 与 FurnitureRoomTable 的全部行，手工调整会丢失。确认继续？",
+                    "将覆盖 FurnitureTable、StoreTable 与 FurnitureRoomTable 的全部行，手工调整会丢失。确认继续？",
                     "覆盖重建", "取消"))
                 return;
 
@@ -65,6 +74,15 @@ namespace MasterHouse.EditorTools
             }
             FillDefaultFurniture(furniture);
             EditorUtility.SetDirty(furniture);
+
+            var store = AssetDatabase.LoadAssetAtPath<StoreTable>(StoreTablePath);
+            if (store == null)
+            {
+                store = ScriptableObject.CreateInstance<StoreTable>();
+                AssetDatabase.CreateAsset(store, StoreTablePath);
+            }
+            FillDefaultStore(store);
+            EditorUtility.SetDirty(store);
 
             var rooms = AssetDatabase.LoadAssetAtPath<FurnitureRoomTable>(RoomTablePath);
             if (rooms == null)
@@ -95,7 +113,7 @@ namespace MasterHouse.EditorTools
         }
 
         private static FurnitureEntry Entry(string id, string name, FurnitureSurfaceType surface,
-            int cols, int rows, float width, float height, int price, int unlockReputation, int decorationScore,
+            int cols, int rows, float width, float height, int decorationScore,
             FurnitureTableSurfaceConfig table = null)
         {
             return new FurnitureEntry
@@ -107,35 +125,53 @@ namespace MasterHouse.EditorTools
                 rows = rows,
                 displayWidth = width,
                 displayHeight = height,
-                price = price,
-                unlockReputation = unlockReputation,
                 decorationScore = decorationScore,
                 sprite = LoadSprite(id),
                 tableSurface = table ?? new FurnitureTableSurfaceConfig(),
             };
         }
 
+        private static StoreEntry Sale(string furnitureId, int price, int unlockReputation) =>
+            new StoreEntry { furnitureId = furnitureId, price = price, unlockReputation = unlockReputation };
+
         private static void FillDefaultFurniture(FurnitureTable table)
         {
-            // 价格=货币去处；解禁声望=声望的正反馈（初始声望 40，完成一次服务 +25）
             table.entries = new List<FurnitureEntry>
             {
                 // ── 起居室背景抠图切片 ──
-                Entry("table", "圆木茶几", FurnitureSurfaceType.Floor, 4, 2, 282, 184, 0, 0, 40,
+                Entry("table", "圆木茶几", FurnitureSurfaceType.Floor, 4, 2, 282, 184, 40,
                     new FurnitureTableSurfaceConfig { enabled = true, cols = 3, cellWidth = 64, cellHeight = 56, offsetX = 50, surfaceHeight = 146 }),
-                Entry("pouf", "黄绒蒲团", FurnitureSurfaceType.Floor, 3, 1, 180, 100, 0, 0, 15),
-                Entry("vase", "白花花瓶", FurnitureSurfaceType.Table, 1, 1, 117, 186, 0, 0, 10),
-                Entry("cups", "茶杯与书", FurnitureSurfaceType.Table, 1, 1, 116, 84, 0, 0, 8),
-                Entry("lamp", "红罩台灯", FurnitureSurfaceType.Table, 1, 1, 84, 112, 150, 60, 12),
-                Entry("picture", "山月挂画", FurnitureSurfaceType.Wall, 1, 2, 86, 118, 0, 0, 18),
-                Entry("hangplant", "悬挂绿植", FurnitureSurfaceType.Wall, 2, 3, 118, 162, 0, 0, 20),
-                Entry("bag", "帆布挂包", FurnitureSurfaceType.Wall, 1, 2, 82, 138, 300, 80, 10),
+                Entry("pouf", "黄绒蒲团", FurnitureSurfaceType.Floor, 3, 1, 180, 100, 15),
+                Entry("vase", "白花花瓶", FurnitureSurfaceType.Table, 1, 1, 117, 186, 10),
+                Entry("cups", "茶杯与书", FurnitureSurfaceType.Table, 1, 1, 116, 84, 8),
+                Entry("lamp", "红罩台灯", FurnitureSurfaceType.Table, 1, 1, 84, 112, 12),
+                Entry("picture", "山月挂画", FurnitureSurfaceType.Wall, 1, 2, 86, 118, 18),
+                Entry("hangplant", "悬挂绿植", FurnitureSurfaceType.Wall, 2, 3, 118, 162, 20),
+                Entry("bag", "帆布挂包", FurnitureSurfaceType.Wall, 1, 2, 82, 138, 10),
                 // ── 叙事家具（Furniture 目录原有素材） ──
-                Entry("whale-call", "鲸声电话亭", FurnitureSurfaceType.Floor, 4, 2, 250, 290, 500, 200, 80),
-                Entry("moon-planter", "月亮花架", FurnitureSurfaceType.Floor, 2, 1, 130, 150, 260, 120, 45),
-                Entry("dandelion-lamp", "蒲公英灯", FurnitureSurfaceType.Table, 1, 1, 80, 95, 180, 100, 30),
-                Entry("wind-chimes", "兔耳风铃", FurnitureSurfaceType.Wall, 1, 2, 90, 130, 220, 90, 35),
-                Entry("string-window", "琴弦窗户", FurnitureSurfaceType.Wall, 3, 3, 185, 160, 420, 160, 60),
+                Entry("whale-call", "鲸声电话亭", FurnitureSurfaceType.Floor, 4, 2, 250, 290, 80),
+                Entry("moon-planter", "月亮花架", FurnitureSurfaceType.Floor, 2, 1, 130, 150, 45),
+                Entry("dandelion-lamp", "蒲公英灯", FurnitureSurfaceType.Table, 1, 1, 80, 95, 30),
+                Entry("wind-chimes", "兔耳风铃", FurnitureSurfaceType.Wall, 1, 2, 90, 130, 35),
+                Entry("string-window", "琴弦窗户", FurnitureSurfaceType.Wall, 3, 3, 185, 160, 60),
+            };
+        }
+
+        /// <summary>
+        /// 商店表默认内容（2026-08-13 从家具表拆出）：价格=货币去处；解禁声望=声望的正反馈
+        /// （初始声望 40，完成一次服务 +25）。**不列在这里的家具即非卖品**（等价价格 0，初始拥有）。
+        /// </summary>
+        private static void FillDefaultStore(StoreTable table)
+        {
+            table.entries = new List<StoreEntry>
+            {
+                Sale("lamp", 150, 60),
+                Sale("bag", 300, 80),
+                Sale("whale-call", 500, 200),
+                Sale("moon-planter", 260, 120),
+                Sale("dandelion-lamp", 180, 100),
+                Sale("wind-chimes", 220, 90),
+                Sale("string-window", 420, 160),
             };
         }
 

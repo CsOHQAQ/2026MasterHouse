@@ -30,8 +30,7 @@ namespace MasterHouse
         [Tooltip("占格：行数")] public int rows = 1;
         [Tooltip("显示宽度（场景像素）")] public float displayWidth = 100f;
         [Tooltip("显示高度（场景像素）")] public float displayHeight = 100f;
-        [Tooltip("购买价格（货币）；0 = 初始拥有")] public int price;
-        [Tooltip("解禁所需声望；声望不足时在商城/收纳栏呈「？」")] public int unlockReputation;
+        // 售卖配置（价格 / 解禁声望）已于 2026-08-13 拆去 StoreTable，按 id 关联；读取走 EconomyManager
         [Tooltip("摆放后对 House 装饰分的贡献")] public int decorationScore = 10;
         [Tooltip("家具精灵（Assets/Resources/OutGameUI/Furniture）")] public Sprite sprite;
         [Tooltip("桌面格配置（仅地面家具生效）")] public FurnitureTableSurfaceConfig tableSurface = new FurnitureTableSurfaceConfig();

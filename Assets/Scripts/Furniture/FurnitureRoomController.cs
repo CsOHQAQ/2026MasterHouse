@@ -124,7 +124,7 @@ namespace MasterHouse
             BuildGrids();
 
             hud = new FurnitureRoomHud();
-            hud.Build(furnitureTable, GetSlotState);
+            hud.Build(furnitureTable, GetSlotState, Economy.PriceOf, Economy.UnlockReputationOf);
             hud.ExitClicked += Close;
             hud.GridToggleClicked += ToggleGrids;
             hud.SlotPressed += OnSlotPressed;
@@ -479,7 +479,7 @@ namespace MasterHouse
             {
                 if (!Economy.IsFurnitureRevealed(entry))
                 {
-                    hud.ShowToast($"「？」声望达到 {entry.unlockReputation} 后解禁（当前 {Economy.Data.Reputation}）");
+                    hud.ShowToast($"「？」声望达到 {Economy.UnlockReputationOf(entry)} 后解禁（当前 {Economy.Data.Reputation}）");
                     return;
                 }
                 hud.ShowPurchasePopup(entry, Economy.Data.Currency);
@@ -752,7 +752,7 @@ namespace MasterHouse
             {
                 SfxManager.Play(ESfx.Reward); // 音效需求 #7：商城购买成功（家具模式内的购买入口）
                 hud.RefreshInventory();
-                hud.ShowToast($"已购入「{entry.displayName}」 · ◈ -{entry.price}");
+                hud.ShowToast($"已购入「{entry.displayName}」 · ◈ -{Economy.PriceOf(entry)}");
             }
             else if (result == FurniturePurchaseResult.NotEnoughCurrency)
             {

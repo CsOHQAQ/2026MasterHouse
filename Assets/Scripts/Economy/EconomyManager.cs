@@ -17,7 +17,7 @@ namespace MasterHouse
     /// 流通数值逻辑（§16.3，旧 HouseEconomy 静态服务平移）：货币/声望/装饰分与家具所有权的唯一修改入口，
     /// 商城面板与家具摆放模式都从这里读写。纯事件驱动、不挂 tick（§16.4 只要求时钟与访客业务上 tick）。
     /// 与旧实现的唯一结构差异：不再反向读 OutGameUIData（§16.7 毒点①），房间/设备数量改由 CodexTable（Def 资产）统计。
-    /// 家具表/房间表仍在此加载（SO 配置属 Model 层，方向正常；并入 Def 体系是 3.8）。
+    /// 家具表/商店表/房间表仍在此加载（SO 配置属 Model 层，方向正常；并入 Def 体系是 3.8）。
     /// </summary>
     public class EconomyManager
     {
@@ -26,6 +26,8 @@ namespace MasterHouse
         private readonly EconomyConfig config;
         private readonly FurnitureTable furnitureTable;
         private readonly FurnitureRoomTable roomTable;
+        /// <summary>售卖配置（价格/解禁声望，2026-08-13 从家具表拆出）；缺失时全部按非卖品处理。</summary>
+        private readonly StoreTable storeTable;
 
         public EconomyData Data { get; } = new EconomyData();
 
@@ -39,10 +41,12 @@ namespace MasterHouse
         /// </summary>
         public event Action<EEconomyFeedback> Feedback;
 
-        public EconomyManager(CodexTable codex, FurnitureTable furnitureTable, FurnitureRoomTable roomTable)
+        public EconomyManager(CodexTable codex, FurnitureTable furnitureTable, FurnitureRoomTable roomTable,
+            StoreTable storeTable)
         {
             this.furnitureTable = furnitureTable;
             this.roomTable = roomTable;
+            this.storeTable = storeTable;
             var loaded = Resources.Load<EconomyConfig>(ConfigPath);
             if (loaded == null)
             {
@@ -133,16 +137,28 @@ namespace MasterHouse
 
         public bool IsFurnitureOwned(string furnitureId) => Data.OwnedFurniture.Contains(furnitureId);
 
+        /// <summary>
+        /// 家具售价（商店表，2026-08-13 拆表后的唯一读取口）。表缺失或家具不在表里 = 非卖品 → 0。
+        /// 表现层要显示价格/解禁门槛一律走本方法与 <see cref="UnlockReputationOf"/>，不直接摸表（§11.4）。
+        /// </summary>
+        public int PriceOf(FurnitureEntry entry) =>
+            entry != null && storeTable != null ? storeTable.PriceOf(entry.id) : 0;
+
+        /// <summary>家具解禁所需声望（商店表）。表缺失或家具不在表里 = 非卖品 → 0（始终可见）。</summary>
+        public int UnlockReputationOf(FurnitureEntry entry) =>
+            entry != null && storeTable != null ? storeTable.UnlockReputationOf(entry.id) : 0;
+
         /// <summary>声望是否已达到 Item 的解禁阈值（未达到时商城/收纳栏呈「？」）。</summary>
-        public bool IsFurnitureRevealed(FurnitureEntry entry) => entry != null && Data.Reputation >= entry.unlockReputation;
+        public bool IsFurnitureRevealed(FurnitureEntry entry) => entry != null && Data.Reputation >= UnlockReputationOf(entry);
 
         /// <summary>货币去处：购买装饰品。解禁（声望）与购买（货币）是两道独立的门。</summary>
         public FurniturePurchaseResult TryPurchaseFurniture(FurnitureEntry entry)
         {
             if (entry == null || Data.OwnedFurniture.Contains(entry.id)) return FurniturePurchaseResult.AlreadyOwned;
-            if (Data.Reputation < entry.unlockReputation) return FurniturePurchaseResult.ReputationLocked;
-            if (Data.Currency < entry.price) return FurniturePurchaseResult.NotEnoughCurrency;
-            Data.Currency -= entry.price;
+            var price = PriceOf(entry);
+            if (Data.Reputation < UnlockReputationOf(entry)) return FurniturePurchaseResult.ReputationLocked;
+            if (Data.Currency < price) return FurniturePurchaseResult.NotEnoughCurrency;
+            Data.Currency -= price;
             Data.OwnedFurniture.Add(entry.id);
             RaiseChanged();
             return FurniturePurchaseResult.Success;
@@ -229,12 +245,12 @@ namespace MasterHouse
             Data.FurnitureDecorScore = ComputeInitialFurnitureDecor();
         }
 
-        /// <summary>把 price<=0 的基础家具补进所有权集合。</summary>
+        /// <summary>把售价 &lt;=0 的基础家具补进所有权集合（含不在商店表里的非卖品）。</summary>
         private void AddFreeFurniture()
         {
             if (furnitureTable == null) return;
             foreach (var entry in furnitureTable.entries)
-                if (entry != null && entry.price <= 0) Data.OwnedFurniture.Add(entry.id);
+                if (entry != null && PriceOf(entry) <= 0) Data.OwnedFurniture.Add(entry.id);
         }
 
         /// <summary>家具模式尚未打开时，用房间表初始摆放估算装饰品得分基线。</summary>
