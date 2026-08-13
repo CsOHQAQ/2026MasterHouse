@@ -18,6 +18,7 @@ namespace MasterHouse.EditorTools
     {
         const string kNodeFolder = "Assets/GameData/Nodes";
         const string kIdentifierUserDataPrefix = "MasterHouse.NodeIdentifier=";
+        const string kTypeCodeUserDataPrefix = "MasterHouse.NodeTypeCode=";
 
         static readonly string[] kTypeNames =
         {
@@ -30,6 +31,7 @@ namespace MasterHouse.EditorTools
             typeof(StorageNodeDef), typeof(ConditionNodeDef),
         };
         static readonly string[] kTypeCodes = { "Input", "Pro", "Con", "Out", "Cond" };
+        static readonly string[] kNodeDefTypeNames = { "资源型", "加工型", "中转型", "仓库型", "条件型" };
         static readonly string[] kFacingNames = { "上", "右", "下", "左" }; // 与 EDirection4 枚举顺序一致
 
         NodeDef _target;
@@ -237,10 +239,11 @@ namespace MasterHouse.EditorTools
                 return;
             }
 
-            var def = (NodeDef)CreateInstance(kTypes[_newTypeIndex]);
+            // A 类型只决定 A_B_C 命名中的前缀；实际 SO 类型在右侧「类型字段」中转换。
+            var def = CreateInstance<ResourceNodeDef>();
             def.DisplayName = identifier;
             AssetDatabase.CreateAsset(def, path);
-            SetManagedIdentifier(path, identifier);
+            SetManagedNaming(path, kTypeCodes[_newTypeIndex], identifier);
             AssetDatabase.SaveAssets();
 
             RefreshList();
@@ -273,14 +276,25 @@ namespace MasterHouse.EditorTools
         static string BuildAssetName(string typeCode, int width, int height, string identifier)
             => $"{typeCode}_{width}x{height}_{identifier}";
 
-        static string TypeCode(NodeDef def)
+        static string GetManagedTypeCode(NodeDef def)
         {
-            if (def is ResourceNodeDef) return "Input";
-            if (def is ProcessorNodeDef) return "Pro";
-            if (def is TransitNodeDef) return "Con";
-            if (def is StorageNodeDef) return "Out";
-            if (def is ConditionNodeDef) return "Cond";
-            return null;
+            string path = AssetDatabase.GetAssetPath(def);
+            var importer = AssetImporter.GetAtPath(path);
+            if (importer != null && !string.IsNullOrEmpty(importer.userData))
+            {
+                foreach (string line in importer.userData.Split('\n'))
+                {
+                    if (!line.StartsWith(kTypeCodeUserDataPrefix, StringComparison.Ordinal)) continue;
+                    string code = line.Substring(kTypeCodeUserDataPrefix.Length).TrimEnd('\r');
+                    if (Array.IndexOf(kTypeCodes, code) >= 0) return code;
+                }
+            }
+
+            // 旧资产没有命名元数据时，从已有文件名读取 A；转换 SO 类型也不会改它。
+            string fileName = Path.GetFileNameWithoutExtension(path);
+            int separator = fileName.IndexOf('_');
+            string legacyCode = separator >= 0 ? fileName.Substring(0, separator) : null;
+            return Array.IndexOf(kTypeCodes, legacyCode) >= 0 ? legacyCode : null;
         }
 
         static void GetShapeSize(NodeDef def, out int width, out int height)
@@ -318,7 +332,7 @@ namespace MasterHouse.EditorTools
             return null;
         }
 
-        static void SetManagedIdentifier(string path, string identifier)
+        static void SetManagedNaming(string path, string typeCode, string identifier)
         {
             var importer = AssetImporter.GetAtPath(path);
             if (importer == null) return;
@@ -328,9 +342,11 @@ namespace MasterHouse.EditorTools
             {
                 foreach (string line in importer.userData.Split('\n'))
                     if (!string.IsNullOrWhiteSpace(line)
-                        && !line.StartsWith(kIdentifierUserDataPrefix, StringComparison.Ordinal))
+                        && !line.StartsWith(kIdentifierUserDataPrefix, StringComparison.Ordinal)
+                        && !line.StartsWith(kTypeCodeUserDataPrefix, StringComparison.Ordinal))
                         lines.Add(line.TrimEnd('\r'));
             }
+            lines.Add(kTypeCodeUserDataPrefix + typeCode);
             lines.Add(kIdentifierUserDataPrefix + identifier);
             importer.userData = string.Join("\n", lines);
             AssetDatabase.WriteImportSettingsIfDirty(path);
@@ -353,7 +369,7 @@ namespace MasterHouse.EditorTools
             string identifier = GetManagedIdentifier(def);
             if (string.IsNullOrEmpty(identifier)) return true; // 旧节点没有命名标记，不自动改名
 
-            string typeCode = TypeCode(def);
+            string typeCode = GetManagedTypeCode(def);
             if (string.IsNullOrEmpty(typeCode)) return true;
             GetShapeSize(def, out int width, out int height);
             string desiredName = BuildAssetName(typeCode, width, height, identifier);
@@ -445,6 +461,20 @@ namespace MasterHouse.EditorTools
         {
             GUILayout.Space(6);
             GUILayout.Label($"类型字段（{TypeName(_target)}型）", EditorStyles.boldLabel);
+
+            int currentTypeIndex = Array.IndexOf(kTypes, _target.GetType());
+            using (new EditorGUI.DisabledScope(currentTypeIndex < 0))
+            {
+                EditorGUI.BeginChangeCheck();
+                int targetTypeIndex = EditorGUILayout.Popup("SO 类型", currentTypeIndex, kNodeDefTypeNames);
+                if (EditorGUI.EndChangeCheck() && targetTypeIndex != currentTypeIndex)
+                    ConvertTargetType(kTypes[targetTypeIndex]);
+            }
+            EditorGUILayout.HelpBox(
+                "SO 类型决定节点运行规则与本区字段；左侧 A 类型只决定资产文件名的前缀。" +
+                "转换会保留资产 GUID、引用、显示名、形状和 Pin；目标类型专属字段会重置为默认值。",
+                MessageType.None);
+
             switch (_target)
             {
                 case ResourceNodeDef r: DrawResourceFields(r); break;
@@ -453,6 +483,122 @@ namespace MasterHouse.EditorTools
                 case TransitNodeDef t: DrawTransitFields(t); break;
                 case ConditionNodeDef c: DrawConditionFields(c); break;
             }
+        }
+
+        void ConvertTargetType(Type targetType)
+        {
+            if (_target == null || _target.GetType() == targetType) return;
+
+            string sourcePath = AssetDatabase.GetAssetPath(_target);
+            if (string.IsNullOrEmpty(sourcePath))
+            {
+                ShowNotification(new GUIContent("只能转换已保存的 NodeDef 资产。"));
+                return;
+            }
+
+            string targetName = kNodeDefTypeNames[Array.IndexOf(kTypes, targetType)];
+            if (!EditorUtility.DisplayDialog(
+                    "转换节点 SO 类型",
+                    $"将「{_target.name}」转换为{targetName}。\n\n" +
+                    "会保留 GUID、所有资产引用、显示名、形状与 Pin；目标类型专属字段将恢复默认值。" +
+                    "此资产文件级转换不能通过 Undo 撤回。",
+                    "转换", "取消"))
+                return;
+
+            NodeDef source = _target;
+            string temporaryPath = sourcePath + ".type-conversion.asset";
+            string sourceAbsolutePath = ToAbsoluteAssetPath(sourcePath);
+            string temporaryAbsolutePath = ToAbsoluteAssetPath(temporaryPath);
+
+            try
+            {
+                var replacement = (NodeDef)CreateInstance(targetType);
+                CopyBaseNodeFields(source, replacement);
+                ApplyTargetPinRules(replacement);
+                AssetDatabase.CreateAsset(replacement, temporaryPath);
+                AssetDatabase.SaveAssets();
+
+                FileUtil.ReplaceFile(temporaryAbsolutePath, sourceAbsolutePath);
+                FileUtil.DeleteFileOrDirectory(temporaryAbsolutePath);
+                FileUtil.DeleteFileOrDirectory(temporaryAbsolutePath + ".meta");
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+
+                var converted = AssetDatabase.LoadAssetAtPath<NodeDef>(sourcePath);
+                if (converted == null || converted.GetType() != targetType)
+                    throw new InvalidOperationException("转换后的资产类型校验失败。");
+
+                RefreshList();
+                SetTarget(converted);
+                ShowNotification(new GUIContent($"已转换为{targetName}；请检查右侧校验提示。"));
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+                SetTarget(AssetDatabase.LoadAssetAtPath<NodeDef>(sourcePath));
+                ShowNotification(new GUIContent("SO 类型转换失败，详情见 Console。"));
+            }
+        }
+
+        static string ToAbsoluteAssetPath(string assetPath)
+        {
+            string projectRoot = Path.GetDirectoryName(Application.dataPath);
+            return Path.Combine(projectRoot, assetPath).Replace('\\', '/');
+        }
+
+        static void CopyBaseNodeFields(NodeDef source, NodeDef destination)
+        {
+            destination.DisplayName = source.DisplayName;
+            destination.Shape = new GridGroup
+            {
+                Grids = source.Shape != null ? new List<GridData>(source.Shape.Grids) : new List<GridData>(),
+            };
+            destination.Pins = new List<PinLayout>();
+            foreach (var layout in source.Pins)
+            {
+                if (layout == null) continue;
+                var pin = layout.Pin;
+                destination.Pins.Add(new PinLayout
+                {
+                    LocalCell = layout.LocalCell,
+                    Facing = layout.Facing,
+                    Pin = new PinDef
+                    {
+                        ItemType = pin != null ? pin.ItemType : null,
+                        MaxRate = pin != null ? pin.MaxRate : 1,
+                        Direction = pin != null ? pin.Direction : EPinDirection.None,
+                        PairedPinIndex = pin != null ? pin.PairedPinIndex : -1,
+                    },
+                });
+            }
+        }
+
+        static void ApplyTargetPinRules(NodeDef def)
+        {
+            if (def is ProcessorNodeDef processor)
+            {
+                // 加工节点的 Pin 完全从配方派生；新类型尚无配方，因此清空。
+                processor.Pins.Clear();
+                return;
+            }
+
+            if (def is TransitNodeDef)
+            {
+                for (int i = 0; i < def.Pins.Count; i++)
+                {
+                    var pin = def.Pins[i].Pin;
+                    pin.ItemType = null;
+                    pin.Direction = EPinDirection.None;
+                    pin.PairedPinIndex = i % 2 == 0 && i + 1 < def.Pins.Count ? i + 1 :
+                        i % 2 == 1 ? i - 1 : -1;
+                }
+                return;
+            }
+
+            var forcedDirection = NodeDefEditUtil.ForcedDirection(def);
+            if (forcedDirection == null) return;
+            foreach (var layout in def.Pins)
+                layout.Pin.Direction = forcedDirection.Value;
         }
 
         void DrawResourceFields(ResourceNodeDef r)

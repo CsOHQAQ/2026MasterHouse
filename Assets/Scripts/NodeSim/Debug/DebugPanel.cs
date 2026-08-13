@@ -26,7 +26,7 @@ namespace MasterHouse
         private GameManager gm;
         private Vector2 scroll;
 
-        /// <summary>关卡列表（扫描 Assets/GameData/Level/，策划新建关卡零维护出现）。</summary>
+        /// <summary>关卡列表（同时扫描旧 Level/ 与新 Levels/，策划新建关卡零维护出现）。</summary>
         private readonly List<LevelDef> levelDefs = new List<LevelDef>();
 
         /// <summary>自由模式的项目全量节点列表。</summary>
@@ -74,7 +74,8 @@ namespace MasterHouse
         {
 #if UNITY_EDITOR
             levelDefs.Clear();
-            foreach (var guid in AssetDatabase.FindAssets("t:LevelDef", new[] { "Assets/GameData/Level" }))
+            foreach (var guid in AssetDatabase.FindAssets("t:LevelDef", new[]
+                     { "Assets/GameData/Level", "Assets/GameData/Levels" }))
             {
                 var def = AssetDatabase.LoadAssetAtPath<LevelDef>(AssetDatabase.GUIDToAssetPath(guid));
                 if (def != null) levelDefs.Add(def);
@@ -126,7 +127,7 @@ namespace MasterHouse
                     LoadLevel(def);
             }
             if (levelDefs.Count == 0)
-                GUILayout.Label("（Assets/GameData/Level/ 下无关卡资产）");
+                GUILayout.Label("（Assets/GameData/Level/ 或 Levels/ 下无关卡资产）");
 
             GUI.enabled = current != null;
             if (GUILayout.Button("关闭关卡（退出局内，数据与产出保留）"))
