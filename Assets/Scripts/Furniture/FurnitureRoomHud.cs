@@ -28,6 +28,8 @@ namespace MasterHouse
     public sealed class FurnitureRoomHud
     {
         public event Action ExitClicked;
+        /// <summary>「购买家具」：仓库只展示已拥有，购买走商店（控制器翻译成退出+开商店）。</summary>
+        public event Action StoreClicked;
         public event Action GridToggleClicked;
         /// <summary>槽位被按下（PointerDown，配合拖拽起手）。参数为家具 id。</summary>
         public event Action<string> SlotPressed;
@@ -99,6 +101,7 @@ namespace MasterHouse
             HouseUIUtil.ApplyFallbackFont(instance.transform);
 
             HouseUIUtil.BindButton(view.exitButton, () => ExitClicked?.Invoke());
+            if (view.storeButton != null) HouseUIUtil.BindButton(view.storeButton, () => StoreClicked?.Invoke());
             HouseUIUtil.BindButton(view.gridToggleButton, () => GridToggleClicked?.Invoke());
             HouseUIUtil.BindButton(view.hideUiButton, () => SetChromeHidden(true));
             HouseUIUtil.BindButton(view.restoreButton, () => SetChromeHidden(false));
@@ -135,8 +138,13 @@ namespace MasterHouse
         {
             var result = new List<FurnitureEntry>();
             foreach (var entry in table.entries)
-                if (entry != null && entry.Supports(surface)) // 多选表面：同一家具可出现在多个页签
-                    result.Add(entry);
+            {
+                if (entry == null || !entry.Supports(surface)) continue; // 多选表面：同一家具可出现在多个页签
+                // 仓库只展示已拥有的家具（2026-08-14）：购买一律走商店（家具模式里的「购买家具」按钮）
+                var state = stateGetter(entry.id);
+                if (state == FurnitureSlotState.Locked || state == FurnitureSlotState.Unknown) continue;
+                result.Add(entry);
+            }
             return result;
         }
 

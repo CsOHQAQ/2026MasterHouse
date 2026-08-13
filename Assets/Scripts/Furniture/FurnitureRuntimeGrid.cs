@@ -32,6 +32,8 @@ namespace MasterHouse
         public string HostItemId;
 
         private readonly Dictionary<Vector2Int, string> occupancy = new Dictionary<Vector2Int, string>();
+        /// <summary>叠放层占用（可叠放家具专用，与普通占用互不遮挡；见 FootprintFree 注释）。</summary>
+        private readonly Dictionary<Vector2Int, string> stackOccupancy = new Dictionary<Vector2Int, string>();
         private readonly Func<float, float, float, Vector3> pxToWorld;
         private readonly float zOffset;
         private GameObject root;
@@ -120,25 +122,41 @@ namespace MasterHouse
             return (scenePx.x - cx) * (scenePx.x - cx) + (scenePx.y - cy) * (scenePx.y - cy);
         }
 
-        public bool FootprintFree(int col, int row, int cols, int rows, string ignoreId)
+        public bool FootprintFree(int col, int row, int cols, int rows, string ignoreId, bool stackable = false)
         {
             if (col < 0 || row < 0 || col + cols > Cols || row + rows > Rows) return false;
-            for (var r = row; r < row + rows; r++)
-                for (var c = col; c < col + cols; c++)
-                    if (occupancy.TryGetValue(new Vector2Int(c, r), out var owner) && owner != ignoreId)
-                        return false;
-            return true;
-        }
-
-        public void SetOccupied(int col, int row, int cols, int rows, string ownerId, bool occupied)
-        {
             for (var r = row; r < row + rows; r++)
             {
                 for (var c = col; c < col + cols; c++)
                 {
                     var key = new Vector2Int(c, r);
-                    if (occupied) occupancy[key] = ownerId;
-                    else occupancy.Remove(key);
+                    if (stackable)
+                    {
+                        // 可叠放（地毯类）：不看普通占用（家具可以压在地毯上、地毯也可铺到家具脚下），
+                        // 只挡场景占用格与其他可叠放件（地毯不叠地毯）
+                        if (occupancy.TryGetValue(key, out var scene) && scene == SceneOccupant) return false;
+                        if (stackOccupancy.TryGetValue(key, out var other) && other != ignoreId) return false;
+                    }
+                    else
+                    {
+                        // 普通家具：无视叠放层（地毯不算占格）
+                        if (occupancy.TryGetValue(key, out var owner) && owner != ignoreId) return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        public void SetOccupied(int col, int row, int cols, int rows, string ownerId, bool occupied, bool stackable = false)
+        {
+            var layer = stackable ? stackOccupancy : occupancy;
+            for (var r = row; r < row + rows; r++)
+            {
+                for (var c = col; c < col + cols; c++)
+                {
+                    var key = new Vector2Int(c, r);
+                    if (occupied) layer[key] = ownerId;
+                    else layer.Remove(key);
                 }
             }
         }

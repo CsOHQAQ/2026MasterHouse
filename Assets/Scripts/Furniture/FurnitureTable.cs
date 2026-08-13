@@ -27,6 +27,8 @@ namespace MasterHouse
         [Tooltip("商店描述文案")] public string description;
         [Tooltip("可吸附的表面类型（可多选：如纸箱既可地面也可桌面；表格里用 / 分隔）")]
         public List<FurnitureSurfaceType> surfaces = new List<FurnitureSurfaceType> { FurnitureSurfaceType.Floor };
+        [Tooltip("可叠放（地毯类）：平铺在地面、不挡其他家具落格，渲染压在所有立式家具之下；同为可叠放的彼此仍互斥")]
+        public bool stackable;
         [Tooltip("占格：列数")] public int cols = 1;
         [Tooltip("占格：行数")] public int rows = 1;
         [Tooltip("显示宽度（场景像素）")] public float displayWidth = 100f;
@@ -34,6 +36,7 @@ namespace MasterHouse
         // 售卖配置（价格 / 解禁声望）已于 2026-08-13 拆去 StoreTable，按 id 关联；读取走 EconomyManager
         [Tooltip("摆放后对 House 装饰分的贡献")] public int decorationScore = 10;
         [Tooltip("家具精灵（Assets/Resources/OutGameUI/Furniture）")] public Sprite sprite;
+        [Tooltip("色块颜色（商店选色块 tint；导表按素材平均色自动生成，策划可在表里改）")] public Color swatchColor = Color.white;
         [Tooltip("专属拿起音效（空 = 用全局默认 FurniturePickup）")] public AudioClip pickupSound;
         [Tooltip("专属放下音效（空 = 用全局默认 FurniturePlace）")] public AudioClip putdownSound;
         [Tooltip("桌面格配置（仅地面家具生效）")] public FurnitureTableSurfaceConfig tableSurface = new FurnitureTableSurfaceConfig();

@@ -26,6 +26,8 @@ namespace MasterHouse
         private const int OrderWallGrid = 10;
         private const int OrderWallItemBase = 20;
         private const int OrderFloorGrid = 60;
+        /// <summary>可叠放家具（地毯类）的渲染带：压在所有立式地面家具（OrderFloorItemBase 起）之下。</summary>
+        private const int OrderFloorStackableBase = 70;
         private const int OrderFloorItemBase = 100;
         private const int OrderGhost = 400;
 
@@ -84,8 +86,9 @@ namespace MasterHouse
         private string lastClickItemId;
         private float lastClickTime;
 
-        /// <summary>打开家具模式并加载指定房间（随 Hub 当前房间动态加载；下标越界回落 0）。配置表缺失时返回 false。</summary>
-        public static bool Open(int roomIndex, Action onClosed)
+        /// <summary>打开家具模式并加载指定房间（随 Hub 当前房间动态加载；下标越界回落 0）。配置表缺失时返回 false。
+        /// onStoreRequested：玩家点「购买家具」→ 本模式先正常关闭（含 onClosed 收尾），随后由页面打开商店。</summary>
+        public static bool Open(int roomIndex, Action onClosed, Action onStoreRequested = null)
         {
             if (active != null) return true;
             // 家具表并入 Def 体系（§16.7）：统一由 GameManager 加载
@@ -104,11 +107,12 @@ namespace MasterHouse
             }
             var go = new GameObject("FurnitureRoomMode");
             active = go.AddComponent<FurnitureRoomController>();
-            active.Init(furniture, roomEntry, onClosed);
+            active.Init(furniture, roomEntry, onClosed, onStoreRequested);
             return true;
         }
 
-        private void Init(FurnitureTable furniture, FurnitureRoomEntry roomEntry, Action closedCallback)
+        private void Init(FurnitureTable furniture, FurnitureRoomEntry roomEntry, Action closedCallback,
+            Action onStoreRequested = null)
         {
             furnitureTable = furniture;
             room = roomEntry;
@@ -126,6 +130,8 @@ namespace MasterHouse
             hud = new FurnitureRoomHud();
             hud.Build(furnitureTable, GetSlotState, Economy.PriceOf, Economy.UnlockReputationOf);
             hud.ExitClicked += Close;
+            // 购买家具：先正常关闭（存布局、恢复壳 Canvas），再由页面开商店
+            hud.StoreClicked += () => { Close(); onStoreRequested?.Invoke(); };
             hud.GridToggleClicked += ToggleGrids;
             hud.SlotPressed += OnSlotPressed;
             hud.PurchaseConfirmed += OnPurchaseConfirmed;
@@ -249,7 +255,8 @@ namespace MasterHouse
             {
                 var bottomRow = item.Row + entry.rows;
                 bottomPy = grid.Y + bottomRow * grid.CellHeight;
-                order = OrderFloorItemBase + bottomRow * 10;
+                // 可叠放（地毯）平铺地面：始终压在立式家具之下（带内仍按深度行排前后）
+                order = entry.stackable ? OrderFloorStackableBase + bottomRow : OrderFloorItemBase + bottomRow * 10;
                 z = ZFloorPerRow * bottomRow;
                 return;
             }
@@ -308,7 +315,7 @@ namespace MasterHouse
             if (entry.sprite != null)
                 item.Root.transform.localScale = SpriteScale(entry.sprite, entry.displayWidth, entry.displayHeight);
             items[item.Id] = item;
-            grid.SetOccupied(col, row, entry.cols, entry.rows, item.Id, true);
+            grid.SetOccupied(col, row, entry.cols, entry.rows, item.Id, true, entry.stackable);
 
             if (entry.tableSurface != null && entry.tableSurface.enabled)
             {
@@ -354,7 +361,7 @@ namespace MasterHouse
                 }
             }
             if (grids.TryGetValue(item.GridId, out var grid))
-                grid.SetOccupied(item.Col, item.Row, item.Entry.cols, item.Entry.rows, item.Id, false);
+                grid.SetOccupied(item.Col, item.Row, item.Entry.cols, item.Entry.rows, item.Id, false, item.Entry.stackable);
             Destroy(item.Root);
             items.Remove(item.Id);
             RefreshAllGridColors();
@@ -370,11 +377,11 @@ namespace MasterHouse
         private void MoveItem(FurnitureRuntimeItem item, string gridId, int col, int row)
         {
             if (grids.TryGetValue(item.GridId, out var from))
-                from.SetOccupied(item.Col, item.Row, item.Entry.cols, item.Entry.rows, item.Id, false);
+                from.SetOccupied(item.Col, item.Row, item.Entry.cols, item.Entry.rows, item.Id, false, item.Entry.stackable);
             item.GridId = gridId;
             item.Col = col;
             item.Row = row;
-            grids[gridId].SetOccupied(col, row, item.Entry.cols, item.Entry.rows, item.Id, true);
+            grids[gridId].SetOccupied(col, row, item.Entry.cols, item.Entry.rows, item.Id, true, item.Entry.stackable);
             LayoutItem(item);
             SyncTableGrid(item);
             item.Root.transform.DOPunchScale(Vector3.one * .045f, .28f, 6, .7f).SetTarget(this);
@@ -540,7 +547,7 @@ namespace MasterHouse
                     }
                     if (grids.TryGetValue(TableGridId(item.Id), out var tableGrid)) tableGrid.SetVisible(false);
                 }
-                grids[item.GridId].SetOccupied(item.Col, item.Row, entry.cols, entry.rows, item.Id, false);
+                grids[item.GridId].SetOccupied(item.Col, item.Row, entry.cols, entry.rows, item.Id, false, entry.stackable);
                 item.Root.SetActive(false);
             }
 
@@ -607,7 +614,7 @@ namespace MasterHouse
                 drag.CandidateGrid = best;
                 drag.CandidateCol = col;
                 drag.CandidateRow = row;
-                drag.CandidateOk = best.FootprintFree(col, row, entry.cols, entry.rows, drag.Item?.Id);
+                drag.CandidateOk = best.FootprintFree(col, row, entry.cols, entry.rows, drag.Item?.Id, entry.stackable);
                 best.PaintPreview(col, row, entry.cols, entry.rows, drag.CandidateOk);
             }
 
@@ -648,7 +655,7 @@ namespace MasterHouse
                 if (state.Item == null) return;
                 state.Item.Root.SetActive(true);
                 grids[state.Item.GridId].SetOccupied(state.Item.Col, state.Item.Row,
-                    state.Entry.cols, state.Entry.rows, state.Item.Id, true);
+                    state.Entry.cols, state.Entry.rows, state.Item.Id, true, state.Entry.stackable);
                 if (state.Entry.tableSurface != null && state.Entry.tableSurface.enabled)
                 {
                     if (grids.TryGetValue(TableGridId(state.Item.Id), out var tableGrid)) tableGrid.SetVisible(true);
@@ -852,7 +859,7 @@ namespace MasterHouse
                 if (placement == null || !string.IsNullOrEmpty(placement.hostFurnitureId)) continue;
                 var entry = furnitureTable.Find(placement.furnitureId);
                 if (entry == null || !grids.TryGetValue(placement.gridId ?? string.Empty, out var grid)) continue;
-                if (!grid.FootprintFree(placement.col, placement.row, entry.cols, entry.rows, null)) continue;
+                if (!grid.FootprintFree(placement.col, placement.row, entry.cols, entry.rows, null, entry.stackable)) continue;
                 PlaceItem(entry, placement.gridId, placement.col, placement.row, true, placement.flipped);
             }
             foreach (var placement in placements)
@@ -864,7 +871,7 @@ namespace MasterHouse
                 foreach (var item in items.Values)
                     if (item.Entry.id == placement.hostFurnitureId) { host = item; break; }
                 if (host == null || !grids.TryGetValue(TableGridId(host.Id), out var grid)) continue;
-                if (!grid.FootprintFree(placement.col, placement.row, entry.cols, entry.rows, null)) continue;
+                if (!grid.FootprintFree(placement.col, placement.row, entry.cols, entry.rows, null, entry.stackable)) continue;
                 PlaceItem(entry, grid.Id, placement.col, placement.row, true, placement.flipped);
             }
         }

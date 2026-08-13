@@ -16,6 +16,8 @@ namespace MasterHouse
         public Button gridToggleButton;
         public Text gridToggleLabel;
         public Button exitButton;
+        [Tooltip("购买家具：退出摆放模式并打开商店（仓库只展示已拥有，购买一律走商店）")]
+        public Button storeButton;
 
         [Header("「显示界面」小按钮（隐藏态唯一入口）")]
         public CanvasGroup restoreGroup;

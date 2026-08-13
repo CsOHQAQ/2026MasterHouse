@@ -174,7 +174,8 @@ namespace MasterHouse
             {
                 var bottomRow = placement.row + entry.rows;
                 bottom = grid.y + bottomRow * grid.cellHeight;
-                order = 100 + bottomRow * 10;
+                // 与 FurnitureRoomController.AnchorOf 同口径：可叠放（地毯）压在立式家具之下
+                order = entry.stackable ? 70 + bottomRow : 100 + bottomRow * 10;
             }
             else
             {
