@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e3aa6232787cda8449bb6f57425f5fb2, type: 3}
-  m_Name: Con_2x2_SimCon01.asset.type-conversion
+  m_Name: Con_2x2_SimCon01
   m_EditorClassIdentifier: 
   DisplayName: SimCon01
   Shape:
@@ -25,17 +25,14 @@ MonoBehaviour:
       Type: 0
   Pins:
   - Pin:
-      ItemType: {fileID: 11400000, guid: ee29202ad5bca734f9366d84a23f9b2f, type: 2}
       MaxRate: 1
       Direction: 0
-      PairedPinIndex: 1
+      PinGroup: 1
     LocalCell: {x: 0, y: 1}
     Facing: 3
   - Pin:
-      ItemType: {fileID: 11400000, guid: ee29202ad5bca734f9366d84a23f9b2f, type: 2}
       MaxRate: 1
       Direction: 0
-      PairedPinIndex: 0
+      PinGroup: 1
     LocalCell: {x: 1, y: 1}
     Facing: 1
-  StorageCapPerItem: 1
