@@ -260,7 +260,8 @@ namespace MasterHouse
             // 日出过场：补夜幕结算正文与点击提示；顺带清掉已退役的太阳节点（2026-08-14）
             repaired |= RepairPrefab<OutGameDayTransitionView>(DayTransitionPath,
                 (root, view) => AppendDayTransitionSettleNodes(view),
-                view => view.bodyLabel == null || view.hintLabel == null || view.transform.Find("SunDisc") != null);
+                view => view.bodyLabel == null || view.hintLabel == null || view.cycleFrames == null ||
+                        view.transform.Find("SunDisc") != null);
             return repaired;
         }
 
@@ -1507,6 +1508,40 @@ namespace MasterHouse
                     new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -235), new Vector2(500, 34),
                     TextAnchor.MiddleCenter, FontStyle.Normal);
             RemoveDayTransitionSunNodes(view);
+            AppendDayTransitionCycleNodes(view);
+        }
+
+        /// <summary>
+        /// 日出过场增量（2026-08-14 视频分帧背景）：全屏分帧画布 + 结算文案迁到左上角（用户定案）。
+        /// 画布默认隐藏，运行时有帧素材才启用；文案只在仍处于旧版居中位时迁移，手调过不动。
+        /// </summary>
+        private static void AppendDayTransitionCycleNodes(OutGameDayTransitionView view)
+        {
+            if (view.cycleFrames != null) return;
+            var raw = Raw(view.transform, "CycleFrames", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            raw.raycastTarget = true; // 过场期间挡输入 + 充当「点击任意处」的点击面
+            view.cycleFrames = raw;
+            // 层序：夜空/光晕之上、结算文字之下
+            if (view.glow != null) raw.transform.SetSiblingIndex(view.glow.transform.GetSiblingIndex() + 1);
+            raw.gameObject.SetActive(false);
+            // 结算讯息迁往左上角（帧画面主体在中央，文字避让）；深色衬底保证白字可读
+            var scrim = Image(view.transform, "SettleScrim", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(390, -195), new Vector2(720, 330), new Color(0, 0, 0, .45f));
+            scrim.raycastTarget = false;
+            scrim.transform.SetSiblingIndex(raw.transform.GetSiblingIndex() + 1);
+            MoveToTopLeft(view.dayLabel, new Vector2(340, -80), TextAnchor.MiddleLeft);
+            MoveToTopLeft(view.bodyLabel, new Vector2(390, -240), TextAnchor.UpperLeft);
+        }
+
+        /// <summary>把仍在屏幕中央默认位的文字迁到左上角锚区；已手调过（锚点非中心）则不动。</summary>
+        private static void MoveToTopLeft(Text label, Vector2 position, TextAnchor alignment)
+        {
+            if (label == null) return;
+            var rect = label.rectTransform;
+            if (rect.anchorMin != new Vector2(.5f, .5f)) return; // 已被手调离开默认锚，尊重现状
+            rect.anchorMin = rect.anchorMax = new Vector2(0, 1);
+            rect.anchoredPosition = position;
+            label.alignment = alignment;
         }
 
         /// <summary>太阳特效已退役（2026-08-14 用户定案）：清掉此前增量补进 Prefab 的太阳节点。</summary>

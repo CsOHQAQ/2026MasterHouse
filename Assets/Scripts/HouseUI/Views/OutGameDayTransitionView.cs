@@ -17,5 +17,7 @@ namespace MasterHouse
         public Text bodyLabel;
         /// <summary>「点击任意处 · 开始新的一天」提示。</summary>
         public Text hintLabel;
+        /// <summary>日夜交替分帧画布（2026-08-14）：过场期间循环播放绘本风分帧序列；无帧素材时保持隐藏走纯色夜空。</summary>
+        public RawImage cycleFrames;
     }
 }
