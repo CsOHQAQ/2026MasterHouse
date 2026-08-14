@@ -14,8 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   openMinute: 480
   closeMinute: 1320
-  needPromptMinTicks: 60
-  needPromptMaxTicks: 180
   bubbleIntervalTicks: 120
   bubbleJitterTicks: 40
   bubbleHoldTicks: 40

@@ -19,7 +19,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: "\u4F60\u597D\uFF0C\u6253\u6270\u4E86\u2026\u2026\u8BF7\u95EE\u4ECA\u665A\u8FD8\u6709\u7A7A\u623F\u5417\uFF1F"
-        emotion: 0
+        portraitId: "fox_\u5E73\u9759"
       actions: []
       options: []
       sourceRow: 3
@@ -27,7 +27,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: 
-        emotion: 0
+        portraitId: 
       actions: []
       options:
       - text: "\u6709\u7684\uFF0C\u8BF7\u8FDB"
@@ -39,7 +39,7 @@ MonoBehaviour:
           line:
             speaker: 0
             text: Accept
-            emotion: 0
+            portraitId: 
           actions:
           - func: Accept
             args: []
@@ -48,7 +48,7 @@ MonoBehaviour:
           line:
             speaker: 0
             text: "\u592A\u597D\u4E86\uFF0C\u8C22\u8C22\u4F60\uFF01"
-            emotion: 1
+            portraitId: "fox_\u5E73\u9759"
           actions: []
           sourceRow: 6
         sourceRow: 4
@@ -59,7 +59,7 @@ MonoBehaviour:
           line:
             speaker: 0
             text: Reject
-            emotion: 0
+            portraitId: 
           actions:
           - func: Reject
             args: []
@@ -68,7 +68,7 @@ MonoBehaviour:
           line:
             speaker: 0
             text: "\u8FD9\u6837\u554A\u2026\u2026\u90A3\u6211\u6539\u5929\u518D\u6765\u3002"
-            emotion: 3
+            portraitId: "fox_\u5E73\u9759"
           actions: []
           sourceRow: 9
         sourceRow: 7
@@ -79,7 +79,7 @@ MonoBehaviour:
           line:
             speaker: 0
             text: "\u597D\u7684\uFF0C\u6211\u5728\u8FD9\u513F\u7B49\u7740\u3002"
-            emotion: 0
+            portraitId: "fox_\u5E73\u9759"
           actions: []
           sourceRow: 11
         sourceRow: 10
@@ -91,7 +91,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: "\u6211\u8FD8\u80FD\u518D\u7B49\u4E00\u4F1A\u513F\uFF0C\u4F60\u5148\u5FD9\u3002"
-        emotion: 0
+        portraitId: "fox_\u5E73\u9759"
       actions: []
       options: []
       sourceRow: 12
@@ -99,7 +99,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: 
-        emotion: 0
+        portraitId: 
       actions: []
       options:
       - text: "\u4E45\u7B49\u4E86\uFF0C\u8BF7\u8FDB"
@@ -111,7 +111,7 @@ MonoBehaviour:
           line:
             speaker: 0
             text: Accept
-            emotion: 0
+            portraitId: 
           actions:
           - func: Accept
             args: []
@@ -120,7 +120,7 @@ MonoBehaviour:
           line:
             speaker: 0
             text: "\u8C22\u8C22\u4F60\uFF01"
-            emotion: 1
+            portraitId: "fox_\u5E73\u9759"
           actions: []
           sourceRow: 15
         sourceRow: 13
@@ -131,7 +131,7 @@ MonoBehaviour:
           line:
             speaker: 0
             text: Reject
-            emotion: 0
+            portraitId: 
           actions:
           - func: Reject
             args: []
@@ -140,7 +140,7 @@ MonoBehaviour:
           line:
             speaker: 0
             text: "\u8FD9\u6837\u554A\u2026\u2026\u90A3\u6211\u6539\u5929\u518D\u6765\u3002"
-            emotion: 3
+            portraitId: "fox_\u5E73\u9759"
           actions: []
           sourceRow: 18
         sourceRow: 16
@@ -156,7 +156,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: "{\u9700\u6C42}"
-        emotion: 2
+        portraitId: "fox_\u5E73\u9759"
       actions: []
       options: []
       sourceRow: 20
@@ -164,7 +164,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: 
-        emotion: 0
+        portraitId: 
       actions: []
       options:
       - text: "\u6211\u6765\u770B\u770B"
@@ -174,7 +174,7 @@ MonoBehaviour:
           line:
             speaker: 0
             text: StartMinigame
-            emotion: 0
+            portraitId: 
           actions:
           - func: StartMinigame
             args: []
@@ -187,7 +187,7 @@ MonoBehaviour:
           line:
             speaker: 0
             text: "\u597D\uFF0C\u6211\u7B49\u7740\u3002"
-            emotion: 0
+            portraitId: "fox_\u5E73\u9759"
           actions: []
           sourceRow: 24
         sourceRow: 23
@@ -199,7 +199,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: "{\u9700\u6C42}"
-        emotion: 0
+        portraitId: "fox_\u5E73\u9759"
       actions: []
       options: []
       sourceRow: 25
@@ -207,7 +207,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: 
-        emotion: 0
+        portraitId: 
       actions: []
       options:
       - text: "\u6211\u628A\u4F60\u8981\u7684\u642C\u6765\u4E86"
@@ -219,14 +219,14 @@ MonoBehaviour:
           line:
             speaker: 0
             text: "\u5C31\u662F\u8FD9\u4E2A\uFF01\u592A\u8C22\u8C22\u4F60\u4E86\u3002"
-            emotion: 1
+            portraitId: "fox_\u5E73\u9759"
           actions: []
           sourceRow: 27
         - kind: 1
           line:
             speaker: 0
             text: CompleteNeed(perfect)
-            emotion: 0
+            portraitId: 
           actions:
           - func: CompleteNeed
             args:
@@ -240,7 +240,7 @@ MonoBehaviour:
           line:
             speaker: 0
             text: "\u597D\uFF0C\u6211\u4E0D\u6025\uFF0C\u4F60\u6162\u6162\u6765\u3002"
-            emotion: 0
+            portraitId: "fox_\u5E73\u9759"
           actions: []
           sourceRow: 30
         sourceRow: 29
@@ -251,14 +251,14 @@ MonoBehaviour:
           line:
             speaker: 0
             text: "\u5509\u2026\u2026\u90A3\u4E5F\u6CA1\u529E\u6CD5\u3002"
-            emotion: 3
+            portraitId: "fox_\u5E73\u9759"
           actions: []
           sourceRow: 32
         - kind: 1
           line:
             speaker: 0
             text: Reject
-            emotion: 0
+            portraitId: 
           actions:
           - func: Reject
             args: []
@@ -272,7 +272,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: "{\u9700\u6C42}"
-        emotion: 0
+        portraitId: "fox_\u5E73\u9759"
       actions: []
       options: []
       sourceRow: 34
@@ -280,7 +280,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: 
-        emotion: 0
+        portraitId: 
       actions: []
       options:
       - text: "\u6211\u628A\u4F60\u8981\u7684\u642C\u6765\u4E86"
@@ -292,14 +292,14 @@ MonoBehaviour:
           line:
             speaker: 0
             text: "\u5C31\u662F\u8FD9\u4E2A\uFF01\u592A\u8C22\u8C22\u4F60\u4E86\u3002"
-            emotion: 1
+            portraitId: "fox_\u5E73\u9759"
           actions: []
           sourceRow: 36
         - kind: 1
           line:
             speaker: 0
             text: CompleteNeed(perfect)
-            emotion: 0
+            portraitId: 
           actions:
           - func: CompleteNeed
             args:
@@ -313,7 +313,7 @@ MonoBehaviour:
           line:
             speaker: 0
             text: "\u597D\uFF0C\u6211\u4E0D\u6025\uFF0C\u4F60\u6162\u6162\u6765\u3002"
-            emotion: 0
+            portraitId: "fox_\u5E73\u9759"
           actions: []
           sourceRow: 39
         sourceRow: 38
@@ -324,14 +324,14 @@ MonoBehaviour:
           line:
             speaker: 0
             text: "\u5509\u2026\u2026\u90A3\u4E5F\u6CA1\u529E\u6CD5\u3002"
-            emotion: 3
+            portraitId: "fox_\u5E73\u9759"
           actions: []
           sourceRow: 41
         - kind: 1
           line:
             speaker: 0
             text: Reject
-            emotion: 0
+            portraitId: 
           actions:
           - func: Reject
             args: []
@@ -345,7 +345,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: "\u7B97\u4E86\u2026\u2026\u53EF\u80FD\u662F\u6211\u8981\u6C42\u592A\u591A\u4E86\u3002"
-        emotion: 3
+        portraitId: "fox_\u5E73\u9759"
       actions: []
       options: []
       sourceRow: 43
@@ -356,7 +356,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: "\u55EF\uFF0C\u8FD8\u884C\u5427\uFF0C\u8C22\u8C22\u4F60\u3002"
-        emotion: 0
+        portraitId: "fox_\u5E73\u9759"
       actions: []
       options: []
       sourceRow: 44
@@ -367,7 +367,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: "\u633A\u597D\u7684\uFF0C\u6BD4\u6211\u539F\u672C\u60F3\u7684\u8FD8\u59A5\u5E16\u4E9B\u3002"
-        emotion: 1
+        portraitId: "fox_\u5E73\u9759"
       actions: []
       options: []
       sourceRow: 45
@@ -378,7 +378,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: "\u592A\u5B8C\u7F8E\u4E86\uFF0C\u6211\u4F1A\u8BB0\u4F4F\u8FD9\u5730\u65B9\u7684\u3002"
-        emotion: 1
+        portraitId: "fox_\u5E73\u9759"
       actions: []
       options: []
       sourceRow: 46
@@ -389,7 +389,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: "\u8FD9\u5C4B\u5B50\u6BD4\u6211\u60F3\u7684\u8212\u670D\u591A\u4E86\u3002"
-        emotion: 0
+        portraitId: "fox_\u5E73\u9759"
       actions: []
       options: []
       sourceRow: 47
@@ -400,7 +400,7 @@ MonoBehaviour:
       line:
         speaker: 0
         text: "\u96BE\u5F97\u80FD\u8FD9\u4E48\u5B89\u9759\u5730\u5F85\u4E00\u4F1A\u513F\u3002"
-        emotion: 0
+        portraitId: "fox_\u5E73\u9759"
       actions: []
       options: []
       sourceRow: 48
@@ -411,296 +411,80 @@ MonoBehaviour:
       line:
         speaker: 0
         text: "\u4E0B\u6B21\u8DEF\u8FC7\uFF0C\u6211\u8FD8\u6765\u3002"
-        emotion: 1
+        portraitId: "fox_\u5E73\u9759"
       actions: []
       options: []
       sourceRow: 49
     sourceRow: 49
   entries:
   - groupId: 10001
-    raceId: crow
-    needId: 
-    category: 0
-    conditions: []
-    sourceRow: 3
-  - groupId: 10001
     raceId: fox
     needId: 
     category: 0
     conditions: []
     sourceRow: 3
-  - groupId: 10001
-    raceId: hedgehog
-    needId: 
-    category: 0
-    conditions: []
-    sourceRow: 3
-  - groupId: 10001
-    raceId: rabbit
-    needId: 
-    category: 0
-    conditions: []
-    sourceRow: 3
-  - groupId: 20001
-    raceId: crow
-    needId: 
-    category: 1
-    conditions: []
-    sourceRow: 4
   - groupId: 20001
     raceId: fox
     needId: 
     category: 1
     conditions: []
     sourceRow: 4
-  - groupId: 20001
-    raceId: hedgehog
-    needId: 
-    category: 1
-    conditions: []
-    sourceRow: 4
-  - groupId: 20001
-    raceId: rabbit
-    needId: 
-    category: 1
-    conditions: []
-    sourceRow: 4
-  - groupId: 30001
-    raceId: crow
-    needId: "Need_\u4FEE\u7406\u7535\u8DEF"
-    category: 2
-    conditions: []
-    sourceRow: 5
   - groupId: 30001
     raceId: fox
     needId: "Need_\u4FEE\u7406\u7535\u8DEF"
     category: 2
     conditions: []
     sourceRow: 5
-  - groupId: 30001
-    raceId: hedgehog
-    needId: "Need_\u4FEE\u7406\u7535\u8DEF"
-    category: 2
-    conditions: []
-    sourceRow: 5
-  - groupId: 30001
-    raceId: rabbit
-    needId: "Need_\u4FEE\u7406\u7535\u8DEF"
-    category: 2
-    conditions: []
-    sourceRow: 5
-  - groupId: 30002
-    raceId: crow
-    needId: "Need_\u65B0\u9700\u6C42"
-    category: 2
-    conditions: []
-    sourceRow: 6
   - groupId: 30002
     raceId: fox
     needId: "Need_\u65B0\u9700\u6C42"
     category: 2
     conditions: []
     sourceRow: 6
-  - groupId: 30002
-    raceId: hedgehog
-    needId: "Need_\u65B0\u9700\u6C42"
-    category: 2
-    conditions: []
-    sourceRow: 6
-  - groupId: 30002
-    raceId: rabbit
-    needId: "Need_\u65B0\u9700\u6C42"
-    category: 2
-    conditions: []
-    sourceRow: 6
-  - groupId: 30003
-    raceId: crow
-    needId: "Need_\u8981\u84DD\u8272\u6905\u5B50"
-    category: 2
-    conditions: []
-    sourceRow: 7
   - groupId: 30003
     raceId: fox
     needId: "Need_\u8981\u84DD\u8272\u6905\u5B50"
     category: 2
     conditions: []
     sourceRow: 7
-  - groupId: 30003
-    raceId: hedgehog
-    needId: "Need_\u8981\u84DD\u8272\u6905\u5B50"
-    category: 2
-    conditions: []
-    sourceRow: 7
-  - groupId: 30003
-    raceId: rabbit
-    needId: "Need_\u8981\u84DD\u8272\u6905\u5B50"
-    category: 2
-    conditions: []
-    sourceRow: 7
-  - groupId: 40001
-    raceId: crow
-    needId: 
-    category: 3
-    conditions: []
-    sourceRow: 8
   - groupId: 40001
     raceId: fox
     needId: 
     category: 3
     conditions: []
     sourceRow: 8
-  - groupId: 40001
-    raceId: hedgehog
-    needId: 
-    category: 3
-    conditions: []
-    sourceRow: 8
-  - groupId: 40001
-    raceId: rabbit
-    needId: 
-    category: 3
-    conditions: []
-    sourceRow: 8
-  - groupId: 40002
-    raceId: crow
-    needId: 
-    category: 4
-    conditions: []
-    sourceRow: 9
   - groupId: 40002
     raceId: fox
     needId: 
     category: 4
     conditions: []
     sourceRow: 9
-  - groupId: 40002
-    raceId: hedgehog
-    needId: 
-    category: 4
-    conditions: []
-    sourceRow: 9
-  - groupId: 40002
-    raceId: rabbit
-    needId: 
-    category: 4
-    conditions: []
-    sourceRow: 9
-  - groupId: 40003
-    raceId: crow
-    needId: 
-    category: 5
-    conditions: []
-    sourceRow: 10
   - groupId: 40003
     raceId: fox
     needId: 
     category: 5
     conditions: []
     sourceRow: 10
-  - groupId: 40003
-    raceId: hedgehog
-    needId: 
-    category: 5
-    conditions: []
-    sourceRow: 10
-  - groupId: 40003
-    raceId: rabbit
-    needId: 
-    category: 5
-    conditions: []
-    sourceRow: 10
-  - groupId: 40004
-    raceId: crow
-    needId: 
-    category: 6
-    conditions: []
-    sourceRow: 11
   - groupId: 40004
     raceId: fox
     needId: 
     category: 6
     conditions: []
     sourceRow: 11
-  - groupId: 40004
-    raceId: hedgehog
-    needId: 
-    category: 6
-    conditions: []
-    sourceRow: 11
-  - groupId: 40004
-    raceId: rabbit
-    needId: 
-    category: 6
-    conditions: []
-    sourceRow: 11
-  - groupId: 50001
-    raceId: crow
-    needId: 
-    category: 7
-    conditions: []
-    sourceRow: 12
   - groupId: 50001
     raceId: fox
     needId: 
     category: 7
     conditions: []
     sourceRow: 12
-  - groupId: 50001
-    raceId: hedgehog
-    needId: 
-    category: 7
-    conditions: []
-    sourceRow: 12
-  - groupId: 50001
-    raceId: rabbit
-    needId: 
-    category: 7
-    conditions: []
-    sourceRow: 12
-  - groupId: 50002
-    raceId: crow
-    needId: 
-    category: 7
-    conditions: []
-    sourceRow: 13
   - groupId: 50002
     raceId: fox
     needId: 
     category: 7
     conditions: []
     sourceRow: 13
-  - groupId: 50002
-    raceId: hedgehog
-    needId: 
-    category: 7
-    conditions: []
-    sourceRow: 13
-  - groupId: 50002
-    raceId: rabbit
-    needId: 
-    category: 7
-    conditions: []
-    sourceRow: 13
-  - groupId: 50003
-    raceId: crow
-    needId: 
-    category: 7
-    conditions: []
-    sourceRow: 14
   - groupId: 50003
     raceId: fox
-    needId: 
-    category: 7
-    conditions: []
-    sourceRow: 14
-  - groupId: 50003
-    raceId: hedgehog
-    needId: 
-    category: 7
-    conditions: []
-    sourceRow: 14
-  - groupId: 50003
-    raceId: rabbit
     needId: 
     category: 7
     conditions: []

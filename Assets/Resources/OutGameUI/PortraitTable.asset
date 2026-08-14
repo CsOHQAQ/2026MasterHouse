@@ -15,17 +15,81 @@ MonoBehaviour:
   entries:
   - portraitId: "crow_\u5E73\u9759"
     path: OutGameUI/Guests/crow
-    note: "\u9E26\u65CF\u9ED8\u8BA4\u8138"
+    note: "\u9E26\u65CF_\u9ED8\u8BA4\u8138"
     sourceRow: 3
+  - portraitId: crow_02
+    path: OutGameUI/Guests/crow02
+    note: "\u9E26\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 4
+  - portraitId: crow_03
+    path: OutGameUI/Guests/crow02
+    note: "\u9E26\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 5
+  - portraitId: crow_04
+    path: OutGameUI/Guests/crow02
+    note: "\u9E26\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 6
+  - portraitId: crow_05
+    path: OutGameUI/Guests/crow02
+    note: "\u9E26\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 7
   - portraitId: "fox_\u5E73\u9759"
     path: OutGameUI/Guests/fox
-    note: "\u72D0\u65CF\u9ED8\u8BA4\u8138"
-    sourceRow: 4
+    note: "\u72D0\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 8
+  - portraitId: fox_02
+    path: OutGameUI/Guests/fox02
+    note: "\u72D0\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 9
+  - portraitId: fox_03
+    path: OutGameUI/Guests/fox02
+    note: "\u72D0\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 10
+  - portraitId: fox_04
+    path: OutGameUI/Guests/fox02
+    note: "\u72D0\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 11
+  - portraitId: fox_05
+    path: OutGameUI/Guests/fox02
+    note: "\u72D0\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 12
   - portraitId: "hedgehog_\u5E73\u9759"
     path: OutGameUI/Guests/hedgehog
-    note: "\u732C\u65CF\u9ED8\u8BA4\u8138"
-    sourceRow: 5
+    note: "\u732C\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 13
+  - portraitId: hedgehog_02
+    path: OutGameUI/Guests/hedgehog02
+    note: "\u732C\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 14
+  - portraitId: hedgehog_03
+    path: OutGameUI/Guests/hedgehog02
+    note: "\u732C\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 15
+  - portraitId: hedgehog_04
+    path: OutGameUI/Guests/hedgehog02
+    note: "\u732C\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 16
+  - portraitId: hedgehog_05
+    path: OutGameUI/Guests/hedgehog02
+    note: "\u732C\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 17
   - portraitId: "rabbit_\u5E73\u9759"
     path: OutGameUI/Guests/rabbit
-    note: "\u5154\u65CF\u9ED8\u8BA4\u8138"
-    sourceRow: 6
+    note: "\u5154\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 18
+  - portraitId: rabbit_02
+    path: OutGameUI/Guests/rabbit02
+    note: "\u5154\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 19
+  - portraitId: rabbit_03
+    path: OutGameUI/Guests/rabbit02
+    note: "\u5154\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 20
+  - portraitId: rabbit_04
+    path: OutGameUI/Guests/rabbit02
+    note: "\u5154\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 21
+  - portraitId: rabbit_05
+    path: OutGameUI/Guests/rabbit02
+    note: "\u5154\u65CF_\u9ED8\u8BA4\u8138"
+    sourceRow: 22

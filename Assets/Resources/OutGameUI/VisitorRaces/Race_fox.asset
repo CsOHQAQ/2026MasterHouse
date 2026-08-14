@@ -17,5 +17,7 @@ MonoBehaviour:
   waitTalkTimeoutTicks: 3000
   waitDeliverTimeoutTicks: 6000
   wanderMaxTicks: 3600
-  defaultPortraitId: "fox_\u5E73\u9759"
+  stayOvernightPercent: 20
+  portraits: []
   sheetPath: OutGameUI/Visitors/orange_cat
+  dialoguePool: {fileID: 0}

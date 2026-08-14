@@ -17,5 +17,7 @@ MonoBehaviour:
   waitTalkTimeoutTicks: 4200
   waitDeliverTimeoutTicks: 7200
   wanderMaxTicks: 6000
-  defaultPortraitId: "rabbit_\u5E73\u9759"
+  stayOvernightPercent: 20
+  portraits: []
   sheetPath: OutGameUI/Visitors/xueqiu
+  dialoguePool: {fileID: 0}

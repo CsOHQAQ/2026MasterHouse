@@ -1,13 +1,13 @@
 ﻿对话组ID,种族,需求ID,所属对话池,进入条件,备注,行号
-10001,通用,,firstMeeting,,开场：打招呼 + 接待/拒绝分支,3
-20001,通用,,waitingReception,,已经打过招呼、再点他时说的话（同样要带接待/拒绝）,4
-30001,通用,Need_修理电路,needTalk,,小游戏类需求「Need_修理电路」的说辞与交付分支,5
-30002,通用,Need_新需求,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,6
-30003,通用,Need_要蓝色椅子,needTalk,,条件类需求「Need_要蓝色椅子」的说辞与交付分支,7
-40001,通用,,feedbackDisappointed,,服务超时后说的话,8
-40002,通用,,feedbackPlain,,只有小游戏类会走到,9
-40003,通用,,feedbackFine,,只有小游戏类会走到,10
-40004,通用,,feedbackPerfect,,条件类交付成功 / 小游戏满分,11
-50001,通用,,smallTalk,,,12
-50002,通用,,smallTalk,,,13
-50003,通用,,smallTalk,,,14
+10001,fox,,firstMeeting,,开场：打招呼 + 接待/拒绝分支,3
+20001,fox,,waitingReception,,已经打过招呼、再点他时说的话（同样要带接待/拒绝）,4
+30001,fox,Need_修理电路,needTalk,,小游戏类需求「Need_修理电路」的说辞与交付分支,5
+30002,fox,Need_新需求,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,6
+30003,fox,Need_要蓝色椅子,needTalk,,条件类需求「Need_要蓝色椅子」的说辞与交付分支,7
+40001,fox,,feedbackDisappointed,,服务超时后说的话,8
+40002,fox,,feedbackPlain,,只有小游戏类会走到,9
+40003,fox,,feedbackFine,,只有小游戏类会走到,10
+40004,fox,,feedbackPerfect,,条件类交付成功 / 小游戏满分,11
+50001,fox,,smallTalk,,,12
+50002,fox,,smallTalk,,,13
+50003,fox,,smallTalk,,,14
