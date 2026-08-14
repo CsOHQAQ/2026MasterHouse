@@ -75,6 +75,9 @@ namespace MasterHouse
             this.tuning = tuning;
             // 初始不在 Hub 页（启动落在标题页），时间不流动
             SetStopReason(EClockStopReason.OffHubPage, true);
+            // 启动即停在第 1 天开门时刻（与 ResetNew 同口径）：TickOfDay 默认 0 是凌晨，
+            // 标题页封面按时钟调色（HouseDayLight）会被压成深夜色（2026-08-14 修复）
+            Data.TickOfDay = OpenMinute * HouseClockData.TicksPerMinute;
         }
 
         /// <summary>开合某一条停走原因。任一原因存在即关闸（§8）。</summary>

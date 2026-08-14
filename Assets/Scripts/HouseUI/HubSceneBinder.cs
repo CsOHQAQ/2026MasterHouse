@@ -20,12 +20,16 @@ namespace MasterHouse
     {
         private const float MinZoom = .5f;   // 恰好看全 2×2 四个房间
         private const float MaxZoom = 3.5f;
+        /// <summary>拖访客的 RTS 边缘推屏：指针距场景边缘阈值（视口像素）与推屏速度（视口像素/秒）。</summary>
+        private const float EdgeScrollMargin = 56f;
+        private const float EdgeScrollSpeed = 1100f;
 
         private HubPage page;
         private RectTransform sceneRoot;
         private RectTransform worldRoot;
         private readonly RawImage[] roomArts = new RawImage[HubWorldGrid.RoomCount];
         private Image sceneWash;
+        private Image ambientLight;
         private OutGameHubSceneOverlayView overlay;
         private OutGameVisitorStage stage;
         private RectTransform hotspotRoot;
@@ -73,10 +77,31 @@ namespace MasterHouse
             hotspotRoot = HouseUIRuntime.Stretch(worldRoot, "FurnitureHotspots");
             BuildHotspots();
             BuildVisitorStage();
+
+            // 环境光层（2026-08-14 昼夜光照）：盖在房间图/热点/访客之上、场景框架 UI 之下，
+            // 按局内时钟在色带上插值——清晨暖金→正午无色（原图即烈日基准）→黄昏橙红→入夜深蓝。
+            // 纯表现件不拦截点击；随世界缩放平移，天然只影响场景不影响四周 UI。
+            ambientLight = HouseUIRuntime.StretchPanel(worldRoot, "AmbientLight", Color.clear);
+            ambientLight.raycastTarget = false;
+            UpdateDayLight();
+
             BindOverlay();
 
             // 初始相机：满屏当前房间
             SnapToRoom(page.RoomIndex);
+        }
+
+        // ══════════ 昼夜光照 ══════════
+
+        /// <summary>每帧按局内时钟推环境光（HubPage.OnUpdate 调；叠加层开着也走，面板后面的天色照常流动）。
+        /// 色带定义在 HouseDayLight（与标题页封面共用）。</summary>
+        public void UpdateDayLight()
+        {
+            if (ambientLight == null) return;
+            var (tint, veil) = HouseDayLight.Now();
+            for (var room = 0; room < roomArts.Length; room++)
+                if (roomArts[room] != null) roomArts[room].color = tint;
+            ambientLight.color = veil;
         }
 
         // ══════════ 相机 ══════════
@@ -137,6 +162,27 @@ namespace MasterHouse
                 lastPointerLocal = pointerLocal;
             }
 
+            // RTS 边缘推屏（2026-08-14）：拖着访客顶到场景边缘时相机朝该方向平移；
+            // uGUI 的 Drag 事件只在指针移动时触发，这里每帧重投影把访客钉在指针下
+            if (stage != null && stage.HasActiveDrag)
+            {
+                var edge = Vector2.zero;
+                if (pointerLocal.x < EdgeScrollMargin) edge.x = -1f;
+                else if (pointerLocal.x > viewport.x - EdgeScrollMargin) edge.x = 1f;
+                if (pointerLocal.y < EdgeScrollMargin) edge.y = -1f;
+                else if (pointerLocal.y > viewport.y - EdgeScrollMargin) edge.y = 1f;
+                if (edge != Vector2.zero)
+                {
+                    KillFocusTween();
+                    camPan -= edge * (EdgeScrollSpeed * Time.unscaledDeltaTime);
+                }
+                ClampCamera(viewport);
+                ApplyCamera();
+                DetectCurrentRoom(viewport);
+                stage.RefreshDragProjection();
+                return; // 拖拽期间不再处理普通平移（按下起点已被演员射线挡掉，这里双保险）
+            }
+
             ClampCamera(viewport);
             ApplyCamera();
             DetectCurrentRoom(viewport);
@@ -156,6 +202,12 @@ namespace MasterHouse
             var fromZoom = camZoom;
             focusTween = DOTween.To(() => 0f, t =>
             {
+                // 页面可能在推镜途中被销毁（闭包补间不随对象自动回收，此处自杀兜底）
+                if (sceneRoot == null || worldRoot == null)
+                {
+                    KillFocusTween();
+                    return;
+                }
                 camZoom = Mathf.Lerp(fromZoom, targetZoom, t);
                 camPan = Vector2.Lerp(fromPan, targetPan, t);
                 var size = sceneRoot.rect.size;
@@ -244,6 +296,9 @@ namespace MasterHouse
             focusTween = null;
         }
 
+        /// <summary>页面退出时的清理（HubPage.OnExit 调）：杀掉仍在跑的推镜补间，防目标销毁后空跑。</summary>
+        public void Dispose() => KillFocusTween();
+
         // ══════════ 内容 ══════════
 
         /// <summary>房间背景 = 家具布局合成图（背景+当前摆放；缺失时立即烘焙——一进游戏默认家具就可见）。</summary>
@@ -305,7 +360,7 @@ namespace MasterHouse
                     var card = HouseUIRuntime.Panel(hotspot, "Card", new Vector2(.5f, 1),
                         new Vector2(0, 46), new Vector2(250, 76), new Color(.32f, .06f, .18f, .92f));
                     HouseUIRuntime.StretchLabel(card.transform, "Text",
-                        $"＋  {info.Entry.displayName}\n<size=13>查看设备</size>", 19, HouseUIUtil.White,
+                        $"＋  {info.Entry.displayName}\n<size=13>查看家具</size>", 19, HouseUIUtil.White,
                         TextAnchor.MiddleCenter, FontStyle.Bold);
                     var cardGroup = HouseUIUtil.Group(card.gameObject, 0f);
                     cardGroup.blocksRaycasts = false;
@@ -342,7 +397,7 @@ namespace MasterHouse
             if (overlay.roomName != null) overlay.roomName.text = room.displayName;
             if (overlay.roomNote != null) overlay.roomNote.text = room.note;
             var hotspotLabel = page.RoomIndex == 2 ? "手冲咖啡台" : page.RoomIndex == 3 ? "旧书检索机" : "黑胶唱机";
-            if (overlay.hotspotTitle != null) overlay.hotspotTitle.text = "＋  " + hotspotLabel + "\n<size=13>查看设备</size>";
+            if (overlay.hotspotTitle != null) overlay.hotspotTitle.text = "＋  " + hotspotLabel + "\n<size=13>查看家具</size>";
             if (overlay.hotspotButton != null)
                 HouseUIUtil.BindButton(overlay.hotspotButton, () => page.OpenPanel(EHousePanel.Device));
         }
