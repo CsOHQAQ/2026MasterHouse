@@ -13,5 +13,8 @@ namespace MasterHouse
         public Text recipeText;
         public Button makeButton;
         public Text makeLabel;
+        /// <summary>「前往修理」（2026-08-14）：与「前往摆放」并排；修理业务落地前占位提示。</summary>
+        public Button repairButton;
+        public Text repairLabel;
     }
 }
