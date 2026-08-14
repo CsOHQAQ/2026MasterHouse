@@ -15,10 +15,11 @@ namespace MasterHouse.EditorTools
     ///
     /// 两张表的列（列名即契约，与导出脚本一一对应；「行号」由导出脚本追加，用于把报错指回 Excel）：
     ///   对话组表.csv ：对话组ID, 种族, 需求ID, 所属对话池, 进入条件, 备注, 行号
-    ///   对话内容表.csv：对话组ID, 说话人, 表情, 步骤, 选项, 句序, 类型, 文本, 条件, 行号
+    ///   对话内容表.csv：对话组ID, 说话人, 立绘ID, 步骤, 选项, 句序, 类型, 文本, 条件, 行号
     ///
     /// 解析要点：
-    ///   · 种族列支持 `/` 多选与特殊值 `通用`（展开成工程里实际存在的全部 VisitorRaceDef）
+    ///   · 种族列**只接受单个 raceId**——见 ResolveRace 的注释，这是 2026-08-14 立绘 ID 化的硬前提
+    ///   · 「立绘ID」对着 PortraitTable 校验；留空 = 沿用上一句（GVN 惯例，由 DialogueManager 在播放期承接）
     ///   · 「条件」「文本（Action 行）」写函数调用串，`;` 分隔多条；语法由 DialogueCallParser 解析，
     ///     函数名与参数个数对着 DialogueFuncs 的注册表校验——写错当场报出 Excel 行号
     ///   · 步骤/选项/句序三列全是数字，**行序没有语义**，可以在 Excel 里任意排序
@@ -58,7 +59,8 @@ namespace MasterHouse.EditorTools
         [MenuItem("MasterHouse/对话系统/自动导表（CSV 变化时）")]
         private static void ToggleAutoImport() => AutoImport = !AutoImport;
 
-        private static bool AutoImport
+        /// <summary>对话模块两张表（对话 + 立绘）共用这一个自动导表开关，菜单也只有一处。</summary>
+        internal static bool AutoImport
         {
             get => EditorPrefs.GetBool(AutoImportPrefKey, true);
             set => EditorPrefs.SetBool(AutoImportPrefKey, value);
@@ -70,6 +72,14 @@ namespace MasterHouse.EditorTools
                 string[] moved, string[] movedFrom)
             {
                 if (!AutoImport) return;
+
+                // 同一批里也有立绘表时**让路**：对话表要拿立绘表校验立绘ID，
+                // 两个 postprocessor 谁先跑不保证；先跑对话就会报出一屏「立绘ID 不存在」的假错误。
+                // 这种情况统一由 PortraitCsvImporter 导完立绘后串调对话导表。
+                foreach (var path in imported)
+                    if (path == PortraitCsvImporter.CsvPath)
+                        return;
+
                 foreach (var path in imported)
                     if (path == GroupCsvPath || path == ContentCsvPath)
                     {
@@ -135,7 +145,7 @@ namespace MasterHouse.EditorTools
             if (rows.Count < 2) return result;
 
             var head = rows[0];
-            int cId = Col(head, "对话组ID"), cSpeaker = Col(head, "说话人"), cEmotion = Col(head, "表情");
+            int cId = Col(head, "对话组ID"), cSpeaker = Col(head, "说话人"), cPortrait = Col(head, "立绘ID");
             int cStep = Col(head, "步骤"), cOption = Col(head, "选项"), cSub = Col(head, "句序");
             int cKind = Col(head, "类型"), cText = Col(head, "文本"), cCond = Col(head, "条件");
             int cRow = Col(head, "行号");
@@ -144,6 +154,21 @@ namespace MasterHouse.EditorTools
                 report.Error("对话内容", 1, "缺少必需列（对话组ID / 步骤 / 类型）；请用最新的 Excel 模板重导");
                 return result;
             }
+            if (cPortrait < 0)
+            {
+                report.Error("对话内容", 1,
+                    "缺少「立绘ID」列——表情枚举已于 2026-08-14 退役（美术要求的差分归不了类），" +
+                    "请用最新的 Excel 模板重导；这一列填 Excel/立绘表.xlsx 里的立绘ID");
+                return result;
+            }
+
+            // 立绘表可能还没建（首次引入本功能时）：那就只跳过 ID 存在性校验，其余照常导，
+            // 免得「先有鸡还是先有蛋」把两张表一起卡死
+            var portraits = PortraitCsvImporter.LoadTable();
+            if (portraits == null)
+                report.Warn("对话内容", 1,
+                    $"找不到立绘索引表（{PortraitCsvImporter.TableAssetPath}），本次跳过「立绘ID 是否存在」的校验；" +
+                    "请先编辑 Excel/立绘表.xlsx 并跑一次导表");
 
             // 先按 (组, 步骤, 选项, 句序) 收拢成三层结构，再按数字排序 —— 行序完全不参与解析
             var byGroup = new SortedDictionary<int, SortedDictionary<int, StepBucket>>();
@@ -190,10 +215,25 @@ namespace MasterHouse.EditorTools
                 var line = new DialogueLine { text = Get(row, cText) };
                 if (!DialogueSpeakerText.TryParse(Get(row, cSpeaker), out var speaker))
                     report.Warn("对话内容", excelRow, $"「说话人」无法识别：{Get(row, cSpeaker)}，按 visitor 处理");
-                if (!DialogueEmotionText.TryParse(Get(row, cEmotion), out var emotion))
-                    report.Warn("对话内容", excelRow, $"「表情」无法识别：{Get(row, cEmotion)}，按 calm 处理");
                 line.speaker = speaker;
-                line.emotion = emotion;
+
+                // 立绘ID：留空 = 沿用上一句（在播放期承接，见 DialogueManager.CurrentPortraitId）。
+                // 填了就必须真的存在——查不到只会表现成「立绘位空着」，运行时看不出是拼错还是没配。
+                var portraitId = Get(row, cPortrait).Trim();
+                if (portraitId.Length > 0)
+                {
+                    if (portraits != null && !portraits.Contains(portraitId))
+                        report.Error("对话内容", excelRow,
+                            $"「立绘ID」在立绘表里找不到：{portraitId}（可选值见 Excel/立绘表.xlsx，或对话表的「参考」页）");
+                    if (kind != EDialogueStepKind.Line)
+                        report.Warn("对话内容", excelRow,
+                            $"这一行是 {kindRaw} 却填了「立绘ID」{portraitId}——只有台词行会换立绘，本格会被忽略");
+                    else if (speaker != EDialogueSpeaker.Visitor)
+                        report.Warn("对话内容", excelRow,
+                            $"说话人是 {DialogueSpeakerText.KeyOf(speaker)} 却填了「立绘ID」{portraitId}——" +
+                            "只有访客句显示立绘，本格会被忽略");
+                }
+                line.portraitId = portraitId;
 
                 // 「文本」列**只有 Action 行**才是调用串；Line 行是台词、Branch 行是选项文字，
                 // 拿去当函数名解析会把每一句台词都报成「未知函数」
@@ -368,7 +408,7 @@ namespace MasterHouse.EditorTools
 
             var allRaceIds = AllRaceIds();
             if (allRaceIds.Count == 0)
-                report.Warn("对话组", 1, "工程里一个 VisitorRaceDef 都没有，「通用」种族展开不出任何行");
+                report.Warn("对话组", 1, "工程里一个 VisitorRaceDef 都没有，「种族」列填什么都校验不了");
             var knownNeeds = AllNeedNames();
 
             for (var i = 1; i < rows.Count; i++)
@@ -413,45 +453,62 @@ namespace MasterHouse.EditorTools
 
                 var conditions = ParseCalls(Get(row, cCond), report, "对话组", excelRow, true);
 
-                foreach (var raceId in ExpandRaces(Get(row, cRace), allRaceIds, report, excelRow))
-                    result.Add(new DialoguePoolEntry
-                    {
-                        groupId = groupId,
-                        raceId = raceId,
-                        needId = needId,
-                        category = category,
-                        conditions = conditions,
-                        sourceRow = excelRow,
-                    });
+                var raceId = ResolveRace(Get(row, cRace), allRaceIds, report, excelRow);
+                if (raceId == null) continue;
+
+                result.Add(new DialoguePoolEntry
+                {
+                    groupId = groupId,
+                    raceId = raceId,
+                    needId = needId,
+                    category = category,
+                    conditions = conditions,
+                    sourceRow = excelRow,
+                });
             }
             return result;
         }
 
-        /// <summary>种族列：`通用` 展开成全部；`/`（兼容 `、` `,`）分隔多选；未知 id 报错。</summary>
-        private static IEnumerable<string> ExpandRaces(string raw, List<string> all, DialogueReport report, int excelRow)
+        /// <summary>
+        /// 种族列：**只接受单个 raceId**。解析失败返回 null（调用方跳过该行）。
+        ///
+        /// 【2026-08-14：`通用` 与 `/` 多选一并作废】原先两者都会展开成多条 DialoguePoolEntry，
+        /// 但它们指向的是**同一个 DialogueGroup、同一份 DialogueLine**——这在表情是枚举时没问题
+        /// （枚举是种族无关的键，每个访客顶着自己那张脸），立绘改成具体 ID 之后就成了串脸：
+        /// 一组写着 `fox_高兴` 的通用台词会让鸦族兔族猬族全都顶着狐狸的脸。
+        ///
+        /// 于是规则收紧成「一个对话组只属于一个种族」。代价是内容量随种族数线性增长
+        /// （通用组要按种族各抄一份），换来的是每个种族本来就该有自己的性格与长相。
+        /// </summary>
+        private static string ResolveRace(string raw, List<string> all, DialogueReport report, int excelRow)
         {
             var text = (raw ?? string.Empty).Trim();
             if (text.Length == 0)
             {
-                report.Error("对话组", excelRow, "「种族」是空的（填 raceId、多选用 / 分隔，或填「通用」）");
-                yield break;
+                report.Error("对话组", excelRow, "「种族」是空的（填一个 raceId）");
+                return null;
             }
             if (text == "通用" || string.Equals(text, "all", StringComparison.OrdinalIgnoreCase))
             {
-                foreach (var id in all) yield return id;
-                yield break;
+                report.Error("对话组", excelRow,
+                    "「种族」不再支持「通用」——一个对话组只能属于一个种族，请给每个种族各写一行" +
+                    $"（工程里现有：{string.Join(" / ", all)}）。" +
+                    "原因：通用组的多个种族共用同一份台词与同一个立绘ID，会让所有种族顶着同一张脸");
+                return null;
             }
-            foreach (var part in text.Split('/', '、', ','))
+            if (text.IndexOfAny(new[] { '/', '、', ',' }) >= 0)
             {
-                var id = part.Trim();
-                if (id.Length == 0) continue;
-                if (all.Count > 0 && !all.Contains(id))
-                {
-                    report.Error("对话组", excelRow, $"「种族」里的 {id} 在工程里找不到对应的 VisitorRaceDef.raceId");
-                    continue;
-                }
-                yield return id;
+                report.Error("对话组", excelRow,
+                    $"「种族」不再支持多选：{text}——一个对话组只能属于一个种族，请拆成多行" +
+                    "（理由同「通用」：多个种族共用一份立绘ID 会串脸）");
+                return null;
             }
+            if (all.Count > 0 && !all.Contains(text))
+            {
+                report.Error("对话组", excelRow, $"「种族」{text} 在工程里找不到对应的 VisitorRaceDef.raceId");
+                return null;
+            }
+            return text;
         }
 
         // ─── 跨表校验 ───────────────────────────────────────────────────────
@@ -464,11 +521,28 @@ namespace MasterHouse.EditorTools
                     report.Error("对话内容", group.sourceRow, $"对话组ID {group.id} 重复");
 
             var referenced = new HashSet<int>();
+            // 「一个组只属于一个种族」的另一半：ResolveRace 堵住了单行多选，这里堵住多行分挂。
+            // 少了这一条，`10001 fox` 和 `10001 crow` 两行照样能让两个种族共用一份立绘ID。
+            var raceOfGroup = new Dictionary<int, string>();
+            var rowOfGroup = new Dictionary<int, int>();
             foreach (var entry in entries)
             {
                 referenced.Add(entry.groupId);
                 if (!groupIds.Contains(entry.groupId))
                     report.Error("对话组", entry.sourceRow, $"引用了第二页里不存在的对话组 {entry.groupId}");
+
+                if (!raceOfGroup.TryGetValue(entry.groupId, out var firstRace))
+                {
+                    raceOfGroup[entry.groupId] = entry.raceId;
+                    rowOfGroup[entry.groupId] = entry.sourceRow;
+                }
+                else if (firstRace != entry.raceId)
+                {
+                    report.Error("对话组", entry.sourceRow,
+                        $"对话组 {entry.groupId} 被挂给了两个种族（第 {rowOfGroup[entry.groupId]} 行是 {firstRace}，" +
+                        $"这一行是 {entry.raceId}）——一个组只能属于一个种族，" +
+                        "两个种族共用同一份台词就会共用同一个立绘ID。请把这一组复制成两组、各用各的 ID");
+                }
             }
             foreach (var group in groups)
                 if (!referenced.Contains(group.id))
@@ -578,13 +652,16 @@ namespace MasterHouse.EditorTools
 
         // ─── CSV 读取 ───────────────────────────────────────────────────────
 
-        private static List<string[]> ReadCsv(string path, DialogueReport report, string sheet)
+        /// <summary>读 CSV 成行数组；找不到文件时报错并返回空表。立绘导表也共用本方法。</summary>
+        internal static List<string[]> ReadCsv(string path, DialogueReport report, string sheet,
+            string missingMessage = null)
         {
             var result = new List<string[]>();
             var full = Path.GetFullPath(path);
             if (!File.Exists(full))
             {
-                report.Error(sheet, 0, $"找不到 {path}——请编辑 Excel/对话表.xlsx 后运行 Tools/导表/export_config.bat");
+                report.Error(sheet, 0, missingMessage ??
+                    $"找不到 {path}——请编辑 Excel/对话表.xlsx 后运行 Tools/导表/export_config.bat");
                 return result;
             }
 
@@ -645,10 +722,17 @@ namespace MasterHouse.EditorTools
 
         // ─── 小工具 ─────────────────────────────────────────────────────────
 
-        private static int Col(string[] head, string name) => Array.IndexOf(head, name);
+        /// <summary>按列名取下标；没有这一列返回 -1。立绘导表也共用。</summary>
+        internal static int Col(string[] head, string name) => Array.IndexOf(head, name);
 
         private static string Get(string[] row, int col) =>
             col >= 0 && col < row.Length ? row[col] : string.Empty;
+
+        /// <summary>按下标取格；越界返回空串。立绘导表也共用。</summary>
+        internal static string Cell(string[] row, int col) => Get(row, col);
+
+        /// <summary>按下标取整数格；解析不了返回 fallback。立绘导表也共用。</summary>
+        internal static int CellInt(string[] row, int col, int fallback) => ParseInt(Get(row, col), fallback);
 
         private static int ParseInt(string raw, int fallback) =>
             int.TryParse((raw ?? string.Empty).Trim(), out var value) ? value : fallback;
@@ -670,7 +754,8 @@ namespace MasterHouse.EditorTools
             }
         }
 
-        private static void EnsureFolder(string path)
+        /// <summary>递归建目录（AssetDatabase 口径）。立绘导表也共用。</summary>
+        internal static void EnsureFolder(string path)
         {
             if (string.IsNullOrEmpty(path) || AssetDatabase.IsValidFolder(path)) return;
             var parent = path.Substring(0, path.LastIndexOf('/'));
@@ -690,6 +775,11 @@ namespace MasterHouse.EditorTools
         public readonly List<string> ErrorMessages = new List<string>();
         public readonly List<string> WarningMessages = new List<string>();
 
+        /// <summary>报错前缀里的工作簿名——对话表与立绘表共用本类，各报各的文件。</summary>
+        private readonly string workbook;
+
+        public DialogueReport(string workbookName = "对话表.xlsx") => workbook = workbookName;
+
         public int GroupCount;
         public int EntryCount;
 
@@ -705,19 +795,20 @@ namespace MasterHouse.EditorTools
         public void Warn(string sheet, int excelRow, string message) =>
             WarningMessages.Add(Format(sheet, excelRow, message));
 
-        private static string Format(string sheet, int excelRow, string message) =>
-            excelRow > 0 ? $"对话表.xlsx[{sheet}] 第 {excelRow} 行：{message}" : $"对话表.xlsx[{sheet}]：{message}";
+        private string Format(string sheet, int excelRow, string message) =>
+            excelRow > 0 ? $"{workbook}[{sheet}] 第 {excelRow} 行：{message}" : $"{workbook}[{sheet}]：{message}";
 
-        /// <summary>把结果打进 Console。</summary>
-        public void Dump()
+        /// <summary>把结果打进 Console。tag 决定日志前缀（对话导表 / 立绘导表 / 对话校验）。</summary>
+        public void Dump(string tag = "对话导表")
         {
-            foreach (var message in ErrorMessages) Debug.LogError("[对话导表] " + message);
-            foreach (var message in WarningMessages) Debug.LogWarning("[对话导表] " + message);
+            foreach (var message in ErrorMessages) Debug.LogError($"[{tag}] " + message);
+            foreach (var message in WarningMessages) Debug.LogWarning($"[{tag}] " + message);
             if (Errors > 0)
-                Debug.LogError($"[对话导表] 失败：{Errors} 个错误、{Warnings} 条警告；**对话表没有被改写**（半张表比没有表更难查）");
+                Debug.LogError($"[{tag}] 失败：{Errors} 个错误、{Warnings} 条警告；**{workbook} 对应的资产没有被改写**（半张表比没有表更难查）");
             else if (Applied)
-                Debug.Log($"[对话导表] 完成：{GroupCount} 组对话、{EntryCount} 条池挂载" +
-                          (Warnings > 0 ? $"（{Warnings} 条警告）" : string.Empty));
+                Debug.Log($"[{tag}] 完成：" +
+                          (GroupCount > 0 ? $"{GroupCount} 组对话、{EntryCount} 条池挂载" : $"{EntryCount} 条")
+                          + (Warnings > 0 ? $"（{Warnings} 条警告）" : string.Empty));
         }
     }
 }

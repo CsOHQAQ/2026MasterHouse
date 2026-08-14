@@ -27,6 +27,7 @@ namespace MasterHouse.EditorTools
         private const string DialogueTuningPath = "Assets/Resources/OutGameUI/DialogueTuningConfig.asset";
         private const string SfxPath = "Assets/Resources/OutGameUI/SfxTable.asset";
         private const string DialogueTablePath = DialogueCsvImporter.TableAssetPath;
+        private const string PortraitTablePath = PortraitCsvImporter.TableAssetPath;
 
         private Vector2 scroll;
         private readonly Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
@@ -65,7 +66,7 @@ namespace MasterHouse.EditorTools
                 InlineAsset<VisitorScheduleTable>(SchedulePath, "日程表",
                     "谁在第几天几点出现。注意：已有条目别重排别插行（下标是需求随机的种子键），加内容追加表尾", FixVisitorAssets);
                 AssetList<VisitorRaceDef>(RaceDir, "种族模板",
-                    "性格数值（tick）/ 立绘差分 / 序列帧（对话内容按 raceId 查对话整表，种族上不再挂对话池）",
+                    "性格数值（tick）/ 默认立绘ID / 序列帧（立绘差分已搬去立绘表，对话内容按 raceId 查对话整表）",
                     () => CreateAsset<VisitorRaceDef>(RaceDir, "Race_新种族"));
                 // 新建不走通用按钮：NeedDef 是抽象基类，CreateInstance 造不出来，两个子类统一在编辑器窗口里建
                 AssetList<NeedDef>(NeedDir, "需求",
@@ -85,13 +86,20 @@ namespace MasterHouse.EditorTools
                     FixDialogueAssets);
                 InlineAsset<DialogueTable>(DialogueTablePath, "对话整表",
                     "**只读产物**：唯一数据源是 Excel/对话表.xlsx，在这里手改会被下次导表覆盖", null);
+                InlineAsset<PortraitTable>(PortraitTablePath, "立绘索引表",
+                    "**只读产物**：唯一数据源是 Excel/立绘表.xlsx。立绘ID → Resources 路径，" +
+                    "对话表第二页与种族的「默认立绘ID」都引用它", null);
                 EditorGUILayout.HelpBox(
                     "改台词 = 改 Excel/对话表.xlsx（两页：对话组 / 对话内容）→ 双击 Tools/导表/export_config.bat\n" +
-                    "→ 切回 Unity 自动导表。对话编辑器已于 2026-08-14 退役，配置只有 Excel 一个家。",
+                    "→ 切回 Unity 自动导表。对话编辑器已于 2026-08-14 退役，配置只有 Excel 一个家。\n" +
+                    "加立绘差分 = 在 Excel/立绘表.xlsx 加一行（立绘ID + 资源路径），不必改代码——" +
+                    "表情枚举已于 2026-08-14 退役，差分数量与命名完全交给美术。",
                     MessageType.Info);
                 EditorGUILayout.BeginHorizontal();
                 if (GUILayout.Button("从 CSV 导入对话", GUILayout.Height(22)))
                     DialogueCsvImporter.ImportFromCsvMenu();
+                if (GUILayout.Button("从 CSV 导入立绘", GUILayout.Height(22)))
+                    PortraitCsvImporter.ImportFromCsvMenu();
                 if (GUILayout.Button("校验对话表", GUILayout.Height(22), GUILayout.Width(110)))
                     DialogueAssetValidator.ValidateFromMenu();
                 EditorGUILayout.EndHorizontal();

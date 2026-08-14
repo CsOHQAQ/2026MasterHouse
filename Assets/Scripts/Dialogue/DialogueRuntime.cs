@@ -35,6 +35,16 @@ namespace MasterHouse
         /// <summary>事件与条件的执行上下文（播放期间只读）。</summary>
         public GameplayContext Context;
 
+        /// <summary>
+        /// 当前该显示哪张立绘（2026-08-14 立绘 ID 化）。台词行的「立绘ID」留空 = 沿用上一句，
+        /// 所以要有个位置**承接**它——初值是访客种族的默认立绘，每播到一句填了 ID 的台词就换掉。
+        ///
+        /// 承接必须在播放期做、不能在导表期展开：分支之后汇合回主线时，
+        /// 主线该顶哪张脸取决于玩家选了哪个选项，静态展不开。
+        /// 好在这也正是 GVN 的语义——立绘跟着剧情走，选完什么样就什么样。
+        /// </summary>
+        public string CarriedPortraitId;
+
         /// <summary>当前主线步；越界返回 null。</summary>
         public DialogueStep MainStep
         {

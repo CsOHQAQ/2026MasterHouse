@@ -5,11 +5,11 @@ namespace MasterHouse
 {
     /// <summary>
     /// 说话人（设计说明 §4.1）。三者的表现区分由 DialogueOverlay 负责：
-    /// 访客句 = 立绘差分 + 名字条；玩家句 = 无立绘、另一种框；旁白句 = 居中无框。
+    /// 访客句 = 立绘 + 名字条；玩家句 = 无立绘、另一种框；旁白句 = 居中无框。
     /// </summary>
     public enum EDialogueSpeaker
     {
-        /// <summary>访客说话：显示立绘（按 emotion 取差分）与名字条。</summary>
+        /// <summary>访客说话：显示立绘（按 portraitId 查立绘表）与名字条。</summary>
         Visitor = 0,
         /// <summary>玩家说话：不显示立绘，用另一种对话框样式。</summary>
         Player = 1,
@@ -17,64 +17,17 @@ namespace MasterHouse
         Narration = 2,
     }
 
-    /// <summary>
-    /// 对话表情（设计说明 §4.1）：索引 VisitorRaceDef.portraits 的立绘差分表，仅访客句生效。
-    ///
-    /// 它是**种族无关的键**——正因如此，一组台词可以配给多个种族（甚至「通用」）共用，
-    /// 每个访客顶着自己那张脸（2026-08-14 重构第 15 题）。Excel 第二页的「表情」列写的是
-    /// 下面 Keys 里的英文 key，访客种族表的「立绘差分」列写的是中文名，两者由 DialogueEmotionText 对齐。
-    ///
-    /// 【待确认，§12】具体取值先给五个，等美术定下差分数量后再调整——
-    /// 改动这个枚举会影响已配的差分表，增删项时留意资产。
-    /// </summary>
-    public enum EDialogueEmotion
-    {
-        Calm = 0,      // 平静（默认表情，差分缺失时的回退目标）
-        Happy = 1,     // 高兴
-        Confused = 2,  // 困惑
-        Sad = 3,       // 失望
-        Surprised = 4, // 惊讶
-    }
-
-    /// <summary>表情的英文 key（Excel 列值）与中文名（访客种族表 / 日志）。下标 = (int)EDialogueEmotion。</summary>
-    public static class DialogueEmotionText
-    {
-        public static readonly string[] Keys = { "calm", "happy", "confused", "sad", "surprised" };
-        public static readonly string[] Names = { "平静", "高兴", "困惑", "失望", "惊讶" };
-
-        public static string KeyOf(EDialogueEmotion emotion)
-        {
-            var index = (int)emotion;
-            return index >= 0 && index < Keys.Length ? Keys[index] : emotion.ToString();
-        }
-
-        public static string NameOf(EDialogueEmotion emotion)
-        {
-            var index = (int)emotion;
-            return index >= 0 && index < Names.Length ? Names[index] : emotion.ToString();
-        }
-
-        /// <summary>英文 key 或中文名 → 枚举。无法识别时返回 false（导入器据此报出 Excel 行号）。</summary>
-        public static bool TryParse(string raw, out EDialogueEmotion emotion)
-        {
-            emotion = EDialogueEmotion.Calm;
-            if (string.IsNullOrWhiteSpace(raw)) return true; // 留空 = 平静
-            var trimmed = raw.Trim();
-            for (var i = 0; i < Keys.Length; i++)
-                if (string.Equals(Keys[i], trimmed, System.StringComparison.OrdinalIgnoreCase))
-                {
-                    emotion = (EDialogueEmotion)i;
-                    return true;
-                }
-            for (var i = 0; i < Names.Length; i++)
-                if (Names[i] == trimmed)
-                {
-                    emotion = (EDialogueEmotion)i;
-                    return true;
-                }
-            return false;
-        }
-    }
+    // 表情枚举 EDialogueEmotion（calm/happy/confused/sad/surprised）与 DialogueEmotionText
+    // 已于 2026-08-14 退役，由 DialogueLine.portraitId + PortraitTable 取代。
+    //
+    // 退役理由：枚举的前提是「差分能归类」。美术要求更多、且不太好归类的差分之后这个前提没了——
+    // 硬塞进五个格子只会让策划在「这张算 happy 还是 surprised」上做无意义的选择题，
+    // 而加一个差分要改代码、改枚举、动已配的资产。现在退回最朴素的形式：
+    // 一张 ID → 路径的索引表（Excel/立绘表.xlsx），加差分 = 加一行。
+    //
+    // 连带作废的还有「一组台词多种族共用」：枚举是**种族无关**的键，所以通用组能让每个访客顶自己那张脸；
+    // 立绘ID 是具体的，通用组会串脸。故对话表第一页的「种族」列不再接受「通用」与 `/` 多选，
+    // 改为一个对话组只属于一个种族（见 DialogueCsvImporter.ResolveRace 与 CrossValidate）。
 
     /// <summary>说话人的英文 key（Excel 列值）与中文名。下标 = (int)EDialogueSpeaker。</summary>
     public static class DialogueSpeakerText
@@ -101,7 +54,7 @@ namespace MasterHouse
             if (string.IsNullOrWhiteSpace(raw)) return true;
             var trimmed = raw.Trim();
             for (var i = 0; i < Keys.Length; i++)
-                if (string.Equals(Keys[i], trimmed, System.StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(Keys[i], trimmed, StringComparison.OrdinalIgnoreCase))
                 {
                     speaker = (EDialogueSpeaker)i;
                     return true;
@@ -128,7 +81,10 @@ namespace MasterHouse
                  "{访客名} 访客显示名")]
         public string text;
 
-        [Tooltip("立绘差分，仅访客句生效。种族没配这个差分时回退到平静并打 Warning，不阻断播放（§4.1）")]
-        public EDialogueEmotion emotion;
+        [Tooltip("立绘ID（Excel/立绘表.xlsx 的主键），仅访客句生效。\n" +
+                 "**留空 = 沿用上一句的立绘**（GVN 惯例：只在需要换表情时才填）；\n" +
+                 "组内首句留空则用该访客种族的「默认立绘ID」。承接逻辑见 DialogueManager.CurrentPortraitId。\n" +
+                 "填了的 ID 必须存在于立绘表——导表期硬校验，不留到运行时")]
+        public string portraitId;
     }
 }

@@ -27,16 +27,18 @@ namespace MasterHouse.EditorTools
             EnsureFolder(RaceDir);
             var created = new List<string>();
 
-            // ── 种族（§4.3）：沿用原 4 个动物访客的立绘与序列帧素材 ──
+            // ── 种族（§4.3）：沿用原 4 个动物访客的序列帧素材 ──
             // 性格数值以 tick 计（10 tick/秒、10 tick/游戏分钟）：如 9000 tick = 15 现实分钟 = 900 游戏分钟
-            var fox = Race(created, "fox", "狐族", "OutGameUI/Guests/fox", "OutGameUI/Visitors/orange_cat",
-                waitTalk: 3000, waitDeliver: 6000, wanderMax: 3600, stayPercent: 30);
-            var crow = Race(created, "crow", "鸦族", "OutGameUI/Guests/crow", "OutGameUI/Visitors/rottweiler",
-                waitTalk: 1800, waitDeliver: 3600, wanderMax: 2400, stayPercent: 10);
-            var rabbit = Race(created, "rabbit", "兔族", "OutGameUI/Guests/rabbit", "OutGameUI/Visitors/xueqiu",
-                waitTalk: 4200, waitDeliver: 7200, wanderMax: 6000, stayPercent: 60);
-            var hedgehog = Race(created, "hedgehog", "猬族", "OutGameUI/Guests/hedgehog", "OutGameUI/Visitors/wangcai",
-                waitTalk: 2400, waitDeliver: 4800, wanderMax: 3000, stayPercent: 20);
+            // 「默认立绘ID」指向 Excel/立绘表.xlsx 里的行；这里给的四个 ID 与
+            // Tools/导表/make_portrait_template.py 生成的初始内容对齐（2026-08-14 立绘 ID 化）
+            var fox = Race(created, "fox", "狐族", "fox_平静", "OutGameUI/Visitors/orange_cat",
+                waitTalk: 3000, waitDeliver: 6000, wanderMax: 3600);
+            var crow = Race(created, "crow", "鸦族", "crow_平静", "OutGameUI/Visitors/rottweiler",
+                waitTalk: 1800, waitDeliver: 3600, wanderMax: 2400);
+            var rabbit = Race(created, "rabbit", "兔族", "rabbit_平静", "OutGameUI/Visitors/xueqiu",
+                waitTalk: 4200, waitDeliver: 7200, wanderMax: 6000);
+            var hedgehog = Race(created, "hedgehog", "猬族", "hedgehog_平静", "OutGameUI/Visitors/wangcai",
+                waitTalk: 2400, waitDeliver: 4800, wanderMax: 3000);
 
             // ── 日程表（§4.4：零随机零上限，谁在第几天几点带什么需求出现由策划配死；加内容请追加表尾）──
             // **这里生成的条目不带需求**：本包只做结构与导表列，需求资产由策划自己建（2026-08-13 访谈定案）。
@@ -92,8 +94,7 @@ namespace MasterHouse.EditorTools
         // 随小游戏框架落地第 2 步整体退役（§9.2）。
 
         private static VisitorRaceDef Race(List<string> created, string id, string displayName,
-            string portraitPath, string sheetPath, int waitTalk, int waitDeliver, int wanderMax,
-            int stayPercent)
+            string defaultPortraitId, string sheetPath, int waitTalk, int waitDeliver, int wanderMax)
         {
             var path = $"{RaceDir}/Race_{id}.asset";
             var race = AssetDatabase.LoadAssetAtPath<VisitorRaceDef>(path);
@@ -104,11 +105,7 @@ namespace MasterHouse.EditorTools
             race.waitTalkTimeoutTicks = waitTalk;
             race.waitDeliverTimeoutTicks = waitDeliver;
             race.wanderMaxTicks = wanderMax;
-            race.stayOvernightPercent = stayPercent;
-            race.portraits = new List<ExpressionPortrait>
-            {
-                new ExpressionPortrait { expression = EDialogueEmotion.Calm, portraitPath = portraitPath },
-            };
+            race.defaultPortraitId = defaultPortraitId;
             race.sheetPath = sheetPath;
             AssetDatabase.CreateAsset(race, path);
             created.Add(path);

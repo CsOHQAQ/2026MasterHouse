@@ -17,12 +17,5 @@ MonoBehaviour:
   waitTalkTimeoutTicks: 2400
   waitDeliverTimeoutTicks: 4800
   wanderMaxTicks: 3000
-  stayOvernightPercent: 20
-  portraits:
-  - expression: 0
-    portraitPath: OutGameUI
-  - expression: 0
-    portraitPath: Guests
-  - expression: 0
-    portraitPath: hedgehog
+  defaultPortraitId: "hedgehog_\u5E73\u9759"
   sheetPath: OutGameUI/Visitors/wangcai

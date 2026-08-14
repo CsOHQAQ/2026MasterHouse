@@ -20,7 +20,7 @@ namespace MasterHouse
         public Button advanceButton;
 
         [Header("立绘与对话条")]
-        [Tooltip("左下立绘（按 EDialogueEmotion 取种族差分）")] public RawImage portrait;
+        [Tooltip("左下立绘（按台词的立绘ID 查 PortraitTable；留空的句子沿用上一句）")] public RawImage portrait;
         [Tooltip("底部对话条容器")] public RectTransform dialogueBar;
         [Tooltip("名字条整体：玩家句换配色、旁白句整条隐藏（§4.1 三种说话人样式）")] public RectTransform nameplate;
         [Tooltip("说话人名（粉）")] public Text speakerName;

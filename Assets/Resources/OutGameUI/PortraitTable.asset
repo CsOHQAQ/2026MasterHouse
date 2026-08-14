@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86aede39afeb6634f8f9c31cde1bad92, type: 3}
+  m_Name: PortraitTable
+  m_EditorClassIdentifier: 
+  entries:
+  - portraitId: "crow_\u5E73\u9759"
+    path: OutGameUI/Guests/crow
+    note: "\u9E26\u65CF\u9ED8\u8BA4\u8138"
+    sourceRow: 3
+  - portraitId: "fox_\u5E73\u9759"
+    path: OutGameUI/Guests/fox
+    note: "\u72D0\u65CF\u9ED8\u8BA4\u8138"
+    sourceRow: 4
+  - portraitId: "hedgehog_\u5E73\u9759"
+    path: OutGameUI/Guests/hedgehog
+    note: "\u732C\u65CF\u9ED8\u8BA4\u8138"
+    sourceRow: 5
+  - portraitId: "rabbit_\u5E73\u9759"
+    path: OutGameUI/Guests/rabbit
+    note: "\u5154\u65CF\u9ED8\u8BA4\u8138"
+    sourceRow: 6

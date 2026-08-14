@@ -24,13 +24,14 @@ import openpyxl
 
 ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 EXCEL_PATH = os.path.join(ROOT, "Excel", "对话表.xlsx")
+PORTRAIT_EXCEL_PATH = os.path.join(ROOT, "Excel", "立绘表.xlsx")
 OUTPUT_DIR = os.path.join(ROOT, "Assets", "Configs")
 
 GROUP_SHEET = "对话组"
 CONTENT_SHEET = "对话内容"
 
 GROUP_HEADER = ["对话组ID", "种族", "需求ID", "所属对话池", "进入条件", "备注"]
-CONTENT_HEADER = ["对话组ID", "说话人", "表情", "步骤", "选项", "句序", "类型", "文本", "条件"]
+CONTENT_HEADER = ["对话组ID", "说话人", "立绘ID", "步骤", "选项", "句序", "类型", "文本", "条件"]
 
 CATEGORIES = [
     "firstMeeting", "waitingReception", "needTalk",
@@ -39,7 +40,10 @@ CATEGORIES = [
 ]
 KINDS = ["Line", "Action", "Branch"]
 SPEAKERS = ["visitor", "player", "narration"]
-EMOTIONS = ["calm", "happy", "confused", "sad", "surprised"]
+
+# 表情枚举（calm/happy/…）已于 2026-08-14 退役，「表情」列换成「立绘ID」：
+# 可选值不再是固定五项，而是 Excel/立绘表.xlsx 里现有的全部立绘ID。
+RACE_SEPARATORS = "/、,"
 
 # 第二行是「Unity 字段名」参考行（全 ASCII 标识符），与其它表一致地跳过
 FIELD_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_.]*$")
@@ -110,11 +114,65 @@ def check_int(sheet, row, value, label, required=True):
         return None
 
 
-def validate_groups(rows):
+def load_portrait_ids():
+    """读 Excel/立绘表.xlsx 的立绘ID 集合，用来校验第二页的「立绘ID」列。
+
+    立绘表不在就返回 None（跳过这项校验）：Unity 侧的 DialogueCsvImporter 还会再查一遍，
+    那才是权威口径。这里查只是为了让策划在双击 bat 的那一刻就知道 ID 拼错了，
+    不用切回 Unity 看 Console。
+    """
+    if not os.path.exists(PORTRAIT_EXCEL_PATH):
+        return None
+    wb = openpyxl.load_workbook(PORTRAIT_EXCEL_PATH, read_only=True, data_only=True)
+    if "立绘" not in wb.sheetnames:
+        wb.close()
+        return None
+    rows = list(wb["立绘"].iter_rows(values_only=True))
+    wb.close()
+    if not rows:
+        return None
+    header = [cell_text(v) for v in rows[0]]
+    if "立绘ID" not in header:
+        return None
+    index = header.index("立绘ID")
+    ids = set()
+    seen_data = False
+    for raw in rows[1:]:
+        values = [cell_text(v) for v in raw]
+        if not any(values):
+            continue
+        # 第 2 行是「Unity 字段名」参考行（portraitId / path / note），不是数据
+        if not seen_data and is_field_name_row(values):
+            continue
+        seen_data = True
+        if index < len(values) and values[index]:
+            ids.add(values[index])
+    return ids
+
+
+def validate_groups(rows, races_seen):
     for row, data in rows:
-        check_int(GROUP_SHEET, row, data["对话组ID"], "group id")
-        if data["种族"] == "":
-            fail(GROUP_SHEET, row, "race is empty (use raceId, `/` for multi, or 通用)")
+        gid = check_int(GROUP_SHEET, row, data["对话组ID"], "group id")
+        race = data["种族"]
+        if race == "":
+            fail(GROUP_SHEET, row, "race is empty (fill exactly one raceId)")
+        elif race in ("通用", "all"):
+            # 2026-08-14 立绘 ID 化：通用组让多个种族共用同一份台词与同一个立绘ID = 串脸
+            fail(GROUP_SHEET, row,
+                 "race '通用' is no longer supported - one dialogue group belongs to exactly one race. "
+                 "Write one row per race.")
+        elif any(sep in race for sep in RACE_SEPARATORS):
+            fail(GROUP_SHEET, row,
+                 "race multi-select is no longer supported: '%s' - one group, one race. Split into rows." % race)
+        elif gid is not None:
+            # 同一个组挂进多个分类是允许的，但那些行的种族必须一致
+            first = races_seen.get(gid)
+            if first is None:
+                races_seen[gid] = (race, row)
+            elif first[0] != race:
+                fail(GROUP_SHEET, row,
+                     "group %d is bound to two races ('%s' at row %d, '%s' here) - one group, one race"
+                     % (gid, first[0], first[1], race))
         category = data["所属对话池"]
         if category not in CATEGORIES:
             fail(GROUP_SHEET, row, "unknown category: %s (expected one of %s)" % (category, "/".join(CATEGORIES)))
@@ -143,7 +201,7 @@ def fill_down_group_id(rows):
             fail(CONTENT_SHEET, row, "group id is empty and there is no previous row to inherit from")
 
 
-def validate_content(rows):
+def validate_content(rows, portrait_ids):
     # (group, step, option, sub) 唯一；option/sub 空视为 -1
     seen = {}
     for row, data in rows:
@@ -156,8 +214,10 @@ def validate_content(rows):
             fail(CONTENT_SHEET, row, "unknown kind: %s (expected one of %s)" % (kind, "/".join(KINDS)))
         if data["说话人"] and data["说话人"] not in SPEAKERS:
             fail(CONTENT_SHEET, row, "unknown speaker: %s" % data["说话人"])
-        if data["表情"] and data["表情"] not in EMOTIONS:
-            fail(CONTENT_SHEET, row, "unknown emotion: %s" % data["表情"])
+        # 立绘ID 留空 = 沿用上一句（GVN 惯例），所以只校验填了的
+        if data["立绘ID"] and portrait_ids is not None and data["立绘ID"] not in portrait_ids:
+            fail(CONTENT_SHEET, row,
+                 "unknown portrait id: %s (add it to Excel/立绘表.xlsx first)" % data["立绘ID"])
         if kind == "Branch" and option is None:
             fail(CONTENT_SHEET, row, "Branch row must fill the 选项 column (option index, starting at 1)")
         if sub is not None and option is None:
@@ -198,9 +258,14 @@ def main():
     content = read_sheet(wb, CONTENT_SHEET, CONTENT_HEADER)
     wb.close()
 
-    validate_groups(groups)
+    portrait_ids = load_portrait_ids()
+    if portrait_ids is None:
+        print("[WARN] Excel/立绘表.xlsx not readable; skipping portrait id check "
+              "(Unity side will still validate it)")
+
+    validate_groups(groups, {})
     fill_down_group_id(content)
-    validate_content(content)
+    validate_content(content, portrait_ids)
     if errors:
         print("[ERROR] dialogue table has %d problem(s); nothing was written:" % len(errors))
         for message in errors:

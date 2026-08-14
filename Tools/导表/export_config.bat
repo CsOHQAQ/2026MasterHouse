@@ -58,6 +58,16 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+rem Portrait must go before dialogue: the dialogue importer validates portrait ids
+rem against the portrait table, so the portrait CSV has to land first.
+echo [INFO] Exporting portrait table...
+python "%~dp0export_portrait.py"
+if %errorlevel% neq 0 (
+    echo [ERROR] Portrait export failed!
+    pause
+    exit /b 1
+)
+
 echo [INFO] Exporting dialogue table...
 python "%~dp0export_dialogue.py"
 if %errorlevel% neq 0 (

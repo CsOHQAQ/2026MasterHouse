@@ -39,7 +39,11 @@ namespace MasterHouse
                 card.gameObject.SetActive(true);
                 var instance = instances[i];
                 var instanceId = instance.InstanceId;
-                card.portrait.texture = Resources.Load<Texture2D>(instance.Race.GetPortraitPath());
+                // 小卡跟对话无关，顶的永远是种族的默认脸（2026-08-14 立绘 ID 化：ID 查立绘表）
+                var portraits = GameManager.Instance.PortraitTable;
+                card.portrait.texture = portraits != null && instance.Race != null
+                    ? portraits.TextureOf(instance.Race.defaultPortraitId)
+                    : null;
                 // 所在房间跟着显示（四宫格拖拽换房后靠这里一眼找到人）
                 card.eventLabel.text = $"VISITOR {instance.InstanceId:00} · {RoomLabel(instance)}";
                 card.guestName.text = instance.DisplayName;

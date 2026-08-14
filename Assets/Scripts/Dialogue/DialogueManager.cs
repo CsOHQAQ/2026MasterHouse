@@ -117,6 +117,19 @@ namespace MasterHouse
             }
         }
 
+        /// <summary>
+        /// 当前该显示的立绘ID（已承接「留空 = 沿用上一句」，见 DialogueRuntime.CarriedPortraitId）。
+        /// 没在播时为空串。表现层拿它去 PortraitTable 查图，查不到就不显示立绘。
+        /// </summary>
+        public string CurrentPortraitId => runtime != null ? runtime.CarriedPortraitId ?? string.Empty : string.Empty;
+
+        /// <summary>台词填了立绘ID 就换脸；留空则保持不变——承接只发生在这一处。</summary>
+        private void CarryPortrait(DialogueLine line)
+        {
+            if (runtime == null || line == null || string.IsNullOrEmpty(line.portraitId)) return;
+            runtime.CarriedPortraitId = line.portraitId;
+        }
+
         /// <summary>当前是否停在分支上（停在分支时点击不推进，必须选一个选项）。</summary>
         public bool IsAtBranch => runtime != null && runtime.IsAtBranch;
 
@@ -246,6 +259,10 @@ namespace MasterHouse
                 OptionIndex = -1,
                 SubIndex = 0,
                 Context = BuildContext(request.Visitor),
+                // 首句若没填立绘ID，顶的就是这位访客种族的默认脸
+                CarriedPortraitId = request.Visitor != null && request.Visitor.Race != null
+                    ? request.Visitor.Race.defaultPortraitId
+                    : string.Empty,
             };
 
             // 先把开头的事件步执行掉、推进到第一个「要玩家看的」步，**这期间不开框**——
@@ -295,7 +312,7 @@ namespace MasterHouse
                     }
                     var sub = option.steps[runtime.SubIndex];
                     if (sub == null) { runtime.SubIndex++; continue; }
-                    if (sub.kind == EDialogueStepKind.Line) return true;
+                    if (sub.kind == EDialogueStepKind.Line) { CarryPortrait(sub.line); return true; }
                     DialogueFuncs.ExecuteAll(sub.actions, runtime.Context);
                     if (runtime == null) return false; // 防御：事件若意外终止了播放
                     runtime.SubIndex++;
@@ -308,6 +325,7 @@ namespace MasterHouse
                 switch (step.kind)
                 {
                     case EDialogueStepKind.Line:
+                        CarryPortrait(step.line);
                         return true;
 
                     case EDialogueStepKind.Action:

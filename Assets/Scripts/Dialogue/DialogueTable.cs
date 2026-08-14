@@ -24,15 +24,18 @@ namespace MasterHouse
     /// <summary>
     /// 对话池的一条挂载（Excel 第一页的一行）：把一个对话组挂到「某种族 · 某分类 · 某需求」下。
     ///
-    /// 同一个组可以出现多行（挂进多个分类、或分给多个种族）——第一页里写多行即可。
-    /// 「种族 = 通用」在导入期就展开成每个种族一行，运行时不再有通配逻辑。
+    /// 同一个组可以出现多行（挂进多个分类），但**这些行的种族必须相同**——
+    /// 「种族 = 通用」与 `/` 多选已于 2026-08-14 随立绘 ID 化作废：它们让多个种族共用同一份
+    /// DialogueLine，而 DialogueLine 现在带着具体的立绘ID，共用就是串脸（见 DialogueLine.cs 的说明）。
+    /// 导表期由 ResolveRace（单行）+ CrossValidate（多行分挂）两道一起堵。
     /// </summary>
     [Serializable]
     public sealed class DialoguePoolEntry
     {
         public int groupId;
 
-        [Tooltip("种族 id（VisitorRaceDef.raceId）。Excel 里写 `通用` 或 `/` 多选时，导入期已展开成逐个种族")]
+        [Tooltip("种族 id（VisitorRaceDef.raceId）。一个对话组只能属于一个种族——" +
+                 "Excel 第一页的「种族」列只接受单个 raceId，不再有「通用」与 / 多选")]
         public string raceId;
 
         [Tooltip("需求资产名（如 Need_修理电路）。空 = 不挑需求。\n" +
@@ -67,7 +70,7 @@ namespace MasterHouse
         [Tooltip("全部对话组（来自 Excel 第二页「对话内容」）")]
         public List<DialogueGroup> groups = new List<DialogueGroup>();
 
-        [Tooltip("全部池挂载（来自 Excel 第一页「对话组」，通用种族已展开）")]
+        [Tooltip("全部池挂载（来自 Excel 第一页「对话组」，一行一条、一组一种族）")]
         public List<DialoguePoolEntry> entries = new List<DialoguePoolEntry>();
 
         // ── 运行时索引（首次访问时惰性构建；导表重建资产后靠 OnEnable 清空重来）──

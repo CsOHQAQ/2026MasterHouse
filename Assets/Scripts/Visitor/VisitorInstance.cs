@@ -127,7 +127,10 @@ namespace MasterHouse
         /// </summary>
         public long NeedPromptTick;
 
-        /// <summary>实例随机流：派生自 rollSeed（§6.1），需求 roll 之后继续用于冒泡抖动与跨天留宿 roll。</summary>
+        /// <summary>
+        /// 实例随机流：派生自 rollSeed（§6.1），需求 roll 之后继续用于冒泡抖动。
+        /// （原先还用于跨天留宿 roll，该 roll 已于 2026-08-14 删除，见 VisitorManager.EndDay 的注释。）
+        /// </summary>
         public DeterministicRng Rng;
 
         public string DisplayName => Race != null ? Race.displayName : "访客";

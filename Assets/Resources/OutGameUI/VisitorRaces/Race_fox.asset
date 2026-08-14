@@ -17,12 +17,5 @@ MonoBehaviour:
   waitTalkTimeoutTicks: 3000
   waitDeliverTimeoutTicks: 6000
   wanderMaxTicks: 3600
-  stayOvernightPercent: 30
-  portraits:
-  - expression: 0
-    portraitPath: OutGameUI
-  - expression: 0
-    portraitPath: Guests
-  - expression: 0
-    portraitPath: fox
+  defaultPortraitId: "fox_\u5E73\u9759"
   sheetPath: OutGameUI/Visitors/orange_cat

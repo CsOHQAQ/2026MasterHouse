@@ -189,11 +189,12 @@ namespace MasterHouse
             if (view.nameplate != null) view.nameplate.gameObject.SetActive(!isNarration);
             if (view.narrationText != null) view.narrationText.gameObject.SetActive(isNarration);
 
-            if (isVisitor && view.portrait != null && visitor != null && visitor.Race != null)
+            if (isVisitor && view.portrait != null)
             {
-                // 差分缺失时 GetPortraitPath 内部回落平静并打 Warning，不阻断播放（§4.1）
-                var path = visitor.Race.GetPortraitPath(line.emotion);
-                var texture = string.IsNullOrEmpty(path) ? null : Resources.Load<Texture2D>(path);
+                // 立绘ID 由 DialogueManager 承接过了（台词留空 = 沿用上一句，首句回落种族默认脸），
+                // 这里只负责查图。查不到就是空立绘位——导表期已硬校验过 ID 存在性，不在这里补日志。
+                var portraits = GameManager.Instance.PortraitTable;
+                var texture = portraits != null ? portraits.TextureOf(dialogue.CurrentPortraitId) : null;
                 view.portrait.texture = texture;
                 if (texture != null)
                 {

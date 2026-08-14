@@ -161,6 +161,10 @@ namespace MasterHouse.EditorTools
         /// 新建一个 NeedDef 资产（哪怕只是试验用）立刻产生 N 条错误，把已经调好的台词一起废掉，
         /// 而"某位访客没话说"根本不影响其余内容跑起来——它正是"跑得起来但多半是事故"这一档。
         /// 真跑到那一步时运行时还有 LogError + 玩家侧 Toast 兜底。
+        ///
+        /// 【立绘 ID 化之后这里会更吵】一组一种族之后，覆盖度是「种族 × 分类」和「种族 × 需求」两张
+        /// 笛卡尔积——**新加一个种族会立刻刷出一整屏警告**（他一句台词都还没有）。这是预期行为，
+        /// 也正是「警告而非错误」的价值所在：加种族的那一刻工程仍然跑得起来，照着警告一条条补台词即可。
         /// </summary>
         private static void ValidateCoverage(List<DialoguePoolEntry> entries, DialogueReport report)
         {

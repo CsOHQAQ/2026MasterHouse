@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -15,9 +14,11 @@ namespace MasterHouse.EditorTools
     ///   种族 → VisitorRaces/Race_&lt;raceId&gt;.asset（缺则新建，多余的资产保留并告警）
     ///   日程 → VisitorScheduleTable.asset（整表重建；§4.4 重排会改需求 roll，加内容请追加在 Excel 表尾）
     ///   调参/氛围 → VisitorTuningConfig.asset
-    /// 引用列写法：立绘差分「表情=Resources路径」以 / 分隔（表情写中文名，如 平静/高兴）；
+    /// 引用列写法：种族的「默认立绘ID」写 Excel/立绘表.xlsx 里的立绘ID（原「立绘差分」那种
+    /// 「表情=路径/表情=路径」的双层分隔串已随 2026-08-14 立绘 ID 化退役）；
     /// 日程的「需求」列写 NeedDef 资产名（如 Need_修理电路）。
     /// 种族表的「对话池」列已随 2026-08-14 对话资源重构退役——对话内容按 raceId 查 DialogueTable。
+    /// 种族表的「跨天留宿概率%」列已于 2026-08-14 删除（消费方早已移除，见 VisitorRaceDef 的注释）。
     /// </summary>
     public static class VisitorCsvImporter
     {
@@ -134,8 +135,9 @@ namespace MasterHouse.EditorTools
                 race.waitTalkTimeoutTicks = Int(row, col, "等搭话超时tick", race.waitTalkTimeoutTicks);
                 race.waitDeliverTimeoutTicks = Int(row, col, "等交货超时tick", race.waitDeliverTimeoutTicks);
                 race.wanderMaxTicks = Int(row, col, "闲逛上限tick", race.wanderMaxTicks);
-                race.stayOvernightPercent = Int(row, col, "跨天留宿概率%", race.stayOvernightPercent);
-                race.portraits = ParsePortraits(Cell(row, col, "立绘差分"), raceId);
+                // 立绘ID 的存在性由立绘表那边负责（PortraitCsvImporter），这里只存字符串：
+                // 导表顺序不保证，在这里查表会因为「立绘表还没导」报出假错误
+                race.defaultPortraitId = Cell(row, col, "默认立绘ID");
                 race.sheetPath = Cell(row, col, "序列帧");
                 // 「对话池」列已随 2026-08-14 对话资源重构退役：对话内容按 raceId 查 DialogueTable，
                 // 种族资产上不再挂引用。表里若还留着这一列会被静默忽略。
@@ -148,36 +150,9 @@ namespace MasterHouse.EditorTools
             return seen.Count;
         }
 
-        /// <summary>解析立绘差分「表情=Resources路径」以 / 分隔；表情写中文名（平静/高兴/困惑/失望/惊讶）或枚举名。</summary>
-        private static List<ExpressionPortrait> ParsePortraits(string text, string raceId)
-        {
-            var result = new List<ExpressionPortrait>();
-            if (string.IsNullOrEmpty(text)) return result;
-            foreach (var token in text.Split('/'))
-            {
-                if (string.IsNullOrWhiteSpace(token)) continue;
-                var eq = token.IndexOf('=');
-                if (eq <= 0)
-                {
-                    // 无「表情=」前缀的裸路径按平静（默认表情）处理
-                    result.Add(new ExpressionPortrait { expression = EDialogueEmotion.Calm, portraitPath = token.Trim() });
-                    continue;
-                }
-                var name = token.Substring(0, eq).Trim();
-                var path = token.Substring(eq + 1).Trim();
-                var emotion = EDialogueEmotion.Calm;
-                var index = Array.IndexOf(DialogueEmotionText.Names, name);
-                if (index >= 0) emotion = (EDialogueEmotion)index;
-                else if (!Enum.TryParse(name, true, out emotion))
-                {
-                    Debug.LogWarning($"[导表] 种族「{raceId}」立绘差分表情「{name}」无法识别，按平静处理" +
-                                     "（合法：平静/高兴/困惑/失望/惊讶）");
-                    emotion = EDialogueEmotion.Calm;
-                }
-                result.Add(new ExpressionPortrait { expression = emotion, portraitPath = path });
-            }
-            return result;
-        }
+        // 立绘差分解析 ParsePortraits 已随 2026-08-14 立绘 ID 化删除：
+        // 「表情=路径/表情=路径」这种双层分隔串正是 §16.6 明令禁止的无类型数据，
+        // 现在种族表只存一个立绘ID，差分整体搬去 Excel/立绘表.xlsx。
 
         // ── 导入：日程 ──
 
@@ -271,18 +246,12 @@ namespace MasterHouse.EditorTools
         {
             var lines = new List<string>
             {
-                Line("种族id", "显示名", "等搭话超时tick", "等交货超时tick", "闲逛上限tick", "跨天留宿概率%",
-                    "立绘差分", "序列帧"),
+                Line("种族id", "显示名", "等搭话超时tick", "等交货超时tick", "闲逛上限tick",
+                    "默认立绘ID", "序列帧"),
             };
             foreach (var race in LoadAll<VisitorRaceDef>())
-            {
-                var portraits = new List<string>();
-                foreach (var entry in race.portraits)
-                    if (entry != null)
-                        portraits.Add($"{DialogueEmotionText.NameOf(entry.expression)}={entry.portraitPath}");
                 lines.Add(Line(race.raceId, race.displayName, race.waitTalkTimeoutTicks, race.waitDeliverTimeoutTicks,
-                    race.wanderMaxTicks, race.stayOvernightPercent, string.Join("/", portraits), race.sheetPath));
-            }
+                    race.wanderMaxTicks, race.defaultPortraitId, race.sheetPath));
             WriteCsv(RaceCsvPath, lines);
         }
 

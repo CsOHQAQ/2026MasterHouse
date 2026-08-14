@@ -17,12 +17,5 @@ MonoBehaviour:
   waitTalkTimeoutTicks: 4200
   waitDeliverTimeoutTicks: 7200
   wanderMaxTicks: 6000
-  stayOvernightPercent: 60
-  portraits:
-  - expression: 0
-    portraitPath: OutGameUI
-  - expression: 0
-    portraitPath: Guests
-  - expression: 0
-    portraitPath: rabbit
+  defaultPortraitId: "rabbit_\u5E73\u9759"
   sheetPath: OutGameUI/Visitors/xueqiu

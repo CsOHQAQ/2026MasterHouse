@@ -31,6 +31,9 @@ namespace MasterHouse
         /// <summary>对话整表（2026-08-14 重构）：全部对话组与池挂载，由 Excel 导表整表重建。</summary>
         public DialogueTable DialogueTable { get; private set; }
 
+        /// <summary>立绘索引表（2026-08-14 立绘 ID 化）：立绘ID → Resources 路径，对话与 Hub 小卡共用。</summary>
+        public PortraitTable PortraitTable { get; private set; }
+
         public CodexTable CodexTable { get; private set; }
 
         /// <summary>家具配置表（Model，§16.7 并入 Def 体系：统一由此加载，消费方不再散落 Resources.Load）。</summary>
@@ -96,6 +99,11 @@ namespace MasterHouse
             VisitorTuning = Resources.Load<VisitorTuningConfig>("OutGameUI/VisitorTuningConfig");
             DialogueTuning = Resources.Load<DialogueTuningConfig>("OutGameUI/DialogueTuningConfig");
             DialogueTable = Resources.Load<DialogueTable>("OutGameUI/DialogueTable");
+            PortraitTable = Resources.Load<PortraitTable>("OutGameUI/PortraitTable");
+            if (PortraitTable == null)
+                Debug.LogError("立绘索引表缺失（Resources/OutGameUI/PortraitTable）：对话与访客小卡将一张立绘都显示不出来；" +
+                               "请编辑 Excel/立绘表.xlsx 后运行 Tools/导表/export_config.bat，" +
+                               "或执行菜单 MasterHouse → 对话系统 → 从 CSV 导入立绘");
             CodexTable = Resources.Load<CodexTable>("OutGameUI/CodexTable");
             if (VisitorSchedule == null || VisitorTuning == null || CodexTable == null)
                 Debug.LogError("局外内容表缺失或损坏（Resources/OutGameUI/VisitorScheduleTable|VisitorTuningConfig|CodexTable）：" +

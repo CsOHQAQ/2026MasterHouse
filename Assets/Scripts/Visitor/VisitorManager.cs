@@ -617,7 +617,8 @@ namespace MasterHouse
         ///
         /// 闲逛访客的「跨天留宿 roll」已于 2026-08-14 删除：服务中/待分房都无条件跨天了，
         /// 单给闲逛的掷一次骰子不一致；现在统一按停留时长走，到点自己离开。
-        /// （VisitorRaceDef.stayOvernightPercent 因此失去消费方，留着等下一轮种族表清理。）
+        /// （因此失去消费方的 VisitorRaceDef.stayOvernightPercent 与种族表那一列已在同日的
+        /// 立绘 ID 化那一轮里删除。日结快照里的 StayOvernightCount 是**实际留宿人数**，与它无关。）
         /// </summary>
         public VisitorDaySummary EndDay()
         {

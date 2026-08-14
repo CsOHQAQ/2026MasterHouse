@@ -3,7 +3,7 @@
 > 完整文档（表格规范、字段说明、扩展新表、故障排查）见 `Docs/导表工具说明.md`；本文件是快速参考。
 
 ```
-Excel/*.xlsx（家具/商店/家具房间/访客三表/音效/对话）  ← 策划在这里编辑（唯一数据源）
+Excel/*.xlsx（家具/商店/家具房间/访客三表/音效/立绘/对话）  ← 策划在这里编辑（唯一数据源）
         │  双击 Tools/导表/export_config.bat
         │  （自动检查 python/openpyxl → 逐表跑 export_*.py）
         ▼
@@ -11,14 +11,16 @@ Assets/Configs/*.csv                              ← 自动生成，别手改
         │  CSV 在 Assets 内：Unity 资产管线感知到变化 → CsvPostprocessor 自动导表
         │  （Unity 开着：切回窗口即导；Unity 关着：下次打开时导——无需 batchmode）
         ▼
-FurnitureTable / StoreTable / FurnitureRoomTable / 访客三资产 / SfxTable / DialogueTable
+FurnitureTable / StoreTable / FurnitureRoomTable / 访客三资产 / SfxTable / PortraitTable / DialogueTable
 ```
 
 - **导入是整表重建，以表格为准**：Inspector 里对这些 SO 的手改会在下次导表时被覆盖。
 - 自动导表开关分四套，各自在菜单 `MasterHouse → 家具系统 / 访客系统 / 音效系统 / 对话系统 → 自动导表（CSV 变化时）`；
-  同菜单下也有手动的「从 CSV 导入…」。
+  同菜单下也有手动的「从 CSV 导入…」。**立绘表归对话系统那一套开关**。
+- **立绘表必须排在对话表之前**（对话导表要拿它校验立绘ID）：bat 里已排好，Unity 侧则由立绘导表
+  导完后直接串调对话导表，不靠两个 postprocessor 赛跑。
 - 菜单「导出…到 CSV」只回写 CSV，**不会回写 xlsx**——xlsx 是唯一编辑源。
-  **对话表没有导出回写**：SO 是产物不是源，要看内容就打开 xlsx。
+  **对话表与立绘表没有导出回写**：SO 是产物不是源，要看内容就打开 xlsx。
 - bat 依赖：python + openpyxl（缺 openpyxl 时 bat 会自动 pip install）。
 
 ## 家具表.xlsx · 工作表「家具」
@@ -47,9 +49,18 @@ FurnitureTable / StoreTable / FurnitureRoomTable / 访客三资产 / SfxTable / 
 
 - `访客种族表.xlsx`（种族）、`访客日程表.xlsx`（日程）、`访客调参表.xlsx`（调参 + 氛围访客两页）
   → `Race_*.asset` / `VisitorScheduleTable` / `VisitorTuningConfig`。
-  引用列写法：立绘差分 `表情=Resources路径`、日程的需求写 `NeedDef` 资产名。
+  引用列写法：**默认立绘ID** 写立绘表的主键（如 `fox_平静`）、日程的需求写 `NeedDef` 资产名。
   ⚠️ 日程行下标参与派生种子，**加内容请追加在表尾，别重排**。
 - `音效表.xlsx`（音效）→ `SfxTable`：音效id 写 `ESfx` 枚举名、剪辑路径、音量、最短间隔秒。
+
+## 立绘表.xlsx · 一页
+
+三列：**立绘ID**（主键，命名自由，只是不能带逗号）、**资源路径**（Resources 相对路径、不带扩展名）、备注。
+
+- 对话表第二页的「立绘ID」列、访客种族表的「默认立绘ID」列都引用它。**加一张图 = 加一行**。
+- 表情枚举已于 2026-08-14 退役——差分数量与命名完全交给美术，不必再改代码。
+- 路径找不到贴图只给**警告**（「先占 ID 后补图」是常态）；ID 空/重复、路径空是错误，整表不落盘。
+- 重建模板：`python Tools/导表/make_portrait_template.py --force`（扫 `Resources/OutGameUI/Guests` 铺初始行）。
 
 ## 对话表.xlsx · 两页（+ 一页参考）
 
@@ -57,9 +68,12 @@ FurnitureTable / StoreTable / FurnitureRoomTable / 访客三资产 / SfxTable / 
 
 | 页 | 列 |
 |---|---|
-| 对话组 | 对话组ID、种族（`通用` 或 `/` 多选）、需求ID、所属对话池（八个 key）、进入条件、备注 |
-| 对话内容 | 对话组ID、说话人、表情、**步骤/选项/句序**、类型（Line/Action/Branch）、文本、条件 |
+| 对话组 | 对话组ID、种族（**只能填一个 raceId**）、需求ID、所属对话池（八个 key）、进入条件、备注 |
+| 对话内容 | 对话组ID、说话人、立绘ID、**步骤/选项/句序**、类型（Line/Action/Branch）、文本、条件 |
 
+- **一个对话组只属于一个种族**：「通用」与 `/` 多选已于 2026-08-14 作废——多个种族共用同一份台词
+  就会共用同一个立绘ID（串脸）。通用组要按种族各抄一份。
+- **立绘ID 留空 = 沿用上一句**，组内首句留空则用该种族的「默认立绘ID」。只在需要换脸时才填。
 - **三列数字序号**，行序没有语义（可任意排序）；对话组ID 每组首行写一次，后续行留空继承。
 - Action 行的「文本」写函数调用串（`Accept` / `CompleteNeed(perfect)`），可用函数见「参考」页。
 - 有任何错误就**整表不落盘**，Console 里每条报错都带 sheet 与行号。
