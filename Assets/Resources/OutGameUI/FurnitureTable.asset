@@ -159,7 +159,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 200
     displayHeight: 220
     decorationScore: 30
@@ -182,7 +182,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 200
     displayHeight: 223
     decorationScore: 30
@@ -205,7 +205,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 200
     displayHeight: 225
     decorationScore: 30
@@ -228,7 +228,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 200
     displayHeight: 227
     decorationScore: 30
@@ -251,7 +251,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 200
     displayHeight: 226
     decorationScore: 30
@@ -274,7 +274,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 200
     displayHeight: 228
     decorationScore: 30
@@ -297,7 +297,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 200
     displayHeight: 224
     decorationScore: 30
@@ -320,7 +320,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 200
     displayHeight: 227
     decorationScore: 30
@@ -435,7 +435,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 150
     displayHeight: 122
     decorationScore: 25
@@ -458,7 +458,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 150
     displayHeight: 123
     decorationScore: 25
@@ -481,7 +481,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 150
     displayHeight: 123
     decorationScore: 25
@@ -504,7 +504,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 150
     displayHeight: 124
     decorationScore: 25
@@ -527,7 +527,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 150
     displayHeight: 124
     decorationScore: 25
@@ -550,7 +550,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 150
     displayHeight: 125
     decorationScore: 25
@@ -573,7 +573,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 150
     displayHeight: 124
     decorationScore: 25
@@ -596,7 +596,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 150
     displayHeight: 124
     decorationScore: 25
@@ -619,7 +619,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 185
     displayHeight: 199
     decorationScore: 32
@@ -642,7 +642,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 185
     displayHeight: 199
     decorationScore: 32
@@ -665,7 +665,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 185
     displayHeight: 198
     decorationScore: 32
@@ -688,7 +688,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 185
     displayHeight: 199
     decorationScore: 32
@@ -711,7 +711,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 185
     displayHeight: 199
     decorationScore: 32
@@ -734,7 +734,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 185
     displayHeight: 198
     decorationScore: 32
@@ -757,7 +757,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 185
     displayHeight: 201
     decorationScore: 32
@@ -780,7 +780,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 185
     displayHeight: 200
     decorationScore: 32
@@ -803,7 +803,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 185
     displayHeight: 194
     decorationScore: 32
@@ -826,7 +826,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 185
     displayHeight: 197
     decorationScore: 32
@@ -849,7 +849,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 185
     displayHeight: 196
     decorationScore: 32
@@ -872,7 +872,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 6
-    rows: 4
+    rows: 2
     displayWidth: 185
     displayHeight: 199
     decorationScore: 30
@@ -1884,7 +1884,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 126
     displayHeight: 185
     decorationScore: 20
@@ -1907,7 +1907,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 122
     displayHeight: 185
     decorationScore: 20
@@ -1930,7 +1930,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 132
     displayHeight: 185
     decorationScore: 20
@@ -1953,7 +1953,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 116
     displayHeight: 185
     decorationScore: 20
@@ -1976,7 +1976,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 131
     displayHeight: 185
     decorationScore: 20
@@ -1999,7 +1999,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 128
     displayHeight: 185
     decorationScore: 20
@@ -2022,7 +2022,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 4
-    rows: 4
+    rows: 2
     displayWidth: 120
     displayHeight: 185
     decorationScore: 20

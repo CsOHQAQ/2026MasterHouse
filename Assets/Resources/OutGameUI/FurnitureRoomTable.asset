@@ -51,7 +51,7 @@ MonoBehaviour:
       cellHeight: 22.5
       x: 56
       y: 581
-      farWidthScale: 0.68
+      farWidthScale: 0.6
     blockedCells: []
     initialPlacements:
     - furnitureId: landscape_poster_02
@@ -70,13 +70,13 @@ MonoBehaviour:
       gridId: floor
       hostFurnitureId: 
       col: 17
-      row: 2
+      row: 4
       flipped: 0
     - furnitureId: round_table_01
       gridId: floor
       hostFurnitureId: 
       col: 25
-      row: 2
+      row: 4
       flipped: 0
   - id: bedroom
     displayName: "\u5367\u5BA4"
@@ -116,7 +116,7 @@ MonoBehaviour:
       cellHeight: 22.5
       x: 56
       y: 581
-      farWidthScale: 0.58
+      farWidthScale: 0.45
     blockedCells: []
     initialPlacements:
     - furnitureId: landscape_poster_03
@@ -129,19 +129,19 @@ MonoBehaviour:
       gridId: floor
       hostFurnitureId: 
       col: 9
-      row: 2
+      row: 4
       flipped: 0
     - furnitureId: cat_sofa_01
       gridId: floor
       hostFurnitureId: 
       col: 29
-      row: 2
+      row: 4
       flipped: 0
     - furnitureId: monstera_01
       gridId: floor
       hostFurnitureId: 
       col: 45
-      row: 2
+      row: 4
       flipped: 0
   - id: kitchen
     displayName: "\u53A8\u623F"
@@ -181,7 +181,7 @@ MonoBehaviour:
       cellHeight: 22.5
       x: 56
       y: 581
-      farWidthScale: 0.68
+      farWidthScale: 0.6
     blockedCells: []
     initialPlacements:
     - furnitureId: vintage_square_clock_02
@@ -194,7 +194,7 @@ MonoBehaviour:
       gridId: floor
       hostFurnitureId: 
       col: 17
-      row: 2
+      row: 4
       flipped: 0
     - furnitureId: potted_plant_01
       gridId: floor
@@ -247,7 +247,7 @@ MonoBehaviour:
       gridId: floor
       hostFurnitureId: 
       col: 0
-      row: 2
+      row: 4
       flipped: 0
     - furnitureId: potted_plant_02
       gridId: floor
@@ -265,5 +265,5 @@ MonoBehaviour:
       gridId: floor
       hostFurnitureId: 
       col: 35
-      row: 2
+      row: 4
       flipped: 0
