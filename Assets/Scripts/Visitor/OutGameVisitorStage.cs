@@ -34,6 +34,8 @@ namespace MasterHouse
         /// <summary>活动区兜底（房间表缺配时）：与旧的手摆游走带大致等价。</summary>
         private static readonly Rect DefaultWalkArea = Rect.MinMaxRect(.04f, .03f, .96f, .35f);
         private const int MaxAmbient = 3;
+        /// <summary>氛围邻居（串门临时访客）总开关：2026-08-14 屏蔽——名册与逻辑保留，改 true 即恢复。</summary>
+        private const bool AmbientEnabled = false;
 
         /// <summary>访客业务状态（只读轮询，§2.1；表现结果不回写业务，§16.4）。</summary>
         private static VisitorManager Visitor => GameManager.Instance.VisitorManager;
@@ -52,6 +54,20 @@ namespace MasterHouse
         private Func<int, int, bool> onGuestDropped;
         private bool initialSpawnDone;
         private int frontDeskSlot;
+        /// <summary>正被玩家拖拽的演员（RTS 边缘推屏用：相机层每帧据此重投影，保证访客钉在指针下）。</summary>
+        private OutGameVisitorActor draggingActor;
+        /// <summary>抓取偏移（世界归一化坐标）：起手时演员落脚点相对指针的差，拖拽全程保持。</summary>
+        private Vector2 dragGrabOffset;
+
+        /// <summary>是否有访客正在被拖拽（HubSceneBinder 边缘推屏的开关）。</summary>
+        public bool HasActiveDrag => draggingActor != null && draggingActor.Dragging;
+
+        /// <summary>按当前鼠标位置重投影被拖拽的访客（相机平移/缩放后由相机层每帧调用；无拖拽时空转）。</summary>
+        public void RefreshDragProjection()
+        {
+            if (!HasActiveDrag) return;
+            ProjectDrag(draggingActor, Input.mousePosition);
+        }
         private readonly List<OutGameVisitorActor> actors = new List<OutGameVisitorActor>();
         /// <summary>业务演员：instanceId → 演员。</summary>
         private readonly Dictionary<int, OutGameVisitorActor> businessActors = new Dictionary<int, OutGameVisitorActor>();
@@ -83,7 +99,7 @@ namespace MasterHouse
             }
             stage.initialSpawnDone = true;
             // 邻居首发阵容：随机挑几只错峰进场
-            var roster = Tuning != null ? Tuning.ambientVisitors : null;
+            var roster = AmbientEnabled && Tuning != null ? Tuning.ambientVisitors : null;
             if (roster != null)
             {
                 var order = new List<int>();
@@ -145,7 +161,19 @@ namespace MasterHouse
             var trigger = actor.gameObject.GetComponent<UnityEngine.EventSystems.EventTrigger>();
             if (trigger == null) trigger = actor.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
             AddTrigger(trigger, UnityEngine.EventSystems.EventTriggerType.BeginDrag,
-                _ => { if (actor != null) actor.BeginPlayerDrag(); });
+                data =>
+                {
+                    if (actor == null) return;
+                    actor.BeginPlayerDrag();
+                    if (!actor.Dragging) return;
+                    draggingActor = actor;
+                    // 抓取偏移（2026-08-14 跟手修复）：记住「演员落脚点 − 指针」的世界差，
+                    // 拖拽全程按这个差跟随——否则起手瞬间演员脚底会吸到指针上，视觉上就是一跳
+                    dragGrabOffset = Vector2.zero;
+                    if (data is UnityEngine.EventSystems.PointerEventData pointer
+                        && TryScreenToWorld(pointer.position, out var grabWorld))
+                        dragGrabOffset = HubWorldGrid.RoomToWorld(actor.RoomIndex, actor.ScenePosition) - grabWorld;
+                });
             AddTrigger(trigger, UnityEngine.EventSystems.EventTriggerType.Drag, data =>
             {
                 if (actor != null && data is UnityEngine.EventSystems.PointerEventData pointer)
@@ -214,22 +242,38 @@ namespace MasterHouse
             return new Vector2(area.xMin + f.x * area.width, area.yMin + f.y * area.height);
         }
 
-        /// <summary>拖拽跟随：屏幕坐标 → 世界归一化坐标 → (房间, 房内坐标)，钳在该房间的活动区内。</summary>
+        /// <summary>拖拽跟随（uGUI Drag 事件路径）。</summary>
         private void DragActor(OutGameVisitorActor actor, UnityEngine.EventSystems.PointerEventData pointer)
         {
-            if (!actor.Dragging || worldRoot == null) return;
+            ProjectDrag(actor, pointer.position);
+        }
+
+        /// <summary>屏幕坐标 → 世界归一化坐标（壳 Canvas 为 Overlay 模式，无相机参与换算）。</summary>
+        private bool TryScreenToWorld(Vector2 screenPosition, out Vector2 world)
+        {
+            world = default;
+            if (worldRoot == null) return false;
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    worldRoot, pointer.position, pointer.pressEventCamera, out var local)) return;
+                    worldRoot, screenPosition, null, out var local)) return false;
             var rect = worldRoot.rect;
-            var world = new Vector2(
+            world = new Vector2(
                 Mathf.Clamp01((local.x - rect.xMin) / Mathf.Max(rect.width, 1f)),
                 Mathf.Clamp01((local.y - rect.yMin) / Mathf.Max(rect.height, 1f)));
+            return true;
+        }
+
+        /// <summary>拖拽跟随：指针世界坐标 + 抓取偏移 → (房间, 房内坐标)。
+        /// 拖拽事件与 RTS 边缘推屏的每帧重投影共用。
+        /// 拖拽中**不**钳活动区（演员是被拎在手里的，自由跟手；硬钳的话跨房瞬间会在两个红框区之间瞬移），
+        /// 活动区约束推迟到松手落位（见 DropActor）。</summary>
+        private void ProjectDrag(OutGameVisitorActor actor, Vector2 screenPosition)
+        {
+            if (actor == null || !actor.Dragging) return;
+            if (!TryScreenToWorld(screenPosition, out var world)) return;
+            world.x = Mathf.Clamp01(world.x + dragGrabOffset.x);
+            world.y = Mathf.Clamp01(world.y + dragGrabOffset.y);
             var room = HubWorldGrid.RoomAt(world);
-            var point = HubWorldGrid.WorldToLocal(room, world);
-            var area = WalkArea(room);
-            point.x = Mathf.Clamp(point.x, area.xMin, area.xMax);
-            point.y = Mathf.Clamp(point.y, area.yMin, area.yMax);
-            actor.UpdatePlayerDrag(room, point);
+            actor.UpdatePlayerDrag(room, HubWorldGrid.WorldToLocal(room, world));
         }
 
         /// <summary>
@@ -239,8 +283,15 @@ namespace MasterHouse
         /// </summary>
         private void DropActor(OutGameVisitorActor actor, int instanceId)
         {
+            if (draggingActor == actor) draggingActor = null; // 边缘推屏停表
             if (!actor.Dragging) return;
             var room = actor.RoomIndex;
+            // 落位钳回活动区（拖拽中自由跟手，约束在这里补上）
+            var area = WalkArea(room);
+            var point = actor.ScenePosition;
+            point.x = Mathf.Clamp(point.x, area.xMin, area.xMax);
+            point.y = Mathf.Clamp(point.y, area.yMin, area.yMax);
+            actor.UpdatePlayerDrag(room, point);
             var accepted = onGuestDropped != null && onGuestDropped(instanceId, room);
             if (accepted) actor.EndPlayerDrag();
             else actor.CancelPlayerDrag();
