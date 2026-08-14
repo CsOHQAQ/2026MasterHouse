@@ -61,6 +61,9 @@ namespace MasterHouse
         /// <summary>关店回调（可空）：从家具摆放模式进来的商店，ESC 关店后经它退回摆放模式（UI 递归返回语义）。</summary>
         private System.Action onClosed;
 
+        /// <summary>待确认的购买（弹窗确认制，2026-08-14）：按购买先弹窗，点确认/空格才扣钱；ESC 取消不扣。</summary>
+        private FurnitureEntry pendingPurchase;
+
         private static EconomyManager Economy => GameManager.Instance.EconomyManager;
 
         private StoreOverlay(RectTransform root, OutGameStorePageView view, HouseUIManager ui)
@@ -95,7 +98,7 @@ namespace MasterHouse
             var hotkeys = instance.AddComponent<StoreHotkeys>(); // 键位组件：非布局件，运行时挂（§16.2 例外口径同打字机）
             hotkeys.Bind(() => overlay.SwitchCategory(-1), () => overlay.SwitchCategory(1),
                 overlay.CycleColor, overlay.BuySelected,
-                () => overlay.ToggleObtained(false), () => overlay.IsObtainedOpen);
+                overlay.ConfirmPurchase, () => overlay.IsObtainedOpen); // 弹窗态空格 = 确认购买（此刻才扣钱）
             HouseUIUtil.ApplyFallbackFont(instance.transform);
             var group = HouseUIUtil.Group(rect.gameObject, 0);
             group.DOFade(1, .25f).SetUpdate(true);
@@ -121,10 +124,11 @@ namespace MasterHouse
             back?.Invoke();
         }
 
-        /// <summary>获得弹窗开着时 ESC 先关弹窗（设计稿：空格&ESC 都能关），再按一次才退店。</summary>
+        /// <summary>确认弹窗开着时 ESC = 取消购买（不扣钱、只关弹窗），再按一次才退店。</summary>
         public bool ConsumeEscape()
         {
             if (!IsObtainedOpen) return false;
+            pendingPurchase = null;
             ToggleObtained(false);
             return true;
         }
@@ -142,7 +146,7 @@ namespace MasterHouse
             ApplyKeycap(view.nextCategory, "E");
             ApplyKeycap(view.closeButton, "ESC");
             if (view.buyButton != null) HouseUIUtil.BindButton(view.buyButton, BuySelected);
-            if (view.obtainedClose != null) HouseUIUtil.BindButton(view.obtainedClose, () => ToggleObtained(false));
+            if (view.obtainedClose != null) HouseUIUtil.BindButton(view.obtainedClose, ConfirmPurchase);
             // 获得弹窗面板统一走全局底图（9 宫格切片，避免不同宽高比拉伸变形）
             if (view.obtainedName != null)
                 HouseUIUtil.ApplyPanelSkin(view.obtainedName.transform.parent.GetComponent<Image>());
@@ -492,12 +496,42 @@ namespace MasterHouse
             }
         }
 
-        /// <summary>购买当前选中的配色变体（回车/点价格牌）。买哪色背包里就是哪件。</summary>
+        /// <summary>
+        /// 按购买（空格/点价格牌）：先做可买校验并**弹确认窗**，此时不扣钱；
+        /// 点「确认」按钮或再按空格才真正扣款（ConfirmPurchase），ESC 取消。买哪色背包里就是哪件。
+        /// </summary>
         private void BuySelected()
         {
             if (IsObtainedOpen) return;
             var family = SelectedFamilyEntry();
             var entry = family != null && family.Variants.Count > 0 ? family.Variants[ChoiceOf(family)] : null;
+            if (entry == null) return;
+            if (Economy.IsFurnitureOwned(entry.id))
+            {
+                ui.ShowToast("已拥有该家具（换个颜色试试 · X 键切换）");
+                return;
+            }
+            if (!Economy.IsFurnitureRevealed(entry))
+            {
+                ui.ShowToast($"声望达到 {Economy.UnlockReputationOf(entry)} 后解禁");
+                return;
+            }
+            if (Economy.Data.Currency < Economy.PriceOf(entry))
+            {
+                ui.ShowToast($"代币不足：需要 ◈ {Economy.PriceOf(entry):N0}，先去完成客人服务吧");
+                return;
+            }
+            pendingPurchase = entry;
+            ShowObtained(family, entry); // 确认窗：展示要买的款式与配色，确认后才扣钱
+        }
+
+        /// <summary>确认购买（弹窗的确认按钮/空格）：此刻才扣款入账；失败（余额变动等）toast 说明。</summary>
+        private void ConfirmPurchase()
+        {
+            if (!IsObtainedOpen) return;
+            var entry = pendingPurchase;
+            pendingPurchase = null;
+            ToggleObtained(false);
             if (entry == null) return;
             var result = Economy.TryPurchaseFurniture(entry);
             switch (result)
@@ -507,7 +541,6 @@ namespace MasterHouse
                     RefreshCards();
                     RefreshSwatchVisuals();
                     RefreshPreview();
-                    ShowObtained(family, entry); // 设计稿：成功购买后立即弹出
                     break;
                 case FurniturePurchaseResult.NotEnoughCurrency:
                     ui.ShowToast($"代币不足：需要 ◈ {Economy.PriceOf(entry):N0}，先去完成客人服务吧");
@@ -607,7 +640,7 @@ namespace MasterHouse
             if (view.obtainedName != null) view.obtainedName.text = entry.displayName;
             if (view.obtainedDesc != null)
                 view.obtainedDesc.text = string.IsNullOrEmpty(entry.description)
-                    ? "它已经躺进你的收纳栏，家具模式里随时摆出来。"
+                    ? $"花费 ◈ {Economy.PriceOf(entry):N0} 把它带回家——确认后收进收纳栏，家具模式里随时摆出来。"
                     : entry.description;
             BuildObtainedSwatches(family, entry);
             ToggleObtained(true);

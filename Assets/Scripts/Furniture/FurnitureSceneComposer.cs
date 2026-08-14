@@ -85,6 +85,22 @@ namespace MasterHouse
 
             // 收集绘制项：背景 + 家具（按层级排序后自后向前绘制）
             var draws = Collect(table, room);
+            // 光影：立式家具（地面/桌面带，order ≥ 100）脚下垫柔和投影，插到该件之下（order-1）
+            var shadowSprite = Resources.Load<Sprite>("OutGameUI/soft-shadow");
+            if (shadowSprite != null)
+            {
+                var shadows = new List<(FurnitureEntry entry, int order, Rect rect, bool flipped)>();
+                foreach (var draw in draws)
+                {
+                    if (draw.order < 100 || draw.entry.stackable) continue;
+                    var shadowW = draw.rect.width * 1.08f; // 与摆放模式同参：略宽于家具、扁度 0.26
+                    var shadowH = shadowW * .26f;
+                    shadows.Add((null, draw.order - 1,
+                        new Rect(draw.rect.x - (shadowW - draw.rect.width) * .5f,
+                            draw.rect.yMax - shadowH * .5f, shadowW, shadowH), false));
+                }
+                draws.AddRange(shadows);
+            }
             draws.Sort((a, b) => a.order.CompareTo(b.order));
 
             var previous = RenderTexture.active;
@@ -94,7 +110,8 @@ namespace MasterHouse
             // 像素坐标系（左上原点、Y 向下），与场景像素坐标一一对应
             GL.LoadPixelMatrix(0, width, height, 0);
             DrawSprite(room.background, new Rect(0, 0, width, height), false);
-            foreach (var draw in draws) DrawSprite(draw.entry.sprite, draw.rect, draw.flipped);
+            foreach (var draw in draws)
+                DrawSprite(draw.entry != null ? draw.entry.sprite : shadowSprite, draw.rect, draw.flipped);
             GL.PopMatrix();
             RenderTexture.active = previous;
             return baked;
@@ -173,6 +190,11 @@ namespace MasterHouse
             if (grid.surface == FurnitureSurfaceType.Floor)
             {
                 var bottomRow = placement.row + entry.rows;
+                // 2.5D 假透视：与 FurnitureRuntimeGrid.MapX 同口径（横向按底边行向网格中心收拢）
+                var farScale = grid.farWidthScale <= 0f ? 1f : grid.farWidthScale;
+                var widthScale = Mathf.Lerp(farScale, 1f, grid.rows > 0 ? Mathf.Clamp01((float)bottomRow / grid.rows) : 1f);
+                var gridCenter = grid.x + grid.cols * grid.cellWidth * .5f;
+                left = gridCenter + (left + entry.displayWidth * .5f - gridCenter) * widthScale - entry.displayWidth * .5f;
                 bottom = grid.y + bottomRow * grid.cellHeight;
                 // 与 FurnitureRoomController.AnchorOf 同口径：可叠放（地毯）压在立式家具之下
                 order = entry.stackable ? 70 + bottomRow : 100 + bottomRow * 10;

@@ -37,7 +37,14 @@ namespace MasterHouse
         private readonly Func<float, float, float, Vector3> pxToWorld;
         private readonly float zOffset;
         private GameObject root;
-        private SpriteRenderer[] cellRenderers;
+        // 梯形格渲染（2026-08-14）：单张 Mesh、一格一个四边形（上边按上一行收缩、下边按下一行收缩），
+        // 竖格线随假透视连续向灭点收拢；占位/预览染色走顶点色
+        private Mesh mesh;
+        private MeshRenderer meshRenderer;
+        private Color32[] vertexColors;
+
+        /// <summary>远端宽度比（2.5D 假透视）：最远一行的横向收缩比例，1 = 关闭。</summary>
+        public float FarWidthScale { get; }
 
         public FurnitureRuntimeGrid(FurnitureGridConfig config, Func<float, float, float, Vector3> pxToWorld, float zOffset)
         {
@@ -49,8 +56,29 @@ namespace MasterHouse
             CellHeight = config.cellHeight;
             X = config.x;
             Y = config.y;
+            FarWidthScale = config.farWidthScale <= 0f ? 1f : config.farWidthScale;
             this.pxToWorld = pxToWorld;
             this.zOffset = zOffset;
+        }
+
+        // ── 2.5D 假透视（仅横向）：远行向网格中心收拢，行高与纵向坐标不变 ──
+        // rowF 语义 = 深度基准行（0 = 最远/顶部，Rows = 最近/底部）；家具与格子统一用**底边所在行**取值，
+        // 保证家具中心与其脚下格子的中心始终对齐。
+
+        /// <summary>该深度行的横向收缩比例。</summary>
+        public float WidthScaleAt(float rowF) =>
+            Mathf.Lerp(FarWidthScale, 1f, Rows > 0 ? Mathf.Clamp01(rowF / Rows) : 1f);
+
+        private float CenterX => X + Cols * CellWidth * .5f;
+
+        /// <summary>均匀网格坐标 → 透视显示坐标（X 向中心收拢）。</summary>
+        public float MapX(float x, float rowF) => CenterX + (x - CenterX) * WidthScaleAt(rowF);
+
+        /// <summary>透视显示坐标 → 均匀网格坐标（指针反算吸附用）。</summary>
+        public float InvMapX(float x, float rowF)
+        {
+            var scale = WidthScaleAt(rowF);
+            return scale < .0001f ? x : CenterX + (x - CenterX) / scale;
         }
 
         public GameObject Root => root;
@@ -59,23 +87,31 @@ namespace MasterHouse
         {
             root = new GameObject("Grid_" + Id);
             root.transform.SetParent(parent, false);
-            cellRenderers = new SpriteRenderer[Cols * Rows];
-            for (var r = 0; r < Rows; r++)
+            mesh = new Mesh { name = "GridMesh_" + Id };
+            mesh.MarkDynamic(); // 染色高频更新
+            root.AddComponent<MeshFilter>().sharedMesh = mesh;
+            meshRenderer = root.AddComponent<MeshRenderer>();
+            // URP 2D 优先用管线自带的精灵无光照着色器，找不到再回落内置 Sprites/Default（都支持顶点色）
+            var shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
+            if (shader == null) shader = Shader.Find("Sprites/Default");
+            var material = new Material(shader) { mainTexture = Texture2D.whiteTexture };
+            meshRenderer.sharedMaterial = material;
+            meshRenderer.sortingOrder = sortingOrder;
+            meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            meshRenderer.receiveShadows = false;
+
+            vertexColors = new Color32[Cols * Rows * 4];
+            var triangles = new int[Cols * Rows * 6];
+            for (var i = 0; i < Cols * Rows; i++)
             {
-                for (var c = 0; c < Cols; c++)
-                {
-                    var cell = new GameObject($"Cell_{c}_{r}");
-                    cell.transform.SetParent(root.transform, false);
-                    var renderer = cell.AddComponent<SpriteRenderer>();
-                    renderer.sprite = cellSprite;
-                    renderer.color = CellIdle;
-                    renderer.sortingOrder = sortingOrder;
-                    // 1×1 白色精灵（PPU 100 → 0.01 世界单位）按单元格尺寸缩放，四周留 2px 缝隙形成格线感。
-                    cell.transform.localScale = new Vector3(CellWidth - 2f, CellHeight - 2f, 1f);
-                    cellRenderers[r * Cols + c] = renderer;
-                }
+                var v = i * 4;
+                var t = i * 6;
+                triangles[t] = v; triangles[t + 1] = v + 1; triangles[t + 2] = v + 2;
+                triangles[t + 3] = v; triangles[t + 4] = v + 2; triangles[t + 5] = v + 3;
+                var idle = (Color32)CellIdle;
+                vertexColors[v] = vertexColors[v + 1] = vertexColors[v + 2] = vertexColors[v + 3] = idle;
             }
-            SyncCellPositions();
+            RebuildMesh(triangles);
             root.SetActive(false);
         }
 
@@ -84,17 +120,51 @@ namespace MasterHouse
         {
             X = x;
             Y = y;
-            SyncCellPositions();
+            RebuildMesh(null);
         }
 
-        private void SyncCellPositions()
+        /// <summary>重建梯形格顶点：每格上边取上一行收缩比、下边取下一行收缩比，竖线连续向灭点收拢；
+        /// 四周各缩 1px 形成格线缝隙。顶点序：左上、右上、右下、左下。</summary>
+        private void RebuildMesh(int[] triangles)
         {
-            if (cellRenderers == null) return;
+            if (mesh == null || root == null) return;
+            var verts = new Vector3[Cols * Rows * 4];
             for (var r = 0; r < Rows; r++)
+            {
+                var topY = Y + r * CellHeight + 1f;
+                var bottomY = Y + (r + 1) * CellHeight - 1f;
                 for (var c = 0; c < Cols; c++)
-                    cellRenderers[r * Cols + c].transform.position =
-                        pxToWorld(X + (c + .5f) * CellWidth, Y + (r + .5f) * CellHeight, zOffset);
+                {
+                    var left = X + c * CellWidth + 1f;
+                    var right = X + (c + 1) * CellWidth - 1f;
+                    var v = (r * Cols + c) * 4;
+                    verts[v] = ToLocal(MapX(left, r), topY);
+                    verts[v + 1] = ToLocal(MapX(right, r), topY);
+                    verts[v + 2] = ToLocal(MapX(right, r + 1), bottomY);
+                    verts[v + 3] = ToLocal(MapX(left, r + 1), bottomY);
+                }
+            }
+            mesh.Clear();
+            mesh.vertices = verts;
+            if (triangles != null) mesh.triangles = triangles;
+            else
+            {
+                var tris = new int[Cols * Rows * 6];
+                for (var i = 0; i < Cols * Rows; i++)
+                {
+                    var v = i * 4;
+                    var t = i * 6;
+                    tris[t] = v; tris[t + 1] = v + 1; tris[t + 2] = v + 2;
+                    tris[t + 3] = v; tris[t + 4] = v + 2; tris[t + 5] = v + 3;
+                }
+                mesh.triangles = tris;
+            }
+            mesh.colors32 = vertexColors;
+            mesh.RecalculateBounds();
         }
+
+        private Vector3 ToLocal(float px, float py) =>
+            root.transform.InverseTransformPoint(pxToWorld(px, py, zOffset));
 
         public void SetVisible(bool visible)
         {
@@ -104,8 +174,20 @@ namespace MasterHouse
         /// <summary>桌面网格随宿主层级变化时同步渲染次序。</summary>
         public void SetSortingOrder(int order)
         {
-            if (cellRenderers == null) return;
-            for (var i = 0; i < cellRenderers.Length; i++) cellRenderers[i].sortingOrder = order;
+            if (meshRenderer != null) meshRenderer.sortingOrder = order;
+        }
+
+        /// <summary>给单元格染色（顶点色，四顶点同色）。</summary>
+        private void SetCellColor(int col, int row, Color color)
+        {
+            var v = (row * Cols + col) * 4;
+            var c32 = (Color32)color;
+            vertexColors[v] = vertexColors[v + 1] = vertexColors[v + 2] = vertexColors[v + 3] = c32;
+        }
+
+        private void ApplyColors()
+        {
+            if (mesh != null) mesh.colors32 = vertexColors;
         }
 
         public bool Contains(Vector2 scenePx, float margin)
@@ -170,34 +252,40 @@ namespace MasterHouse
         /// <summary>按占位状态刷新单元格颜色，并清掉上一次的预览色。</summary>
         public void RefreshCellColors()
         {
-            if (cellRenderers == null) return;
+            if (vertexColors == null) return;
             for (var r = 0; r < Rows; r++)
             {
                 for (var c = 0; c < Cols; c++)
                 {
                     occupancy.TryGetValue(new Vector2Int(c, r), out var owner);
-                    cellRenderers[r * Cols + c].color =
-                        owner == SceneOccupant ? CellBlocked :
-                        owner != null ? CellOccupied : CellIdle;
+                    SetCellColor(c, r, owner == SceneOccupant ? CellBlocked :
+                        owner != null ? CellOccupied : CellIdle);
                 }
             }
+            ApplyColors();
         }
 
         /// <summary>把候选落点的格子染成绿/红。调用前应先 RefreshCellColors 清预览。</summary>
         public void PaintPreview(int col, int row, int cols, int rows, bool ok)
         {
-            if (cellRenderers == null) return;
+            if (vertexColors == null) return;
             for (var r = row; r < row + rows; r++)
                 for (var c = col; c < col + cols; c++)
                     if (c >= 0 && r >= 0 && c < Cols && r < Rows)
-                        cellRenderers[r * Cols + c].color = ok ? CellOk : CellBad;
+                        SetCellColor(c, r, ok ? CellOk : CellBad);
+            ApplyColors();
         }
 
         public void Destroy()
         {
+            if (mesh != null) UnityEngine.Object.Destroy(mesh);
+            if (meshRenderer != null && meshRenderer.sharedMaterial != null)
+                UnityEngine.Object.Destroy(meshRenderer.sharedMaterial);
             if (root != null) UnityEngine.Object.Destroy(root);
             root = null;
-            cellRenderers = null;
+            mesh = null;
+            meshRenderer = null;
+            vertexColors = null;
         }
     }
 }
