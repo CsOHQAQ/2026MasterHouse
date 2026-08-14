@@ -228,8 +228,39 @@ namespace MasterHouse
             // 商店页：按 2026-08-14 设计稿补选色行/键位提示/弹窗配色列（只补缺失不动既有布局）
             repaired |= RepairPrefab<OutGameStorePageView>(StorePagePath,
                 (root, view) => AppendStoreRedesignNodes(root, view),
-                view => view.swatchRoot == null || view.colorKeycap == null || view.obtainedSwatchRoot == null);
+                view => view.swatchRoot == null || view.colorKeycap == null || view.obtainedSwatchRoot == null ||
+                        // 层序错位（补缺节点排在获得弹窗之后 → 画在弹窗上、不被弹窗遮罩挡）也触发迁移
+                        (view.obtainedGroup != null && view.swatchRoot != null &&
+                         view.swatchRoot.GetSiblingIndex() > view.obtainedGroup.transform.GetSiblingIndex()) ||
+                        // 购买键改空格：旧回车键帽图触发换图迁移
+                        (view.buyKeycap != null && view.buyKeycap.sprite != null && view.buyKeycap.sprite.name == "enter"));
+            // 商店卡片：Thumb 包进 ThumbArea 容器（图在手调框内保比例自适应；容器承接原 Thumb 的手调 Rect）
+            repaired |= RepairPrefab<OutGameStoreCardView>(StoreCardPath,
+                (root, view) => WrapStoreCardThumb(root, view),
+                view => view.thumb != null && view.thumb.transform.parent == view.transform);
             return repaired;
+        }
+
+        /// <summary>
+        /// 旧结构 StoreCard 无损迁移：把 Thumb 当前的 Rect（含手调值）原样搬给新建的 ThumbArea 容器，
+        /// Thumb 改为在容器内拉伸 + FitInParent——此后调「图片显示范围」= 调 ThumbArea 的 Rect。
+        /// </summary>
+        private static void WrapStoreCardThumb(GameObject root, OutGameStoreCardView view)
+        {
+            if (view.thumb == null || view.thumb.transform.parent != view.transform) return;
+            var thumbRect = view.thumb.rectTransform;
+            var area = Rect(root.transform, "ThumbArea", thumbRect.anchorMin, thumbRect.anchorMax,
+                thumbRect.anchoredPosition, thumbRect.sizeDelta);
+            area.pivot = thumbRect.pivot;
+            area.SetSiblingIndex(thumbRect.GetSiblingIndex()); // 保持层序（框下、价格上）
+            thumbRect.SetParent(area, false);
+            thumbRect.anchorMin = Vector2.zero;
+            thumbRect.anchorMax = Vector2.one;
+            thumbRect.offsetMin = Vector2.zero;
+            thumbRect.offsetMax = Vector2.zero;
+            var fitter = view.thumb.GetComponent<AspectRatioFitter>();
+            if (fitter == null) fitter = view.thumb.gameObject.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
         }
 
         /// <summary>
@@ -260,13 +291,16 @@ namespace MasterHouse
             {
                 view.buyKeycap = Image(root.transform, "BuyKeycap", new Vector2(1, 0), new Vector2(1, 0),
                     new Vector2(-400, 44), new Vector2(96, 44), Color.white);
-                view.buyKeycap.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(keyDir + "enter.png");
+                view.buyKeycap.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(keyDir + "space.png");
                 view.buyKeycap.preserveAspect = true;
                 view.buyKeycap.raycastTarget = false;
                 view.buyKeycapLabel = Label(root.transform, "BuyKeycapHint", "购买", 16,
                     new Color(1, 1, 1, .75f), new Vector2(1, 0), new Vector2(1, 0),
                     new Vector2(-320, 44), new Vector2(80, 30), TextAnchor.MiddleLeft, FontStyle.Normal);
             }
+            // 购买键改空格（2026-08-14）：旧修补产物里的回车键帽图换成空格键帽
+            if (view.buyKeycap != null && view.buyKeycap.sprite != null && view.buyKeycap.sprite.name == "enter")
+                view.buyKeycap.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(keyDir + "space.png");
             if (view.obtainedSwatchRoot == null && view.obtainedName != null)
             {
                 var panel = view.obtainedName.transform.parent;
@@ -277,6 +311,18 @@ namespace MasterHouse
             for (var i = 0; i < 5; i++)
                 if (view.categorySprites[i] == null)
                     view.categorySprites[i] = AssetDatabase.LoadAssetAtPath<Sprite>($"Assets/PC ui/store/{i + 1}.png");
+
+            // 层序：补缺节点必须排在获得弹窗**之前**——弹窗开着时才能盖住它们（视觉+射线一起被遮罩挡掉）
+            if (view.obtainedGroup != null)
+            {
+                var popup = view.obtainedGroup.transform;
+                var below = new Component[]
+                    { view.swatchRoot, view.colorKeycap, view.colorKeycapLabel, view.buyKeycap, view.buyKeycapLabel };
+                foreach (var node in below)
+                    if (node != null && node.transform.parent == popup.parent &&
+                        node.transform.GetSiblingIndex() > popup.GetSiblingIndex())
+                        node.transform.SetSiblingIndex(popup.GetSiblingIndex());
+            }
         }
 
         /// <summary>家具 HUD 旧 Prefab 无损补回「购买家具」按钮（挂在顶部容器里，随拖拽淡出）。</summary>
@@ -1737,8 +1783,10 @@ namespace MasterHouse
                 highlightedSprite = hover, pressedSprite = hover, selectedSprite = normal, disabledSprite = normal,
             };
             AddTweenFeedback(card.button);
-            card.thumb = Raw(root.transform, "Thumb", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+            // 缩略图区域容器：Prefab 里调它的 Rect = 调图片显示范围；Thumb 在其内保比例自适应（FitInParent 贴容器）
+            var thumbArea = Rect(root.transform, "ThumbArea", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
                 new Vector2(0, 14), new Vector2(108, 100));
+            card.thumb = Raw(thumbArea, "Thumb", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             var thumbFitter = card.thumb.gameObject.AddComponent<AspectRatioFitter>();
             thumbFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
             card.priceLabel = Label(root.transform, "Price", "◈ 3,200", 14, Hex("6E243E"),
