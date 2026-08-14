@@ -16,6 +16,7 @@ namespace MasterHouse
 
         private Button[] menuButtons;
         private int menuIndex;
+        private OutGameTitleView view;
 
         private readonly struct MenuItem
         {
@@ -35,7 +36,7 @@ namespace MasterHouse
 
         protected override void OnEnter()
         {
-            var view = Root != null ? Root.GetComponent<OutGameTitleView>() : null;
+            view = Root != null ? Root.GetComponent<OutGameTitleView>() : null;
             if (view == null)
             {
                 Debug.LogError("[HouseUI] 标题页 Prefab 缺少视图组件：OutGameTitleView");
@@ -116,6 +117,16 @@ namespace MasterHouse
             menuIndex = 1;
         }
 
+        public override void OnUpdate()
+        {
+            // 封面随游戏时钟调色（2026-08-14 昼夜光照）：与 Hub 场景共用 HouseDayLight 色带，进出游戏灯光衔接。
+            // 只改 rgb、保留进场淡入正在推的 alpha。
+            if (view == null || view.cover == null) return;
+            var (tint, _) = HouseDayLight.Now();
+            var current = view.cover.color;
+            view.cover.color = new Color(tint.r, tint.g, tint.b, current.a);
+        }
+
         public override void HandleInput()
         {
             if (menuButtons == null || menuButtons.Length == 0) return;
@@ -149,7 +160,9 @@ namespace MasterHouse
             gm.HouseClockManager.ResetNew();
             FurnitureRoomController.ResetSession();
             FurnitureSceneComposer.ClearBaked();
-            UI.ShowPage(new OpeningPage());
+            // 相片火烧转场（2026-08-14）：标题快照从点击处烧穿，直接露出 Hub 主背景
+            //（原「开门过场页」OpeningPage 已随本转场退役删除，欢迎语沿用）
+            TitleBurnFx.Play(UI, Input.mousePosition, () => UI.ShowPage(new HubPage("新的一天开始了 · 欢迎回家")));
         }
 
         // ── 标题页程序化贴图（复刻网页版渐变/晕影；随本页使用，非布局兜底）──
