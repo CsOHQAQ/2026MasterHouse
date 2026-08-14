@@ -73,7 +73,7 @@ namespace MasterHouse
             roomNav.Bind(view.roomNavigation, this);
             BuildImmersiveToggle(view.chromeRoot);
             if (view.footer != null)
-                view.footer.text = "NEW LIFE, NEW HOME · UI/UX CONCEPT                                      ESC 返回 · ← → 切换房间 · I 仓库";
+                view.footer.text = "NEW LIFE, NEW HOME · UI/UX CONCEPT                                      ESC 返回 · ↑↓←→ 移动房间 · I 仓库";
             HouseUIUtil.ApplyFallbackFont(Root);
             AnimateHubIn();
 
@@ -109,6 +109,7 @@ namespace MasterHouse
             MinigameOverlay.DiscardPending();
             GameManager.Instance.HouseClockManager.SetStopReason(EClockStopReason.OffHubPage, true);
             topBar.Dispose();
+            scene.Dispose(); // 推镜补间兜底回收（DOTween 安全模式 missing target 的来源之一）
         }
 
         private void OnVisitorListChanged(VisitorInstance instance)
@@ -165,8 +166,9 @@ namespace MasterHouse
             // 四宫格相机常开（观景/普通模式都可滚轮缩放、拖拽平移）；叠加层开着时壳不派发本方法，天然不抢滚轮
             scene.HandleCamera();
             if (immersive) return;
-            if (Input.GetKeyDown(KeyCode.LeftArrow)) SelectRoom((RoomIndex + 3) % 4);
-            if (Input.GetKeyDown(KeyCode.RightArrow)) SelectRoom((RoomIndex + 1) % 4);
+            // 四宫格方向移动：←→ 同排左右互换（异或列位），↑↓ 上下排互换（异或行位）
+            if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.RightArrow)) SelectRoom(RoomIndex ^ 1);
+            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.DownArrow)) SelectRoom(RoomIndex ^ 2);
             if (Input.GetKeyDown(KeyCode.I)) OpenPanel(EHousePanel.Inventory);
         }
 
@@ -174,6 +176,7 @@ namespace MasterHouse
         {
             if (view == null || furnitureModeOpen) return;
             topBar.Tick();
+            scene.UpdateDayLight(); // 昼夜光照随时钟流动（叠加层开着时 HandleInput 被拦，这里不受影响）
         }
 
         // ── 供各 Binder 与场景层回调的页面动作 ──
@@ -335,12 +338,28 @@ namespace MasterHouse
                 Toast("还有客人在等房间 · 把他拖进一间空客房再结束今天");
                 return;
             }
+            // 先弹确认（2026-08-14）：真正的日结在玩家点「结束今天」后才执行
+            ConfirmOverlay.Open(UI, $"结束 DAY {gm.HouseClockManager.Data.Day:00}",
+                "确定要结束今天吗？\n前台还在排队的客人会自动清场，已入住的客人明天继续。",
+                "结束今天", EndDayConfirmed);
+        }
+
+        /// <summary>确认弹窗点了「结束今天」。弹窗开着时时钟还在走，访客状态可能已变化，所以阻塞条件再检一次。</summary>
+        private void EndDayConfirmed()
+        {
+            var gm = GameManager.Instance;
+            if (gm.VisitorManager.HasBlockingVisitors)
+            {
+                Toast("还有客人在等房间 · 把他拖进一间空客房再结束今天");
+                return;
+            }
             var endedDay = gm.HouseClockManager.Data.Day;
             var summary = gm.VisitorManager.EndDay();
             if (summary == null) return;
             guestRail.Refresh();
             taskCard.Refresh();
-            DaySettleOverlay.Open(UI, endedDay, summary);
+            // 结算并入过场（2026-08-14）：入夜 → 夜幕结算 → 点击破晓开启新一天
+            DayTransitionFx.PlayEndDay(UI, endedDay, summary);
         }
 
         /// <summary>点击场景中的访客 NPC（观景模式下先展开界面）。</summary>
@@ -349,6 +368,13 @@ namespace MasterHouse
             if (furnitureModeOpen) return;
             if (immersive) SetImmersive(false);
             SelectGuest(instanceId);
+        }
+
+        /// <summary>家具图鉴「前往摆放」：先收起面板叠加层，再进家具模式。</summary>
+        public void GoFurnishFromPanel()
+        {
+            UI.PopOverlay();
+            OpenFurnitureMode();
         }
 
         /// <summary>家具模式：世界空间独立舞台，打开期间禁用整个壳 Canvas，退出回调恢复并重烘焙背景。</summary>

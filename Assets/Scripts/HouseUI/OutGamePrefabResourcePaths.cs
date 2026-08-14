@@ -40,6 +40,8 @@ namespace MasterHouse
         public const string AchievementRow = "OutGameUI/Prefabs/AchievementRow";
         public const string TasksPage = "OutGameUI/Prefabs/TasksPage";
         public const string DaySettlePanel = "OutGameUI/Prefabs/DaySettlePanel";
+        public const string ConfirmPopup = "OutGameUI/Prefabs/ConfirmPopup";
+        public const string DayTransition = "OutGameUI/Prefabs/DayTransition";
         public const string DevicePage = "OutGameUI/Prefabs/DevicePage";
         public const string JournalPage = "OutGameUI/Prefabs/JournalPage";
         public const string ArchivePage = "OutGameUI/Prefabs/ArchivePage";

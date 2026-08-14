@@ -61,6 +61,9 @@ namespace MasterHouse
         private const string FurnitureSlotPath = Folder + "/FurnitureSlot.prefab";
         private const string PlaceholderPanelPath = Folder + "/PlaceholderPanel.prefab";
         private const string PlaceholderPagePath = Folder + "/PlaceholderPage.prefab";
+        // 结束今天确认弹窗 + 开始新一天日出过场（2026-08-14）
+        private const string ConfirmPopupPath = Folder + "/ConfirmPopup.prefab";
+        private const string DayTransitionPath = Folder + "/DayTransition.prefab";
 
         static OutGameUIPrefabGenerator()
         {
@@ -120,9 +123,11 @@ namespace MasterHouse
             BuildArchivePanelContent(ArchivePanelPath);
             BuildDialogueView(DialogueViewPath);
             BuildDaySettlePanel(DaySettlePanelPath);
+            BuildConfirmPopup(ConfirmPopupPath);
+            BuildDayTransition(DayTransitionPath);
             BuildPanelPage(CalendarPagePath, "CalendarPage", "REAL TIME", "日程与时间", "历", CalendarPanelPath);
             BuildPanelPage(TasksPagePath, "TasksPage", "TODAY / 03", "今日委托", "任", TasksPanelPath);
-            BuildPanelPage(DevicePagePath, "DevicePage", "HOUSE INDEX", "设备图鉴", "器", DevicePanelPath);
+            BuildPanelPage(DevicePagePath, "DevicePage", "HOUSE INDEX", "家具图鉴", "家", DevicePanelPath);
             BuildPanelPage(JournalPagePath, "JournalPage", "MEMORY LOG", "日记与成就", "记", JournalPanelPath);
             BuildPanelPage(ArchivePagePath, "ArchivePage", "HOUSE ARCHIVE", "叙事资源档案", "集", ArchivePanelPath);
             BuildDeviceCard(DeviceCardPath);
@@ -172,9 +177,11 @@ namespace MasterHouse
             if (!File.Exists(ArchivePanelPath)) { BuildArchivePanelContent(ArchivePanelPath); changed = true; }
             if (!File.Exists(DialogueViewPath)) { BuildDialogueView(DialogueViewPath); changed = true; }
             if (!File.Exists(DaySettlePanelPath)) { BuildDaySettlePanel(DaySettlePanelPath); changed = true; }
+            if (!File.Exists(ConfirmPopupPath)) { BuildConfirmPopup(ConfirmPopupPath); changed = true; }
+            if (!File.Exists(DayTransitionPath)) { BuildDayTransition(DayTransitionPath); changed = true; }
             if (!File.Exists(CalendarPagePath)) { BuildPanelPage(CalendarPagePath, "CalendarPage", "REAL TIME", "日程与时间", "历", CalendarPanelPath); changed = true; }
             if (!File.Exists(TasksPagePath)) { BuildPanelPage(TasksPagePath, "TasksPage", "TODAY / 03", "今日委托", "任", TasksPanelPath); changed = true; }
-            if (!File.Exists(DevicePagePath)) { BuildPanelPage(DevicePagePath, "DevicePage", "HOUSE INDEX", "设备图鉴", "器", DevicePanelPath); changed = true; }
+            if (!File.Exists(DevicePagePath)) { BuildPanelPage(DevicePagePath, "DevicePage", "HOUSE INDEX", "家具图鉴", "家", DevicePanelPath); changed = true; }
             if (!File.Exists(JournalPagePath)) { BuildPanelPage(JournalPagePath, "JournalPage", "MEMORY LOG", "日记与成就", "记", JournalPanelPath); changed = true; }
             if (!File.Exists(ArchivePagePath)) { BuildPanelPage(ArchivePagePath, "ArchivePage", "HOUSE ARCHIVE", "叙事资源档案", "集", ArchivePanelPath); changed = true; }
             if (!File.Exists(DeviceCardPath)) { BuildDeviceCard(DeviceCardPath); changed = true; }
@@ -238,6 +245,22 @@ namespace MasterHouse
             repaired |= RepairPrefab<OutGameStoreCardView>(StoreCardPath,
                 (root, view) => WrapStoreCardThumb(root, view),
                 view => view.thumb != null && view.thumb.transform.parent == view.transform);
+            // 家具图鉴卡：补缩略图容器（图鉴改列真实摆放家具）
+            repaired |= RepairPrefab<DeviceCardView>(DeviceCardPath,
+                (root, view) => AppendDeviceCardThumb(root, view),
+                view => view.thumb == null);
+            // 日历面板：时段行补 Button（点时段跳时间，2026-08-14）
+            repaired |= RepairPrefab<OutGameCalendarPanelView>(CalendarPanelPath,
+                (root, view) => AppendPhaseButtons(view),
+                view => view.phaseButtons == null || view.phaseButtons.Length < 6 || view.phaseButtons[0] == null);
+            // 图鉴详情区：补「前往修理」按钮（2026-08-14）
+            repaired |= RepairPrefab<OutGameDevicePanelView>(DevicePanelPath,
+                (root, view) => AppendDeviceRepairButton(view),
+                view => view.repairButton == null);
+            // 日出过场：补夜幕结算正文与点击提示；顺带清掉已退役的太阳节点（2026-08-14）
+            repaired |= RepairPrefab<OutGameDayTransitionView>(DayTransitionPath,
+                (root, view) => AppendDayTransitionSettleNodes(view),
+                view => view.bodyLabel == null || view.hintLabel == null || view.transform.Find("SunDisc") != null);
             return repaired;
         }
 
@@ -934,7 +957,7 @@ namespace MasterHouse
             refs.button.targetGraphic = refs.background;
             AddTweenFeedback(refs.button);
             refs.icon = Label(root.transform, "Icon", "器", 20, Hex("F3E8DD"), new Vector2(0, 0), new Vector2(.32f, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter, FontStyle.Bold);
-            refs.label = Label(root.transform, "Label", "设备图鉴", 20, Hex("F3E8DD"), new Vector2(.28f, 0), new Vector2(1, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleLeft, FontStyle.Bold);
+            refs.label = Label(root.transform, "Label", "家具图鉴", 20, Hex("F3E8DD"), new Vector2(.28f, 0), new Vector2(1, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleLeft, FontStyle.Bold);
             Save(root, path);
         }
 
@@ -986,7 +1009,7 @@ namespace MasterHouse
             var refs = root.AddComponent<OutGameHubRoomNavigationView>();
             refs.background = ImageOn((RectTransform)root.transform, new Color(.02f, .022f, .04f, .82f));
             refs.title = Label(root.transform, "Title", "MAKE IT HOME", 18, Hex("E22D76"), new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(112, 15), new Vector2(210, 40), TextAnchor.MiddleCenter, FontStyle.Bold);
-            refs.hint = Label(root.transform, "Hint", "← → 快速切换", 13, Hex("F3E8DD"), new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(112, -18), new Vector2(210, 30), TextAnchor.MiddleCenter, FontStyle.Normal);
+            refs.hint = Label(root.transform, "Hint", "↑↓←→ 移动切换", 13, Hex("F3E8DD"), new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(112, -18), new Vector2(210, 30), TextAnchor.MiddleCenter, FontStyle.Normal);
             refs.rooms = new OutGameHubRoomButtonView[4];
             for (var i = 0; i < refs.rooms.Length; i++)
                 refs.rooms[i] = InstantiateNested<OutGameHubRoomButtonView>(HubRoomButtonPath, root.transform, "RoomButton0" + (i + 1),
@@ -1154,9 +1177,30 @@ namespace MasterHouse
                 label.rectTransform.offsetMax = new Vector2(-14, -6);
                 view.phaseLabels[i] = label;
             }
-            view.syncButton = PageButton(schedule.transform, "Sync", "同步现实时间", new Vector2(0, 68),
-                new Vector2(260, 56), Hex("6E243E"), Hex("F3E8DD"), 18, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
+            // 「同步现实时间」按钮已退役（2026-08-14）：新建 Prefab 不再生成，旧 Prefab 的节点由 Binder 就地隐藏
+            AppendPhaseButtons(view); // 时段行可点：跳时间（2026-08-14）
             Save(root, path);
+        }
+
+        /// <summary>日历面板增量（2026-08-14 选择时间）：给时段行补 Button 组件（不动任何 Rect，纯加交互）。</summary>
+        private static void AppendPhaseButtons(OutGameCalendarPanelView view)
+        {
+            if (view.phaseBackgrounds == null) return;
+            if (view.phaseButtons == null || view.phaseButtons.Length != view.phaseBackgrounds.Length)
+                view.phaseButtons = new Button[view.phaseBackgrounds.Length];
+            for (var i = 0; i < view.phaseBackgrounds.Length; i++)
+            {
+                var row = view.phaseBackgrounds[i];
+                if (row == null) continue;
+                var button = row.GetComponent<Button>();
+                if (button == null)
+                {
+                    button = row.gameObject.AddComponent<Button>();
+                    button.targetGraphic = row;
+                    AddTweenFeedback(button);
+                }
+                view.phaseButtons[i] = button;
+            }
         }
 
         /// <summary>「今日委托」面板内容。</summary>
@@ -1403,6 +1447,77 @@ namespace MasterHouse
             Save(root, path);
         }
 
+        /// <summary>通用确认弹窗（首用例：结束今天，2026-08-14）。文本由 ConfirmOverlay 运行时绑定。</summary>
+        private static void BuildConfirmPopup(string path)
+        {
+            var root = Root("ConfirmPopup");
+            var view = root.AddComponent<OutGameConfirmPopupView>();
+            view.scrim = Image(root.transform, "Scrim", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+                new Color(.005f, .008f, .02f, .72f));
+            view.panel = Rect(root.transform, "Panel", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                Vector2.zero, new Vector2(560, 300));
+            ImageOn(view.panel, new Color(.035f, .025f, .045f, .96f));
+            view.title = Label(view.panel, "Title", "确认", 28, Hex("E22D76"),
+                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -52), new Vector2(480, 44),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            view.body = Label(view.panel, "Body", string.Empty, 20, Hex("F3E8DD"),
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 12), new Vector2(460, 110),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+            view.cancelButton = PageButton(view.panel, "Cancel", "再想想", new Vector2(-125, 48),
+                new Vector2(210, 58), new Color(1, 1, 1, .08f), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
+            view.cancelLabel = view.cancelButton.GetComponentInChildren<Text>();
+            view.confirmButton = PageButton(view.panel, "Confirm", "确认", new Vector2(125, 48),
+                new Vector2(210, 58), Hex("6E243E"), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
+            view.confirmLabel = view.confirmButton.GetComponentInChildren<Text>();
+            Save(root, path);
+        }
+
+        /// <summary>开始新一天的日出过场层（2026-08-14）。Prefab 存入夜静态状态，破晓推移在 DayTransitionFx。</summary>
+        private static void BuildDayTransition(string path)
+        {
+            var root = Root("DayTransition");
+            var view = root.AddComponent<OutGameDayTransitionView>();
+            // 夜空盖屏（raycastTarget 默认开：过场期间挡输入）
+            view.sky = Image(root.transform, "Sky", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+                Hex("05071A"));
+            // 地平线光晕：复用 soft-shadow 的软椭圆渐变，夜里是幽蓝月光
+            view.glow = Image(root.transform, "HorizonGlow", new Vector2(.5f, 0), new Vector2(.5f, 0),
+                new Vector2(0, -60), new Vector2(1700, 560), new Color(.16f, .2f, .42f, .55f));
+            view.glow.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/OutGameUI/soft-shadow.png");
+            view.glow.raycastTarget = false;
+            view.dayLabel = Label(root.transform, "DayLabel", "DAY 01", 52, Hex("F3E8DD"),
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 46), new Vector2(600, 70),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            view.subLabel = Label(root.transform, "SubLabel", "新的一天，开门迎客", 21, Hex("F3E8DD", .8f),
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -12), new Vector2(600, 40),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+            AppendDayTransitionSettleNodes(view); // 结算并入过场（2026-08-14）
+            Save(root, path);
+        }
+
+        /// <summary>日出过场增量（2026-08-14 结算并入过场）：夜幕结算正文 + 「点击任意处」提示，只补缺失节点。</summary>
+        private static void AppendDayTransitionSettleNodes(OutGameDayTransitionView view)
+        {
+            if (view.bodyLabel == null)
+                view.bodyLabel = Label(view.transform, "SettleBody", string.Empty, 20, Hex("F3E8DD"),
+                    new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -95), new Vector2(720, 190),
+                    TextAnchor.UpperCenter, FontStyle.Normal);
+            if (view.hintLabel == null)
+                view.hintLabel = Label(view.transform, "SettleHint", "点击任意处 · 开始新的一天", 18, Hex("F3E8DD", .65f),
+                    new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -235), new Vector2(500, 34),
+                    TextAnchor.MiddleCenter, FontStyle.Normal);
+            RemoveDayTransitionSunNodes(view);
+        }
+
+        /// <summary>太阳特效已退役（2026-08-14 用户定案）：清掉此前增量补进 Prefab 的太阳节点。</summary>
+        private static void RemoveDayTransitionSunNodes(OutGameDayTransitionView view)
+        {
+            var disc = view.transform.Find("SunDisc");
+            if (disc != null) Object.DestroyImmediate(disc.gameObject);
+            var rays = view.transform.Find("SunRays");
+            if (rays != null) Object.DestroyImmediate(rays.gameObject);
+        }
+
         /// <summary>「设备图鉴」面板内容。设备卡数量随房间变化，留 DeviceCards 由运行时填充。</summary>
         private static void BuildDevicePanelContent(string path)
         {
@@ -1425,10 +1540,27 @@ namespace MasterHouse
             view.recipeText = Label(recipe.transform, "RecipeText", string.Empty, 20, Hex("F3E8DD"),
                 new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 35), new Vector2(540, 175),
                 TextAnchor.MiddleLeft, FontStyle.Normal);
-            view.makeButton = PageButton(recipe.transform, "Make", "开始制作", new Vector2(0, 35), new Vector2(280, 58),
+            view.makeButton = PageButton(recipe.transform, "Make", "开始制作", new Vector2(-152, 35), new Vector2(280, 58),
                 Hex("6E243E"), Hex("F3E8DD"), 19, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
             view.makeLabel = view.makeButton.GetComponentInChildren<Text>();
+            AppendDeviceRepairButton(view); // 「前往修理」并排按钮（2026-08-14）
             Save(root, path);
+        }
+
+        /// <summary>
+        /// 图鉴详情区增量（2026-08-14）：补「前往修理」按钮，与「前往摆放」左右并排。
+        /// 「摆放」若还停在旧版居中位（x=0）则挪到左位；已手调过（x≠0）就不动，把「修理」放到它的镜像位。
+        /// </summary>
+        private static void AppendDeviceRepairButton(OutGameDevicePanelView view)
+        {
+            if (view.repairButton != null || view.makeButton == null) return;
+            var makeRect = (RectTransform)view.makeButton.transform;
+            if (Mathf.Approximately(makeRect.anchoredPosition.x, 0f))
+                makeRect.anchoredPosition = new Vector2(-152, makeRect.anchoredPosition.y);
+            var mirrored = new Vector2(-makeRect.anchoredPosition.x, makeRect.anchoredPosition.y);
+            view.repairButton = PageButton(makeRect.parent, "Repair", "前往修理", mirrored, makeRect.sizeDelta,
+                Hex("24466E"), Hex("F3E8DD"), 19, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
+            view.repairLabel = view.repairButton.GetComponentInChildren<Text>();
         }
 
         /// <summary>「日记与成就」面板内容。文章/成就列表随页签变化，留 Body 由运行时填充。</summary>
@@ -1520,9 +1652,27 @@ namespace MasterHouse
             refs.button = root.AddComponent<Button>();
             refs.button.targetGraphic = refs.background;
             AddTweenFeedback(refs.button);
-            refs.label = Label(root.transform, "Label", "⚙\n<size=13>LV.2 · 可使用</size>\n黑胶唱机\n<size=14>舒缓情绪</size>",
-                21, Hex("F3E8DD"), TextAnchor.MiddleCenter, FontStyle.Bold);
+            // 家具缩略图（图鉴列真实摆放家具，2026-08-14）：容器定显示范围，图在其内保比例自适应
+            var thumbArea = Rect(root.transform, "ThumbArea", new Vector2(.5f, 1), new Vector2(.5f, 1),
+                new Vector2(0, -92), new Vector2(200, 150));
+            refs.thumb = Raw(thumbArea, "Thumb", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            var fitter = refs.thumb.gameObject.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            refs.label = Label(root.transform, "Label", "家具名\n<size=13>分类 · 装饰分</size>",
+                19, Hex("F3E8DD"), new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 52),
+                new Vector2(225, 88), TextAnchor.MiddleCenter, FontStyle.Bold);
             Save(root, path);
+        }
+
+        /// <summary>旧版设备卡无损补缺：加缩略图容器（家具图鉴改列真实摆放家具）。</summary>
+        private static void AppendDeviceCardThumb(GameObject root, DeviceCardView view)
+        {
+            if (view.thumb != null) return;
+            var thumbArea = Rect(root.transform, "ThumbArea", new Vector2(.5f, 1), new Vector2(.5f, 1),
+                new Vector2(0, -92), new Vector2(200, 150));
+            view.thumb = Raw(thumbArea, "Thumb", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            var fitter = view.thumb.gameObject.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
         }
 
         private static void BuildArchiveCard(string path)
