@@ -85,7 +85,8 @@ namespace MasterHouse.EditorTools
         {
             "记录类型", "房间id", "显示名", "场景宽", "场景高", "背景图", "景深模糊图", "失焦模糊图", "初始货币",
             "访客区左", "访客区下", "访客区右", "访客区上", "入口区左", "入口区下", "入口区右", "入口区上",
-            "网格id", "表面类型", "列数", "行数", "格宽", "格高", "X", "Y", "家具id", "宿主家具id", "列", "行", "翻转",
+            "网格id", "表面类型", "列数", "行数", "格宽", "格高", "X", "Y", "远端宽度比",
+            "家具id", "宿主家具id", "列", "行", "翻转",
         };
 
         // ── 入口 ──
@@ -274,6 +275,7 @@ namespace MasterHouse.EditorTools
                             cellHeight = Float(row, col, "格高", 60f),
                             x = Float(row, col, "X", 0f),
                             y = Float(row, col, "Y", 0f),
+                            farWidthScale = Float(row, col, "远端宽度比", 1f),
                         });
                         break;
                     case "占用格":
@@ -367,13 +369,13 @@ namespace MasterHouse.EditorTools
                 foreach (var grid in room.grids)
                     lines.Add(Line("网格", room.id, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
                         grid.id, SurfaceName(grid.surface), grid.cols, grid.rows,
-                        grid.cellWidth, grid.cellHeight, grid.x, grid.y, "", "", "", "", ""));
+                        grid.cellWidth, grid.cellHeight, grid.x, grid.y, grid.farWidthScale, "", "", "", "", ""));
                 foreach (var cell in room.blockedCells)
                     lines.Add(Line("占用格", room.id, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
-                        cell.gridId, "", "", "", "", "", "", "", "", "", cell.col, cell.row, ""));
+                        cell.gridId, "", "", "", "", "", "", "", "", "", "", cell.col, cell.row, ""));
                 foreach (var place in room.initialPlacements)
                     lines.Add(Line("初始摆放", room.id, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",
-                        place.gridId, "", "", "", "", "", "", "", place.furnitureId, place.hostFurnitureId,
+                        place.gridId, "", "", "", "", "", "", "", "", place.furnitureId, place.hostFurnitureId,
                         place.col, place.row, place.flipped ? "是" : "否"));
             }
             WriteCsv(RoomCsvPath, lines);

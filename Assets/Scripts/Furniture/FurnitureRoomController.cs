@@ -254,6 +254,8 @@ namespace MasterHouse
             if (grid.Surface == FurnitureSurfaceType.Floor)
             {
                 var bottomRow = item.Row + entry.rows;
+                // 2.5D 假透视：家具中心随其底边行向网格中心收拢（与格子视觉同一映射）
+                leftPx = grid.MapX(leftPx + entry.displayWidth * .5f, bottomRow) - entry.displayWidth * .5f;
                 bottomPy = grid.Y + bottomRow * grid.CellHeight;
                 // 可叠放（地毯）平铺地面：始终压在立式家具之下（带内仍按深度行排前后）
                 order = entry.stackable ? OrderFloorStackableBase + bottomRow : OrderFloorItemBase + bottomRow * 10;
@@ -281,6 +283,31 @@ namespace MasterHouse
             item.Root.transform.position = PxToWorld(
                 left + item.Entry.displayWidth * .5f, bottom - item.Entry.displayHeight * .5f, z);
             item.Renderer.sortingOrder = order;
+            if (item.Shadow != null) item.Shadow.sortingOrder = order - 1; // 投影压在自己脚下、盖住地毯
+        }
+
+        /// <summary>
+        /// 柔和椭圆投影：宽 = 家具显示宽、高 = 宽 × 0.22，中心压在家具底边线上。
+        /// 素材自带黑色渐隐 alpha（Resources/OutGameUI/soft-shadow）；挂在家具根下随缩放反算局部值。
+        /// </summary>
+        private static SpriteRenderer CreateShadow(FurnitureRuntimeItem item)
+        {
+            var sprite = Resources.Load<Sprite>("OutGameUI/soft-shadow");
+            if (sprite == null || item.Entry.sprite == null) return null;
+            var go = new GameObject("Shadow");
+            go.transform.SetParent(item.Root.transform, false);
+            var renderer = go.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            var itemBounds = item.Entry.sprite.bounds.size;
+            var shadowBounds = sprite.bounds.size;
+            // 父级缩放已把家具 bounds 拉到显示尺寸，这里把目标世界尺寸换算回局部缩放；
+            // 影子比家具略宽（×1.08）、扁度 0.26，往下多探一点让家具底边外能看见明显的影缘
+            var localX = 1.08f * itemBounds.x / Mathf.Max(.0001f, shadowBounds.x);
+            var localY = item.Entry.displayWidth * .26f / Mathf.Max(1f, item.Entry.displayHeight)
+                         * itemBounds.y / Mathf.Max(.0001f, shadowBounds.y);
+            go.transform.localScale = new Vector3(localX, localY, 1f);
+            go.transform.localPosition = new Vector3(0f, -itemBounds.y * .5f, 0f); // 椭圆中心落在底边线
+            return renderer;
         }
 
         private void SyncTableGrid(FurnitureRuntimeItem host)
@@ -314,6 +341,9 @@ namespace MasterHouse
             item.Renderer.flipX = flipped;
             if (entry.sprite != null)
                 item.Root.transform.localScale = SpriteScale(entry.sprite, entry.displayWidth, entry.displayHeight);
+            // 光影：落地/桌面家具脚下垫柔和椭圆投影（壁挂与地毯类不投）
+            if (!entry.stackable && grid.Surface != FurnitureSurfaceType.Wall)
+                item.Shadow = CreateShadow(item);
             items[item.Id] = item;
             grid.SetOccupied(col, row, entry.cols, entry.rows, item.Id, true, entry.stackable);
 
@@ -607,10 +637,12 @@ namespace MasterHouse
             {
                 var footWidth = entry.cols * best.CellWidth;
                 var footHeight = entry.rows * best.CellHeight;
-                var col = Mathf.Clamp(Mathf.RoundToInt(
-                    (wantLeft + (entry.displayWidth - footWidth) * .5f - best.X) / best.CellWidth), 0, best.Cols - entry.cols);
                 var row = Mathf.Clamp(Mathf.RoundToInt(
                     (wantBottom - footHeight - best.Y) / best.CellHeight), 0, best.Rows - entry.rows);
+                // 假透视反算：指针中心先还原到均匀网格坐标（按该落点的底边行），再算列
+                var desiredCenter = best.InvMapX(wantLeft + entry.displayWidth * .5f, row + entry.rows);
+                var col = Mathf.Clamp(Mathf.RoundToInt(
+                    (desiredCenter - footWidth * .5f - best.X) / best.CellWidth), 0, best.Cols - entry.cols);
                 drag.CandidateGrid = best;
                 drag.CandidateCol = col;
                 drag.CandidateRow = row;
@@ -623,6 +655,9 @@ namespace MasterHouse
             {
                 var grid = drag.CandidateGrid;
                 ghostLeft = grid.X + drag.CandidateCol * grid.CellWidth + (entry.cols * grid.CellWidth - entry.displayWidth) * .5f;
+                if (grid.Surface == FurnitureSurfaceType.Floor) // 假透视：幽灵与最终落位同一映射
+                    ghostLeft = grid.MapX(ghostLeft + entry.displayWidth * .5f, drag.CandidateRow + entry.rows)
+                                - entry.displayWidth * .5f;
                 ghostBottom = grid.Surface == FurnitureSurfaceType.Table
                     ? grid.Y + grid.CellHeight
                     : grid.Y + (drag.CandidateRow + entry.rows) * grid.CellHeight;

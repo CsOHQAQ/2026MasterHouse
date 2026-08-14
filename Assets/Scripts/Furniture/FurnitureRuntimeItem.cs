@@ -15,6 +15,8 @@ namespace MasterHouse
         public bool Flipped;
         public GameObject Root;
         public SpriteRenderer Renderer;
+        /// <summary>地面投影（柔和椭圆，宽度随家具显示宽；壁挂与可叠放件无投影）。</summary>
+        public SpriteRenderer Shadow;
 
         public bool IsOnTableGrid => GridId != null && GridId.StartsWith("tbl_");
     }

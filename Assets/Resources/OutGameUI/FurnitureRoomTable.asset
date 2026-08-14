@@ -36,45 +36,47 @@ MonoBehaviour:
     grids:
     - id: wall
       surface: 2
-      cols: 27
-      rows: 9
-      cellWidth: 60
-      cellHeight: 60
-      x: 26
-      y: 20
+      cols: 51
+      rows: 15
+      cellWidth: 30
+      cellHeight: 30
+      x: 56
+      y: 110
+      farWidthScale: 1
     - id: floor
       surface: 0
-      cols: 27
-      rows: 3
-      cellWidth: 60
-      cellHeight: 45
-      x: 26
+      cols: 51
+      rows: 6
+      cellWidth: 30
+      cellHeight: 22.5
+      x: 56
       y: 581
+      farWidthScale: 0.68
     blockedCells: []
     initialPlacements:
     - furnitureId: landscape_poster_02
       gridId: wall
       hostFurnitureId: 
-      col: 9
+      col: 17
       row: 3
       flipped: 0
     - furnitureId: hanging_plant_01
       gridId: wall
       hostFurnitureId: 
-      col: 16
-      row: 6
+      col: 31
+      row: 9
       flipped: 0
     - furnitureId: armchair_01
       gridId: floor
       hostFurnitureId: 
-      col: 9
-      row: 1
+      col: 17
+      row: 2
       flipped: 0
     - furnitureId: round_table_01
       gridId: floor
       hostFurnitureId: 
-      col: 13
-      row: 1
+      col: 25
+      row: 2
       flipped: 0
   - id: bedroom
     displayName: "\u5367\u5BA4"
@@ -99,45 +101,47 @@ MonoBehaviour:
     grids:
     - id: wall
       surface: 2
-      cols: 27
-      rows: 9
-      cellWidth: 60
-      cellHeight: 60
-      x: 26
-      y: 20
+      cols: 52
+      rows: 15
+      cellWidth: 30
+      cellHeight: 30
+      x: 56
+      y: 110
+      farWidthScale: 1
     - id: floor
       surface: 0
-      cols: 27
-      rows: 3
-      cellWidth: 60
-      cellHeight: 45
-      x: 26
+      cols: 52
+      rows: 6
+      cellWidth: 30
+      cellHeight: 22.5
+      x: 56
       y: 581
+      farWidthScale: 0.58
     blockedCells: []
     initialPlacements:
     - furnitureId: landscape_poster_03
       gridId: wall
       hostFurnitureId: 
-      col: 5
-      row: 7
+      col: 9
+      row: 11
       flipped: 0
     - furnitureId: single_sofa_02
       gridId: floor
       hostFurnitureId: 
-      col: 5
-      row: 1
+      col: 9
+      row: 2
       flipped: 0
     - furnitureId: cat_sofa_01
       gridId: floor
       hostFurnitureId: 
-      col: 15
-      row: 1
+      col: 29
+      row: 2
       flipped: 0
     - furnitureId: monstera_01
       gridId: floor
       hostFurnitureId: 
-      col: 23
-      row: 1
+      col: 45
+      row: 2
       flipped: 0
   - id: kitchen
     displayName: "\u53A8\u623F"
@@ -162,39 +166,41 @@ MonoBehaviour:
     grids:
     - id: wall
       surface: 2
-      cols: 27
-      rows: 9
-      cellWidth: 60
-      cellHeight: 60
-      x: 26
-      y: 20
+      cols: 52
+      rows: 15
+      cellWidth: 30
+      cellHeight: 30
+      x: 56
+      y: 110
+      farWidthScale: 1
     - id: floor
       surface: 0
-      cols: 27
-      rows: 3
-      cellWidth: 60
-      cellHeight: 45
-      x: 26
+      cols: 52
+      rows: 6
+      cellWidth: 30
+      cellHeight: 22.5
+      x: 56
       y: 581
+      farWidthScale: 0.68
     blockedCells: []
     initialPlacements:
     - furnitureId: vintage_square_clock_02
       gridId: wall
       hostFurnitureId: 
-      col: 10
-      row: 6
+      col: 19
+      row: 9
       flipped: 0
     - furnitureId: round_table_02
       gridId: floor
       hostFurnitureId: 
-      col: 9
-      row: 1
+      col: 17
+      row: 2
       flipped: 0
     - furnitureId: potted_plant_01
       gridId: floor
       hostFurnitureId: 
-      col: 21
-      row: 2
+      col: 41
+      row: 4
       flipped: 0
   - id: study
     displayName: "\u4E66\u623F"
@@ -219,43 +225,45 @@ MonoBehaviour:
     grids:
     - id: wall
       surface: 2
-      cols: 27
-      rows: 9
-      cellWidth: 60
-      cellHeight: 60
-      x: 26
-      y: 20
+      cols: 52
+      rows: 15
+      cellWidth: 30
+      cellHeight: 30
+      x: 56
+      y: 110
+      farWidthScale: 1
     - id: floor
       surface: 0
-      cols: 27
-      rows: 3
-      cellWidth: 60
-      cellHeight: 45
-      x: 26
+      cols: 52
+      rows: 6
+      cellWidth: 30
+      cellHeight: 22.5
+      x: 56
       y: 581
+      farWidthScale: 0.88
     blockedCells: []
     initialPlacements:
     - furnitureId: round_table_03
       gridId: floor
       hostFurnitureId: 
       col: 0
-      row: 1
+      row: 2
       flipped: 0
     - furnitureId: potted_plant_02
       gridId: floor
       hostFurnitureId: 
-      col: 5
+      col: 9
       row: 0
       flipped: 0
     - furnitureId: vintage_square_clock_03
       gridId: wall
       hostFurnitureId: 
-      col: 15
-      row: 7
+      col: 29
+      row: 11
       flipped: 0
     - furnitureId: single_sofa_04
       gridId: floor
       hostFurnitureId: 
-      col: 18
-      row: 1
+      col: 35
+      row: 2
       flipped: 0

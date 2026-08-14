@@ -39,6 +39,9 @@ namespace MasterHouse
         private GameObject root;
         private SpriteRenderer[] cellRenderers;
 
+        /// <summary>远端宽度比（2.5D 假透视）：最远一行的横向收缩比例，1 = 关闭。</summary>
+        public float FarWidthScale { get; }
+
         public FurnitureRuntimeGrid(FurnitureGridConfig config, Func<float, float, float, Vector3> pxToWorld, float zOffset)
         {
             Id = config.id;
@@ -49,8 +52,29 @@ namespace MasterHouse
             CellHeight = config.cellHeight;
             X = config.x;
             Y = config.y;
+            FarWidthScale = config.farWidthScale <= 0f ? 1f : config.farWidthScale;
             this.pxToWorld = pxToWorld;
             this.zOffset = zOffset;
+        }
+
+        // ── 2.5D 假透视（仅横向）：远行向网格中心收拢，行高与纵向坐标不变 ──
+        // rowF 语义 = 深度基准行（0 = 最远/顶部，Rows = 最近/底部）；家具与格子统一用**底边所在行**取值，
+        // 保证家具中心与其脚下格子的中心始终对齐。
+
+        /// <summary>该深度行的横向收缩比例。</summary>
+        public float WidthScaleAt(float rowF) =>
+            Mathf.Lerp(FarWidthScale, 1f, Rows > 0 ? Mathf.Clamp01(rowF / Rows) : 1f);
+
+        private float CenterX => X + Cols * CellWidth * .5f;
+
+        /// <summary>均匀网格坐标 → 透视显示坐标（X 向中心收拢）。</summary>
+        public float MapX(float x, float rowF) => CenterX + (x - CenterX) * WidthScaleAt(rowF);
+
+        /// <summary>透视显示坐标 → 均匀网格坐标（指针反算吸附用）。</summary>
+        public float InvMapX(float x, float rowF)
+        {
+            var scale = WidthScaleAt(rowF);
+            return scale < .0001f ? x : CenterX + (x - CenterX) / scale;
         }
 
         public GameObject Root => root;
@@ -70,8 +94,10 @@ namespace MasterHouse
                     renderer.sprite = cellSprite;
                     renderer.color = CellIdle;
                     renderer.sortingOrder = sortingOrder;
-                    // 1×1 白色精灵（PPU 100 → 0.01 世界单位）按单元格尺寸缩放，四周留 2px 缝隙形成格线感。
-                    cell.transform.localScale = new Vector3(CellWidth - 2f, CellHeight - 2f, 1f);
+                    // 1×1 白色精灵（PPU 100 → 0.01 世界单位）按单元格尺寸缩放，四周留 2px 缝隙形成格线感；
+                    // 2.5D 假透视：格宽随深度行收缩（取该格底边行的比例）
+                    cell.transform.localScale = new Vector3(
+                        CellWidth * WidthScaleAt(r + 1) - 2f, CellHeight - 2f, 1f);
                     cellRenderers[r * Cols + c] = renderer;
                 }
             }
@@ -92,8 +118,9 @@ namespace MasterHouse
             if (cellRenderers == null) return;
             for (var r = 0; r < Rows; r++)
                 for (var c = 0; c < Cols; c++)
-                    cellRenderers[r * Cols + c].transform.position =
-                        pxToWorld(X + (c + .5f) * CellWidth, Y + (r + .5f) * CellHeight, zOffset);
+                    cellRenderers[r * Cols + c].transform.position = pxToWorld(
+                        MapX(X + (c + .5f) * CellWidth, r + 1), // 假透视：格心随深度行向中心收拢
+                        Y + (r + .5f) * CellHeight, zOffset);
         }
 
         public void SetVisible(bool visible)

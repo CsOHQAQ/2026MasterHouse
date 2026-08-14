@@ -56,6 +56,8 @@ namespace MasterHouse
         /// <summary>售卖配置读取口（商店表，2026-08-13 拆表）：View 不摸表，由 Controller 注入（§11.4）。</summary>
         private Func<FurnitureEntry, int> priceGetter;
         private Func<FurnitureEntry, int> unlockGetter;
+        /// <summary>页签槽位（Prefab 里的三个位置）：有页签隐藏时后面的自动往前补位，不留空洞。</summary>
+        private Vector2[] tabSlotPositions;
         private FurnitureSurfaceType currentTab = FurnitureSurfaceType.Floor;
         private int page;
         private bool chromeHidden;
@@ -180,12 +182,26 @@ namespace MasterHouse
                 if (slot != null) UnityEngine.Object.Destroy(slot);
             slotInstances.Clear();
 
-            // 页签视觉：选中高亮；无内容的类型隐藏页签
+            // 页签视觉：选中高亮；无内容的类型隐藏页签，后面的自动往前补位（槽位取自 Prefab 原始位置）
+            if (tabSlotPositions == null)
+            {
+                tabSlotPositions = new Vector2[view.tabButtons.Length];
+                for (var i = 0; i < view.tabButtons.Length; i++)
+                    if (view.tabButtons[i] != null)
+                        tabSlotPositions[i] = ((RectTransform)view.tabButtons[i].transform).anchoredPosition;
+            }
+            var visibleSlot = 0;
             for (var i = 0; i < view.tabButtons.Length && i < TabSurfaces.Length; i++)
             {
                 var surface = TabSurfaces[i];
                 var hasAny = EntriesOf(surface).Count > 0;
-                if (view.tabButtons[i] != null) view.tabButtons[i].gameObject.SetActive(hasAny);
+                if (view.tabButtons[i] != null)
+                {
+                    view.tabButtons[i].gameObject.SetActive(hasAny);
+                    if (hasAny)
+                        ((RectTransform)view.tabButtons[i].transform).anchoredPosition =
+                            tabSlotPositions[Mathf.Min(visibleSlot++, tabSlotPositions.Length - 1)];
+                }
                 var selected = surface == currentTab;
                 if (view.tabBackgrounds[i] != null)
                     view.tabBackgrounds[i].color = selected ? new Color(.32f, .06f, .18f, .95f) : new Color(.025f, .025f, .04f, .92f);

@@ -16,6 +16,9 @@ namespace MasterHouse
         [Tooltip("单元格高（场景像素）")] public float cellHeight = 60f;
         [Tooltip("网格左上角 X（场景像素）")] public float x;
         [Tooltip("网格左上角 Y（场景像素）")] public float y;
+        [Tooltip("远端宽度比（2.5D 假透视，2026-08-14）：最远一行的横向收缩比例，1 = 关闭；" +
+                 "仅横向向中心收拢、行高不变，吸附/落位/烘焙走同一映射")]
+        public float farWidthScale = 1f;
     }
 
     /// <summary>被背景画面占用、禁止摆放的格子（沙发、人物、落地灯等画在背景里的物件）。</summary>
