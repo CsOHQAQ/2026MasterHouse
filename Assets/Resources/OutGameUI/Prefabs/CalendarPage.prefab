@@ -213,6 +213,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
+  clickSfx: 1
 --- !u!1 &2385760952614414899
 GameObject:
   m_ObjectHideFlags: 0
@@ -485,6 +486,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
+  clickSfx: 1
 --- !u!1 &4761289270425316605
 GameObject:
   m_ObjectHideFlags: 0
@@ -826,11 +828,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3778880247566628299, guid: bae660265c99bfe468f87771e4455e0b, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0
+      value: -51
       objectReference: {fileID: 0}
     - target: {fileID: 3778880247566628299, guid: bae660265c99bfe468f87771e4455e0b, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -85
+      value: -81
       objectReference: {fileID: 0}
     - target: {fileID: 3821106578615347633, guid: bae660265c99bfe468f87771e4455e0b, type: 3}
       propertyPath: m_Name

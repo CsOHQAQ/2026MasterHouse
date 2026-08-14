@@ -17,6 +17,8 @@ namespace MasterHouse
         public Text scheduleTitle;
         public Image[] phaseBackgrounds = new Image[6];
         public Text[] phaseLabels = new Text[6];
+        /// <summary>时段行按钮（2026-08-14）：点击把游戏时间调到该时段起点。</summary>
+        public Button[] phaseButtons = new Button[6];
         public Button syncButton;
     }
 }

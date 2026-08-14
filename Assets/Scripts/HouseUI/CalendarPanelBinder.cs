@@ -9,13 +9,18 @@ namespace MasterHouse
     /// </summary>
     public static class CalendarPanelBinder
     {
+        /// <summary>各时段的起点分钟（下标 = EHousePhase，与 HousePhaseText.Ranges 同源同改）。</summary>
+        private static readonly int[] PhaseStartMinutes = { 7 * 60, 9 * 60, 12 * 60, 14 * 60, 18 * 60, 22 * 60 };
+
         public static void Bind(OutGameCalendarPanelView view, HubPage page)
         {
             if (view == null) return;
             var now = DateTime.Now;
-            var phase = (int)GameManager.Instance.HouseClockManager.Data.CurrentPhase;
+            var clockData = GameManager.Instance.HouseClockManager.Data;
+            var phase = (int)clockData.CurrentPhase;
             if (view.dateText != null)
-                view.dateText.text = $"{now:yyyy / MMMM}\n<size=100>{now:dd}</size>\n{now:dddd} · {HousePhaseText.Names[phase]}\n<size=28>{now:HH:mm}</size>";
+                // 日期部分仍读现实日历（已知遗留，§12）；时刻显示**游戏时间**（2026-08-14），与顶栏同口径
+                view.dateText.text = $"{now:yyyy / MMMM}\n<size=100>{now:dd}</size>\n{now:dddd} · {HousePhaseText.Names[phase]}\n<size=28>{clockData.TimeText}</size>";
 
             var firstOfMonth = new DateTime(now.Year, now.Month, 1);
             var weekOffset = ((int)firstOfMonth.DayOfWeek + 6) % 7;
@@ -47,10 +52,22 @@ namespace MasterHouse
                     view.phaseLabels[i].text = $"{HousePhaseText.Names[i]}   <size=13>{HousePhaseText.Ranges[i]}</size>       {(i == 5 ? "休息" : "可服务")}";
                 if (view.phaseBackgrounds != null && i < view.phaseBackgrounds.Length && view.phaseBackgrounds[i] != null)
                     view.phaseBackgrounds[i].color = phase == i ? HouseUIUtil.Wine : new Color(1, 1, 1, .035f);
+                // 点时段跳时间（2026-08-14）：把游戏时钟调到该时段起点；重进 Bind 刷新高亮
+                if (view.phaseButtons != null && i < view.phaseButtons.Length && view.phaseButtons[i] != null)
+                {
+                    var target = i; // 闭包按值捕获时段下标
+                    HouseUIUtil.BindButton(view.phaseButtons[i], () =>
+                    {
+                        var clock = GameManager.Instance.HouseClockManager;
+                        clock.RestoreFromMinutes(clock.Data.Day, PhaseStartMinutes[target]);
+                        Bind(view, page);
+                        page.Toast($"时间已调到{HousePhaseText.Names[target]} · {PhaseStartMinutes[target] / 60:00}:00");
+                    });
+                }
             }
+            // 「同步现实时间」已退役（2026-08-14 用户定案）：时刻改显游戏时间后没有同步语义；旧 Prefab 里的节点就地隐藏
             if (view.syncButton != null)
-                HouseUIUtil.BindButton(view.syncButton, () =>
-                    page.Toast("已同步现实时间 · " + DateTime.Now.ToString("HH:mm")));
+                view.syncButton.gameObject.SetActive(false);
         }
     }
 }
