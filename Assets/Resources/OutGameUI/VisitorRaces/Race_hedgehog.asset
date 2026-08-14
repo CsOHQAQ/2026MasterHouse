@@ -18,9 +18,6 @@ MonoBehaviour:
   waitDeliverTimeoutTicks: 4800
   wanderMaxTicks: 3000
   stayOvernightPercent: 20
-  needTagWeights: []
-  needCountMin: 1
-  needCountMax: 1
   portraits:
   - expression: 0
     portraitPath: OutGameUI

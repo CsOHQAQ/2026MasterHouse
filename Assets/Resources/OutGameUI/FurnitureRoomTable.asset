@@ -21,6 +21,18 @@ MonoBehaviour:
     depthBlurOverlay: {fileID: 0}
     focusBlurOverlay: {fileID: 0}
     startCredit: 2480
+    visitorWalkArea:
+      serializedVersion: 2
+      x: 0.03
+      y: 0.233
+      width: 0.93
+      height: 0.13700001
+    visitorEntryArea:
+      serializedVersion: 2
+      x: 0.7
+      y: 0.233
+      width: 0.13999999
+      height: 0.177
     grids:
     - id: wall
       surface: 2
@@ -72,6 +84,18 @@ MonoBehaviour:
     depthBlurOverlay: {fileID: 0}
     focusBlurOverlay: {fileID: 0}
     startCredit: 2480
+    visitorWalkArea:
+      serializedVersion: 2
+      x: 0.03
+      y: 0.234
+      width: 0.94000006
+      height: 0.13100001
+    visitorEntryArea:
+      serializedVersion: 2
+      x: 0.01
+      y: 0.234
+      width: 0.09
+      height: 0.16600001
     grids:
     - id: wall
       surface: 2
@@ -123,6 +147,18 @@ MonoBehaviour:
     depthBlurOverlay: {fileID: 0}
     focusBlurOverlay: {fileID: 0}
     startCredit: 2480
+    visitorWalkArea:
+      serializedVersion: 2
+      x: 0.04
+      y: 0.231
+      width: 0.93
+      height: 0.12900001
+    visitorEntryArea:
+      serializedVersion: 2
+      x: 0.12
+      y: 0.231
+      width: 0.12
+      height: 0.12900001
     grids:
     - id: wall
       surface: 2
@@ -168,6 +204,18 @@ MonoBehaviour:
     depthBlurOverlay: {fileID: 0}
     focusBlurOverlay: {fileID: 0}
     startCredit: 2480
+    visitorWalkArea:
+      serializedVersion: 2
+      x: 0.03
+      y: 0.231
+      width: 0.94000006
+      height: 0.12900001
+    visitorEntryArea:
+      serializedVersion: 2
+      x: 0.33
+      y: 0.231
+      width: 0.16999999
+      height: 0.12900001
     grids:
     - id: wall
       surface: 2

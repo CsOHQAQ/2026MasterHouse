@@ -16,7 +16,7 @@ MonoBehaviour:
   - day: 1
     appearMinute: 510
     race: {fileID: 11400000, guid: ac64c60704719884f88e0960b6b4afed, type: 2}
-    need: {fileID: 11400000, guid: 14a6f0f7966dc5b4d9cc658c99fa5671, type: 2}
+    need: {fileID: 0}
     namedOverride: {fileID: 0}
   - day: 1
     appearMinute: 550
