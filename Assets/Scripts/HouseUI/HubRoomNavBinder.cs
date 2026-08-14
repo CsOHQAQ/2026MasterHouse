@@ -18,6 +18,7 @@ namespace MasterHouse
         public void Refresh()
         {
             if (view == null) return;
+            if (view.hint != null) view.hint.text = "↑↓←→ 移动切换"; // 四宫格方向移动（2026-08-14）
             var rooms = GameManager.Instance.CodexTable.rooms;
             for (var i = 0; i < view.rooms.Length && i < rooms.Count; i++)
             {

@@ -10,16 +10,24 @@ namespace MasterHouse
         public void Bind(OutGameHubRightDockView dock, HubPage page, Transform chromeRoot)
         {
             var icons = new[] { "器", "记", "录", "集" };
-            var labels = new[] { "设备图鉴", "日记", "通讯录", "档案" };
-            // 通讯录为统一占位页（§16.8 明示豁免）
+            var labels = new[] { "家具图鉴", "日记", "通讯录", "档案" };
             var panels = new[] { EHousePanel.Device, EHousePanel.Journal, EHousePanel.Contacts, EHousePanel.Archive };
+            // 日记/通讯录/档案暂未开放（2026-08-14）：置灰示意，点击提示开发中
+            var developing = new[] { false, true, true, true };
             for (var i = 0; i < dock.entries.Length && i < labels.Length; i++)
             {
                 var panel = panels[i];
+                var locked = developing[i];
                 dock.entries[i].icon.text = icons[i];
-                dock.entries[i].label.text = labels[i];
-                HouseUIUtil.BindButton(dock.entries[i].button, () => page.OpenPanel(panel));
-                HouseUIUtil.ApplyPanelSkin(dock.entries[i].background, .8f, 2.5f); // dock 按钮换 common 框（半透明）
+                dock.entries[i].label.text = locked ? labels[i] + "\n<size=11>功能开发中</size>" : labels[i];
+                var tint = locked ? new Color(1, 1, 1, .38f) : Color.white;
+                dock.entries[i].icon.color = tint;
+                dock.entries[i].label.color = tint;
+                if (locked)
+                    HouseUIUtil.BindButton(dock.entries[i].button, () => page.Toast("功能开发中，敬请期待"), ESfx.None);
+                else
+                    HouseUIUtil.BindButton(dock.entries[i].button, () => page.OpenPanel(panel));
+                HouseUIUtil.ApplyPanelSkin(dock.entries[i].background, locked ? .35f : .8f, 2.5f); // 置灰=更透的 common 框
             }
 
             if (dock.furnitureButton != null)
