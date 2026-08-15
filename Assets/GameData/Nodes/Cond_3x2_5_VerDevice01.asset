@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Cond_3x2_5_VerDevice01
   m_EditorClassIdentifier: 
   DisplayName: VerDevice01
+  BackgroundSprite: {fileID: 21300000, guid: 22f384bd905bb7343b94af2a76e3d038, type: 3}
   Shape:
     Grids:
     - DeltaPosition: {x: 0, y: 1}

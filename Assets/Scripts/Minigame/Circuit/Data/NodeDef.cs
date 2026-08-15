@@ -22,6 +22,19 @@ namespace MasterHouse
 
         public string DisplayName;
 
+        [Header("视觉（节点本体）")]
+        [Tooltip("节点底图。使用同一张九宫格 Sprite 即可覆盖不同的矩形尺寸；留空时沿用占位色格子渲染。")]
+        public Sprite BackgroundSprite;
+
+        [Tooltip("节点功能图标。运行时在底图可用区域内等比缩放，不承载 Pin 或交互状态。")]
+        public Sprite FunctionIconSprite;
+
+        [Tooltip("底图染色；未配置背景图时也会作为节点的基础色。")]
+        public Color BackgroundColor = Color.white;
+
+        [Tooltip("功能图标染色。通常保持白色，必要时可按节点单独覆写。")]
+        public Color IconColor = Color.white;
+
         [Tooltip("占格形状（相对坐标）。判定必须逐格查询，不得假设矩形")]
         public GridGroup Shape = new GridGroup();
 

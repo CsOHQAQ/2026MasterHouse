@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Con_3x3_Cross03
   m_EditorClassIdentifier: 
   DisplayName: Cross03
+  BackgroundSprite: {fileID: 21300000, guid: 22f384bd905bb7343b94af2a76e3d038, type: 3}
   Shape:
     Grids:
     - DeltaPosition: {x: 0, y: 2}
