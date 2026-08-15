@@ -69,6 +69,8 @@ namespace MasterHouse
 
         private FurnitureTable furnitureTable;
         private FurnitureRoomEntry room;
+        /// <summary>当前编辑的房间下标（已解析，越界已回落 0）。业务侧查询（装饰分/需求）都按下标走。</summary>
+        private int roomIndex;
         private Action onClosed;
         private bool closing;
 
@@ -99,7 +101,9 @@ namespace MasterHouse
                 Debug.LogWarning("[Furniture] 配置表缺失，请先执行菜单 MasterHouse → 家具系统 → 创建配置表。");
                 return false;
             }
-            var roomEntry = roomIndex >= 0 && roomIndex < rooms.rooms.Count ? rooms.rooms[roomIndex] : rooms.rooms[0];
+            // 越界回落 0——**存解析后的下标**再传下去：存原始入参会让 HUD 显示别的房间的装饰分
+            var resolvedIndex = roomIndex >= 0 && roomIndex < rooms.rooms.Count ? roomIndex : 0;
+            var roomEntry = rooms.rooms[resolvedIndex];
             if (roomEntry == null)
             {
                 Debug.LogWarning($"[Furniture] 房间配置为空（下标 {roomIndex}），无法进入家具模式。");
@@ -107,15 +111,16 @@ namespace MasterHouse
             }
             var go = new GameObject("FurnitureRoomMode");
             active = go.AddComponent<FurnitureRoomController>();
-            active.Init(furniture, roomEntry, onClosed, onStoreRequested);
+            active.Init(furniture, roomEntry, resolvedIndex, onClosed, onStoreRequested);
             return true;
         }
 
-        private void Init(FurnitureTable furniture, FurnitureRoomEntry roomEntry, Action closedCallback,
-            Action onStoreRequested = null)
+        private void Init(FurnitureTable furniture, FurnitureRoomEntry roomEntry, int resolvedRoomIndex,
+            Action closedCallback, Action onStoreRequested = null)
         {
             furnitureTable = furniture;
             room = roomEntry;
+            roomIndex = resolvedRoomIndex;
             onClosed = closedCallback;
             // 把舞台放到远离节点玩法棋盘的位置，避免主相机内容互相穿帮。
             stageOrigin = new Vector3(500f, 0f, 0f);
@@ -128,13 +133,16 @@ namespace MasterHouse
             BuildGrids();
 
             hud = new FurnitureRoomHud();
-            hud.Build(furnitureTable, GetSlotState, Economy.PriceOf, Economy.UnlockReputationOf);
+            hud.Build(furnitureTable, GetSlotState, RemainingOf, Economy.PriceOf, Economy.UnlockReputationOf,
+                Economy.SellbackValueOf);
             hud.ExitClicked += Close;
             // 购买家具：先正常关闭（存布局、恢复壳 Canvas），再由页面开商店
             hud.StoreClicked += () => { Close(); onStoreRequested?.Invoke(); };
             hud.GridToggleClicked += ToggleGrids;
             hud.SlotPressed += OnSlotPressed;
+            hud.SellPressed += OnSellPressed;
             hud.PurchaseConfirmed += OnPurchaseConfirmed;
+            hud.SellConfirmed += OnSellConfirmed;
             Economy.Changed += OnEconomyChanged;
 
             RestoreState();
@@ -147,6 +155,8 @@ namespace MasterHouse
             // 进入时闪现全部网格，提示可编辑区域。
             foreach (var grid in grids.Values) grid.SetVisible(true);
             DOVirtual.DelayedCall(1.6f, ApplyGridVisibility).SetTarget(this);
+            // 右键出售是个没有视觉入口的隐藏手势，进场提示一次（家具库存说明 §10 待确认 #3）
+            hud.ShowToast("右键收纳栏里的家具可以半价出售");
         }
 
         #region 舞台搭建
@@ -345,6 +355,7 @@ namespace MasterHouse
             if (!entry.stackable && grid.Surface != FurnitureSurfaceType.Wall)
                 item.Shadow = CreateShadow(item);
             items[item.Id] = item;
+            placedCountsDirty = true; // 余量缓存跟着 items 走，标脏就贴在改集合的这一行旁边
             grid.SetOccupied(col, row, entry.cols, entry.rows, item.Id, true, entry.stackable);
 
             if (entry.tableSurface != null && entry.tableSurface.enabled)
@@ -394,6 +405,7 @@ namespace MasterHouse
                 grid.SetOccupied(item.Col, item.Row, item.Entry.cols, item.Entry.rows, item.Id, false, item.Entry.stackable);
             Destroy(item.Root);
             items.Remove(item.Id);
+            placedCountsDirty = true; // 同 PlaceItem：items 一变余量就得重算
             RefreshAllGridColors();
             ApplyGridVisibility();
             RecomputeDecorationScore();
@@ -418,12 +430,57 @@ namespace MasterHouse
             RefreshAllGridColors();
         }
 
-        private bool IsPlaced(string furnitureId)
+        // ── 可摆余量（家具库存说明 §5.1/§5.6）──
+        //
+        // 取代了原来的 IsPlaced(id)：那个只遍历**当前打开房间**的 items，于是四宫格改造之后
+        // 「每种家具只能拥有一件」形同虚设——同一张沙发可以在四个房间各摆一份。
+
+        /// <summary>跨房间已摆放数（id → 件数）。脏标记驱动，见 RebuildPlacedCounts 的成本说明。</summary>
+        private readonly Dictionary<string, int> placedCounts = new Dictionary<string, int>();
+        private bool placedCountsDirty = true;
+
+        /// <summary>
+        /// 重建跨房间已摆放数。
+        ///
+        /// **必须缓存**：RefreshInventory 一次会调 EntriesOf 约 7 遍（页签可用性 + 三个页签的 hasAny +
+        /// 分页数 + 当前页），每遍遍历整张 121 行家具表并对每条调 stateGetter，加上 12 个槽位 ——
+        /// 单次刷新 800+ 次余量查询。重建本身是 O(全房间摆放件数)，只在摆放/收纳/进场时发生。
+        ///
+        /// 两条口径：
+        ///   ① 当前房间读**实时 items**而不是 sessions——MoveItem 不落会话，读 sessions 会漏掉刚挪过的家具
+        ///   ② 其余房间读会话布局，未编辑过的回落该房默认摆放（与 FurniturePlacementQuery 同一套回落）；
+        ///      **直接读 sessions 私有字段，绕开 CaptureSessionPlacements**——后者对 active 房间会触发
+        ///      一次 SaveState()，热路径上不能碰。控制器本来就是 sessions 的所有者，不算越权（§11.4 约束的是业务层）
+        /// </summary>
+        private void RebuildPlacedCounts()
         {
-            foreach (var item in items.Values)
-                if (item.Entry.id == furnitureId) return true;
-            return false;
+            placedCounts.Clear();
+            foreach (var item in items.Values) Bump(item.Entry.id); // 要点①
+            var rooms = GameManager.Instance != null ? GameManager.Instance.FurnitureRoomTable : null;
+            if (rooms != null)
+                foreach (var roomEntry in rooms.rooms) // 房间表是 List，遍历顺序稳定（§11.2）
+                {
+                    if (roomEntry == null || roomEntry.id == room.id) continue; // 当前房间已由 items 统计
+                    var placements = sessions.TryGetValue(roomEntry.id, out var state)
+                        ? state.Placements
+                        : roomEntry.initialPlacements; // 要点②
+                    foreach (var placement in placements)
+                        if (placement != null && !string.IsNullOrEmpty(placement.furnitureId)) Bump(placement.furnitureId);
+                }
+            placedCountsDirty = false;
+
+            void Bump(string id) => placedCounts[id] = (placedCounts.TryGetValue(id, out var n) ? n : 0) + 1;
         }
+
+        private int PlacedCountOf(string furnitureId)
+        {
+            if (placedCountsDirty) RebuildPlacedCounts();
+            return placedCounts.TryGetValue(furnitureId, out var count) ? count : 0;
+        }
+
+        /// <summary>可摆余量 = 拥有数 − 全部房间已摆放数。拥有数实时读 Economy（买卖不必让缓存失效）。</summary>
+        private int RemainingOf(string furnitureId) =>
+            Mathf.Max(0, Economy.OwnedCountOf(furnitureId) - PlacedCountOf(furnitureId));
 
         #endregion
 
@@ -512,19 +569,21 @@ namespace MasterHouse
             var entry = furnitureTable.Find(furnitureId);
             if (entry == null) return;
             if (hud.PopupOpen) return;
-            if (!Economy.IsFurnitureOwned(furnitureId))
+            // 余量 0 有两种来路（未拥有 / 全摆出去了），都当作「想再要一件」→ 弹购买窗
+            //（家具库存说明 §9 待确认 #3 的默认实现）。声望不够则只提示门槛。
+            if (RemainingOf(furnitureId) <= 0)
             {
                 if (!Economy.IsFurnitureRevealed(entry))
                 {
                     hud.ShowToast($"「？」声望达到 {Economy.UnlockReputationOf(entry)} 后解禁（当前 {Economy.Data.Reputation}）");
                     return;
                 }
+                if (Economy.PriceOf(entry) <= 0)
+                {
+                    hud.ShowToast($"「{entry.displayName}」商店买不到 · 先从别的房间收纳一件");
+                    return;
+                }
                 hud.ShowPurchasePopup(entry, Economy.Data.Currency);
-                return;
-            }
-            if (IsPlaced(furnitureId))
-            {
-                hud.ShowToast($"「{entry.displayName}」已在房间中，可直接拖动它");
                 return;
             }
             BeginDrag(entry, null);
@@ -778,12 +837,16 @@ namespace MasterHouse
 
         #region 流通数值与收纳栏
 
+        /// <summary>
+        /// 槽位状态。<see cref="FurnitureSlotState.Placed"/> 的语义已由「已经摆出去了」改成
+        /// **「余量为 0」**（全摆出去了 / 只买了这些），见家具库存说明 §5.6。
+        /// </summary>
         private FurnitureSlotState GetSlotState(string furnitureId)
         {
             var entry = furnitureTable.Find(furnitureId);
             if (!Economy.IsFurnitureOwned(furnitureId))
                 return Economy.IsFurnitureRevealed(entry) ? FurnitureSlotState.Locked : FurnitureSlotState.Unknown;
-            return IsPlaced(furnitureId) ? FurnitureSlotState.Placed : FurnitureSlotState.Available;
+            return RemainingOf(furnitureId) > 0 ? FurnitureSlotState.Available : FurnitureSlotState.Placed;
         }
 
         private void OnPurchaseConfirmed(string furnitureId)
@@ -801,6 +864,55 @@ namespace MasterHouse
             {
                 hud.ShowToast("货币不足，先去完成客人服务吧");
             }
+            else if (result == FurniturePurchaseResult.NotForSale)
+            {
+                hud.ShowToast($"「{entry.displayName}」商店不出售");
+            }
+        }
+
+        /// <summary>
+        /// 右键槽位：半价出售（家具库存说明 §5.5）。**卖的是余量**——已经摆在房间里的要先收纳回来，
+        /// 这样「余量 = 拥有数 − 已摆数」永远不会算成负数，也避开了「卖掉正摆着的家具 → 同步删实例
+        /// → 桌面家具级联掉下来」那条链。
+        /// </summary>
+        private void OnSellPressed(string furnitureId)
+        {
+            if (drag != null || closing || hud.PopupOpen) return;
+            var entry = furnitureTable.Find(furnitureId);
+            if (entry == null) return;
+            if (Economy.PriceOf(entry) <= 0)
+            {
+                hud.ShowToast($"「{entry.displayName}」不能出售（商店表里没配价格）");
+                return;
+            }
+            var remaining = RemainingOf(furnitureId);
+            if (remaining <= 0)
+            {
+                hud.ShowToast($"「{entry.displayName}」没有可出售的余量 · 先从房间里收纳一件回来");
+                return;
+            }
+            hud.ShowSellPopup(entry, Economy.SellbackValueOf(entry), remaining);
+        }
+
+        private void OnSellConfirmed(string furnitureId)
+        {
+            var entry = furnitureTable.Find(furnitureId);
+            if (entry == null) return;
+            // 弹窗开着期间余量可能已变（对话事件/GM 都能动库存），这里再核一次
+            if (RemainingOf(furnitureId) <= 0)
+            {
+                hud.ShowToast($"「{entry.displayName}」已经没有余量可卖了");
+                return;
+            }
+            var refund = Economy.SellFurniture(entry);
+            if (refund <= 0)
+            {
+                hud.ShowToast($"「{entry.displayName}」出售失败");
+                return;
+            }
+            SfxManager.Play(ESfx.Reward);
+            hud.RefreshInventory();
+            hud.ShowToast($"已出售「{entry.displayName}」 · ◈ +{refund}");
         }
 
         /// <summary>装饰分来源之一：全部房间已摆放装饰品的得分总和（当前房间先落会话，再逐房间求和）。</summary>
@@ -808,11 +920,22 @@ namespace MasterHouse
         {
             SaveState();
             SyncDecorationFromSession();
+            // **本房装饰分不挂 Economy.Changed**：SetFurnitureDecorationScore 在值相等时 early-return 不广播，
+            // 今天「全局增量 == 本房增量」碰巧成立（一个会话只编辑一个房间），但那是隐式不变式，
+            // 多一个装饰分来源就会静默失效。这里是三个变更点（Init/PlaceItem/StoreItem）的汇聚处，主动推最稳
+            RefreshHudEconomy();
         }
 
-        private void OnEconomyChanged()
+        private void OnEconomyChanged() => RefreshHudEconomy();
+
+        /// <summary>把三个全局值 + 本房装饰分与它换来的小费加成推给 HUD。</summary>
+        private void RefreshHudEconomy()
         {
-            hud?.SetEconomy(Economy.Data.Currency, Economy.Data.Reputation, Economy.DecorationScore);
+            if (hud == null) return;
+            var roomDecor = FurniturePlacementQuery.DecorationScoreOf(roomIndex);
+            // 预览与实际入账共用 EconomyManager 的同一个公式，两者永远不会漂开
+            var tipBonus = Economy.LeaveTipPreview(roomDecor, true) - Economy.LeaveTipPreview(0, true);
+            hud.SetEconomy(Economy.Data.Currency, Economy.Data.Reputation, Economy.DecorationScore, roomDecor, tipBonus);
         }
 
         #endregion
@@ -841,6 +964,8 @@ namespace MasterHouse
                 state.Placements.AddRange(placements);
                 sessions[roomId] = state;
             }
+            // 改的是**别的房间**的会话布局，正开着的那个实例的余量缓存要作废
+            if (active != null) active.placedCountsDirty = true;
             SyncDecorationFromSession();
         }
 
@@ -854,6 +979,7 @@ namespace MasterHouse
         public static void ResetSession()
         {
             sessions.Clear();
+            if (active != null) active.placedCountsDirty = true;
             SyncDecorationFromSession();
         }
 
@@ -891,7 +1017,7 @@ namespace MasterHouse
             // 先摆基础网格上的家具，再摆桌面家具（宿主此时已生成桌面网格）
             foreach (var placement in placements)
             {
-                if (placement == null || !string.IsNullOrEmpty(placement.hostFurnitureId)) continue;
+                if (placement == null || placement.IsOnHost) continue;
                 var entry = furnitureTable.Find(placement.furnitureId);
                 if (entry == null || !grids.TryGetValue(placement.gridId ?? string.Empty, out var grid)) continue;
                 if (!grid.FootprintFree(placement.col, placement.row, entry.cols, entry.rows, null, entry.stackable)) continue;
@@ -899,12 +1025,15 @@ namespace MasterHouse
             }
             foreach (var placement in placements)
             {
-                if (placement == null || string.IsNullOrEmpty(placement.hostFurnitureId)) continue;
+                if (placement == null || !placement.IsOnHost) continue;
                 var entry = furnitureTable.Find(placement.furnitureId);
                 if (entry == null) continue;
+                // 按**落位坐标**认宿主，不按家具 id（§5.4）：同房间可以摆多件同款，
+                // 按 id 找会把两张桌子上的东西全塞给第一张，挤不下的还会在下面那道 FootprintFree 静默丢失
                 FurnitureRuntimeItem host = null;
                 foreach (var item in items.Values)
-                    if (item.Entry.id == placement.hostFurnitureId) { host = item; break; }
+                    if (!item.IsOnTableGrid && item.GridId == placement.hostGridId &&
+                        item.Col == placement.hostCol && item.Row == placement.hostRow) { host = item; break; }
                 if (host == null || !grids.TryGetValue(TableGridId(host.Id), out var grid)) continue;
                 if (!grid.FootprintFree(placement.col, placement.row, entry.cols, entry.rows, null, entry.stackable)) continue;
                 PlaceItem(entry, grid.Id, placement.col, placement.row, true, placement.flipped);
@@ -933,7 +1062,10 @@ namespace MasterHouse
                 state.Placements.Add(new FurniturePlacementConfig
                 {
                     furnitureId = item.Entry.id,
-                    hostFurnitureId = host.Entry.id,
+                    // 宿主记**落位坐标**而不是家具 id（§5.4）：同房间两张同款桌子靠 id 分不开
+                    hostGridId = host.GridId,
+                    hostCol = host.Col,
+                    hostRow = host.Row,
                     col = item.Col,
                     row = item.Row,
                     flipped = item.Flipped,

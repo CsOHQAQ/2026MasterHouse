@@ -18,6 +18,16 @@ if %errorlevel% neq 0 (
     pip install openpyxl
 )
 
+rem Family must go before furniture: the furniture importer expands family-level
+rem columns into every furniture row, so the family CSV has to land first.
+echo [INFO] Exporting furniture family table...
+python "%~dp0export_family.py"
+if %errorlevel% neq 0 (
+    echo [ERROR] Furniture family export failed!
+    pause
+    exit /b 1
+)
+
 echo [INFO] Exporting furniture table...
 python "%~dp0export_furniture.py"
 if %errorlevel% neq 0 (

@@ -159,14 +159,19 @@ namespace MasterHouse
                 Spawn(entry.Day, entry.Index);
                 Data.ScheduleCursor++;
             }
-            // 待确认（§4.4）：日程跑完最后一天之后的行为——默认停止投放新访客并打一条 Warning，等策划补内容
-            if (Data.ScheduleCursor >= sortedSchedule.Count && !Data.ScheduleExhaustedWarned &&
-                (sortedSchedule.Count == 0 || day > sortedSchedule[sortedSchedule.Count - 1].Day))
-            {
-                Debug.LogWarning($"[VisitorManager] 日程表已全部消费（当前 DAY {day}），停止投放新访客；请在 VisitorScheduleTable 补充后续日程");
-                Data.ScheduleExhaustedWarned = true;
-            }
+            // 「日程跑完」原先在这里打一条 Warning 占位。2026-08-15 起改由**感谢试玩页**收尾
+            //（家具库存说明 §6.5）：最后一天日结之后走整页路由离开 Hub，
+            // OffHubPage 闸门生效 → tick 停 → 天然不再投放，不需要额外的开关。
         }
+
+        /// <summary>
+        /// 这一天是不是日程表的最后一天（demo 结局的判据，家具库存说明 §6.5）。
+        ///
+        /// 用「天」而不是「游标跑完」：游标可能因前台排满或客房住满卡在某条上不前进，
+        /// 按天更可预期。**空日程表返回 false**——否则表缺失时第一天就弹结局。
+        /// </summary>
+        public bool IsFinalScheduledDay(int day) =>
+            sortedSchedule.Count > 0 && day >= sortedSchedule[sortedSchedule.Count - 1].Day;
 
         private void Spawn(int scheduleDay, int scheduleIndex)
         {
@@ -322,13 +327,16 @@ namespace MasterHouse
         /// CanAcceptGuest 已经保证了有一间空房留给他，玩家必须把他安顿好，不能反悔。
         /// 也正因如此这一态永远不会卡死——房间一定在那儿等着。
         ///
-        /// 声望惩罚按当前状态分两档——已入住后反悔扣得更重。
+        /// **拒绝不扣声望**（2026-08-15，家具库存说明 §6.4）：原先分前台/服务中两档的惩罚已整体移除，
+        /// 原 SettleRefusal 只剩计数 + 离场两句，故内联到此。客人照拿基础小费，
+        /// 但拿不到服务奖励、声望与装饰分加成——正向激励差就是全部代价。
         /// </summary>
         public bool Reject(int instanceId)
         {
             var instance = Find(instanceId);
             if (instance == null || !CanReject(instance.State)) return false;
-            SettleRefusal(instance);
+            Data.Today.RefusedCount++;
+            Depart(instance);
             return true;
         }
 
@@ -547,6 +555,8 @@ namespace MasterHouse
             instance.Satisfaction = satisfaction;
             if (countAsServed)
             {
+                // 只有这一路算「完成服务」：离场时的装饰分小费加成认这一格，超时那一路拿不到（§6.1）
+                instance.NeedFulfilled = true;
                 var (currency, reputation) = economy.CompleteGuestService(satisfaction);
                 Data.Today.ServedBySatisfaction[(int)satisfaction]++;
                 Data.Today.CurrencyEarned += currency;
@@ -709,33 +719,10 @@ namespace MasterHouse
             Data.BusinessTick = 0;
             Data.NextInstanceId = 1;
             Data.ScheduleCursor = 0;
-            Data.ScheduleExhaustedWarned = false;
             Data.Today.Reset();
         }
 
         // ── 内部结算 ──
-
-        /// <summary>
-        /// 主动拒绝的结算：扣声望 + 离场。**只有玩家显式选「拒绝」这一条路会走到这里**
-        /// （2026-08-14 第 6 题定案）——两段超时都不再走拒绝口径：
-        ///   等搭话超时 → 直接离场，不扣声望、不播对话（他是自己走的，玩家没拒绝他）
-        ///   服务超时   → 走 SettleNeedResult 的失望档，不扣声望
-        /// 【被拒绝】这个对话分类也因此整个删除了：拒绝的台词现在是【初次见面】/【等待接待】
-        /// 组里那个「拒绝」选项的子句，说完就结束。
-        ///
-        /// 惩罚**分两档**：已入住后反悔比在前台谢客更失礼，扣得更多。
-        /// </summary>
-        private void SettleRefusal(VisitorInstance instance)
-        {
-            var accepted = instance.State == EVisitorState.Serving;
-            if (accepted) economy.RefuseServingGuest();
-            else economy.RefuseGuestService();
-            Data.Today.RefusedCount++;
-            Data.Today.ReputationLost += accepted
-                ? economy.ServiceFailedReputationPenalty
-                : economy.RefuseReputationPenalty;
-            Depart(instance);
-        }
 
         private void SetState(VisitorInstance instance, EVisitorState state)
         {
@@ -745,17 +732,27 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 离场：留下基础金钱 → 移出在场列表（房间随之释放）。
+        /// 离场：留下小费 → 移出在场列表（房间随之释放）。
         ///
-        /// **所有业务访客离场都给钱，包括被拒绝与超时流失的**（需求重做说明 §8）——
-        /// 这是新模型下「不会陷入没钱死循环」的保证。未满足需求只是拿不到
-        /// CompleteGuestService 的按档奖励，不扣货币。
+        /// **所有业务访客离场都给基础小费，包括被拒绝与超时流失的**（需求重做说明 §8）——
+        /// 这是新模型下「不会陷入没钱死循环」的保证。
+        /// **装饰分加成只给完成需求的客人**（家具库存说明 §6.1）：被拒绝的客人不会因为房间漂亮多给钱，
+        /// 而且不这么限的话「装修好 + 全部拒绝」会是纯收益最优解。
+        ///
+        /// 取分口径 = **离场时所在的房间**，不为任何情况特判：前台等搭话超时 / 在前台被拒绝的
+        /// RoomIndex 本来就是 0（大堂），所以大堂装修同样有回报，规则天然统一。
+        ///
+        /// ⚠ 家具模式开着时时钟照走（OpenFurnitureMode 不退页），所以这里可能在 active 房间被打开的状态下
+        /// 经 DecorationScoreOf → CaptureSessionPlacements 触发一次 View 层的 SaveState()。
+        /// 已知且刻意：那只写它自己的 sessions，无广播、不动 Data.Instances（同款先例见条件类需求的 RoomHasAny）。
+        ///
         /// 氛围邻居（ambient）不在 Data.Instances 里，天然走不到这里。
         /// </summary>
         private void Depart(VisitorInstance instance)
         {
-            var tip = economy.GuestLeaveTip();
-            Data.Today.CurrencyEarned += tip;
+            var roomDecor = FurniturePlacementQuery.DecorationScoreOf(instance.RoomIndex);
+            var tip = economy.GuestLeaveTip(roomDecor, instance.NeedFulfilled);
+            Data.Today.TipEarned += tip; // 与服务奖励分开记账，日结面板分两行（§6.3）
             instance.State = EVisitorState.Departed;
             Data.Instances.Remove(instance);
             InstanceDeparted?.Invoke(instance);
@@ -795,6 +792,7 @@ namespace MasterHouse
                     stateEnterTick = instance.StateEnterTick,
                     roomIndex = instance.RoomIndex,
                     satisfaction = (int)instance.Satisfaction,
+                    needFulfilled = instance.NeedFulfilled,
                     nextBubbleTick = instance.NextBubbleTick,
                     rngState = instance.Rng.State,
                 });
@@ -827,6 +825,7 @@ namespace MasterHouse
                     StateEnterTick = saved.stateEnterTick,
                     RoomIndex = saved.roomIndex,
                     Satisfaction = (EServeSatisfaction)saved.satisfaction,
+                    NeedFulfilled = saved.needFulfilled,
                     NextBubbleTick = saved.nextBubbleTick,
                 };
                 // 随机流按存档状态恢复（需求已不入档也不 roll，直接取自日程条目，§4.2）
@@ -858,6 +857,8 @@ namespace MasterHouse
         public long stateEnterTick;
         public int roomIndex;
         public int satisfaction;
+        /// <summary>需求是否真的被满足过（决定离场小费吃不吃装饰分加成）。satisfaction 代替不了它，见 VisitorInstance。</summary>
+        public bool needFulfilled;
         public long nextBubbleTick;
         public ulong rngState;
     }

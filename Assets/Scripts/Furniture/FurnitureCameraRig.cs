@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace MasterHouse
 {
@@ -86,6 +87,9 @@ namespace MasterHouse
             var held = Input.GetMouseButton(1) || Input.GetMouseButton(2);
             if (held && !panning)
             {
+                // 起手落在 HUD 上时不平移：右键在收纳栏槽位上是「出售」手势（家具库存说明 §5.5），
+                // 不挡的话右键出售会顺带把镜头也拽走。只拦**起手**——平移中划过 HUD 照常继续
+                if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
                 panning = true;
                 lastPanMouse = Input.mousePosition;
             }

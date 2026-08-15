@@ -193,6 +193,20 @@ namespace MasterHouse
             PanelHost.Open(UI, this, panel);
         }
 
+        /// <summary>
+        /// 点击场景里某件已摆放家具 → 打开家具图鉴并**定位到那一件**（家具库存说明 §4.5）。
+        ///
+        /// 必须同时给房间下标：总览态下玩家点到的可能是别的房间的家具，而面板默认拿 RoomIndex 当选中房间。
+        /// 给 id 而不是下标：热点来自 FurnitureSceneComposer.Collect（先地面后桌面），
+        /// 面板列表来自 FurniturePlacementQuery.FurnitureIdsIn（原始顺序），两者排序不同。
+        /// </summary>
+        public void OpenFurnitureDetail(int roomIndex, string furnitureId)
+        {
+            if (furnitureModeOpen) return;
+            if (immersive) SetImmersive(false);
+            PanelHost.Open(UI, this, EHousePanel.Device, roomIndex, furnitureId);
+        }
+
         /// <summary>Hub 内设置：复用标题设置 Prefab 的叠加层（§16.8）。</summary>
         public void OpenSettings()
         {
@@ -353,13 +367,17 @@ namespace MasterHouse
                 Toast("还有客人在等房间 · 把他拖进一间空客房再结束今天");
                 return;
             }
+            // **必须先取**：EndDay() 内部已经 clock.NextDay()，之后读 Data.Day 会差一天
             var endedDay = gm.HouseClockManager.Data.Day;
+            var isFinalDay = gm.VisitorManager.IsFinalScheduledDay(endedDay);
             var summary = gm.VisitorManager.EndDay();
             if (summary == null) return;
             guestRail.Refresh();
             taskCard.Refresh();
-            // 结算并入过场（2026-08-14）：入夜 → 夜幕结算 → 点击破晓开启新一天
-            DayTransitionFx.PlayEndDay(UI, endedDay, summary);
+            // 结算并入过场（2026-08-14）：入夜 → 夜幕结算 → 点击破晓开启新一天。
+            // 日程最后一天则在过场播完后接 demo 结局页（家具库存说明 §6.5）
+            DayTransitionFx.PlayEndDay(UI, endedDay, summary,
+                isFinalDay ? () => UI.ShowPage(new ThanksForPlayingPage()) : (System.Action)null);
         }
 
         /// <summary>点击场景中的访客 NPC（观景模式下先展开界面）。</summary>

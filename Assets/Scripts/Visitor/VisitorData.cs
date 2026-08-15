@@ -21,9 +21,16 @@ namespace MasterHouse
         /// <summary>跨天留宿数（日结时 roll 中）。</summary>
         public int StayOvernightCount;
 
+        /// <summary>服务奖励累计（完成需求的四档结算）。**不含离场小费**——那一笔进 <see cref="TipEarned"/>。</summary>
         public int CurrencyEarned;
+
+        /// <summary>
+        /// 离场小费累计（基础小费 + 装饰分加成）。与 <see cref="CurrencyEarned"/> 拆开是为了让日结面板
+        /// 分两行显示——玩家看不出「装修给我多赚了多少」，这条循环就等于不存在（家具库存说明 §6.3）。
+        /// </summary>
+        public int TipEarned;
+
         public int ReputationEarned;
-        public int ReputationLost;
 
         public int ServedTotal
         {
@@ -42,8 +49,8 @@ namespace MasterHouse
             WanderDepartCount = 0;
             StayOvernightCount = 0;
             CurrencyEarned = 0;
+            TipEarned = 0;
             ReputationEarned = 0;
-            ReputationLost = 0;
         }
 
         public VisitorDaySummary Clone()
@@ -54,8 +61,8 @@ namespace MasterHouse
                 WanderDepartCount = WanderDepartCount,
                 StayOvernightCount = StayOvernightCount,
                 CurrencyEarned = CurrencyEarned,
+                TipEarned = TipEarned,
                 ReputationEarned = ReputationEarned,
-                ReputationLost = ReputationLost,
             };
             Array.Copy(ServedBySatisfaction, copy.ServedBySatisfaction, ServedBySatisfaction.Length);
             return copy;
@@ -86,8 +93,8 @@ namespace MasterHouse
         /// <summary>日程游标：指向稳定排序后（day, 出现时刻, 下标）的下一条待消费条目（§4.4）。</summary>
         public int ScheduleCursor;
 
-        /// <summary>「日程已跑完」Warning 只打一次的标记（§4.4 待确认默认实现）。</summary>
-        public bool ScheduleExhaustedWarned;
+        // ScheduleExhaustedWarned（「日程已跑完」Warning 只打一次的标记）已于 2026-08-15 删除：
+        // 那是占位处理，现由感谢试玩页取代（家具库存说明 §6.5），判据是 VisitorManager.IsFinalScheduledDay。
 
         /// <summary>当前在场实例，按 InstanceId 升序（生成顺序即 id 顺序，§11.2）。</summary>
         public readonly List<VisitorInstance> Instances = new List<VisitorInstance>();

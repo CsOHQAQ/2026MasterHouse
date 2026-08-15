@@ -16,7 +16,7 @@ namespace MasterHouse
         /// <summary>
         /// 当前访客实例；非访客场景为 null。
         /// **持实例引用而不是只持 id**：被拒绝与「不对味」的访客在对话播放之前就已离场
-        /// （SettleRefusal/Submit 内先请求对话再 Depart，Depart 会把实例移出在场列表），
+        /// （Reject / SettleNeedResult 内先请求对话再 Depart，Depart 会把实例移出在场列表），
         /// 此时 VisitorManager.Find(id) 已经返回 null，但台词仍要能说出它的名字、读它的需求。
         /// 需要「访客还在场吗」这种判定时用 IsOnStage，别拿 Visitor != null 当在场判据。
         /// </summary>

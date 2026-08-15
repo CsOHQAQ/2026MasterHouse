@@ -1,0 +1,285 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9837bd62fde9b0441b35d5991df89910, type: 3}
+  m_Name: FurnitureFamilyTable
+  m_EditorClassIdentifier: 
+  entries:
+  - familyId: table_lamp
+    displayName: "\u53F0\u706F"
+    category: "\u706F\u5177"
+    description: 
+    surfaces: 01000000
+    stackable: 0
+    cols: 2
+    rows: 2
+    decorationScore: 12
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: round_table
+    displayName: "\u5706\u684C"
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    stackable: 0
+    cols: 6
+    rows: 2
+    decorationScore: 30
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 1
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 4
+      surfaceHeight: 146
+  - familyId: crescent_aquarium
+    displayName: "\u6708\u7259\u9C7C\u7F38"
+    category: "\u6446\u4EF6"
+    description: 
+    surfaces: 01000000
+    stackable: 0
+    cols: 2
+    rows: 2
+    decorationScore: 30
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: cat_sofa
+    displayName: "\u732B\u8033\u61D2\u4EBA\u6C99\u53D1"
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    stackable: 0
+    cols: 4
+    rows: 2
+    decorationScore: 25
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: single_sofa
+    displayName: "\u5355\u4EBA\u6C99\u53D1"
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    stackable: 0
+    cols: 6
+    rows: 2
+    decorationScore: 32
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: armchair
+    displayName: "\u6276\u624B\u6905"
+    category: "\u684C\u6905"
+    description: 
+    surfaces: 00000000
+    stackable: 0
+    cols: 6
+    rows: 2
+    decorationScore: 30
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: cactus_lamp
+    displayName: "\u4ED9\u4EBA\u638C\u706F"
+    category: "\u706F\u5177"
+    description: 
+    surfaces: 01000000
+    stackable: 0
+    cols: 2
+    rows: 2
+    decorationScore: 15
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: hanging_plant
+    displayName: "\u60AC\u6302\u7EFF\u690D"
+    category: "\u76C6\u683D"
+    description: 
+    surfaces: 02000000
+    stackable: 0
+    cols: 4
+    rows: 6
+    decorationScore: 18
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: landscape_poster
+    displayName: "\u98CE\u666F\u6D77\u62A5"
+    category: "\u58C1\u6302"
+    description: 
+    surfaces: 02000000
+    stackable: 0
+    cols: 2
+    rows: 4
+    decorationScore: 15
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: lava_lamp
+    displayName: "\u7194\u5CA9\u706F"
+    category: "\u706F\u5177"
+    description: 
+    surfaces: 01000000
+    stackable: 0
+    cols: 2
+    rows: 2
+    decorationScore: 15
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: monstera
+    displayName: "\u9F9F\u80CC\u7AF9"
+    category: "\u76C6\u683D"
+    description: 
+    surfaces: 00000000
+    stackable: 0
+    cols: 4
+    rows: 2
+    decorationScore: 20
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: orb_decoration
+    displayName: "\u7403\u5F62\u6446\u4EF6"
+    category: "\u6446\u4EF6"
+    description: 
+    surfaces: 01000000
+    stackable: 0
+    cols: 2
+    rows: 2
+    decorationScore: 12
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: potted_plant
+    displayName: "\u76C6\u683D\u690D\u7269"
+    category: "\u76C6\u683D"
+    description: 
+    surfaces: 00000000
+    stackable: 0
+    cols: 2
+    rows: 2
+    decorationScore: 12
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: round_rug
+    displayName: "\u5706\u5F62\u5730\u6BEF"
+    category: "\u6446\u4EF6"
+    description: 
+    surfaces: 00000000
+    stackable: 1
+    cols: 6
+    rows: 4
+    decorationScore: 15
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: vintage_square_clock
+    displayName: "\u590D\u53E4\u65B9\u949F"
+    category: "\u58C1\u6302"
+    description: 
+    surfaces: 02000000
+    stackable: 0
+    cols: 2
+    rows: 2
+    decorationScore: 12
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146

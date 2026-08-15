@@ -56,6 +56,8 @@ namespace MasterHouse
         // 商店重做（2026-08-11 美术示意图）：全屏 STORE 页 + 卡片模板，取代旧 MarketPage 三件套
         private const string StorePagePath = Folder + "/StorePage.prefab";
         private const string StoreCardPath = Folder + "/StoreCard.prefab";
+        // 家具族化（2026-08-15）：配色色块模板，商城选色行 / 获得弹窗配色列 / 收纳栏槽位共用
+        private const string ColorSwatchPath = Folder + "/ColorSwatch.prefab";
         // 家具模式 HUD 固化为 Prefab（2026-08-11）：页面 + 槽位模板
         private const string FurnitureHudPath = Folder + "/FurnitureHudPage.prefab";
         private const string FurnitureSlotPath = Folder + "/FurnitureSlot.prefab";
@@ -136,6 +138,7 @@ namespace MasterHouse
             BuildAchievementRow(AchievementRowPath);
             BuildStoreCard(StoreCardPath);
             BuildStorePage(StorePagePath);
+            BuildColorSwatch(ColorSwatchPath);
             BuildFurnitureSlot(FurnitureSlotPath);
             BuildFurnitureHudPage(FurnitureHudPath);
             BuildPlaceholderPanelContent(PlaceholderPanelPath);
@@ -190,6 +193,7 @@ namespace MasterHouse
             if (!File.Exists(AchievementRowPath)) { BuildAchievementRow(AchievementRowPath); changed = true; }
             if (!File.Exists(StoreCardPath)) { BuildStoreCard(StoreCardPath); changed = true; }
             if (!File.Exists(StorePagePath)) { BuildStorePage(StorePagePath); changed = true; }
+            if (!File.Exists(ColorSwatchPath)) { BuildColorSwatch(ColorSwatchPath); changed = true; }
             if (!File.Exists(FurnitureSlotPath)) { BuildFurnitureSlot(FurnitureSlotPath); changed = true; }
             if (!File.Exists(FurnitureHudPath)) { BuildFurnitureHudPage(FurnitureHudPath); changed = true; }
             if (!File.Exists(PlaceholderPanelPath)) { BuildPlaceholderPanelContent(PlaceholderPanelPath); changed = true; }
@@ -1778,6 +1782,34 @@ namespace MasterHouse
         }
 
         /// <summary>家具收纳栏槽位模板：四种状态元素全部烘上，运行时按状态显隐。</summary>
+        /// <summary>
+        /// 配色色块模板（家具族体系说明 §4.3）：外框走 store/color-* 三态素材、内芯填家具表色值。
+        /// 尺寸由 <see cref="ColorSwatchStrip"/> 按使用场合覆写（商城 26、获得弹窗 30、收纳栏更小），
+        /// 这里给的是商城那档的初值。
+        /// </summary>
+        private static void BuildColorSwatch(string path)
+        {
+            var root = ComponentRoot("ColorSwatch", new Vector2(26, 26));
+            var view = root.AddComponent<OutGameColorSwatchView>();
+            view.frame = ImageOn((RectTransform)root.transform, Color.white);
+            view.frame.preserveAspect = true;
+            var frameSprite = Resources.Load<Sprite>("OutGameUI/store/color-deault");
+            if (frameSprite != null) view.frame.sprite = frameSprite;
+
+            var fill = Image(root.transform, "Fill", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Color.white);
+            var fillRect = (RectTransform)fill.transform;
+            fillRect.offsetMin = new Vector2(4, 4);
+            fillRect.offsetMax = new Vector2(-4, -4);
+            fill.sprite = HouseUIRuntime.WhiteSprite;
+            fill.raycastTarget = false;
+            view.fill = fill;
+
+            view.button = root.AddComponent<Button>();
+            view.button.transition = Selectable.Transition.None;
+            view.button.targetGraphic = view.frame;
+            Save(root, path);
+        }
+
         private static void BuildFurnitureSlot(string path)
         {
             var root = ComponentRoot("FurnitureSlot", new Vector2(104, 122));

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace MasterHouse
@@ -11,7 +10,12 @@ namespace MasterHouse
     /// **一族一卡 + 选色**——家具 2.0 的素材是「族 × 配色变体」（如台灯 01~06），
     /// 商店按族出卡，右侧色块行选配色（悬停即预览、点击/X 键选中），买哪个颜色背包里就是哪件
     /// （所有权仍按变体粒度，零结构改动）。
-    /// 卡片四态：默认/悬停/选中（SpriteSwap+手动换框）/已售置灰（全配色拥有时）；声望未解禁呈「？」。
+    /// 2026-08-15 族化：族键改读家具表的 <c>familyId</c> 列、族名读家具族表，
+    /// 原先「按 id 前缀猜族」的 FamilyKey/FamilyName 与盆栽平铺特例 FlatCategories 一并退役；
+    /// 色块条改用共用模板（<see cref="ColorSwatchStrip"/> + ColorSwatch.prefab）。
+    /// 2026-08-15 库存化：家具**不限数量重复购买**（家具库存说明 §5.8），「已售罄/已拥有」整套语义退役——
+    /// 卡片三态（默认/悬停/选中，SpriteSwap+手动换框），角标改显示「已有 n」，价格牌恒显示价格。
+    /// 声望未解禁仍呈「？」（解禁门槛是声望现在唯一的作用）。
     /// 键位（StoreHotkeys）：Q/E 切分类（循环）、X 改变颜色、回车购买、空格/ESC 关获得弹窗
     /// （ESC 递归：弹窗开着时只关弹窗，见 ConsumeEscape）。
     /// 大类描述在商店表「分类」sheet 配置；色块颜色取家具表「色值」列（导表按素材平均色生成）。
@@ -35,12 +39,9 @@ namespace MasterHouse
                 return false;
             }
 
-            public bool AllOwned(EconomyManager economy)
-            {
-                foreach (var variant in Variants)
-                    if (!economy.IsFurnitureOwned(variant.id)) return false;
-                return true;
-            }
+            // AllOwned（整族收集完 → 卡片置灰「已售罄」）已于 2026-08-15 删除：
+            // 家具改为不限数量重复购买之后（家具库存说明 §5.2/§5.8），"售罄"这个概念不存在了。
+            // 空出来的角标改用来显示「已有 n」——比留空更有信息量，且不动 Prefab 布局。
         }
 
         private readonly RectTransform root;
@@ -50,8 +51,9 @@ namespace MasterHouse
         private readonly List<Family> listed = new List<Family>();
         /// <summary>每族记住的配色选择（族键 → 变体下标），切分类/切族不丢。</summary>
         private readonly Dictionary<string, int> colorChoice = new Dictionary<string, int>();
-        private readonly List<GameObject> swatches = new List<GameObject>();
-        private readonly List<GameObject> obtainedSwatches = new List<GameObject>();
+        /// <summary>右侧选色行与获得弹窗配色列：共用色块模板与交互（收纳栏也是同一个类）。</summary>
+        private readonly ColorSwatchStrip swatchStrip = new ColorSwatchStrip();
+        private readonly ColorSwatchStrip obtainedStrip = new ColorSwatchStrip();
         private int categoryIndex;
         private string selectedFamily;
         /// <summary>色块悬停的临时预览变体（-1 = 无悬停，展示已选配色）。</summary>
@@ -150,6 +152,20 @@ namespace MasterHouse
             // 获得弹窗面板统一走全局底图（9 宫格切片，避免不同宽高比拉伸变形）
             if (view.obtainedName != null)
                 HouseUIUtil.ApplyPanelSkin(view.obtainedName.transform.parent.GetComponent<Image>());
+            // 色块条（共用模板与交互，见 ColorSwatchStrip）：右侧选色行可点可悬停，获得弹窗那列只展示
+            swatchStrip.Build(view.swatchRoot, new Vector2(26, 26), 34f);
+            swatchStrip.Selected += index =>
+            {
+                var family = SelectedFamilyEntry();
+                if (family == null) return;
+                colorChoice[family.Key] = index;
+                hoverVariant = -1;
+                RefreshCards(); // 卡片缩略图跟随配色
+                RefreshPreview();
+            };
+            swatchStrip.Previewed += index => { hoverVariant = index; RefreshPreview(); };
+            obtainedStrip.Build(view.obtainedSwatchRoot, new Vector2(30, 30), 42f, vertical: true, interactive: false);
+
             ToggleObtained(false, instant: true);
             Economy.Changed += RefreshToken;
             RefreshToken();
@@ -211,52 +227,38 @@ namespace MasterHouse
             if (view.scroll != null) view.scroll.verticalNormalizedPosition = 1f;
         }
 
-        /// <summary>不做配色聚合的分类：盆栽变体太多（悬挂绿植 22 款），一件一卡直接平铺，不走选色。</summary>
-        private static readonly HashSet<string> FlatCategories = new HashSet<string> { "盆栽" };
-
-        /// <summary>按 id 前缀（族键）聚合当前分类的家具（保持表序；同类别相似物品天然排在一起）。
-        /// 平铺分类（盆栽）一件一卡不聚合。</summary>
+        /// <summary>
+        /// 按**显式族**聚合当前分类的家具（保持表序；同类别相似物品天然排在一起）。
+        ///
+        /// 2026-08-15 族化：族键从「猜 id 前缀」改成读家具表的 <c>familyId</c> 列，族显示名读家具族表。
+        /// 随之退役的还有 <c>FlatCategories</c>（盆栽平铺特例）——有了显式族，只有一个成员的族
+        /// 自然就渲染成一张单卡，不需要为它开后门（家具族体系说明 §4.1、§6 待确认 #3）。
+        /// </summary>
         private void BuildFamilies(int index)
         {
             listed.Clear();
-            var flat = FlatCategories.Contains(Categories[index]);
             var byKey = new Dictionary<string, Family>();
             var table = GameManager.Instance.FurnitureTable;
+            var families = GameManager.Instance.FurnitureFamilyTable;
             foreach (var entry in table.entries)
             {
                 if (entry == null) continue;
                 var category = string.IsNullOrEmpty(entry.category) ? "摆件" : entry.category;
                 if (category != Categories[index]) continue;
-                if (flat)
-                {
-                    var single = new Family { Key = entry.id, DisplayName = entry.displayName };
-                    single.Variants.Add(entry);
-                    listed.Add(single);
-                    continue;
-                }
-                var key = FamilyKey(entry.id);
+                // 族 id 为空是配置事故（导表会 LogError 拦下），这里让它自成一族以免整类家具挤成一张卡
+                var key = string.IsNullOrEmpty(entry.familyId) ? entry.id : entry.familyId;
                 if (!byKey.TryGetValue(key, out var family))
                 {
-                    family = new Family { Key = key, DisplayName = FamilyName(entry.displayName) };
+                    family = new Family
+                    {
+                        Key = key,
+                        DisplayName = families != null ? families.DisplayNameOf(key) : key,
+                    };
                     byKey[key] = family;
                     listed.Add(family);
                 }
                 family.Variants.Add(entry);
             }
-        }
-
-        private static string FamilyKey(string id)
-        {
-            var cut = id != null ? id.LastIndexOf('_') : -1;
-            return cut > 0 ? id.Substring(0, cut) : id;
-        }
-
-        /// <summary>族显示名：变体中文名去掉「·NN」编号后缀。</summary>
-        private static string FamilyName(string displayName)
-        {
-            if (string.IsNullOrEmpty(displayName)) return displayName;
-            var cut = displayName.IndexOf('·');
-            return cut > 0 ? displayName.Substring(0, cut) : displayName;
         }
 
         private string CategoryDesc(int index)
@@ -310,7 +312,12 @@ namespace MasterHouse
             });
         }
 
-        /// <summary>刷新全部卡片视觉（四态）：选中换框；全配色拥有 = 已售置灰；声望未解禁呈「？」。</summary>
+        /// <summary>
+        /// 刷新全部卡片视觉：选中换框；声望未解禁呈「？」；已有存货的在角标显示「已有 n」。
+        ///
+        /// **不再有"已售罄"置灰**（家具库存说明 §5.8）：家具不限数量重复购买，买过不是拒绝理由。
+        /// 角标的 n 取**当前选中配色**的库存，与缩略图/价格同一件——卡片展示的始终是那一个变体。
+        /// </summary>
         private void RefreshCards()
         {
             for (var i = 0; i < cards.Count && i < listed.Count; i++)
@@ -318,18 +325,18 @@ namespace MasterHouse
                 var card = cards[i];
                 var family = listed[i];
                 var revealed = family.AnyRevealed(Economy);
-                var soldOut = family.AllOwned(Economy);
                 var selected = family.Key == selectedFamily;
                 var showEntry = family.Variants[ChoiceOf(family)];
+                var owned = Economy.OwnedCountOf(showEntry.id);
 
                 if (card.frame != null)
                 {
                     card.frame.sprite = selected && card.selectedSprite != null ? card.selectedSprite : card.normalSprite;
-                    card.frame.color = soldOut ? new Color(.62f, .6f, .64f, 1f) : Color.white;
+                    card.frame.color = Color.white;
                 }
                 if (card.button != null)
                 {
-                    // 悬停粉框（SpriteSwap）；选中/已售时改由 normal 图表达，悬停仍可见反馈
+                    // 悬停粉框（SpriteSwap）；选中时改由 normal 图表达，悬停仍可见反馈
                     card.button.transition = Selectable.Transition.SpriteSwap;
                     card.button.spriteState = new SpriteState
                     {
@@ -342,12 +349,12 @@ namespace MasterHouse
                 if (card.thumb != null)
                 {
                     SetThumb(card.thumb, revealed ? showEntry.sprite : null);
-                    card.thumb.color = soldOut ? new Color(1f, 1f, 1f, .45f) : Color.white;
+                    card.thumb.color = Color.white;
                 }
                 if (card.priceLabel != null)
                     card.priceLabel.text = revealed ? $"◈ {Economy.PriceOf(showEntry):N0}" : string.Empty;
                 if (card.mark != null)
-                    card.mark.text = !revealed ? "？" : soldOut ? "已售罄" : string.Empty;
+                    card.mark.text = !revealed ? "？" : owned > 0 ? $"已有 {owned}" : string.Empty;
             }
         }
 
@@ -365,84 +372,33 @@ namespace MasterHouse
             RefreshPreview();
         }
 
+        /// <summary>一族配色的色块数据：内芯取家具表「色值」，已拥有的压暗。</summary>
+        private List<ColorSwatchItem> SwatchItemsOf(Family family)
+        {
+            var items = new List<ColorSwatchItem>();
+            if (family == null) return items;
+            foreach (var variant in family.Variants)
+                items.Add(new ColorSwatchItem(variant.swatchColor, Economy.IsFurnitureOwned(variant.id)));
+            return items;
+        }
+
         /// <summary>重建色块行：一族的每个配色一块（色值来自家具表，导表按素材平均色生成）。</summary>
         private void RefreshSwatches()
         {
-            foreach (var chip in swatches)
-                if (chip != null) Object.Destroy(chip);
-            swatches.Clear();
             if (view.swatchRoot == null) return;
             var family = SelectedFamilyEntry();
             var show = family != null && family.Variants.Count > 1 && family.AnyRevealed(Economy);
             view.swatchRoot.gameObject.SetActive(show);
-            if (!show) return;
-
-            const float spacing = 34f;
-            var count = family.Variants.Count;
-            for (var i = 0; i < count; i++)
-            {
-                var index = i;
-                // 设计稿 §5：小色块、行内左对齐。
-                // 结构：根 = 外框素材（color-* 三态，实心图，在底层），子 = 内嵌色芯（素材平均色，盖在框芯上）
-                var chip = HouseUIRuntime.Rect(view.swatchRoot, "Swatch" + i,
-                    new Vector2(0f, .5f), new Vector2(0f, .5f),
-                    new Vector2(14f + i * spacing, 0f), new Vector2(26, 26));
-                var frame = chip.gameObject.AddComponent<Image>();
-                frame.preserveAspect = true;
-                var fillRect = HouseUIRuntime.Rect(chip, "Fill", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-                fillRect.offsetMin = new Vector2(4, 4);
-                fillRect.offsetMax = new Vector2(-4, -4);
-                var fill = fillRect.gameObject.AddComponent<Image>();
-                fill.sprite = HouseUIRuntime.WhiteSprite;
-                fill.color = family.Variants[i].swatchColor;
-                fill.raycastTarget = false;
-
-                var button = chip.gameObject.AddComponent<Button>();
-                button.transition = Selectable.Transition.None;
-                button.onClick.AddListener(() =>
-                {
-                    colorChoice[family.Key] = index;
-                    hoverVariant = -1;
-                    RefreshSwatchVisuals();
-                    RefreshCards();
-                    RefreshPreview();
-                });
-                var trigger = chip.gameObject.AddComponent<EventTrigger>();
-                var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
-                enter.callback.AddListener(_ => { hoverVariant = index; RefreshSwatchVisuals(); RefreshPreview(); });
-                trigger.triggers.Add(enter);
-                var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
-                exit.callback.AddListener(_ => { hoverVariant = -1; RefreshSwatchVisuals(); RefreshPreview(); });
-                trigger.triggers.Add(exit);
-                swatches.Add(chip.gameObject);
-            }
-            RefreshSwatchVisuals();
+            if (!show) { swatchStrip.Clear(); return; }
+            swatchStrip.Rebuild(SwatchItemsOf(family), ChoiceOf(family));
         }
 
-        /// <summary>色块外框三态：选中 > 悬停 > 默认；已拥有的配色内芯压暗以示区分。</summary>
+        /// <summary>只刷视觉（选中态/已拥有压暗），色块数量没变时用。</summary>
         private void RefreshSwatchVisuals()
         {
             var family = SelectedFamilyEntry();
             if (family == null) return;
-            var chosen = ChoiceOf(family);
-            for (var i = 0; i < swatches.Count && i < family.Variants.Count; i++)
-            {
-                if (swatches[i] == null) continue;
-                if (swatches[i].TryGetComponent<Image>(out var frame))
-                {
-                    var state = i == chosen ? "selected" : i == hoverVariant ? "hover" : "deault";
-                    var sprite = Resources.Load<Sprite>("OutGameUI/store/color-" + state);
-                    if (sprite != null) frame.sprite = sprite;
-                }
-                var fillNode = swatches[i].transform.Find("Fill");
-                if (fillNode != null && fillNode.TryGetComponent<Image>(out var fill))
-                {
-                    var color = family.Variants[i].swatchColor;
-                    fill.color = Economy.IsFurnitureOwned(family.Variants[i].id)
-                        ? new Color(color.r * .55f, color.g * .55f, color.b * .55f, 1f)
-                        : color;
-                }
-            }
+            swatchStrip.Refresh(SwatchItemsOf(family), ChoiceOf(family));
         }
 
         // ══════════ 预览与购买 ══════════
@@ -460,26 +416,31 @@ namespace MasterHouse
                     : !revealed ? $"声望达到 {Economy.UnlockReputationOf(entry)} 后解禁（当前 {Economy.Data.Reputation}）"
                     : string.IsNullOrEmpty(entry.description) ? CategoryDesc(categoryIndex) : entry.description;
 
-            var owned = entry != null && Economy.IsFurnitureOwned(entry.id);
+            var ownedCount = entry != null ? Economy.OwnedCountOf(entry.id) : 0;
             var affordable = entry != null && Economy.Data.Currency >= Economy.PriceOf(entry);
+            // 价格牌**恒显示价格**（家具库存说明 §5.8）：原先已拥有时写「已拥有」，
+            // 在可重复购买之后那是误导——买过照样能买。库存数量另外在描述区末尾说，
+            // 不往这个纯数字节点里塞中文（版式会撑破）
             if (view.priceLabel != null)
                 view.priceLabel.text = entry == null ? string.Empty
-                    : owned ? "已拥有" : revealed ? $"{Economy.PriceOf(entry):N0}" : "？";
+                    : revealed ? $"{Economy.PriceOf(entry):N0}" : "？";
+            if (view.itemDesc != null && revealed && ownedCount > 0)
+                view.itemDesc.text += $"\n<size=14>库存中已有 {ownedCount} 件</size>";
             if (view.buyButton != null)
             {
-                // 设计稿 §7：已拥有/代币不足置灰但可点（点了 toast 说明原因）
+                // 设计稿 §7：代币不足置灰但可点（点了 toast 说明原因）。
+                // **「已拥有」不再参与置灰判断**——它已经不是拒绝理由了
                 view.buyButton.interactable = entry != null && revealed;
                 if (view.buyButton.targetGraphic != null)
-                    view.buyButton.targetGraphic.color = entry != null && revealed && !owned && affordable
+                    view.buyButton.targetGraphic.color = entry != null && revealed && affordable
                         ? Color.white : new Color(.6f, .58f, .62f, 1f);
             }
 
-            // 键位提示：没有商品时不显示；X 只在有多配色时显示；购买键随可买态置灰
+            // 键位提示：没有商品时不显示；X 只在有多配色时显示；购买键只随「解禁 + 买得起」置灰
             var hasProduct = entry != null;
             var multiColor = family != null && family.Variants.Count > 1;
             SetKeycapVisible(view.colorKeycap, view.colorKeycapLabel, hasProduct && multiColor, true);
-            SetKeycapVisible(view.buyKeycap, view.buyKeycapLabel, hasProduct,
-                revealed && !owned && affordable);
+            SetKeycapVisible(view.buyKeycap, view.buyKeycapLabel, hasProduct, revealed && affordable);
         }
 
         private static void SetKeycapVisible(Image icon, Text label, bool visible, bool enabled)
@@ -506,9 +467,11 @@ namespace MasterHouse
             var family = SelectedFamilyEntry();
             var entry = family != null && family.Variants.Count > 0 ? family.Variants[ChoiceOf(family)] : null;
             if (entry == null) return;
-            if (Economy.IsFurnitureOwned(entry.id))
+            // 「已拥有」不再是拒绝理由（2026-08-15 家具库存说明 §5.2）：家具可重复购买、不限数量。
+            // 非卖品（售价 ≤ 0）仍要拦——那是漏配的信号，放行就是免费无限买
+            if (Economy.PriceOf(entry) <= 0)
             {
-                ui.ShowToast("已拥有该家具（换个颜色试试 · X 键切换）");
+                ui.ShowToast("这件家具不出售（商店表里没配价格）");
                 return;
             }
             if (!Economy.IsFurnitureRevealed(entry))
@@ -548,8 +511,13 @@ namespace MasterHouse
                 case FurniturePurchaseResult.ReputationLocked:
                     ui.ShowToast($"声望达到 {Economy.UnlockReputationOf(entry)} 后解禁");
                     break;
+                case FurniturePurchaseResult.NotForSale:
+                    ui.ShowToast("这件家具不出售（商店表里没配价格）");
+                    break;
                 default:
-                    ui.ShowToast("已拥有该家具（换个颜色试试 · X 键切换）");
+                    // AlreadyOwned 已废弃不再返回（家具库存说明 §5.2），所以这里只剩「不该发生」的兜底，
+                    // 千万别再写成「已拥有」——那会在可重复购买之后变成误导
+                    ui.ShowToast("购买没有成功，请查看 Console");
                     break;
             }
         }
@@ -649,33 +617,20 @@ namespace MasterHouse
         /// <summary>弹窗左缘配色列（设计稿获得弹窗）：该族全部配色，买到的那个高亮外框。</summary>
         private void BuildObtainedSwatches(Family family, FurnitureEntry bought)
         {
-            foreach (var chip in obtainedSwatches)
-                if (chip != null) Object.Destroy(chip);
-            obtainedSwatches.Clear();
-            if (view.obtainedSwatchRoot == null || family == null || family.Variants.Count <= 1) return;
-
-            const float spacing = 42f;
-            var count = family.Variants.Count;
-            for (var i = 0; i < count; i++)
+            if (view.obtainedSwatchRoot == null || family == null || family.Variants.Count <= 1)
             {
-                var chip = HouseUIRuntime.Rect(view.obtainedSwatchRoot, "Swatch" + i,
-                    new Vector2(.5f, .5f), new Vector2(.5f, .5f),
-                    new Vector2(0f, (count - 1) * spacing * .5f - i * spacing), new Vector2(30, 30));
-                var frame = chip.gameObject.AddComponent<Image>();
-                frame.raycastTarget = false;
-                frame.preserveAspect = true;
-                var frameSprite = Resources.Load<Sprite>(
-                    family.Variants[i] == bought ? "OutGameUI/store/color-selected" : "OutGameUI/store/color-deault");
-                if (frameSprite != null) frame.sprite = frameSprite;
-                var fillRect = HouseUIRuntime.Rect(chip, "Fill", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-                fillRect.offsetMin = new Vector2(4, 4);
-                fillRect.offsetMax = new Vector2(-4, -4);
-                var fill = fillRect.gameObject.AddComponent<Image>();
-                fill.sprite = HouseUIRuntime.WhiteSprite;
-                fill.color = family.Variants[i].swatchColor;
-                fill.raycastTarget = false;
-                obtainedSwatches.Add(chip.gameObject);
+                obtainedStrip.Clear();
+                return;
             }
+            // 这列不表达「已拥有」（刚买完满屏压暗没有意义），只把买到的那个标成选中
+            var items = new List<ColorSwatchItem>();
+            var boughtIndex = 0;
+            for (var i = 0; i < family.Variants.Count; i++)
+            {
+                items.Add(new ColorSwatchItem(family.Variants[i].swatchColor, false));
+                if (family.Variants[i] == bought) boughtIndex = i;
+            }
+            obtainedStrip.Rebuild(items, boughtIndex);
         }
 
         private void ToggleObtained(bool open, bool instant = false)

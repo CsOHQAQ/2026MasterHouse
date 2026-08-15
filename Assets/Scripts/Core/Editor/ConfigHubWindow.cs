@@ -17,6 +17,7 @@ namespace MasterHouse.EditorTools
         private const string SchedulePath = "Assets/Resources/OutGameUI/VisitorScheduleTable.asset";
         private const string EconomyPath = "Assets/Resources/OutGameUI/HouseEconomyConfig.asset";
         private const string CodexPath = "Assets/Resources/OutGameUI/CodexTable.asset";
+        private const string FurnitureFamilyPath = "Assets/Resources/OutGameUI/FurnitureFamilyTable.asset";
         private const string FurniturePath = "Assets/Resources/OutGameUI/FurnitureTable.asset";
         private const string StorePath = "Assets/Resources/OutGameUI/StoreTable.asset";
         private const string FurnitureRoomPath = "Assets/Resources/OutGameUI/FurnitureRoomTable.asset";
@@ -141,10 +142,12 @@ namespace MasterHouse.EditorTools
             Section("图鉴与家具", () =>
             {
                 InlineAsset<CodexTable>(CodexPath, "图鉴内容表", "房间/设备/档案/成就/日记", null);
-                InlineAsset<FurnitureTable>(FurniturePath, "家具表", "占格/显示尺寸/装饰分/精灵图", FixFurnitureAssets);
+                InlineAsset<FurnitureFamilyTable>(FurnitureFamilyPath, "家具族表",
+                    "族级共有属性：分类/表面/占格/装饰分/音效（导表时展开进家具表每一行）", null);
+                InlineAsset<FurnitureTable>(FurniturePath, "家具表", "变体列：显示名/显示尺寸/精灵图/色值/族id", FixFurnitureAssets);
                 InlineAsset<StoreTable>(StorePath, "商店表", "价格/解禁声望（不列入 = 非卖品）", null);
                 InlineAsset<FurnitureRoomTable>(FurnitureRoomPath, "家具房间表", "三层背景/网格/初始摆放", FixFurnitureAssets);
-                // 家具三表走 Excel 导表流程：编辑 Excel/*.xlsx → Tools/导表/export_config.bat 出 Assets/Configs/*.csv → 自动导入
+                // 家具四表走 Excel 导表流程：编辑 Excel/*.xlsx → Tools/导表/export_config.bat 出 Assets/Configs/*.csv → 自动导入
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField("Excel 导表（编辑 xlsx → export_config.bat → 自动导入）", GUILayout.MinWidth(120));
                 if (GUILayout.Button("从 CSV 导入", GUILayout.Width(90))) FurnitureCsvImporter.ImportAll();

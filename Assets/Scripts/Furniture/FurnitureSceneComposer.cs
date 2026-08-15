@@ -124,7 +124,7 @@ namespace MasterHouse
             var result = new List<(FurnitureEntry, int, Rect, bool)>();
             foreach (var placement in placements)
             {
-                if (placement == null || !string.IsNullOrEmpty(placement.hostFurnitureId)) continue;
+                if (placement == null || placement.IsOnHost) continue;
                 var entry = table.Find(placement.furnitureId);
                 if (entry == null || entry.sprite == null) continue;
                 if (!BaseAnchor(room, entry, placement, out var left, out var bottom, out var order)) continue;
@@ -132,7 +132,7 @@ namespace MasterHouse
             }
             foreach (var placement in placements)
             {
-                if (placement == null || string.IsNullOrEmpty(placement.hostFurnitureId)) continue;
+                if (placement == null || !placement.IsOnHost) continue;
                 var entry = table.Find(placement.furnitureId);
                 if (entry == null || entry.sprite == null) continue;
                 if (!HostedAnchor(room, table, placements, placement, entry, out var left, out var bottom, out var order)) continue;
@@ -213,10 +213,11 @@ namespace MasterHouse
         {
             left = bottom = 0f;
             order = 0;
+            // 按落位坐标认宿主，与 FurnitureRoomController.RestoreState 同口径（§5.4）——
+            // 这里是锚点数学的第二份实现（§16.7 已知技术债），改一边必须同步另一边
             FurniturePlacementConfig hostPlacement = null;
             foreach (var candidate in placements)
-                if (candidate != null && string.IsNullOrEmpty(candidate.hostFurnitureId) &&
-                    candidate.furnitureId == placement.hostFurnitureId)
+                if (candidate != null && candidate.OccupiesBaseCell(placement.hostGridId, placement.hostCol, placement.hostRow))
                 {
                     hostPlacement = candidate;
                     break;

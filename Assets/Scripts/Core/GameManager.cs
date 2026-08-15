@@ -38,6 +38,11 @@ namespace MasterHouse
 
         /// <summary>家具配置表（Model，§16.7 并入 Def 体系：统一由此加载，消费方不再散落 Resources.Load）。</summary>
         public FurnitureTable FurnitureTable { get; private set; }
+        /// <summary>
+        /// 家具族表：同款家具的换色变体归为一族。族级**数值**已在导表时展开进 FurnitureTable 每一行，
+        /// 所以运行时只用它取**族显示名**（商城卡片标题 / 收纳栏槽位名），不用它查数值。
+        /// </summary>
+        public FurnitureFamilyTable FurnitureFamilyTable { get; private set; }
         public FurnitureRoomTable FurnitureRoomTable { get; private set; }
         /// <summary>商店表：家具售卖配置（2026-08-13 从家具表拆出）；读取一律经 EconomyManager。</summary>
         public StoreTable StoreTable { get; private set; }
@@ -110,13 +115,17 @@ namespace MasterHouse
                                "内容资产是权威数据源，缺失请执行菜单 MasterHouse → 访客系统 → 创建示例资产（补齐缺失）或从版本库恢复；" +
                                "若资产存在却加载不到，检查其 m_Script 引用是否指向同名 .cs");
             FurnitureTable = Resources.Load<FurnitureTable>("OutGameUI/FurnitureTable");
+            FurnitureFamilyTable = Resources.Load<FurnitureFamilyTable>("OutGameUI/FurnitureFamilyTable");
             FurnitureRoomTable = Resources.Load<FurnitureRoomTable>("OutGameUI/FurnitureRoomTable");
             StoreTable = Resources.Load<StoreTable>("OutGameUI/StoreTable");
             if (FurnitureTable == null || FurnitureRoomTable == null)
                 Debug.LogError("家具配置表缺失（Resources/OutGameUI/FurnitureTable|FurnitureRoomTable）：请执行菜单 MasterHouse → 家具系统 → 创建配置表");
+            if (FurnitureFamilyTable == null)
+                Debug.LogError("家具族表缺失（Resources/OutGameUI/FurnitureFamilyTable）：商城与收纳栏将退化成一件一卡、" +
+                               "槽位名显示族 id；请执行菜单 MasterHouse → 家具系统 → 从 CSV 导入家具四表");
             if (StoreTable == null)
                 Debug.LogError("商店表缺失（Resources/OutGameUI/StoreTable）：全部家具将按非卖品（价格 0）处理；" +
-                               "请执行菜单 MasterHouse → 家具系统 → 从 CSV 导入家具三表");
+                               "请执行菜单 MasterHouse → 家具系统 → 从 CSV 导入家具四表");
 
             HouseClockManager = new HouseClockManager(VisitorTuning); // 营业时段迁入 VisitorTuningConfig（§4.5）
             // Economy 纯事件驱动，不进 RunTick（§16.4）；Codex 供装饰分数量统计（§16.7 毒点①），家具两表供所有权与初始摆放分

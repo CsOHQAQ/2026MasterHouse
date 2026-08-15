@@ -13,7 +13,7 @@ namespace MasterHouse
         public Image frame;
         public RawImage thumb;
         public Text priceLabel;
-        [Tooltip("状态角标：已售罄 / ？（声望未解禁）")]
+        [Tooltip("状态角标：已有 n（库存数量）/ ？（声望未解禁）")]
         public Text mark;
 
         [Header("三态框（Prefab 烘焙引用，绑定层切换）")]

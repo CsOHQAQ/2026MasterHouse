@@ -14,12 +14,37 @@ namespace MasterHouse
         private static int selectedRoom;
         private static int selectedIndex;
 
-        public static void Bind(OutGameDevicePanelView view, HubPage page)
+        /// <param name="focusRoomIndex">打开时定位到哪个房间（-1 = 用 Hub 当前房间）。
+        /// 总览态下点场景里的家具时必须给——那件家具可能在别的房间</param>
+        /// <param name="focusFurnitureId">打开时选中哪件家具（空 = 该房第一件）</param>
+        public static void Bind(OutGameDevicePanelView view, HubPage page,
+            int focusRoomIndex = -1, string focusFurnitureId = null)
         {
             if (view == null) return;
-            selectedRoom = page.RoomIndex;
-            selectedIndex = 0;
+            selectedRoom = focusRoomIndex >= 0 ? focusRoomIndex : page.RoomIndex;
+            selectedIndex = IndexOfPlaced(selectedRoom, focusFurnitureId);
             Refresh(view, page);
+        }
+
+        /// <summary>
+        /// 某件家具在该房间列表里的下标（找不到/没指定 → 0，即第一件）。
+        ///
+        /// **过滤口径必须与 Refresh 里那段一致**（跳过不在家具表里的 id），否则算出来的下标会错位。
+        /// 同房间摆了多件同款时定位到第一件即可——它们本来就是同一件东西。
+        /// </summary>
+        private static int IndexOfPlaced(int roomIndex, string furnitureId)
+        {
+            if (string.IsNullOrEmpty(furnitureId)) return 0;
+            var table = GameManager.Instance != null ? GameManager.Instance.FurnitureTable : null;
+            if (table == null) return 0;
+            var index = 0;
+            foreach (var id in FurniturePlacementQuery.FurnitureIdsIn(roomIndex))
+            {
+                if (table.Find(id) == null) continue;
+                if (id == furnitureId) return index;
+                index++;
+            }
+            return 0;
         }
 
         private static void Refresh(OutGameDevicePanelView view, HubPage page)

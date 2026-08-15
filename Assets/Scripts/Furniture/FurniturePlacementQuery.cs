@@ -11,7 +11,7 @@ namespace MasterHouse
     /// 三条实现要点（都是踩过的坑）：
     ///   ① 会话布局为 null 表示「该房间从未编辑过」，**必须回落到 room.initialPlacements**——
     ///      忘了回落就会漏判房间初始就摆着的家具（`FurnitureSceneComposer.Collect` 的 `?? initialPlacements` 同款）。
-    ///   ② 桌面家具（hostFurnitureId 非空）与地面/壁挂家具混在同一个列表里，**两者都要算**——
+    ///   ② 桌面家具（IsOnHost 为真）与地面/壁挂家具混在同一个列表里，**两者都要算**——
     ///      客人不关心杯子是放在地上还是茶几上。
     ///   ③ roomIndex → roomId 走 FurnitureRoomTable.rooms[roomIndex].id，越界返回空。
     /// </summary>
@@ -33,6 +33,28 @@ namespace MasterHouse
         }
 
         /// <summary>
+        /// 该房间当前摆放家具的装饰分总和（家具库存与交互重做说明 §6.1）：
+        /// **完成服务**的客人离场时按它加成小费（加成额 = 本值 / EconomyConfig.decorScorePerTip）。
+        ///
+        /// 桌面家具同样计入（要点②）——客人不关心杯子放在地上还是茶几上。
+        /// 房间不存在、从未编辑过且无默认摆放、或家具表缺失时返回 0（空房间就是 0 分，不是错误）。
+        /// </summary>
+        public static int DecorationScoreOf(int roomIndex)
+        {
+            var table = GameManager.Instance != null ? GameManager.Instance.FurnitureTable : null;
+            var placements = PlacementsOf(roomIndex);
+            if (table == null || placements == null) return 0;
+            var sum = 0;
+            foreach (var placement in placements)
+            {
+                if (placement == null || string.IsNullOrEmpty(placement.furnitureId)) continue;
+                var entry = table.Find(placement.furnitureId);
+                if (entry != null) sum += entry.decorationScore; // 全整数（§11.3）
+            }
+            return sum;
+        }
+
+        /// <summary>
         /// 该房间是否摆放了列表中的任意一件（OR 语义）。列表为空/为 null 返回 false——
         /// 「没写要什么」不该被当成「什么都算数」，条件类需求配空家具列表是配置事故（校验器会报错）。
         /// </summary>
@@ -46,6 +68,31 @@ namespace MasterHouse
                 if (placement == null || string.IsNullOrEmpty(placement.furnitureId)) continue;
                 for (var i = 0; i < furnitureIds.Count; i++)
                     if (placement.furnitureId == furnitureIds[i]) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 该房间是否摆放了这些**族**中任意一族的任意配色（家具族体系说明 §4.2）。
+        ///
+        /// 与 <see cref="RoomHasAny"/> 的区别只在粒度：那个要求「就要那张蓝的」，这个满足
+        /// 「随便什么颜色的单人沙发都行」。空列表同样返回 false，理由见上。
+        /// 摆放记的是具体家具 id，所以要反查家具表拿它的族——族级属性虽已展开进每一行，
+        /// <c>familyId</c> 也在行上，一次 Find 就够。
+        /// </summary>
+        public static bool RoomHasAnyFamily(int roomIndex, IReadOnlyList<string> familyIds)
+        {
+            if (familyIds == null || familyIds.Count == 0) return false;
+            var table = GameManager.Instance != null ? GameManager.Instance.FurnitureTable : null;
+            var placements = PlacementsOf(roomIndex);
+            if (table == null || placements == null) return false;
+            foreach (var placement in placements)
+            {
+                if (placement == null || string.IsNullOrEmpty(placement.furnitureId)) continue;
+                var entry = table.Find(placement.furnitureId);
+                if (entry == null || string.IsNullOrEmpty(entry.familyId)) continue;
+                for (var i = 0; i < familyIds.Count; i++)
+                    if (entry.familyId == familyIds[i]) return true;
             }
             return false;
         }

@@ -16,30 +16,42 @@ namespace MasterHouse
         [Tooltip("桌面平面距家具底边的高度（场景像素）")] public float surfaceHeight = 146f;
     }
 
-    /// <summary>家具配置表中的一行。</summary>
+    /// <summary>
+    /// 家具配置表中的一行。
+    ///
+    /// **注意本类有两种字段**（家具族体系说明 §3.3）：
+    ///   · 变体特有（id / 英文索引 / 显示名 / 显示宽高 / 精灵图 / 色值 / 族id）——策划在家具表.xlsx 里逐行填；
+    ///   · 族级共有（分类 / 描述 / 表面类型 / 可叠放 / 占格 / 装饰分 / 音效 / 桌面格）——**策划不填**，
+    ///     导表时由 <c>FurnitureCsvImporter</c> 按 <see cref="familyId"/> 查家具族表.xlsx 后**展开填入**。
+    ///
+    /// 展开而不是运行时查族表，是为了让商城/摆放/烘焙/装饰分/需求匹配等全部消费方零改动——
+    /// 想改族级数值请改**族表**，改这里的字段会在下次导表时被覆盖。
+    /// </summary>
     [Serializable]
     public sealed class FurnitureEntry
     {
         [Tooltip("唯一 id，摆放与存档都用它引用")] public string id;
         [Tooltip("英文索引（素材文件名里的英文名，检索/对照用，不上屏）")] public string nameKey;
-        [Tooltip("显示名称（中文，界面上屏）")] public string displayName;
-        [Tooltip("商店分类（盆栽/摆件/桌椅/壁挂/灯具，商店页签用）")] public string category;
-        [Tooltip("商店描述文案")] public string description;
-        [Tooltip("可吸附的表面类型（可多选：如纸箱既可地面也可桌面；表格里用 / 分隔）")]
+        [Tooltip("显示名称（中文，界面上屏），带变体编号如「单人沙发·02」")] public string displayName;
+        [Tooltip("所属族 id（家具族表的行）。商城/收纳栏按它折叠，条件类需求可按它匹配任意配色")]
+        public string familyId;
+        [Tooltip("【族级·导表展开】商店分类（盆栽/摆件/桌椅/壁挂/灯具，商店页签用）")] public string category;
+        [Tooltip("【族级·导表展开】商店描述文案")] public string description;
+        [Tooltip("【族级·导表展开】可吸附的表面类型（可多选：如纸箱既可地面也可桌面）")]
         public List<FurnitureSurfaceType> surfaces = new List<FurnitureSurfaceType> { FurnitureSurfaceType.Floor };
-        [Tooltip("可叠放（地毯类）：平铺在地面、不挡其他家具落格，渲染压在所有立式家具之下；同为可叠放的彼此仍互斥")]
+        [Tooltip("【族级·导表展开】可叠放（地毯类）：平铺在地面、不挡其他家具落格，渲染压在所有立式家具之下；同为可叠放的彼此仍互斥")]
         public bool stackable;
-        [Tooltip("占格：列数")] public int cols = 1;
-        [Tooltip("占格：行数")] public int rows = 1;
-        [Tooltip("显示宽度（场景像素）")] public float displayWidth = 100f;
-        [Tooltip("显示高度（场景像素）")] public float displayHeight = 100f;
+        [Tooltip("【族级·导表展开】占格：列数")] public int cols = 1;
+        [Tooltip("【族级·导表展开】占格：行数")] public int rows = 1;
+        [Tooltip("显示宽度（场景像素）。逐变体微调，故留在家具表")] public float displayWidth = 100f;
+        [Tooltip("显示高度（场景像素）。逐变体微调，故留在家具表")] public float displayHeight = 100f;
         // 售卖配置（价格 / 解禁声望）已于 2026-08-13 拆去 StoreTable，按 id 关联；读取走 EconomyManager
-        [Tooltip("摆放后对 House 装饰分的贡献")] public int decorationScore = 10;
+        [Tooltip("【族级·导表展开】摆放后对 House 装饰分的贡献")] public int decorationScore = 10;
         [Tooltip("家具精灵（Assets/Resources/OutGameUI/Furniture）")] public Sprite sprite;
         [Tooltip("色块颜色（商店选色块 tint；导表按素材平均色自动生成，策划可在表里改）")] public Color swatchColor = Color.white;
-        [Tooltip("专属拿起音效（空 = 用全局默认 FurniturePickup）")] public AudioClip pickupSound;
-        [Tooltip("专属放下音效（空 = 用全局默认 FurniturePlace）")] public AudioClip putdownSound;
-        [Tooltip("桌面格配置（仅地面家具生效）")] public FurnitureTableSurfaceConfig tableSurface = new FurnitureTableSurfaceConfig();
+        [Tooltip("【族级·导表展开】专属拿起音效（空 = 用全局默认 FurniturePickup）")] public AudioClip pickupSound;
+        [Tooltip("【族级·导表展开】专属放下音效（空 = 用全局默认 FurniturePlace）")] public AudioClip putdownSound;
+        [Tooltip("【族级·导表展开】桌面格配置（仅地面家具生效）")] public FurnitureTableSurfaceConfig tableSurface = new FurnitureTableSurfaceConfig();
 
         /// <summary>是否可吸附到指定表面类型的网格。</summary>
         public bool Supports(FurnitureSurfaceType surface) => surfaces != null && surfaces.Contains(surface);

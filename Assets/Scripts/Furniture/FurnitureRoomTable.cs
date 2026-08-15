@@ -30,16 +30,40 @@ namespace MasterHouse
         public int row;
     }
 
-    /// <summary>初始摆放。桌面家具用 hostFurnitureId 指向宿主家具，其余用 gridId。</summary>
+    /// <summary>
+    /// 一次家具摆放（初始摆放配置与运行时会话布局共用本结构）。
+    ///
+    /// 位置有两种表达，靠 <see cref="hostGridId"/> 是否为空区分：
+    ///   地面/壁挂家具 → <see cref="gridId"/> + col/row（房间网格内的格子）
+    ///   桌面家具　　　→ <see cref="hostGridId"/>/<see cref="hostCol"/>/<see cref="hostRow"/> 指向**宿主的落位**，
+    ///                    col/row 则是宿主桌面网格内的格子
+    ///
+    /// **宿主用坐标而不是家具 id**（2026-08-15，家具库存说明 §5.4）：家具改为可重复购买、
+    /// 同一房间能摆多件同款之后，「宿主 = round_table_01」不再唯一——两张一样的圆桌会让桌上的东西
+    /// 全部解析到第一张，挤不下的还会被 FootprintFree 静默丢弃（家具凭空消失）。
+    /// 而一个网格的一个格子上只能站一件基础家具，所以 (网格id, 列, 行) 是唯一键。
+    ///
+    /// 策划侧不受影响：CSV 的「宿主家具id」列照旧填家具 id，由导表器翻译成坐标（同房间存在多个同 id
+    /// 候选时报错要求换配色）。见 FurnitureCsvImporter.ImportRoomCsv。
+    /// </summary>
     [Serializable]
     public sealed class FurniturePlacementConfig
     {
         public string furnitureId;
         [Tooltip("基础网格 id（地面/壁挂家具）")] public string gridId;
-        [Tooltip("宿主家具 id（桌面家具）")] public string hostFurnitureId;
+        [Tooltip("宿主所在的基础网格 id（桌面家具；非空即表示这是一件桌面家具）")] public string hostGridId;
+        [Tooltip("宿主在基础网格内的列")] public int hostCol;
+        [Tooltip("宿主在基础网格内的行")] public int hostRow;
         public int col;
         public int row;
         [Tooltip("左右镜像摆放")] public bool flipped;
+
+        /// <summary>是不是一件摆在别的家具桌面上的家具。</summary>
+        public bool IsOnHost => !string.IsNullOrEmpty(hostGridId);
+
+        /// <summary>本条摆放是否正好落在 (gridId, col, row) 这个格子上（宿主匹配用）。</summary>
+        public bool OccupiesBaseCell(string baseGridId, int baseCol, int baseRow) =>
+            !IsOnHost && gridId == baseGridId && col == baseCol && row == baseRow;
     }
 
     /// <summary>房间配置表中的一行。</summary>

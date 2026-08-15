@@ -3,7 +3,7 @@
 > 完整文档（表格规范、字段说明、扩展新表、故障排查）见 `Docs/导表工具说明.md`；本文件是快速参考。
 
 ```
-Excel/*.xlsx（家具/商店/家具房间/访客三表/音效/立绘/对话）  ← 策划在这里编辑（唯一数据源）
+Excel/*.xlsx（家具族/家具/商店/家具房间/访客三表/音效/立绘/对话）  ← 策划在这里编辑（唯一数据源）
         │  双击 Tools/导表/export_config.bat
         │  （自动检查 python/openpyxl → 逐表跑 export_*.py）
         ▼
@@ -11,23 +11,34 @@ Assets/Configs/*.csv                              ← 自动生成，别手改
         │  CSV 在 Assets 内：Unity 资产管线感知到变化 → CsvPostprocessor 自动导表
         │  （Unity 开着：切回窗口即导；Unity 关着：下次打开时导——无需 batchmode）
         ▼
-FurnitureTable / StoreTable / FurnitureRoomTable / 访客三资产 / SfxTable / PortraitTable / DialogueTable
+FurnitureFamilyTable / FurnitureTable / StoreTable / FurnitureRoomTable / 访客三资产
+/ SfxTable / PortraitTable / DialogueTable
 ```
 
 - **导入是整表重建，以表格为准**：Inspector 里对这些 SO 的手改会在下次导表时被覆盖。
 - 自动导表开关分四套，各自在菜单 `MasterHouse → 家具系统 / 访客系统 / 音效系统 / 对话系统 → 自动导表（CSV 变化时）`；
   同菜单下也有手动的「从 CSV 导入…」。**立绘表归对话系统那一套开关**。
-- **立绘表必须排在对话表之前**（对话导表要拿它校验立绘ID）：bat 里已排好，Unity 侧则由立绘导表
-  导完后直接串调对话导表，不靠两个 postprocessor 赛跑。
+- **两处顺序依赖**，bat 里都已排好：
+  - **家具族表在家具表之前**（家具行要按「族id」查族表展开族级属性）：Unity 侧两表共用一个 `ImportAll`，顺序写死在方法里。
+  - **立绘表在对话表之前**（对话导表要拿它校验立绘ID）：Unity 侧由立绘导表导完后直接串调对话导表，不靠两个 postprocessor 赛跑。
 - 菜单「导出…到 CSV」只回写 CSV，**不会回写 xlsx**——xlsx 是唯一编辑源。
   **对话表与立绘表没有导出回写**：SO 是产物不是源，要看内容就打开 xlsx。
 - bat 依赖：python + openpyxl（缺 openpyxl 时 bat 会自动 pip install）。
 
+## 家具族表.xlsx · 工作表「家具族」
+
+**2026-08-15 新增。** 一行一个族（同款家具的换色变体归一族，如台灯·01~06）：
+族id、族显示名、分类、描述、表面类型（`地面`/`桌面`/`壁挂`，可多选用 `/` 分隔）、可叠放、
+占格列/行、装饰分、拿起/放下音效、桌面格启用（`是`/`否`）及桌面格 5 参数（仅启用时生效）。
+
+**改一处、整族生效**：改这里的占格，该族全部配色变体一起变。这些列在导入时会被展开进家具表每一行，
+所以别去 Inspector 改展开后的值——下次导表就被覆盖。家具行引用了不存在的族会**报错并指名行号**，该行跳过。
+
 ## 家具表.xlsx · 工作表「家具」
 
-一行一件家具：id、显示名、分类、描述、表面类型（`地面`/`桌面`/`壁挂`，可多选用 `/` 分隔）、
-占格列/行、显示宽/高（场景像素）、装饰分、精灵图（Resources 相对路径或 `Assets/` 完整路径）、
-桌面格启用（`是`/`否`）及桌面格 5 参数（仅启用时生效）。
+一行一件家具，族化后只剩逐变体不同的列：id、英文索引、显示名（带 `·NN` 编号）、
+**族id**（填家具族表的族 id，必填）、显示宽/高（场景像素）、
+精灵图（Resources 相对路径或 `Assets/` 完整路径）、色值（`#RRGGBB`，色块颜色）。
 
 ## 商店表.xlsx · 工作表「商店」
 

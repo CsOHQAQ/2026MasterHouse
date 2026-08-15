@@ -35,7 +35,10 @@ namespace MasterHouse
             this.view = view;
         }
 
-        public static void Open(HouseUIManager ui, HubPage page, EHousePanel panel)
+        /// <param name="focusRoomIndex">仅 Device 面板：打开时定位到哪个房间（-1 = 用 Hub 当前房间）</param>
+        /// <param name="focusFurnitureId">仅 Device 面板：打开时选中哪件家具（空 = 该房第一件）</param>
+        public static void Open(HouseUIManager ui, HubPage page, EHousePanel panel,
+            int focusRoomIndex = -1, string focusFurnitureId = null)
         {
             if (panel == EHousePanel.Market)
             {
@@ -68,7 +71,8 @@ namespace MasterHouse
                     TasksPanelBinder.Bind(instance.GetComponentInChildren<OutGameTasksPanelView>(true), page);
                     break;
                 case EHousePanel.Device:
-                    DevicePanelBinder.Bind(instance.GetComponentInChildren<OutGameDevicePanelView>(true), page);
+                    DevicePanelBinder.Bind(instance.GetComponentInChildren<OutGameDevicePanelView>(true), page,
+                        focusRoomIndex, focusFurnitureId);
                     break;
                 case EHousePanel.Journal:
                     JournalPanelBinder.Bind(instance.GetComponentInChildren<OutGameJournalPanelView>(true), page);

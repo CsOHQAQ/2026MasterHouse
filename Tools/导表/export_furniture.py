@@ -19,10 +19,10 @@ def is_field_name_row(values):
 EXCEL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "Excel", "家具表.xlsx")
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "Assets", "Configs", "家具表.csv")
 
-# CSV 列（与 Unity 侧 FurnitureCsvImporter 表头一致，勿改文字）
-HEADER = ["id", "英文索引", "显示名", "分类", "描述", "表面类型", "可叠放", "占格列", "占格行", "显示宽", "显示高",
-          "装饰分", "精灵图", "色值", "拿起音效", "放下音效", "桌面格启用", "桌面格列数", "桌面格宽",
-          "桌面格高", "桌面格偏移X", "桌面高度"]
+# CSV 列（与 Unity 侧 FurnitureCsvImporter.FurnitureHeader 一致，勿改文字）
+# 2026-08-15 族化：族级列（分类/描述/表面类型/可叠放/占格/装饰分/音效/桌面格）已搬去 Excel/家具族表.xlsx，
+# 本表只剩逐变体不同的列 + 一个「族id」外键；族级值由 Unity 导入时展开填回每一行。
+HEADER = ["id", "英文索引", "显示名", "族id", "显示宽", "显示高", "精灵图", "色值"]
 SHEET = "家具"
 
 

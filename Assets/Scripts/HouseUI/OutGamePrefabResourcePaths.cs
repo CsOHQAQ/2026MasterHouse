@@ -32,6 +32,8 @@ namespace MasterHouse
         public const string DeviceCard = "OutGameUI/Prefabs/DeviceCard";
         public const string StorePage = "OutGameUI/Prefabs/StorePage";
         public const string StoreCard = "OutGameUI/Prefabs/StoreCard";
+        /// <summary>配色色块模板：商城选色行 / 获得弹窗配色列 / 收纳栏槽位色块条共用（家具族体系说明 §4.3）。</summary>
+        public const string ColorSwatch = "OutGameUI/Prefabs/ColorSwatch";
         public const string FurnitureHud = "OutGameUI/Prefabs/FurnitureHudPage";
         public const string FurnitureSlot = "OutGameUI/Prefabs/FurnitureSlot";
         public const string PlaceholderPage = "OutGameUI/Prefabs/PlaceholderPage";

@@ -1,3 +1,4 @@
+using System;
 using DG.Tweening;
 using UnityEngine;
 
@@ -16,22 +17,32 @@ namespace MasterHouse
         private static readonly Color DawnSky = new Color(.29f, .35f, .55f, 1f);
         private static readonly Color DawnGlow = new Color(.94f, .63f, .38f, .9f);
 
-        /// <summary>结束今天：入夜 + 夜幕结算 + 点击破晓。时间此刻已跳到次日开门。</summary>
-        public static void PlayEndDay(HouseUIManager ui, int endedDay, VisitorDaySummary summary)
+        /// <summary>
+        /// 结束今天：入夜 + 夜幕结算 + 点击破晓。时间此刻已跳到次日开门。
+        ///
+        /// onFinished 在整层淡出并销毁**之后**回调（可空），用于接 demo 结局的感谢试玩页——
+        /// 早一步回调会让死层压在结局页上方一帧。
+        ///
+        /// ⚠ 下面两条 Prefab/视图缺失的早退路径**也必须回调**：报错归报错（§16.2 不回退**布局**），
+        /// 但业务路由不能被表现件缺失吞掉，否则玩家永远走不到结局、且再也结束不了 demo。
+        /// </summary>
+        public static void PlayEndDay(HouseUIManager ui, int endedDay, VisitorDaySummary summary, Action onFinished)
         {
             var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.DayTransition);
             if (prefab == null)
             {
                 Debug.LogError("[HouseUI] 日出过场 Prefab 缺失，无法播放（§16.2 不回退代码布局）：" + OutGamePrefabResourcePaths.DayTransition);
+                onFinished?.Invoke();
                 return;
             }
-            var instance = Object.Instantiate(prefab, ui.PageRoot, false);
+            var instance = UnityEngine.Object.Instantiate(prefab, ui.PageRoot, false);
             instance.name = "DayTransitionLayer";
             var view = instance.GetComponent<OutGameDayTransitionView>();
             if (view == null || view.sky == null || view.glow == null)
             {
                 Debug.LogError("[HouseUI] 日出过场 Prefab 缺少视图组件或引用：OutGameDayTransitionView");
-                Object.Destroy(instance);
+                UnityEngine.Object.Destroy(instance);
+                onFinished?.Invoke();
                 return;
             }
             ((RectTransform)instance.transform).SetAsLastSibling();
@@ -86,7 +97,7 @@ namespace MasterHouse
                 started = true;
                 SfxManager.Play(ESfx.UiClick);
                 nightIn.Kill(true); // 入场段若未播完，快进到位再接收尾
-                PlayDawn(instance, view, group, useFrames);
+                PlayDawn(instance, view, group, useFrames, onFinished);
             });
         }
 
@@ -107,7 +118,8 @@ namespace MasterHouse
         }
 
         /// <summary>第二段：结算收起，标题切成新一天，破晓后整层淡出。分帧背景继续循环，只在纯色回落时推天色。</summary>
-        private static void PlayDawn(GameObject instance, OutGameDayTransitionView view, CanvasGroup group, bool useFrames)
+        private static void PlayDawn(GameObject instance, OutGameDayTransitionView view, CanvasGroup group,
+            bool useFrames, Action onFinished)
         {
             var newDay = GameManager.Instance.HouseClockManager.Data.Day; // EndDay 之后时钟已在次日
             var seq = DOTween.Sequence().SetUpdate(true).SetLink(instance);
@@ -131,7 +143,8 @@ namespace MasterHouse
             seq.Append(group.DOFade(0, .65f).SetEase(Ease.InOutSine)); // CanvasGroup 淡出连带所有文字
             seq.OnComplete(() =>
             {
-                if (instance != null) Object.Destroy(instance);
+                if (instance != null) UnityEngine.Object.Destroy(instance);
+                onFinished?.Invoke(); // 销毁之后再回调，免得死层压在结局页上方一帧
             });
         }
 
@@ -143,7 +156,12 @@ namespace MasterHouse
             label.color = new Color(label.color.r, label.color.g, label.color.b, 0);
         }
 
-        /// <summary>当日结算正文（自退役的 DaySettleOverlay 迁入）：只展示不惩罚，惩罚已在超时/拒绝当时结清。</summary>
+        /// <summary>
+        /// 当日结算正文（自退役的 DaySettleOverlay 迁入）：只展示不结算，钱在当时就已逐次入账。
+        /// 「服务奖励」与「客人小费」分两行（家具库存说明 §6.3）——合成一个数的话玩家看不出
+        /// 「装修给我多赚了多少」，装饰分那条循环就等于不存在。
+        /// 「声望损失」一项已随拒绝惩罚移除删除（§6.4）。
+        /// </summary>
         private static string BuildBody(VisitorDaySummary summary)
         {
             return
@@ -154,10 +172,10 @@ namespace MasterHouse
                 $" · 不对味 {summary.ServedBySatisfaction[(int)EServeSatisfaction.Mismatch]}）\n" +
                 $"拒绝 / 超时　{summary.RefusedCount} 位\n" +
                 $"闲逛后离场　{summary.WanderDepartCount} 位 · 跨天留宿 {summary.StayOvernightCount} 位\n\n" +
-                $"<color=#D4A46B>货币 +{summary.CurrencyEarned:N0}</color>　" +
-                $"<color=#74D8D1>声望 +{summary.ReputationEarned}</color>　" +
-                $"<color=#E22D76>声望 -{summary.ReputationLost}</color>\n" +
-                "<size=14>以上均为当日逐次结算的累计，日结不重复扣减。</size>";
+                $"<color=#D4A46B>服务奖励 +{summary.CurrencyEarned:N0}</color>　" +
+                $"<color=#D4A46B>客人小费 +{summary.TipEarned:N0}</color>　" +
+                $"<color=#74D8D1>声望 +{summary.ReputationEarned}</color>\n" +
+                "<size=14>以上均为当日逐次结算的累计，日结不重复计算。</size>";
         }
     }
 }

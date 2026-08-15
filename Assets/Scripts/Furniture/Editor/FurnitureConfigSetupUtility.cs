@@ -13,6 +13,7 @@ namespace MasterHouse.EditorTools
         private const string ResourceDir = "Assets/Resources/OutGameUI";
         private const string SpriteDir = ResourceDir + "/Furniture";
         private const string FurnitureTablePath = ResourceDir + "/FurnitureTable.asset";
+        private const string FamilyTablePath = ResourceDir + "/FurnitureFamilyTable.asset";
         private const string StoreTablePath = ResourceDir + "/StoreTable.asset";
         private const string RoomTablePath = ResourceDir + "/FurnitureRoomTable.asset";
         private const string EconomyConfigPath = ResourceDir + "/HouseEconomyConfig.asset";
@@ -28,6 +29,14 @@ namespace MasterHouse.EditorTools
                 FillDefaultFurniture(furniture);
                 AssetDatabase.CreateAsset(furniture, FurnitureTablePath);
                 created.Add(FurnitureTablePath);
+            }
+            var families = AssetDatabase.LoadAssetAtPath<FurnitureFamilyTable>(FamilyTablePath);
+            if (families == null)
+            {
+                families = ScriptableObject.CreateInstance<FurnitureFamilyTable>();
+                FillDefaultFamilies(families, furniture);
+                AssetDatabase.CreateAsset(families, FamilyTablePath);
+                created.Add(FamilyTablePath);
             }
             var store = AssetDatabase.LoadAssetAtPath<StoreTable>(StoreTablePath);
             if (store == null)
@@ -62,7 +71,7 @@ namespace MasterHouse.EditorTools
         public static void RebuildDefaults()
         {
             if (!EditorUtility.DisplayDialog("重建默认配置表",
-                    "将覆盖 FurnitureTable、StoreTable 与 FurnitureRoomTable 的全部行，手工调整会丢失。确认继续？",
+                    "将覆盖 FurnitureTable、FurnitureFamilyTable、StoreTable 与 FurnitureRoomTable 的全部行，手工调整会丢失。确认继续？",
                     "覆盖重建", "取消"))
                 return;
 
@@ -74,6 +83,15 @@ namespace MasterHouse.EditorTools
             }
             FillDefaultFurniture(furniture);
             EditorUtility.SetDirty(furniture);
+
+            var families = AssetDatabase.LoadAssetAtPath<FurnitureFamilyTable>(FamilyTablePath);
+            if (families == null)
+            {
+                families = ScriptableObject.CreateInstance<FurnitureFamilyTable>();
+                AssetDatabase.CreateAsset(families, FamilyTablePath);
+            }
+            FillDefaultFamilies(families, furniture);
+            EditorUtility.SetDirty(families);
 
             var store = AssetDatabase.LoadAssetAtPath<StoreTable>(StoreTablePath);
             if (store == null)
@@ -121,6 +139,8 @@ namespace MasterHouse.EditorTools
                 id = id,
                 nameKey = id, // 示例内容的英文索引即 id（table/pouf 等英文短名）
                 displayName = name,
+                // 示例内容没有换色变体，一件家具自成一族（族 id 即 id）。真实的 15 个族来自 Excel/家具族表.xlsx
+                familyId = id,
                 surfaces = new List<FurnitureSurfaceType> { surface },
                 cols = cols,
                 rows = rows,
@@ -156,6 +176,35 @@ namespace MasterHouse.EditorTools
                 Entry("wind-chimes", "兔耳风铃", FurnitureSurfaceType.Wall, 1, 2, 90, 130, 35),
                 Entry("string-window", "琴弦窗户", FurnitureSurfaceType.Wall, 3, 3, 185, 160, 60),
             };
+        }
+
+        /// <summary>
+        /// 家具族表默认内容：**从已填好的家具表反推**，一件家具一个族。
+        /// 反推而不是再抄一份字面量，是为了让两张表天然一致——示例内容本来就没有换色变体，
+        /// 族在这里只是个「一族一件」的退化形态，真实的 15 个族由 Excel/家具族表.xlsx 导入。
+        /// </summary>
+        private static void FillDefaultFamilies(FurnitureFamilyTable families, FurnitureTable furniture)
+        {
+            families.entries = new List<FurnitureFamilyEntry>();
+            foreach (var entry in furniture.entries)
+            {
+                if (entry == null || string.IsNullOrEmpty(entry.familyId)) continue;
+                families.entries.Add(new FurnitureFamilyEntry
+                {
+                    familyId = entry.familyId,
+                    displayName = entry.displayName,
+                    category = entry.category,
+                    description = entry.description,
+                    surfaces = new List<FurnitureSurfaceType>(entry.surfaces),
+                    stackable = entry.stackable,
+                    cols = entry.cols,
+                    rows = entry.rows,
+                    decorationScore = entry.decorationScore,
+                    pickupSound = entry.pickupSound,
+                    putdownSound = entry.putdownSound,
+                    tableSurface = entry.tableSurface,
+                });
+            }
         }
 
         /// <summary>
@@ -200,8 +249,9 @@ namespace MasterHouse.EditorTools
                     new FurniturePlacementConfig { furnitureId = "pouf", gridId = "floor", col = 1, row = 2 },
                     new FurniturePlacementConfig { furnitureId = "picture", gridId = "wallL", col = 4, row = 0 },
                     new FurniturePlacementConfig { furnitureId = "hangplant", gridId = "wallR", col = 1, row = 0 },
-                    new FurniturePlacementConfig { furnitureId = "vase", hostFurnitureId = "table", col = 1, row = 0 },
-                    new FurniturePlacementConfig { furnitureId = "cups", hostFurnitureId = "table", col = 2, row = 0 },
+                    // 桌面家具认宿主的**落位坐标**而不是家具 id（§5.4）：下面两件都放在上面那张 table 上
+                    new FurniturePlacementConfig { furnitureId = "vase", hostGridId = "floor", hostCol = 4, hostRow = 2, col = 1, row = 0 },
+                    new FurniturePlacementConfig { furnitureId = "cups", hostGridId = "floor", hostCol = 4, hostRow = 2, col = 2, row = 0 },
                 },
             };
             // 场景占用格：沙发与人物（右半区）、看书的角色（左端）、落地灯与音箱（后排）

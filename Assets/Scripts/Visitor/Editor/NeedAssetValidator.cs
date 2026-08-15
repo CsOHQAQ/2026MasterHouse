@@ -21,11 +21,11 @@ namespace MasterHouse.EditorTools
     ///
     /// 错误（跑不起来，必须改）：
     ///   · description 为空——任务卡与 {需求} 占位符都会渲染成空白
-    ///   · 条件类的 furnitureIds 为空——OR 语义下永远不满足，这位访客只能超时或被拒绝
-    ///   · furnitureIds 里的 id 不在家具表中——家具改名或删行导致的失联
+    ///   · 条件类的 familyIds 与 furnitureIds **都**为空——OR 语义下永远不满足，这位访客只能超时或被拒绝
+    ///   · furnitureIds 里的 id 不在家具表中 / familyIds 里的族不在家具族表中——改名或删行导致的失联
     /// 警告（能跑，但很可能是事故）：
     ///   · needId 留空（DisplayId 回落资产名）或与别的需求重复
-    ///   · 同一 furnitureIds 里出现重复 id
+    ///   · 同一列表里出现重复项
     ///
     /// **家具表本身缺失时跳过 id 存在性校验**并单独给一条警告——否则全部 id 都会被误报成错误，
     /// 把真问题淹在噪声里。
@@ -34,6 +34,7 @@ namespace MasterHouse.EditorTools
     {
         /// <summary>家具表资产路径（与 FurnitureIdDrawer 同一处）。</summary>
         private const string FurnitureTablePath = "Assets/Resources/OutGameUI/FurnitureTable.asset";
+        private const string FamilyTablePath = "Assets/Resources/OutGameUI/FurnitureFamilyTable.asset";
 
         [MenuItem("MasterHouse/访客系统/校验全部需求资产")]
         public static void ValidateAllFromMenu()
@@ -65,7 +66,7 @@ namespace MasterHouse.EditorTools
             var table = AssetDatabase.LoadAssetAtPath<FurnitureTable>(FurnitureTablePath);
             if (table == null && needs.Count > 0)
                 Warn(issues, null, $"家具表缺失（{FurnitureTablePath}），已跳过全部「家具 id 是否存在」校验；" +
-                                   "请执行菜单 MasterHouse → 家具系统 → 从 CSV 导入家具三表");
+                                   "请执行菜单 MasterHouse → 家具系统 → 从 CSV 导入家具四表");
 
             // needId 查重：先建「id → 首个占用者」，第二次出现才报（报在后来者身上，指名前一个是谁）
             var owners = new Dictionary<string, NeedDef>();
@@ -95,14 +96,17 @@ namespace MasterHouse.EditorTools
         private static void ValidateCondition(ConditionNeedDef need, string id, FurnitureTable table,
             List<NeedIssue> issues)
         {
-            if (need.furnitureIds == null || need.furnitureIds.Count == 0)
+            if (need.IsEmpty)
             {
-                Error(issues, need, $"条件类需求「{id}」的家具列表是空的——" +
+                Error(issues, need, $"条件类需求「{id}」的族列表与家具列表都是空的——" +
                                     "OR 语义下永远不可能满足，这位访客只能超时或被拒绝（§4.1）");
                 return;
             }
 
+            ValidateFamilies(need, id, issues);
+
             var seen = new HashSet<string>();
+            if (need.furnitureIds == null) return;
             for (var i = 0; i < need.furnitureIds.Count; i++)
             {
                 var furnitureId = need.furnitureIds[i];
@@ -120,6 +124,38 @@ namespace MasterHouse.EditorTools
                 // 家具表缺失时上面已经统一报过一次，这里静默跳过，不逐行刷屏
                 if (table != null && table.Find(furnitureId) == null)
                     Error(issues, need, $"条件类需求「{id}」引用的家具 id「{furnitureId}」不在家具表中" +
+                                        "（可能已改名或删行），请在需求编辑器里重选");
+            }
+        }
+
+        /// <summary>族列表的校验：规则与家具列表同款（空行/重复/失联），只是查的是族表。</summary>
+        private static void ValidateFamilies(ConditionNeedDef need, string id, List<NeedIssue> issues)
+        {
+            if (need.familyIds == null || need.familyIds.Count == 0) return;
+            var families = AssetDatabase.LoadAssetAtPath<FurnitureFamilyTable>(FamilyTablePath);
+            if (families == null)
+            {
+                Warn(issues, need, $"家具族表缺失（{FamilyTablePath}），条件类需求「{id}」的族 id 无法校验；" +
+                                   "请执行菜单 MasterHouse → 家具系统 → 从 CSV 导入家具四表");
+                return;
+            }
+            var seen = new HashSet<string>();
+            for (var i = 0; i < need.familyIds.Count; i++)
+            {
+                var familyId = need.familyIds[i];
+                if (string.IsNullOrWhiteSpace(familyId))
+                {
+                    Error(issues, need, $"条件类需求「{id}」的族列表第 {i} 行没有选族");
+                    continue;
+                }
+                if (!seen.Add(familyId))
+                {
+                    Warn(issues, need, $"条件类需求「{id}」的族列表里「{familyId}」重复了——" +
+                                       "OR 语义下重复项不改变判定，只是噪声");
+                    continue;
+                }
+                if (families.Find(familyId) == null)
+                    Error(issues, need, $"条件类需求「{id}」引用的族 id「{familyId}」不在家具族表中" +
                                         "（可能已改名或删行），请在需求编辑器里重选");
             }
         }

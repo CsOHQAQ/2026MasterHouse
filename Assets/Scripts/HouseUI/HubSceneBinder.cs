@@ -23,6 +23,10 @@ namespace MasterHouse
         /// <summary>拖访客的 RTS 边缘推屏：指针距场景边缘阈值（视口像素）与推屏速度（视口像素/秒）。</summary>
         private const float EdgeScrollMargin = 56f;
         private const float EdgeScrollSpeed = 1100f;
+        /// <summary>点击/拖拽的分界：松手时位移小于它才算一次点击（9px 见方）。平移、双击、开家具详情三处共用。</summary>
+        private const float ClickThresholdSq = 81f;
+        /// <summary>双击间隔（与家具模式的双击收纳同一个手感，见 FurnitureRoomController.DoubleClickSeconds）。</summary>
+        private const float DoubleClickSeconds = .35f;
 
         private HubPage page;
         private RectTransform sceneRoot;
@@ -43,6 +47,10 @@ namespace MasterHouse
         private Vector2 pressPointerLocal;
         private bool pressValid;
         private Tween focusTween;
+        /// <summary>上一次空地点击的时刻与位置（双击判定用；家具上的点击不参与，见 §4.2）。</summary>
+        private float lastGroundClickTime;
+        private Vector2 lastGroundClickPointer;
+        private static readonly List<RaycastResult> raycastCache = new List<RaycastResult>();
 
         private static CodexTable Codex => GameManager.Instance.CodexTable;
 
@@ -144,16 +152,9 @@ namespace MasterHouse
             if (Input.GetMouseButtonUp(0))
             {
                 panning = false;
-                // 缩小状态下的一次点击（几乎没拖动）= 聚焦点中的房间：镜头平滑推满屏
-                if (pressValid && camZoom < 1f && (pointerLocal - pressPointerLocal).sqrMagnitude < 81f)
-                {
-                    var worldPoint = (pointerLocal - camPan) / camZoom;
-                    var world01 = new Vector2(
-                        Mathf.Clamp01(worldPoint.x / (viewport.x * 2f)),
-                        Mathf.Clamp01(worldPoint.y / (viewport.y * 2f)));
-                    SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：切换房间即转场
-                    FocusRoom(HubWorldGrid.RoomAt(world01));
-                }
+                // 位移够小才算一次点击；否则这一下是拖拽，只平移、什么都不触发（§4.1）
+                if (pressValid && (pointerLocal - pressPointerLocal).sqrMagnitude < ClickThresholdSq)
+                    HandleSceneClick(pointerLocal, viewport);
                 pressValid = false;
             }
             if (panning)
@@ -186,6 +187,83 @@ namespace MasterHouse
             ClampCamera(viewport);
             ApplyCamera();
             DetectCurrentRoom(viewport);
+        }
+
+        /// <summary>
+        /// 一次点击落定（位移已确认够小）。两条分支互斥，无延迟、无待定计时器（§4.2）：
+        ///   命中家具热点 → 打开那一件的详情。**家具上只认单击**
+        ///   落在空地　　 → 走双击判定：总览态双击推该房满屏，房间态双击缩回总览
+        ///
+        /// 家具上不参与双击是为了避开一个死结：双击的第一击若落在家具上，单击已经把详情面板压栈了，
+        /// 第二击就落到面板上，双击必然失效。规则对玩家也直观——家具是物件，地板是场景。
+        /// </summary>
+        private void HandleSceneClick(Vector2 pointerLocal, Vector2 viewport)
+        {
+            var hotspot = HotspotUnderPointer();
+            if (hotspot != null)
+            {
+                page.OpenFurnitureDetail(hotspot.RoomIndex, hotspot.FurnitureId);
+                lastGroundClickTime = 0f; // 家具上的点击不算进双击序列
+                return;
+            }
+            var now = Time.unscaledTime;
+            var isDouble = now - lastGroundClickTime < DoubleClickSeconds &&
+                           (pointerLocal - lastGroundClickPointer).sqrMagnitude < ClickThresholdSq;
+            if (!isDouble)
+            {
+                lastGroundClickTime = now;
+                lastGroundClickPointer = pointerLocal;
+                return;
+            }
+            lastGroundClickTime = 0f; // 消费掉，免得三连击又触发一次
+            SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：视野切换即转场
+            if (camZoom < 1f)
+            {
+                // 总览态：推到双击处所在的房间满屏
+                var worldPoint = (pointerLocal - camPan) / camZoom;
+                var world01 = new Vector2(
+                    Mathf.Clamp01(worldPoint.x / (viewport.x * 2f)),
+                    Mathf.Clamp01(worldPoint.y / (viewport.y * 2f)));
+                FocusRoom(HubWorldGrid.RoomAt(world01));
+            }
+            else
+            {
+                ZoomToOverview();
+            }
+        }
+
+        /// <summary>
+        /// 指针正下方最上层的家具热点；没有（或最上层是别的 UI）时返回 null。
+        ///
+        /// 取**最上层**而不是"命中列表里有没有"：热点上面若压着访客演员或四周卡片，
+        /// 那一下点击属于它们，不该被热点抢走。
+        /// </summary>
+        private static HubFurnitureHotspot HotspotUnderPointer()
+        {
+            if (EventSystem.current == null) return null;
+            var data = new PointerEventData(EventSystem.current) { position = Input.mousePosition };
+            raycastCache.Clear();
+            EventSystem.current.RaycastAll(data, raycastCache);
+            if (raycastCache.Count == 0) return null;
+            return raycastCache[0].gameObject.GetComponentInParent<HubFurnitureHotspot>();
+        }
+
+        /// <summary>缩回总览（zoom 0.5 = 四个房间尽收眼底）。此时世界尺寸恰等于视口，平移会被 ClampCamera 钳成 0。</summary>
+        private void ZoomToOverview()
+        {
+            if (worldRoot == null || sceneRoot == null) return;
+            KillFocusTween();
+            var fromZoom = camZoom;
+            var fromPan = camPan;
+            focusTween = DOTween.To(() => 0f, t =>
+            {
+                if (sceneRoot == null || worldRoot == null) { KillFocusTween(); return; }
+                camZoom = Mathf.Lerp(fromZoom, MinZoom, t);
+                camPan = Vector2.Lerp(fromPan, Vector2.zero, t);
+                ClampCamera(sceneRoot.rect.size);
+                ApplyCamera();
+                // 刻意**不**调 DetectCurrentRoom：总览态没有当前房间，沿用缩回前的那间（§4.4）
+            }, 1f, .55f).SetEase(Ease.InOutCubic).SetUpdate(true);
         }
 
         /// <summary>房间导航/方向键切换：相机平滑推到目标房间（1 倍缩放满屏该房间）。</summary>
@@ -259,9 +337,17 @@ namespace MasterHouse
             camPan.y = Mathf.Clamp(camPan.y, viewport.y - worldSize.y, 0f);
         }
 
-        /// <summary>视口中心落在哪个象限即当前房间；变化时回调页面刷新导航与说明卡。</summary>
+        /// <summary>
+        /// 视口中心落在哪个象限即当前房间；变化时回调页面刷新导航与说明卡。
+        ///
+        /// **总览态直接短路**（§4.4）：zoom 0.5 时视口中心恰好落在世界正中心 (0.5, 0.5)，
+        /// 而 HubWorldGrid.RoomAt 的边界判定是 `>=`，于是恒返回房间 1（卧室）——
+        /// 导航高亮、说明卡、以及点「家具摆放」进哪间房全会跟着跳。总览态本就没有「当前房间」
+        /// 这个概念，沿用缩回前的那间是最小意外；双击选房时 zoom 推回 1，这里自然恢复工作。
+        /// </summary>
         private void DetectCurrentRoom(Vector2 viewport)
         {
+            if (camZoom < 1f) return;
             var worldPoint = (viewport * .5f - camPan) / camZoom;
             var world01 = new Vector2(
                 Mathf.Clamp01(worldPoint.x / (viewport.x * 2f)),
@@ -284,10 +370,17 @@ namespace MasterHouse
             return new Vector2(local.x - rect.xMin, local.y - rect.yMin);
         }
 
-        /// <summary>指针是否压在会吃点击的 UI 上（演员/热点/四周卡片）：是则不启动拖拽平移。场景图本身不吃射线。</summary>
+        /// <summary>
+        /// 指针是否压在会吃点击的 UI 上（演员/四周卡片）：是则不启动拖拽平移。场景图本身不吃射线。
+        ///
+        /// **家具热点刻意不算「挡住」**（§4.1）：它铺满了房间里相当一部分面积，一刀切的话
+        /// 在家具上按下就完全没法平移相机，连缩小后的双击选房也一起失效。
+        /// 它该不该消费这一下点击，改由松手时的位移阈值裁决（见 HandleSceneClick）。
+        /// </summary>
         private static bool IsPointerOverBlockingUI()
         {
-            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            if (EventSystem.current == null || !EventSystem.current.IsPointerOverGameObject()) return false;
+            return HotspotUnderPointer() == null;
         }
 
         private void KillFocusTween()
@@ -324,13 +417,15 @@ namespace MasterHouse
             }
         }
 
-        /// <summary>家具摆放退出后：重烘焙当前房间背景并重建热点。</summary>
+        /// <summary>家具摆放退出后：重烘焙当前房间背景、重建热点、刷新说明卡的装饰分。</summary>
         public void RefreshAfterFurniture()
         {
             FurnitureSceneComposer.RequestBake(page.RoomIndex, _ =>
             {
                 ApplySceneArt();
                 BuildHotspots();
+                // 说明卡平时只在建层与换房时刷新，而刚摆完家具正是装饰分变化的那一刻
+                BindOverlay();
             });
         }
 
@@ -353,9 +448,11 @@ namespace MasterHouse
                     var image = hotspot.gameObject.AddComponent<Image>();
                     image.sprite = HouseUIRuntime.WhiteSprite;
                     image.color = Color.clear;
-                    var button = hotspot.gameObject.AddComponent<Button>();
-                    button.transition = Selectable.Transition.None;
-                    button.onClick.AddListener(() => page.OpenPanel(EHousePanel.Device));
+                    // **不挂 Button**（§4.1）：Button 没有拖拽阈值，拖完在同一热点松手照样触发 onClick。
+                    // 热点只吃射线（供悬停提示卡）并携带「哪个房间的哪件家具」，点击裁决在相机层
+                    var marker = hotspot.gameObject.AddComponent<HubFurnitureHotspot>();
+                    marker.RoomIndex = room;
+                    marker.FurnitureId = info.Entry.id;
 
                     var card = HouseUIRuntime.Panel(hotspot, "Card", new Vector2(.5f, 1),
                         new Vector2(0, 46), new Vector2(250, 76), new Color(.32f, .06f, .18f, .92f));
@@ -393,13 +490,16 @@ namespace MasterHouse
         {
             if (overlay == null) return;
             var room = Codex.rooms[page.RoomIndex];
-            if (overlay.captionHeader != null) overlay.captionHeader.text = "CURRENT ROOM / 04";
+            // 房间装饰分（家具库存说明 §6.3）：它决定这间房的客人完成服务后多给多少小费，
+            // 玩家得能在不进家具模式的情况下看到它
+            if (overlay.captionHeader != null)
+                overlay.captionHeader.text =
+                    $"CURRENT ROOM / 04 · 装饰分 {FurniturePlacementQuery.DecorationScoreOf(page.RoomIndex)}";
             if (overlay.roomName != null) overlay.roomName.text = room.displayName;
             if (overlay.roomNote != null) overlay.roomNote.text = room.note;
-            var hotspotLabel = page.RoomIndex == 2 ? "手冲咖啡台" : page.RoomIndex == 3 ? "旧书检索机" : "黑胶唱机";
-            if (overlay.hotspotTitle != null) overlay.hotspotTitle.text = "＋  " + hotspotLabel + "\n<size=13>查看家具</size>";
-            if (overlay.hotspotButton != null)
-                HouseUIUtil.BindButton(overlay.hotspotButton, () => page.OpenPanel(EHousePanel.Device));
+            // 原型残留的假热点已删除（2026-08-15）：它的标题按房间下标写死「手冲咖啡台 / 旧书检索机 /
+            // 黑胶唱机」，与房里实际摆了什么毫无关系。真热点按实际摆放逐件生成，见 BuildHotspots
+            if (overlay.hotspotButton != null) overlay.hotspotButton.gameObject.SetActive(false);
         }
     }
 }

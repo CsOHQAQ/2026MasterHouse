@@ -106,6 +106,15 @@ namespace MasterHouse
         /// <summary>满意度（CompleteNeed 结算之后有效）。</summary>
         public EServeSatisfaction Satisfaction;
 
+        /// <summary>
+        /// 需求是否真的被满足过（`SettleNeedResult` 的 countAsServed 那一路才置位）。
+        ///
+        /// **不能用 Satisfaction 代替**：服务超时也会写 Satisfaction（失望档），
+        /// 但那一路 countAsServed = false，不算完成服务。
+        /// 离场小费的装饰分加成只给这一格为 true 的客人（家具库存说明 §6.1）。
+        /// </summary>
+        public bool NeedFulfilled;
+
         /// <summary>下次闲聊冒泡的业务 tick（0 = 未排程）。</summary>
         public long NextBubbleTick;
 

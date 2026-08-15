@@ -21,6 +21,8 @@ namespace MasterHouse.EditorTools
     {
         /// <summary>家具表资产路径（家具是表里的一行，不是独立资产，故只能按 id 关联）。</summary>
         private const string FurnitureTablePath = "Assets/Resources/OutGameUI/FurnitureTable.asset";
+        /// <summary>商店表：下拉里带出售价与解禁声望，策划一眼能看出「这条需求得玩家有 40 声望才做得了」。</summary>
+        internal const string StoreTablePath = "Assets/Resources/OutGameUI/StoreTable.asset";
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
@@ -71,11 +73,13 @@ namespace MasterHouse.EditorTools
             ids.Add(string.Empty);
             labels.Add("（未选择）");
             // 家具行数不多，每次绘制重建选项即可，新导表立刻生效（§4.5）
+            var store = AssetDatabase.LoadAssetAtPath<StoreTable>(StoreTablePath);
             foreach (var entry in table.entries)
             {
                 if (entry == null || string.IsNullOrEmpty(entry.id)) continue;
                 ids.Add(entry.id);
-                labels.Add(Escape(string.IsNullOrEmpty(entry.displayName) ? entry.id : $"{entry.displayName}（{entry.id}）"));
+                var name = string.IsNullOrEmpty(entry.displayName) ? entry.id : $"{entry.displayName}（{entry.id}）";
+                labels.Add(Escape(name + SaleSuffix(store, entry.id)));
             }
 
             var index = Mathf.Max(0, ids.IndexOf(current));
@@ -105,5 +109,19 @@ namespace MasterHouse.EditorTools
 
         /// <summary>EditorGUI.Popup 会把 '/' 解释成子菜单，家具显示名里若带斜杠会被拆开——换成全角避开。</summary>
         private static string Escape(string text) => text.Replace('/', '／');
+
+        /// <summary>
+        /// 下拉项的售卖后缀「◈ 300 · 声望 40」（家具族体系说明 §4.2）：
+        /// 需求点名一件高门槛家具时，策划得在**配需求的当下**就看见门槛，而不是等玩家卡住才发现。
+        /// 不在商店表里 = 非卖品（初始就拥有），标成「初始拥有」。
+        /// </summary>
+        internal static string SaleSuffix(StoreTable store, string furnitureId)
+        {
+            if (store == null) return string.Empty;
+            var sale = store.Find(furnitureId);
+            if (sale == null) return "  · 初始拥有";
+            var unlock = sale.unlockReputation > 0 ? $" · 声望 {sale.unlockReputation}" : string.Empty;
+            return $"  · ◈ {sale.price}{unlock}";
+        }
     }
 }

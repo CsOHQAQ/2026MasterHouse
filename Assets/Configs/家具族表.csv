@@ -1,0 +1,16 @@
+﻿族id,族显示名,分类,描述,表面类型,可叠放,占格列,占格行,装饰分,拿起音效,放下音效,桌面格启用,桌面格列数,桌面格宽,桌面格高,桌面格偏移X,桌面高度
+table_lamp,台灯,灯具,,桌面,否,2,2,12,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+round_table,圆桌,桌椅,,地面,否,6,2,30,SoundEffect/2_Pickup_260813_1,SoundEffect/2_Putdown_260813,是,3,64,56,4,146
+crescent_aquarium,月牙鱼缸,摆件,,桌面,否,2,2,30,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+cat_sofa,猫耳懒人沙发,桌椅,,地面,否,4,2,25,SoundEffect/2_Pickup_260813_1,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+single_sofa,单人沙发,桌椅,,地面,否,6,2,32,SoundEffect/2_Pickup_260813_1,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+armchair,扶手椅,桌椅,,地面,否,6,2,30,SoundEffect/2_Pickup_260813_1,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+cactus_lamp,仙人掌灯,灯具,,桌面,否,2,2,15,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+hanging_plant,悬挂绿植,盆栽,,壁挂,否,4,6,18,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+landscape_poster,风景海报,壁挂,,壁挂,否,2,4,15,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+lava_lamp,熔岩灯,灯具,,桌面,否,2,2,15,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+monstera,龟背竹,盆栽,,地面,否,4,2,20,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+orb_decoration,球形摆件,摆件,,桌面,否,2,2,12,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+potted_plant,盆栽植物,盆栽,,地面,否,2,2,12,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+round_rug,圆形地毯,摆件,,地面,是,6,4,15,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+vintage_square_clock,复古方钟,壁挂,,壁挂,否,2,2,12,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146

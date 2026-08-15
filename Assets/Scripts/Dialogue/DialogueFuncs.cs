@@ -78,9 +78,11 @@ namespace MasterHouse
                         var visitor = ctx?.Visitor;
                         // 不是条件类需求时一律 false：小游戏类的验收走分数，不该被这条误判成通过
                         if (visitor == null || !(visitor.Need is ConditionNeedDef need)) return false;
-                        return FurniturePlacementQuery.RoomHasAny(visitor.RoomIndex, need.furnitureIds);
+                        // 族与精确 id 是 OR（家具族体系说明 §4.2）：配了族就任意配色都算，配了 id 就只认那一件
+                        return FurniturePlacementQuery.RoomHasAnyFamily(visitor.RoomIndex, need.familyIds) ||
+                               FurniturePlacementQuery.RoomHasAny(visitor.RoomIndex, need.furnitureIds);
                     },
-                    "所住房间里摆着他要的家具之一（条件类需求的验收判据）"),
+                    "所住房间里摆着他要的家具之一（条件类需求的验收判据；按族配则任意配色都算）"),
 
                 ["DayAtLeast"] = new DialogueConditionDef(
                     (ctx, a) => ctx?.Clock != null && ctx.Clock.Data.Day >= a.Int(0, 1),

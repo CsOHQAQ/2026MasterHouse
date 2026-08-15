@@ -10,9 +10,12 @@ namespace MasterHouse
     /// <summary>家具模式收纳栏里一个槽位的展示状态。</summary>
     public enum FurnitureSlotState
     {
-        /// <summary>可拖出摆放。</summary>
+        /// <summary>还有余量，可拖出摆放。</summary>
         Available,
-        /// <summary>已摆放在房间中。</summary>
+        /// <summary>
+        /// **余量为 0**（全摆出去了 / 只买了这些）。2026-08-15 语义变更：
+        /// 原先是「已经摆出去了」，家具改为可重复购买后改成按余量判（家具库存说明 §5.6）。
+        /// </summary>
         Placed,
         /// <summary>声望已解禁但未购买，点击弹出购买确认。</summary>
         Locked,
@@ -31,10 +34,14 @@ namespace MasterHouse
         /// <summary>「购买家具」：仓库只展示已拥有，购买走商店（控制器翻译成退出+开商店）。</summary>
         public event Action StoreClicked;
         public event Action GridToggleClicked;
-        /// <summary>槽位被按下（PointerDown，配合拖拽起手）。参数为家具 id。</summary>
+        /// <summary>槽位被按下（左键 PointerDown，配合拖拽起手）。参数为家具 id。</summary>
         public event Action<string> SlotPressed;
+        /// <summary>槽位被右键（半价出售的入口，家具库存说明 §5.5）。参数为家具 id。</summary>
+        public event Action<string> SellPressed;
         /// <summary>购买确认。参数为家具 id。</summary>
         public event Action<string> PurchaseConfirmed;
+        /// <summary>出售确认。参数为家具 id。</summary>
+        public event Action<string> SellConfirmed;
 
         public bool PopupOpen { get; private set; }
 
@@ -53,9 +60,13 @@ namespace MasterHouse
         private readonly List<GameObject> slotInstances = new List<GameObject>();
         private FurnitureTable table;
         private Func<string, FurnitureSlotState> stateGetter;
+        /// <summary>可摆余量读取口（跨房间统计只有 Controller 算得出，View 不自己算）。</summary>
+        private Func<string, int> remainingGetter;
         /// <summary>售卖配置读取口（商店表，2026-08-13 拆表）：View 不摸表，由 Controller 注入（§11.4）。</summary>
         private Func<FurnitureEntry, int> priceGetter;
         private Func<FurnitureEntry, int> unlockGetter;
+        /// <summary>回收额读取口（售价 × 回收比例）。</summary>
+        private Func<FurnitureEntry, int> sellbackGetter;
         /// <summary>页签槽位（Prefab 里的三个位置）：有页签隐藏时后面的自动往前补位，不留空洞。</summary>
         private Vector2[] tabSlotPositions;
         private FurnitureSurfaceType currentTab = FurnitureSurfaceType.Floor;
@@ -63,14 +74,19 @@ namespace MasterHouse
         private bool chromeHidden;
         private Tween toastTween;
         private string popupFurnitureId;
+        /// <summary>弹窗当前是「出售」还是「购买」：两者共用同一套 Prefab 节点，靠这一格分派确认动作。</summary>
+        private bool popupIsSell;
 
         public void Build(FurnitureTable table, Func<string, FurnitureSlotState> stateGetter,
-            Func<FurnitureEntry, int> priceGetter, Func<FurnitureEntry, int> unlockGetter)
+            Func<string, int> remainingGetter, Func<FurnitureEntry, int> priceGetter,
+            Func<FurnitureEntry, int> unlockGetter, Func<FurnitureEntry, int> sellbackGetter)
         {
             this.table = table;
             this.stateGetter = stateGetter;
+            this.remainingGetter = remainingGetter;
             this.priceGetter = priceGetter;
             this.unlockGetter = unlockGetter;
+            this.sellbackGetter = sellbackGetter;
 
             // 画布生命周期归代码，布局归 Prefab（§16.2）
             root = new GameObject("FurnitureModeHud", typeof(RectTransform), typeof(Canvas),
@@ -123,8 +139,11 @@ namespace MasterHouse
             HouseUIUtil.BindButton(view.purchaseConfirmButton, () =>
             {
                 var id = popupFurnitureId;
+                var sell = popupIsSell;
                 CloseUnlockPopup();
-                if (!string.IsNullOrEmpty(id)) PurchaseConfirmed?.Invoke(id);
+                if (string.IsNullOrEmpty(id)) return;
+                if (sell) SellConfirmed?.Invoke(id);
+                else PurchaseConfirmed?.Invoke(id);
             });
             // 购买弹窗面板换全局底图（Secondary-bg，9 宫格）
             if (view.purchaseConfirmButton != null)
@@ -248,7 +267,18 @@ namespace MasterHouse
             if (slot.nameLabel != null) slot.nameLabel.text = entry.displayName;
             if (slot.background != null && state == FurnitureSlotState.Placed)
                 slot.background.color = new Color(1, 1, 1, .02f);
-            if (slot.placedLabel != null) slot.placedLabel.gameObject.SetActive(state == FurnitureSlotState.Placed);
+            // 余量角标：复用原来的「已摆放」节点（家具库存说明 §5.6，零 Prefab 改动）。
+            // 有余量报数字、没余量说明白，两态都显示——留空的话玩家看不出自己到底有几件
+            if (slot.placedLabel != null)
+            {
+                var showCount = state == FurnitureSlotState.Available || state == FurnitureSlotState.Placed;
+                slot.placedLabel.gameObject.SetActive(showCount);
+                if (showCount)
+                {
+                    var remaining = remainingGetter != null ? remainingGetter(entry.id) : 0;
+                    slot.placedLabel.text = remaining > 0 ? $"×{remaining}" : "已摆完";
+                }
+            }
             if (slot.lockMask != null) slot.lockMask.SetActive(state == FurnitureSlotState.Locked);
             if (slot.priceLabel != null && state == FurnitureSlotState.Locked)
                 slot.priceLabel.text = $"可购买\n<color=#D4A46B>◈ {priceGetter(entry)}</color>";
@@ -259,7 +289,15 @@ namespace MasterHouse
             var trigger = go.AddComponent<EventTrigger>();
             var press = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
             var id = entry.id;
-            press.callback.AddListener(_ => SlotPressed?.Invoke(id));
+            // 左键 = 拖拽起手 / 弹购买窗；右键 = 半价出售（§5.5）。
+            // 右键起手落在 HUD 上时相机不平移，见 FurnitureCameraRig.HandlePan 的守卫
+            press.callback.AddListener(data =>
+            {
+                if (data is PointerEventData pointer && pointer.button == PointerEventData.InputButton.Right)
+                    SellPressed?.Invoke(id);
+                else
+                    SlotPressed?.Invoke(id);
+            });
             trigger.triggers.Add(press);
         }
 
@@ -278,12 +316,17 @@ namespace MasterHouse
                 .SetTarget(view.toastGroup);
         }
 
-        /// <summary>刷新三个流通数值的显示：货币 / 声望 / 装饰分。</summary>
-        public void SetEconomy(int currency, int reputation, int decorationScore)
+        /// <summary>
+        /// 刷新顶部数值条。第一行是三个全局值（货币 / 声望 / 全局装饰分），
+        /// 第二行是**本房**装饰分与它换来的小费加成——装修 → 赚钱这条因果链
+        /// 玩家感知不到就等于不存在（家具库存说明 §6.3）。两行写进同一个 creditLabel，零 Prefab 改动。
+        /// </summary>
+        public void SetEconomy(int currency, int reputation, int decorationScore, int roomDecorScore, int tipBonus)
         {
-            if (view != null && view.creditLabel != null)
-                view.creditLabel.text =
-                    $"<color=#D4A46B>◈ {currency:N0}</color>    <color=#74D8D1>声望 {reputation}</color>    <color=#E22D76>装饰分 {decorationScore}</color>";
+            if (view == null || view.creditLabel == null) return;
+            view.creditLabel.text =
+                $"<color=#D4A46B>◈ {currency:N0}</color>    <color=#74D8D1>声望 {reputation}</color>    <color=#E22D76>装饰分 {decorationScore}</color>\n" +
+                $"<size=15><color=#E22D76>本房装饰分 {roomDecorScore}</color>　<color=#D4A46B>完成服务小费 +{tipBonus}</color></size>";
         }
 
         public void SetGridToggle(bool on)
@@ -342,6 +385,7 @@ namespace MasterHouse
         {
             if (view == null || view.purchaseGroup == null) return;
             PopupOpen = true;
+            popupIsSell = false;
             popupFurnitureId = entry.id;
             var price = priceGetter(entry);
             var enough = currency >= price;
@@ -354,10 +398,29 @@ namespace MasterHouse
             FadeGroup(view.purchaseGroup, 1f, true);
         }
 
+        /// <summary>
+        /// 出售确认弹窗（家具库存说明 §5.5）。**复用购买弹窗那套 Prefab 节点**——
+        /// 它自 2026-08-14「仓库只展示已拥有」之后就成了死代码，正好拿来用，零 Prefab 改动。
+        /// </summary>
+        public void ShowSellPopup(FurnitureEntry entry, int refund, int remaining)
+        {
+            if (view == null || view.purchaseGroup == null) return;
+            PopupOpen = true;
+            popupIsSell = true;
+            popupFurnitureId = entry.id;
+            if (view.purchaseTitle != null) view.purchaseTitle.text = $"出售「{entry.displayName}」";
+            if (view.purchaseDesc != null)
+                view.purchaseDesc.text =
+                    $"回收 <color=#D4A46B>◈ {refund}</color>（原价的一半）\n<size=15>库存余量 {remaining} → {remaining - 1}</size>";
+            if (view.purchaseConfirmButton != null) view.purchaseConfirmButton.interactable = true;
+            FadeGroup(view.purchaseGroup, 1f, true);
+        }
+
         public void CloseUnlockPopup()
         {
             PopupOpen = false;
             popupFurnitureId = null;
+            popupIsSell = false;
             if (view != null) FadeGroup(view.purchaseGroup, 0f, false);
         }
 
