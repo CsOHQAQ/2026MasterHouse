@@ -7,8 +7,9 @@ namespace MasterHouse
     /// 冲咖啡环节：按住左键在杯内移动，进度均匀增长；结算按移动速度的方差定三档。
     ///
     /// 规则（2026-08-15 访谈拍板）：
+    /// - 杯是**圆形**（同日测试反馈）：判定用 cupArea 矩形的内切圆，视觉与判定同圆；
     /// - 进度只在「按住 + 在杯内」时增长；出杯/松手只暂停，无额外惩罚，未满的采样窗一并丢弃；
-    /// - 速度按「杯短边/秒」归一化（与分辨率无关），按固定间隔采样（不逐帧，免得高帧率下噪声淹掉手感）；
+    /// - 速度按「杯径/秒」归一化（与分辨率无关），按固定间隔采样（不逐帧，免得高帧率下噪声淹掉手感）；
     /// - 方差的基准取 max(实测平均速度, MinAverageSpeed)：均速不达标时按最低均速算方差——
     ///   按住不动时样本全为 0、离基准全是 MinAverageSpeed，方差被顶到 MinAverageSpeed²，
     ///   「原地不动刷零方差拿优秀」的路就此堵死。
@@ -51,7 +52,7 @@ namespace MasterHouse
             bool active = Input.GetMouseButton(0)
                           && RectTransformUtility.ScreenPointToLocalPointInRectangle(
                                  view.cupArea, Input.mousePosition, uiCamera, out var local)
-                          && view.cupArea.rect.Contains(local);
+                          && InsideCup(local);
 
             if (active)
             {
@@ -65,8 +66,9 @@ namespace MasterHouse
                 else
                 {
                     var now = LocalMouse();
-                    float shortSide = Mathf.Min(view.cupArea.rect.width, view.cupArea.rect.height);
-                    windowDist += (now - lastLocal).magnitude / Mathf.Max(1f, shortSide);
+                    // 归一化基准 = 杯径（矩形短边，即内切圆直径）
+                    float diameter = Mathf.Min(view.cupArea.rect.width, view.cupArea.rect.height);
+                    windowDist += (now - lastLocal).magnitude / Mathf.Max(1f, diameter);
                     windowTime += dt;
                     lastLocal = now;
 
@@ -139,6 +141,14 @@ namespace MasterHouse
                 Score = level.PourPlainScore;
                 GradeName = "普通";
             }
+        }
+
+        /// <summary>杯是圆的：以 cupArea 矩形的内切圆判定，半径 = 短边一半。</summary>
+        private bool InsideCup(Vector2 local)
+        {
+            var rect = view.cupArea.rect;
+            float radius = Mathf.Min(rect.width, rect.height) * 0.5f;
+            return (local - rect.center).sqrMagnitude <= radius * radius;
         }
 
         private Vector2 LocalMouse()

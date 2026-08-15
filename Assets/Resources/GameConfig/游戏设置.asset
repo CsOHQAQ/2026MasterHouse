@@ -13,3 +13,9 @@ MonoBehaviour:
   m_Name: "\u6E38\u620F\u8BBE\u7F6E"
   m_EditorClassIdentifier: 
   GridSize: 1
+  TicksPerSecond: 10
+  HouseTicksPerGameMinute: 1
+  DefaultLinkBeatTicks: 10
+  DefaultLinkTransitTicks: 10
+  TransitTicksByLength: 0
+  TransitTicksPerCell: 2

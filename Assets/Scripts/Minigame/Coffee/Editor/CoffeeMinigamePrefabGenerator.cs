@@ -203,9 +203,13 @@ namespace MasterHouse.EditorTools
             var pourRoot = Rect(parent, "PourRoot", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             view.pourRoot = pourRoot;
 
+            // 杯是圆形（2026-08-15 测试反馈）：区域取正方形，判定用内切圆（PourGame.InsideCup），
+            // 视觉用内置 Knob 圆形贴图占位，视觉与判定同圆
             var cup = Rect(pourRoot, "CupArea", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
-                new Vector2(0, -30), new Vector2(680, 440));
-            var cupImage = ImageOn(cup, new Color(1f, 1f, 1f, 0.08f));
+                new Vector2(0, -30), new Vector2(460, 460));
+            var cupImage = ImageOn(cup, new Color(1f, 1f, 1f, 0.10f));
+            cupImage.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            cupImage.preserveAspect = true;
             cupImage.raycastTarget = false; // 判定走 RectTransformUtility，不吃射线
             view.cupArea = cup;
             view.cupImage = cupImage;
@@ -221,6 +225,8 @@ namespace MasterHouse.EditorTools
 
             view.tuningLabel = Label(parent, "Tuning", string.Empty, 20, Muted,
                 new Vector2(0, 0), new Vector2(0, 0), new Vector2(300, 56), new Vector2(560, 32), TextAnchor.MiddleLeft);
+            // 调参信息只给测试场景看：默认隐藏，由 CoffeeLevelTestBootstrap 显式打开，正式局不显示
+            view.tuningLabel.gameObject.SetActive(false);
 
             view.abortButton = Button(parent, "AbortButton", "放弃", ButtonGhost,
                 new Vector2(-140, 64), new Vector2(180, 68));

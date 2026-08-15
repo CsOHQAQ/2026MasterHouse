@@ -34,6 +34,11 @@ namespace MasterHouse
                  "同环防贴脸；异环保证任意角度至少一环可走——不出无解局")]
         [Min(0f)] public float ObstacleMinGapDegrees = 30f;
 
+        [Tooltip("初始位置安全区（度）：障碍边沿距指针出生角度至少这么多度，两环都算——\n" +
+                 "开局不会贴脸挨撞，出生点立即切环也安全。加大会压缩可放障碍的角度空间，" +
+                 "配太多障碍可能放不下（控制台会有警告）")]
+        [Min(0f)] public float SpawnSafeDegrees = 30f;
+
         [Tooltip("本环节满分（也是起始分）")]
         [Min(0)] public int GrindMaxScore = 50;
 
@@ -50,15 +55,16 @@ namespace MasterHouse
         [Tooltip("按住且在杯内时进度 0→满 所需秒数（出杯/松手只暂停进度，无额外惩罚）")]
         [Min(0.5f)] public float PourFillSeconds = 6f;
 
-        [Tooltip("速度采样间隔（秒）。速度按「杯短边/秒」归一化，与分辨率无关；出杯/松手会丢弃未满的采样窗")]
+        [Tooltip("速度采样间隔（秒）。速度按「杯径/秒」归一化（杯是圆形，杯径 = 判定圆直径），与分辨率无关；" +
+                 "出杯/松手会丢弃未满的采样窗")]
         [Min(0.01f)] public float SpeedSampleSeconds = 0.05f;
 
-        [Tooltip("最低平均速度（杯短边/秒）。实测平均速度低于它时，方差改按它为基准算——\n" +
+        [Tooltip("最低平均速度（杯径/秒）。实测平均速度低于它时，方差改按它为基准算——\n" +
                  "按住不动刷零方差拿优秀的路被堵死（2026-08-15 拍板）。\n" +
                  "调阈值时保持 此值² > 良好方差上限，否则按住不动会溢出到「良好」档（0.3²=0.09 > 0.08）")]
         [Min(0f)] public float MinAverageSpeed = 0.3f;
 
-        [Tooltip("方差 ≤ 此值为「优秀」。单位是(杯短边/秒)²，占位值需实测调——页面左下角的调参信息会实时显示方差")]
+        [Tooltip("方差 ≤ 此值为「优秀」。单位是(杯径/秒)²，占位值需实测调——测试场景左下角的调参信息会实时显示方差")]
         [Min(0f)] public float ExcellentVarianceMax = 0.02f;
 
         [Tooltip("方差 ≤ 此值为「良好」，超过则「普通」")]

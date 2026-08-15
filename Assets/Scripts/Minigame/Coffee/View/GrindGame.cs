@@ -14,7 +14,8 @@ namespace MasterHouse
     ///   碰撞只在「进入障碍」的瞬间触发，已在障碍内不再重复判定，这正是「停转片刻再继续」的实现；
     /// - 「进入」包含转入与切环切入两种：切进障碍同样算撞（是玩家自己的失误）；
     /// - 障碍每次开局重新随机（小游戏属 View 层豁免区，允许无种子 Random，架构 §11 豁免表）；
-    ///   生成约束见 GenerateObstacles——保证任意角度至少一环可走，不出无解局。
+    ///   生成约束见 GenerateObstacles——任意角度至少一环可走（不出无解局）、
+    ///   两环各保底一个障碍（数量 ≥ 2 时）、初始位置有安全区（开局不贴脸）。
     ///
     /// 本类不认识任何 Manager（架构 §8.5 硬约束），时间由根组件按帧喂入 deltaTime。
     /// </summary>
@@ -63,12 +64,15 @@ namespace MasterHouse
             score = level.GrindMaxScore;
             view.grindDotTemplate.gameObject.SetActive(false);
 
+            // 先定初始位置再撒障碍：生成时直接拒绝落进安全区的候选，
+            // 从构造上保证开局不贴脸（比生成后再找空当可靠——那样找不到时只能硬着头皮落子）
+            pointerAngle = UnityEngine.Random.Range(0f, 360f);
+
             GenerateObstacles();
             BuildRingDots();
             BuildObstacleDots();
-            PickStartAngle();
 
-            insideObstacle = IsInsideObstacle(currentRing, pointerAngle);
+            insideObstacle = IsInsideObstacle(currentRing, pointerAngle); // 安全区保证下必为 false，留作兜底
             lastAreaSize = view.grindArea.rect.size;
             UpdatePointer();
         }
@@ -147,23 +151,38 @@ namespace MasterHouse
         // ══════════ 生成 ══════════
 
         /// <summary>
-        /// 拒绝采样铺障碍：任意两个障碍（**不分同环异环**）中心距 ≥ 弧长 + 最小间隔。
-        /// 同环这条是防贴脸；异环用同一条的原因是可解性——两环障碍不在角度上重叠，
-        /// 任何时刻至少有一环可走，玩家永远有路（切环是唯一动词，不能出现两环同堵的死角）。
+        /// 拒绝采样铺障碍，两条角度约束：
+        /// - 任意两个障碍（**不分同环异环**）中心距 ≥ 弧长 + 最小间隔。同环防贴脸；
+        ///   异环保证两环障碍不在角度上重叠——任何时刻至少一环可走，不出无解局；
+        /// - 障碍边沿距指针出生角度 ≥ SpawnSafeDegrees（两环都算，2026-08-15 测试反馈）：
+        ///   开局不贴脸挨撞，出生点立即切环也安全。调用前 pointerAngle 必须已定。
         /// </summary>
         private void GenerateObstacles()
         {
             float minCenterDistance = level.ObstacleArcDegrees + level.ObstacleMinGapDegrees;
+            float spawnMinCenterDistance = level.ObstacleArcDegrees * 0.5f + level.SpawnSafeDegrees;
 
             int tries = 0;
             while (obstacles.Count < level.ObstacleCount && tries < 400)
             {
                 tries++;
+
+                // 前两个障碍各占一环（2026-08-15 测试反馈）：纯随机落环可能整环全空，
+                // 切环避障就没意义了。障碍总数不足两个时不强制——题面本来就铺不满两环。
+                // 只定环不定角度，角度仍是全随机，不引入可感知的布局偏置。
+                int ring = level.ObstacleCount >= 2 && obstacles.Count < 2
+                    ? obstacles.Count
+                    : UnityEngine.Random.Range(0, 2);
+
                 var candidate = new Obstacle
                 {
-                    Ring = UnityEngine.Random.Range(0, 2),
+                    Ring = ring,
                     Center = UnityEngine.Random.Range(0f, 360f),
                 };
+
+                // 初始位置安全区（不分环，出生点切环也安全）
+                if (Mathf.Abs(Mathf.DeltaAngle(candidate.Center, pointerAngle)) < spawnMinCenterDistance)
+                    continue;
 
                 bool fits = true;
                 foreach (var o in obstacles)
@@ -180,31 +199,6 @@ namespace MasterHouse
             if (obstacles.Count < level.ObstacleCount)
                 Debug.LogWarning($"[制作咖啡] 障碍太密放不下：要求 {level.ObstacleCount} 个，" +
                                  $"只放下 {obstacles.Count} 个。请在关卡里调小数量/弧长/间隔");
-        }
-
-        /// <summary>开局角度落在起始环的空当里（离障碍留出余量），别一睁眼就挨撞。</summary>
-        private void PickStartAngle()
-        {
-            float clearance = level.ObstacleArcDegrees * 0.5f + 15f;
-            pointerAngle = 0f;
-            for (int i = 0; i < 128; i++)
-            {
-                float a = UnityEngine.Random.Range(0f, 360f);
-                bool clear = true;
-                foreach (var o in obstacles)
-                {
-                    if (o.Ring == currentRing && Mathf.Abs(Mathf.DeltaAngle(a, o.Center)) < clearance)
-                    {
-                        clear = false;
-                        break;
-                    }
-                }
-                if (clear)
-                {
-                    pointerAngle = a;
-                    break;
-                }
-            }
         }
 
         // ══════════ 表现 ══════════

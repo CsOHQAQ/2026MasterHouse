@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9d64501bca29b048b39928a88ea6496, type: 3}
+  m_Name: "Need_\u5236\u4F5C\u5496\u5561"
+  m_EditorClassIdentifier: 
+  needId: coffee
+  description: "\u60F3\u559D\u4E00\u676F\u73B0\u78E8\u7684\u624B\u51B2\u5496\u5561\uFF0C\u62DC\u6258\u4F60\u4E86"
+  minigame: {fileID: 11400000, guid: 317a87eb125711a4d9a46b83ace63668, type: 2}

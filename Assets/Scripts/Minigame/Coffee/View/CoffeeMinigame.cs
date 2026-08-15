@@ -224,7 +224,7 @@ namespace MasterHouse
                 {
                     var (mean, variance, count) = pour.Stats();
                     view.tuningLabel.text =
-                        $"均速 {mean:0.00} ｜ 方差 {variance:0.0000} ｜ 样本 {count}（调参用，杯短边/秒）";
+                        $"均速 {mean:0.00} ｜ 方差 {variance:0.0000} ｜ 样本 {count}（调参用，杯径/秒）";
                 }
                 else
                 {

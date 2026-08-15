@@ -45,7 +45,8 @@ namespace MasterHouse
         [Tooltip("提示与撞击反馈（操作反馈须在界面可见）")]
         public Text messageLabel;
 
-        [Tooltip("手感调参用的实时数据（冲咖啡的均速/方差/样本数）。美术进场后可整个隐藏")]
+        [Tooltip("手感调参用的实时数据（冲咖啡的均速/方差/样本数）。Prefab 里默认隐藏，" +
+                 "只由测试场景的 CoffeeLevelTestBootstrap 打开——正式局不显示")]
         public Text tuningLabel;
 
         public Button abortButton;

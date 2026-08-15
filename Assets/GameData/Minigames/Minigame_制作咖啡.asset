@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a6f80e13b9c4d17ae54c8b902f7d61e, type: 3}
+  m_Name: "Minigame_\u5236\u4F5C\u5496\u5561"
+  m_EditorClassIdentifier: 
+  minigameId: coffee
+  displayName: "\u5236\u4F5C\u5496\u5561"
+  prefab: {fileID: 5775854228913083967, guid: ccd3d3b8cd8a17241871e3f42431796a, type: 3}
+  levels:
+  - {fileID: 11400000, guid: 021048af95f9bdc499bfc615fb11778e, type: 2}
+  plainMin: 1
+  satisfiedMin: 60
+  perfectMin: 100
