@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 185ed5bc5ce815f48a5b9b0699cb5bb0, type: 3}
   m_Name: General_1_Intro02
   m_EditorClassIdentifier: 
+  DeveloperNotes: "\u7B80\u5355\u65B0\u624B\u5173\uFF1A\u719F\u6089\u8FDE\u7EBF\u957F\u5EA6"
   Canvas:
     Grids:
     - DeltaPosition: {x: 0, y: 6}
@@ -220,4 +221,4 @@ MonoBehaviour:
     CanMove: 0
     CanDelete: 0
   BuildableNodes: []
-  MaxLinkCells: 0
+  MaxLinkCells: 8

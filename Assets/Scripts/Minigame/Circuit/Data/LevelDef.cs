@@ -15,6 +15,11 @@ namespace MasterHouse
     [CreateAssetMenu(fileName = "关卡", menuName = "MasterHouse/修理电路关卡", order = 30)]
     public class LevelDef : MinigameLevelDef
     {
+        [InspectorName("开发者备注")]
+        [TextArea(3, 8)]
+        [Tooltip("仅供策划与开发者记录关卡设计思路、验证事项或修改说明；不参与任何运行时逻辑")]
+        public string DeveloperNotes;
+
         [Tooltip("画布形状——内联 GridGroup，可以是非矩形")]
         public GridGroup Canvas = new GridGroup();
 

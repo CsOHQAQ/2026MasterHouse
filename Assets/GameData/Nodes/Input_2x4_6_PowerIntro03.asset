@@ -9,40 +9,33 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e3aa6232787cda8449bb6f57425f5fb2, type: 3}
-  m_Name: Con_3x3_SimCon02
+  m_Script: {fileID: 11500000, guid: f7cef402340358d47839d1023b747647, type: 3}
+  m_Name: Input_2x4_6_PowerIntro03
   m_EditorClassIdentifier: 
-  DisplayName: SimCon02
+  DisplayName: PowerIntro03
   Shape:
     Grids:
     - DeltaPosition: {x: 0, y: 2}
       Type: 0
-    - DeltaPosition: {x: 0, y: 1}
+    - DeltaPosition: {x: 1, y: 2}
       Type: 0
     - DeltaPosition: {x: 1, y: 1}
       Type: 0
     - DeltaPosition: {x: 1, y: 0}
       Type: 0
-    - DeltaPosition: {x: 2, y: 0}
-      Type: 0
-    - DeltaPosition: {x: 2, y: 1}
-      Type: 0
-    - DeltaPosition: {x: 1, y: 2}
-      Type: 0
     - DeltaPosition: {x: 0, y: 0}
       Type: 0
-    - DeltaPosition: {x: 2, y: 2}
+    - DeltaPosition: {x: 0, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 3}
       Type: 0
   Pins:
   - Pin:
-      MaxRate: 1
-      Direction: 0
-      PinGroup: 1
-    LocalCell: {x: 0, y: 1}
-    Facing: 3
-  - Pin:
-      MaxRate: 1
-      Direction: 0
-      PinGroup: 1
-    LocalCell: {x: 2, y: 1}
+      MaxRate: 6
+      Direction: 2
+      PinGroup: -1
+    LocalCell: {x: 1, y: 2}
     Facing: 1
+  OutputCount: 0

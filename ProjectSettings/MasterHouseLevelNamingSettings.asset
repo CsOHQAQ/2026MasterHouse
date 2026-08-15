@@ -14,5 +14,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp-Editor:MasterHouse.EditorTools:LevelNamingSettings
   prefixes:
   - General
-  - Lighting
-  - Kitchen

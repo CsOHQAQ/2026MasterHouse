@@ -10,39 +10,39 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e3aa6232787cda8449bb6f57425f5fb2, type: 3}
-  m_Name: Con_3x3_SimCon02
+  m_Name: Con_2x3_Combine01
   m_EditorClassIdentifier: 
-  DisplayName: SimCon02
+  DisplayName: Combine01
   Shape:
     Grids:
+    - DeltaPosition: {x: 1, y: 2}
+      Type: 0
     - DeltaPosition: {x: 0, y: 2}
       Type: 0
     - DeltaPosition: {x: 0, y: 1}
       Type: 0
-    - DeltaPosition: {x: 1, y: 1}
+    - DeltaPosition: {x: 0, y: 0}
       Type: 0
     - DeltaPosition: {x: 1, y: 0}
       Type: 0
-    - DeltaPosition: {x: 2, y: 0}
-      Type: 0
-    - DeltaPosition: {x: 2, y: 1}
-      Type: 0
-    - DeltaPosition: {x: 1, y: 2}
-      Type: 0
-    - DeltaPosition: {x: 0, y: 0}
-      Type: 0
-    - DeltaPosition: {x: 2, y: 2}
+    - DeltaPosition: {x: 1, y: 1}
       Type: 0
   Pins:
   - Pin:
       MaxRate: 1
-      Direction: 0
-      PinGroup: 1
-    LocalCell: {x: 0, y: 1}
+      Direction: 1
+      PinGroup: 0
+    LocalCell: {x: 0, y: 2}
     Facing: 3
   - Pin:
       MaxRate: 1
-      Direction: 0
-      PinGroup: 1
-    LocalCell: {x: 2, y: 1}
+      Direction: 1
+      PinGroup: 0
+    LocalCell: {x: 0, y: 0}
+    Facing: 3
+  - Pin:
+      MaxRate: 1
+      Direction: 2
+      PinGroup: 0
+    LocalCell: {x: 1, y: 1}
     Facing: 1
