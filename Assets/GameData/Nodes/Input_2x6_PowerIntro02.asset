@@ -41,20 +41,15 @@ MonoBehaviour:
       Type: 0
   Pins:
   - Pin:
-      ItemType: {fileID: 11400000, guid: ee29202ad5bca734f9366d84a23f9b2f, type: 2}
-      MaxRate: 1
+      MaxRate: 5
       Direction: 2
-      PairedPinIndex: -1
+      PinGroup: -1
     LocalCell: {x: 1, y: 5}
     Facing: 1
   - Pin:
-      ItemType: {fileID: 11400000, guid: ee29202ad5bca734f9366d84a23f9b2f, type: 2}
-      MaxRate: 1
+      MaxRate: 5
       Direction: 2
-      PairedPinIndex: -1
+      PinGroup: -1
     LocalCell: {x: 1, y: 0}
     Facing: 1
-  OutputItem: {fileID: 11400000, guid: ee29202ad5bca734f9366d84a23f9b2f, type: 2}
-  TicksPerProduction: 10
-  AmountPerProduction: 1
-  StorageCap: 10
+  OutputCount: 0

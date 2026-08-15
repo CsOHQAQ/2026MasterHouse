@@ -1,8 +1,10 @@
 fileFormatVersion: 2
-guid: 7e0891d640e480c4a8c1ff7402ade216
+guid: 7c3b6216d101e2b45b6f2cf199527c54
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000
-  userData: MasterHouse.NodeIdentifier=DeviceIntro00
+  userData: 'MasterHouse.NodeTypeCode=Cond
+
+    MasterHouse.NodeIdentifier=DeviceIntro02'
   assetBundleName: 
   assetBundleVariant: 

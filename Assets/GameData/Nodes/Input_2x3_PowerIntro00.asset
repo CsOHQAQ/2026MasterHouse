@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f7cef402340358d47839d1023b747647, type: 3}
   m_Name: Input_2x3_PowerIntro00
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   DisplayName: PowerIntro00
   Shape:
     Grids:
@@ -29,7 +29,7 @@ MonoBehaviour:
       Type: 0
   Pins:
   - Pin:
-      MaxRate: 1
+      MaxRate: 5
       Direction: 2
       PinGroup: -1
     LocalCell: {x: 1, y: 1}

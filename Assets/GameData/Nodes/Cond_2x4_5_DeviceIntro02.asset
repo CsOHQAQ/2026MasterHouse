@@ -10,24 +10,34 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 971427e70e2d55448ac0c6ac091c734a, type: 3}
-  m_Name: Cond_2x3_1_DeviceIntro00
+  m_Name: Cond_2x4_5_DeviceIntro02
   m_EditorClassIdentifier: 
-  DisplayName: DeviceIntro00
+  DisplayName: DeviceIntro02
   Shape:
     Grids:
+    - DeltaPosition: {x: 0, y: 3}
+      Type: 0
     - DeltaPosition: {x: 0, y: 2}
       Type: 0
     - DeltaPosition: {x: 0, y: 1}
       Type: 0
-    - DeltaPosition: {x: 1, y: 1}
+    - DeltaPosition: {x: 0, y: 0}
       Type: 0
     - DeltaPosition: {x: 1, y: 0}
       Type: 0
-    - DeltaPosition: {x: 0, y: 0}
+    - DeltaPosition: {x: 1, y: 1}
       Type: 0
     - DeltaPosition: {x: 1, y: 2}
       Type: 0
+    - DeltaPosition: {x: 1, y: 3}
+      Type: 0
   Pins:
+  - Pin:
+      MaxRate: 1
+      Direction: 1
+      PinGroup: -1
+    LocalCell: {x: 0, y: 2}
+    Facing: 3
   - Pin:
       MaxRate: 1
       Direction: 1
@@ -35,5 +45,5 @@ MonoBehaviour:
     LocalCell: {x: 0, y: 1}
     Facing: 3
   Conditions:
-  - RequiredAmount: 1
+  - RequiredAmount: 5
     AllowExcess: 0

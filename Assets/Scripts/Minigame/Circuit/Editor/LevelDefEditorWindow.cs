@@ -78,7 +78,7 @@ namespace MasterHouse.EditorTools
     /// 「修理电路」关卡编辑器（待定 #11 的一部分）：创建 / 编辑 LevelDef。
     /// - 画布形状：逐格绘制 + 矩形框选填充/擦除 + 一键生成 W×H 矩形，保存时归一化到最左下 (0,0)；
     /// - 预置节点：列表配置 + 画布点击摆放，越界/重叠标红警告不阻止；
-    /// - 其余字段（可建中转件与数量上限、导线预算 MaxLinkCells）SerializedObject 自动绘制，加字段零维护。
+    /// - 其余字段（开发者备注、可建中转件与数量上限、导线预算 MaxLinkCells）SerializedObject 自动绘制，加字段零维护。
     /// 打开方式：菜单 MasterHouse/关卡编辑器，或直接双击 LevelDef 资产。
     /// </summary>
     public class LevelDefEditorWindow : EditorWindow
