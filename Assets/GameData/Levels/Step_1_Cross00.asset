@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 185ed5bc5ce815f48a5b9b0699cb5bb0, type: 3}
   m_Name: Step_1_Cross00
   m_EditorClassIdentifier: 
-  DeveloperNotes: 
+  DeveloperNotes: "\u7B80\u5355\u65B0\u624B\u5173\uFF1A\u521D\u8BC6\u4EA4\u53C9\u5206\u6D41\uFF0C\u5F62\u60011"
   Canvas:
     Grids:
     - DeltaPosition: {x: 0, y: 4}
