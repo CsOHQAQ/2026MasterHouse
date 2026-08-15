@@ -17,7 +17,5 @@ MonoBehaviour:
   waitTalkTimeoutTicks: 1800
   waitDeliverTimeoutTicks: 3600
   wanderMaxTicks: 2400
-  stayOvernightPercent: 20
-  portraits: []
+  defaultPortraitId: "crow_\u5E73\u9759"
   sheetPath: OutGameUI/Visitors/rottweiler
-  dialoguePool: {fileID: 0}

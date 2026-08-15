@@ -42,6 +42,7 @@ MonoBehaviour:
       cellHeight: 30
       x: 56
       y: 110
+      farWidthScale: 1
     - id: floor
       surface: 0
       cols: 51
@@ -50,6 +51,7 @@ MonoBehaviour:
       cellHeight: 22.5
       x: 56
       y: 581
+      farWidthScale: 0.6
     blockedCells: []
     initialPlacements:
     - furnitureId: landscape_poster_02
@@ -105,6 +107,7 @@ MonoBehaviour:
       cellHeight: 30
       x: 56
       y: 110
+      farWidthScale: 1
     - id: floor
       surface: 0
       cols: 52
@@ -113,6 +116,7 @@ MonoBehaviour:
       cellHeight: 22.5
       x: 56
       y: 581
+      farWidthScale: 0.45
     blockedCells: []
     initialPlacements:
     - furnitureId: landscape_poster_03
@@ -168,6 +172,7 @@ MonoBehaviour:
       cellHeight: 30
       x: 56
       y: 110
+      farWidthScale: 1
     - id: floor
       surface: 0
       cols: 52
@@ -176,6 +181,7 @@ MonoBehaviour:
       cellHeight: 22.5
       x: 56
       y: 581
+      farWidthScale: 0.6
     blockedCells: []
     initialPlacements:
     - furnitureId: vintage_square_clock_02
@@ -225,6 +231,7 @@ MonoBehaviour:
       cellHeight: 30
       x: 56
       y: 110
+      farWidthScale: 1
     - id: floor
       surface: 0
       cols: 52
@@ -233,6 +240,7 @@ MonoBehaviour:
       cellHeight: 22.5
       x: 56
       y: 581
+      farWidthScale: 0.88
     blockedCells: []
     initialPlacements:
     - furnitureId: round_table_03
