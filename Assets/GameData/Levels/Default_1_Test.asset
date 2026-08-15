@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 185ed5bc5ce815f48a5b9b0699cb5bb0, type: 3}
   m_Name: Default_1_Test
   m_EditorClassIdentifier: 
+  DeveloperNotes: "\u7EAF\u6D4B\u8BD5\u7528\u753B\u5E03"
   Canvas:
     Grids:
     - DeltaPosition: {x: 0, y: 0}
