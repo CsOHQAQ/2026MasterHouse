@@ -32,8 +32,6 @@ MonoBehaviour:
       Type: 0
     - DeltaPosition: {x: 6, y: 1}
       Type: 0
-    - DeltaPosition: {x: 7, y: 1}
-      Type: 0
     - DeltaPosition: {x: 7, y: 0}
       Type: 0
     - DeltaPosition: {x: 7, y: 2}
@@ -104,8 +102,10 @@ MonoBehaviour:
       Type: 0
     - DeltaPosition: {x: 6, y: 2}
       Type: 0
+    - DeltaPosition: {x: 7, y: 1}
+      Type: 0
   PresetNodes:
-  - Node: {fileID: 11400000, guid: 7e0891d640e480c4a8c1ff7402ade216, type: 2}
+  - Node: {fileID: 11400000, guid: d3137298e099c0a49aea4348d0dc4935, type: 2}
     Cell: {x: 6, y: 1}
     CanMove: 0
     CanDelete: 0

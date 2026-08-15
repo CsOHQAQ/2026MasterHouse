@@ -275,8 +275,60 @@ namespace MasterHouse.EditorTools
             return true;
         }
 
-        static string BuildAssetName(string typeCode, int width, int height, string identifier)
-            => $"{typeCode}_{width}x{height}_{identifier}";
+        static string BuildAssetName(
+            string typeCode,
+            int width,
+            int height,
+            string identifier,
+            int? requiredAmount = null)
+        {
+            string size = $"{width}x{height}";
+            return requiredAmount.HasValue
+                ? $"{typeCode}_{size}_{requiredAmount.Value}_{identifier}"
+                : $"{typeCode}_{size}_{identifier}";
+        }
+
+        static string GetActualTypeCode(NodeDef def)
+        {
+            int index = def == null ? -1 : Array.IndexOf(kTypes, def.GetType());
+            return index >= 0 ? kTypeCodes[index] : null;
+        }
+
+        static bool TryGetConditionDemand(ConditionNodeDef def, out int requiredAmount, out string error)
+        {
+            requiredAmount = 0;
+            error = null;
+
+            if (def == null || def.Conditions.Count == 0)
+            {
+                error = "电池尚未配置点亮条件，无法确定文件名中的需求电量。";
+                return false;
+            }
+
+            bool found = false;
+            for (int i = 0; i < def.Conditions.Count; i++)
+            {
+                var entry = def.Conditions[i];
+                if (entry == null || entry.RequiredAmount <= 0)
+                {
+                    error = $"电池的条件 #{i} 没有有效的需求电量。";
+                    return false;
+                }
+
+                if (!found)
+                {
+                    requiredAmount = entry.RequiredAmount;
+                    found = true;
+                }
+                else if (entry.RequiredAmount != requiredAmount)
+                {
+                    error = "电池存在多个不同的需求电量，无法用一个数字命名；请统一需求值或只保留一条条件。";
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         static string GetManagedTypeCode(NodeDef def)
         {
@@ -374,7 +426,18 @@ namespace MasterHouse.EditorTools
             string typeCode = GetManagedTypeCode(def);
             if (string.IsNullOrEmpty(typeCode)) return true;
             GetShapeSize(def, out int width, out int height);
-            string desiredName = BuildAssetName(typeCode, width, height, identifier);
+            int? requiredAmount = null;
+            if (def is ConditionNodeDef condition)
+            {
+                if (!TryGetConditionDemand(condition, out int demand, out string demandError))
+                {
+                    if (notifyOnError) ShowNotification(new GUIContent(demandError));
+                    return false;
+                }
+                requiredAmount = demand;
+            }
+
+            string desiredName = BuildAssetName(typeCode, width, height, identifier, requiredAmount);
             string path = AssetDatabase.GetAssetPath(def);
             if (Path.GetFileNameWithoutExtension(path) == desiredName) return true;
 
@@ -441,6 +504,7 @@ namespace MasterHouse.EditorTools
                 DrawTypeFields();
                 DrawPinSection();
                 DrawValidation();
+                DrawRenameSection();
             }
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
@@ -856,6 +920,71 @@ namespace MasterHouse.EditorTools
             {
                 NodeDefEditUtil.FixPinDirections(_target);
                 GUIUtility.ExitGUI();
+            }
+        }
+
+        void DrawRenameSection()
+        {
+            GUILayout.Space(10);
+            GUILayout.Label("资产命名", EditorStyles.boldLabel);
+
+            string identifier = GetManagedIdentifier(_target);
+            if (string.IsNullOrEmpty(identifier))
+            {
+                EditorGUILayout.HelpBox(
+                    "该节点没有由编辑器记录的 C 识别符，无法安全拆分并更新文件名。请用左侧「新建节点」创建受命名规则管理的节点。",
+                    MessageType.Warning);
+            }
+            else
+            {
+                GetShapeSize(_target, out int width, out int height);
+                string typeCode = GetActualTypeCode(_target);
+                int? requiredAmount = null;
+                string namingError = null;
+
+                if (_target is ConditionNodeDef condition)
+                {
+                    if (TryGetConditionDemand(condition, out int demand, out namingError))
+                        requiredAmount = demand;
+                }
+
+                if (string.IsNullOrEmpty(namingError))
+                {
+                    string preview = BuildAssetName(typeCode, width, height, identifier, requiredAmount);
+                    EditorGUILayout.LabelField("更新后文件名", preview + ".asset");
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox(namingError, MessageType.Warning);
+                }
+            }
+
+            using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(identifier)))
+            {
+                if (GUILayout.Button("更新节点名称", GUILayout.Height(28)))
+                {
+                    string typeCode = GetActualTypeCode(_target);
+                    if (string.IsNullOrEmpty(typeCode))
+                    {
+                        ShowNotification(new GUIContent("当前 SO 类型不属于电源、中转件或电池。"));
+                        return;
+                    }
+
+                    if (_target is ConditionNodeDef condition
+                        && !TryGetConditionDemand(condition, out _, out string error))
+                    {
+                        ShowNotification(new GUIContent(error));
+                        return;
+                    }
+
+                    string path = AssetDatabase.GetAssetPath(_target);
+                    SetManagedNaming(path, typeCode, identifier);
+                    if (SyncManagedAssetName(_target, true))
+                    {
+                        AssetDatabase.SaveAssets();
+                        ShowNotification(new GUIContent("节点名称已更新。"));
+                    }
+                }
             }
         }
     }

@@ -12,8 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 185ed5bc5ce815f48a5b9b0699cb5bb0, type: 3}
   m_Name: General_1_Intro01
   m_EditorClassIdentifier: 
-  FurnitureId: 
-  Outputs: []
   Canvas:
     Grids:
     - DeltaPosition: {x: 0, y: 5}
@@ -142,8 +140,6 @@ MonoBehaviour:
       Type: 0
     - DeltaPosition: {x: 7, y: 3}
       Type: 0
-    - DeltaPosition: {x: 8, y: 3}
-      Type: 0
     - DeltaPosition: {x: 9, y: 3}
       Type: 0
     - DeltaPosition: {x: 9, y: 2}
@@ -156,7 +152,8 @@ MonoBehaviour:
       Type: 0
     - DeltaPosition: {x: 5, y: 2}
       Type: 0
-  WorldOrigin: {x: 0, y: 0}
+    - DeltaPosition: {x: 8, y: 3}
+      Type: 0
   PresetNodes:
   - Node: {fileID: 11400000, guid: a80c8582f9fabb94392958dd26354467, type: 2}
     Cell: {x: 1, y: 5}
@@ -171,3 +168,4 @@ MonoBehaviour:
     CanMove: 0
     CanDelete: 0
   BuildableNodes: []
+  MaxLinkCells: 0
