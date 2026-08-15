@@ -330,6 +330,50 @@ namespace MasterHouse.EditorTools
             return true;
         }
 
+        static bool TryGetResourceTotalOutput(ResourceNodeDef def, out int totalOutput, out string error)
+        {
+            totalOutput = 0;
+            error = null;
+
+            if (def == null || def.Pins.Count == 0)
+            {
+                error = "电源尚未配置输出 Pin，无法确定文件名中的总输出电量。";
+                return false;
+            }
+
+            for (int i = 0; i < def.Pins.Count; i++)
+            {
+                var pin = def.Pins[i]?.Pin;
+                if (pin == null || pin.MaxRate <= 0)
+                {
+                    error = $"电源的 Pin #{i} 没有有效的输出电量。";
+                    return false;
+                }
+                totalOutput += pin.MaxRate;
+            }
+
+            return true;
+        }
+
+        static bool TryGetNamingAmount(NodeDef def, out int? amount, out string error)
+        {
+            amount = null;
+            error = null;
+
+            if (def is ResourceNodeDef resource)
+            {
+                if (!TryGetResourceTotalOutput(resource, out int totalOutput, out error)) return false;
+                amount = totalOutput;
+            }
+            else if (def is ConditionNodeDef condition)
+            {
+                if (!TryGetConditionDemand(condition, out int requiredAmount, out error)) return false;
+                amount = requiredAmount;
+            }
+
+            return true;
+        }
+
         static string GetManagedTypeCode(NodeDef def)
         {
             string path = AssetDatabase.GetAssetPath(def);
@@ -426,18 +470,13 @@ namespace MasterHouse.EditorTools
             string typeCode = GetManagedTypeCode(def);
             if (string.IsNullOrEmpty(typeCode)) return true;
             GetShapeSize(def, out int width, out int height);
-            int? requiredAmount = null;
-            if (def is ConditionNodeDef condition)
+            if (!TryGetNamingAmount(def, out int? amount, out string amountError))
             {
-                if (!TryGetConditionDemand(condition, out int demand, out string demandError))
-                {
-                    if (notifyOnError) ShowNotification(new GUIContent(demandError));
-                    return false;
-                }
-                requiredAmount = demand;
+                if (notifyOnError) ShowNotification(new GUIContent(amountError));
+                return false;
             }
 
-            string desiredName = BuildAssetName(typeCode, width, height, identifier, requiredAmount);
+            string desiredName = BuildAssetName(typeCode, width, height, identifier, amount);
             string path = AssetDatabase.GetAssetPath(def);
             if (Path.GetFileNameWithoutExtension(path) == desiredName) return true;
 
@@ -939,18 +978,11 @@ namespace MasterHouse.EditorTools
             {
                 GetShapeSize(_target, out int width, out int height);
                 string typeCode = GetActualTypeCode(_target);
-                int? requiredAmount = null;
-                string namingError = null;
+                bool hasNamingAmount = TryGetNamingAmount(_target, out int? amount, out string namingError);
 
-                if (_target is ConditionNodeDef condition)
+                if (hasNamingAmount)
                 {
-                    if (TryGetConditionDemand(condition, out int demand, out namingError))
-                        requiredAmount = demand;
-                }
-
-                if (string.IsNullOrEmpty(namingError))
-                {
-                    string preview = BuildAssetName(typeCode, width, height, identifier, requiredAmount);
+                    string preview = BuildAssetName(typeCode, width, height, identifier, amount);
                     EditorGUILayout.LabelField("更新后文件名", preview + ".asset");
                 }
                 else
@@ -970,8 +1002,7 @@ namespace MasterHouse.EditorTools
                         return;
                     }
 
-                    if (_target is ConditionNodeDef condition
-                        && !TryGetConditionDemand(condition, out _, out string error))
+                    if (!TryGetNamingAmount(_target, out _, out string error))
                     {
                         ShowNotification(new GUIContent(error));
                         return;

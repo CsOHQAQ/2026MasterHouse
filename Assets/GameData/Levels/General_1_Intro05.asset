@@ -351,8 +351,8 @@ MonoBehaviour:
     CanMove: 0
     CanDelete: 0
   - Node: {fileID: 11400000, guid: 80d41760a31595745b9eb64a1762d42f, type: 2}
-    Cell: {x: 9, y: 4}
+    Cell: {x: 12, y: 4}
     CanMove: 1
     CanDelete: 0
   BuildableNodes: []
-  MaxLinkCells: 22
+  MaxLinkCells: 20

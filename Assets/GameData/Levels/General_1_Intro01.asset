@@ -156,7 +156,7 @@ MonoBehaviour:
     - DeltaPosition: {x: 8, y: 3}
       Type: 0
   PresetNodes:
-  - Node: {fileID: 11400000, guid: a80c8582f9fabb94392958dd26354467, type: 2}
+  - Node: {fileID: 11400000, guid: b415e414134f1164b95d539cfbc8acb1, type: 2}
     Cell: {x: 1, y: 5}
     CanMove: 0
     CanDelete: 0

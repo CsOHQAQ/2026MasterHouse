@@ -10,28 +10,46 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f7cef402340358d47839d1023b747647, type: 3}
-  m_Name: Input_2x3_PowerIntro04
+  m_Name: Input_2x6_10_PowerIntro02
   m_EditorClassIdentifier: 
-  DisplayName: PowerIntro04
+  DisplayName: PowerIntro02
   Shape:
     Grids:
     - DeltaPosition: {x: 0, y: 2}
       Type: 0
     - DeltaPosition: {x: 0, y: 1}
       Type: 0
-    - DeltaPosition: {x: 0, y: 0}
-      Type: 0
     - DeltaPosition: {x: 1, y: 1}
-      Type: 0
-    - DeltaPosition: {x: 1, y: 2}
       Type: 0
     - DeltaPosition: {x: 1, y: 0}
       Type: 0
+    - DeltaPosition: {x: 0, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 5}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 5}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 3}
+      Type: 0
   Pins:
   - Pin:
-      MaxRate: 3
+      MaxRate: 5
       Direction: 2
       PinGroup: -1
-    LocalCell: {x: 1, y: 1}
+    LocalCell: {x: 1, y: 5}
+    Facing: 1
+  - Pin:
+      MaxRate: 5
+      Direction: 2
+      PinGroup: -1
+    LocalCell: {x: 1, y: 0}
     Facing: 1
   OutputCount: 0

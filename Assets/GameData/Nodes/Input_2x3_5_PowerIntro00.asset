@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f7cef402340358d47839d1023b747647, type: 3}
-  m_Name: Input_2x3_PowerIntro00
+  m_Name: Input_2x3_5_PowerIntro00
   m_EditorClassIdentifier: 
   DisplayName: PowerIntro00
   Shape:
