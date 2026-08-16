@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: "十字中转"
   m_EditorClassIdentifier:
   DisplayName: "十字中转"
-  BackgroundSprite: {fileID: 21300000, guid: 22f384bd905bb7343b94af2a76e3d038, type: 3}
+  BackgroundSprite: {fileID: 21300000, guid: 2076370049aadd24f89642e83fd986ca, type: 3}
   Shape:
     Grids:
     - DeltaPosition: {x: 0, y: 0}
