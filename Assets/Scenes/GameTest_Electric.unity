@@ -259,8 +259,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   level: {fileID: 11400000, guid: 23346cd510a1aea46bc6887138515c3c, type: 2}
+  lessonPack: {fileID: 11400000, guid: 290d6d21a052b2e4493f9a04e7be2976, type: 2}
   minigamePrefab: {fileID: 6987053364193895314, guid: 5e632fe173ad5f042b4a2cd9d7885101, type: 3}
   launchOnStart: 1
+  availableLevels: []
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

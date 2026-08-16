@@ -9,6 +9,10 @@ namespace MasterHouse
     /// **难度不做单独抽象**：要区分难度就多做一个 MinigameDef（同一个 prefab、不同关卡池）。
     /// 这是用资产模拟档位，符合架构 §15.3「不预设抽象」。
     ///
+    /// **关卡池从「唯一来源」降级为「兜底来源」**（2026-08-16）：需求侧可以点名关卡
+    /// （<see cref="MinigameNeedDef"/>.level），点了就打那一张、连池都不查。
+    /// 修理电路那种手工设计题面的小游戏因此可以把池留空，一关挂一条需求。
+    ///
     /// 【务必独占本文件】ScriptableObject 必须与文件同名，否则 .asset 的脚本引用会损坏（见 RETRO）。
     /// </summary>
     [CreateAssetMenu(menuName = "MasterHouse/小游戏定义", fileName = "Minigame_")]
@@ -24,7 +28,10 @@ namespace MasterHouse
                  "**强类型引用而不是 Resources 路径字符串**（待确认 #2）：拖拽即可、改名不断、Unity 自动处理依赖")]
         public GameObject prefab;
 
-        [Tooltip("关卡池。同一位访客反复进出恒定抽到同一张（§3.5），「重开」是磨同一关而不是刷关卡")]
+        [Tooltip("关卡池：**需求没有点名关卡时**的兜底来源（2026-08-16 起降级，见类注释）。\n" +
+                 "同一位访客反复进出恒定抽到同一张（§3.5），「重开」是磨同一关而不是刷关卡。\n" +
+                 "关卡是手工设计题面的（修理电路）由需求逐条点名，这里可以留空；" +
+                 "关卡只是一组手感参数的（制作咖啡）留在池里随机即可")]
         public List<MinigameLevelDef> levels = new List<MinigameLevelDef>();
 
         [Header("分数 → 满意度（升序阈值，含下界；待确认 #1，策划实测调）")]
@@ -56,6 +63,7 @@ namespace MasterHouse
 
         /// <summary>
         /// 抽关卡（§3.5）：<c>池[ Hash(runSeed, 访客实例Id, 需求Id) % 池长度 ]</c>。
+        /// **只在需求没点名关卡时走这条路**（2026-08-16），调用方是 MinigameOverlay.Open。
         ///
         /// 同一位访客反复进出**恒定抽到同一张**——否则理性玩家会反复退出直到抽到最好做的那张。
         /// 与项目现有的对话组选取是同一套派生种子思路，读档也不刷。

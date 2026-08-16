@@ -43,8 +43,48 @@ namespace MasterHouse
         public Button finishButton;
         public Button abortButton;
 
+        [Tooltip("【完成】按钮上的文案。课程包模式下会被改写成「下一关」/「交卷」")]
+        public Text finishButtonLabel;
+
         [Header("提示（操作失败原因，须在界面可见）")]
         public Text messageLabel;
+
+        // ══════════ 以下只在课程包模式（CircuitLessonPackDef）下用 ══════════
+        // 单关模式一律隐藏，且**不参与 ValidateView 的必需件校验**——
+        // 否则手调过的旧 Prefab 会因为缺这些新控件而连单关都开不了（那是本轮不该有的回归）。
+
+        [Header("课程包·教学栏")]
+        [Tooltip("整条教学栏的根节点。单关模式下整体隐藏")]
+        public GameObject lessonPanel;
+
+        [Tooltip("课程标题")]
+        public Text lessonTitleLabel;
+
+        [Tooltip("教学说明（多行）")]
+        public Text lessonBriefLabel;
+
+        [Tooltip("进度：第 3/7 关")]
+        public Text progressLabel;
+
+        [Header("课程包·关卡导航")]
+        public Button prevLessonButton;
+        public Button retryLessonButton;
+
+        [Header("课程包·过关小结")]
+        [Tooltip("小结面板根节点，默认关闭。开着时棋盘不接受输入")]
+        public GameObject summaryPanel;
+
+        public Text summaryTitleLabel;
+        public Text summaryBodyLabel;
+
+        [Tooltip("小结面板上的主按钮：进入下一关 / 交卷")]
+        public Button summaryContinueButton;
+
+        [Tooltip("主按钮的文案。会被改写成「下一关」/「交卷」")]
+        public Text summaryContinueLabel;
+
+        [Tooltip("关掉小结、留在本关继续调整")]
+        public Button summaryStayButton;
 
         [Header("占位配色")]
         public Color cellColor = new Color(1f, 1f, 1f, 0.06f);

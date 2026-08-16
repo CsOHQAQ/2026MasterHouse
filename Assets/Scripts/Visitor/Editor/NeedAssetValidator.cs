@@ -23,6 +23,7 @@ namespace MasterHouse.EditorTools
     ///   · description 为空——任务卡与 {需求} 占位符都会渲染成空白
     ///   · 条件类的 familyIds 与 furnitureIds **都**为空——OR 语义下永远不满足，这位访客只能超时或被拒绝
     ///   · furnitureIds 里的 id 不在家具表中 / familyIds 里的族不在家具族表中——改名或删行导致的失联
+    ///   · 小游戏类没配 minigame；或既没点名关卡、小游戏的关卡池也是空的——都开不了局
     /// 警告（能跑，但很可能是事故）：
     ///   · needId 留空（DisplayId 回落资产名）或与别的需求重复
     ///   · 同一列表里出现重复项
@@ -88,6 +89,7 @@ namespace MasterHouse.EditorTools
                     owners[need.needId] = need;
 
                 if (need is ConditionNeedDef condition) ValidateCondition(condition, id, table, issues);
+                else if (need is MinigameNeedDef minigame) ValidateMinigame(minigame, id, issues);
             }
 
             return issues;
@@ -126,6 +128,35 @@ namespace MasterHouse.EditorTools
                     Error(issues, need, $"条件类需求「{id}」引用的家具 id「{furnitureId}」不在家具表中" +
                                         "（可能已改名或删行），请在需求编辑器里重选");
             }
+        }
+
+        /// <summary>
+        /// 小游戏类需求的校验（2026-08-16 随「需求选关」补上，此前这一类一条校验都没有）。
+        /// 只管**开不开得了局**这一件事：
+        ///   · 没配 minigame → 对话点到【开始小游戏】必然开不了局
+        ///   · 既没点名关卡、小游戏的关卡池也是空的 → 同上（MinigameOverlay.Open 会 LogError）
+        ///
+        /// **不校验关卡类型对不对**（把咖啡关拖给了修理电路）：编辑器侧要判「这个 MinigameDef 期望哪种关卡」
+        /// 只能靠猜池内首项的类型，池允许留空之后这个推断本身就不可靠。
+        /// 这条交给运行时——CircuitMinigame.Launch 的强转失败会报错并 abort，页面自动关掉，
+        /// 访客保持「服务中」，不产生脏状态（2026-08-16 拍板）。
+        /// </summary>
+        private static void ValidateMinigame(MinigameNeedDef need, string id, List<NeedIssue> issues)
+        {
+            if (need.minigame == null)
+            {
+                Error(issues, need, $"小游戏类需求「{id}」没有配小游戏——对话点到【开始小游戏】会开不了局，" +
+                                    "这位访客只能等超时或被拒绝");
+                return;
+            }
+
+            if (need.level != null) return; // 点名了关卡就不关池的事，池空也照开
+
+            var pool = need.minigame.levels;
+            if (pool == null || pool.Count == 0)
+                Error(issues, need, $"小游戏类需求「{id}」既没有点名关卡、" +
+                                    $"小游戏「{need.minigame.DisplayId}」的关卡池也是空的——" +
+                                    "两者至少要有一个，否则开不了局");
         }
 
         /// <summary>族列表的校验：规则与家具列表同款（空行/重复/失联），只是查的是族表。</summary>

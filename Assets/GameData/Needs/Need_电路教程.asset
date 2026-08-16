@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9d64501bca29b048b39928a88ea6496, type: 3}
+  m_Name: "Need_\u7535\u8DEF\u6559\u7A0B"
+  m_EditorClassIdentifier: 
+  needId: circuit_tutorial
+  description: "\u60F3\u4ECE\u5934\u5B66\u4E00\u904D\u600E\u4E48\u4FEE\u7535\u8DEF"
+  minigame: {fileID: 11400000, guid: a8d15cab587cbeb47b26c4fa097ddaf6, type: 2}
+  level: {fileID: 11400000, guid: 290d6d21a052b2e4493f9a04e7be2976, type: 2}

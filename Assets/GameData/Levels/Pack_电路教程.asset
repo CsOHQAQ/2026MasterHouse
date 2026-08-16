@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 107665b5c7414e644a5b9dcbf8d737e3, type: 3}
+  m_Name: "Pack_\u7535\u8DEF\u6559\u7A0B"
+  m_EditorClassIdentifier: 
+  DeveloperNotes: "\u81EA\u52A8\u6536\u96C6 Assets/GameData/Levels \u4E0B\u540D\u5B57\u5E26
+    Intro \u7684\u5173\u5361\u5EFA\u6210\u7684\u521D\u7A3F\uFF0C\u987A\u5E8F\u4E0E\u6587\u6848\u8BF7\u6309\u9700\u8C03\u6574\u3002"
+  Lessons:
+  - Level: {fileID: 11400000, guid: 026847a66745f1a42a71d9811b4378da, type: 2}
+    Title: "\u7B2C 1 \u8BFE"
+    Brief: "\u6700\u7B80\u5355\u7684\u65B0\u624B\u5173\uFF1A\u719F\u6089\u8FDE\u7EBF"
+  - Level: {fileID: 11400000, guid: 23346cd510a1aea46bc6887138515c3c, type: 2}
+    Title: "\u7B2C 2 \u8BFE"
+    Brief: "\u7B80\u5355\u65B0\u624B\u5173\uFF1A\u719F\u6089\u7535\u6E90\u529F\u7387"
+  - Level: {fileID: 11400000, guid: f2f9a4465d90b844984a4390aca5e7e4, type: 2}
+    Title: "\u7B2C 3 \u8BFE"
+    Brief: "\u7B80\u5355\u65B0\u624B\u5173\uFF1A\u719F\u6089\u8FDE\u7EBF\u957F\u5EA6"
+  - Level: {fileID: 11400000, guid: 560c94bf5ec5d4241839eb2d0d9e88bc, type: 2}
+    Title: "\u7B2C 4 \u8BFE"
+    Brief: "\u7B80\u5355\u65B0\u624B\u5173\uFF1A\u719F\u6089\u6446\u653E\u8282\u70B9\uFF0C\u5E94\u7528\u8FDE\u7EBF\u957F\u5EA6"
+  - Level: {fileID: 11400000, guid: 1691d46f6fc058c4bbd04ea336015ba0, type: 2}
+    Title: "\u7B2C 5 \u8BFE"
+    Brief: "\u7B80\u5355\u65B0\u624B\u5173\uFF1A\u719F\u6089\u5206\u6D41\u5668\uFF0C\u5E94\u7528\u8FDE\u7EBF\u957F\u5EA6"
+  - Level: {fileID: 11400000, guid: 84058359d8a16544d8682b95936fc0ed, type: 2}
+    Title: "\u7B2C 6 \u8BFE"
+    Brief: "\u7B80\u5355\u65B0\u624B\u5173\uFF1A\u719F\u6089\u5408\u6D41\u5668\uFF0C\u5E94\u7528\u8FDE\u7EBF\u957F\u5EA6"
+  - Level: {fileID: 11400000, guid: a91dfc749954b844ea35b442052a4e00, type: 2}
+    Title: "\u7B2C 7 \u8BFE"
+    Brief: "\u7B80\u5355\u65B0\u624B\u5173\uFF1A\u7EFC\u5408\u5E94\u7528\u5206\u6D41\u5408\u6D41\u5668"

@@ -172,7 +172,9 @@ namespace MasterHouse
                         }
                         // 只登记意图、不当场开页面：本事件在播放推进过程中执行，此时对话层还在栈顶，
                         // 当场 PushOverlay 会让随后的收框弹掉小游戏层而不是对话层。
-                        MinigameOverlay.Request(need.minigame, visitor.InstanceId, need.DisplayId);
+                        // need.level 是需求点名的关卡，为 null 时宿主回落关卡池抽取（§8.4）——
+                        // 打哪一关是**需求资产**的事，对话表里不需要多写参数。
+                        MinigameOverlay.Request(need.minigame, visitor.InstanceId, need.DisplayId, need.level);
                     },
                     "开始小游戏（小游戏类需求的开局口）"),
 

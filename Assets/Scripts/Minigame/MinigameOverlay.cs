@@ -35,6 +35,9 @@ namespace MasterHouse
             public MinigameDef Def;
             public int VisitorInstanceId;
             public string NeedId;
+
+            /// <summary>需求点名的关卡；null = 回落关卡池抽取（§8.4）。</summary>
+            public MinigameLevelDef FixedLevel;
         }
 
         private readonly HouseUIManager ui;
@@ -64,8 +67,12 @@ namespace MasterHouse
         /// <summary>
         /// 登记一次「该开小游戏了」的意图（由 StartMinigameAction 调用）。
         /// **不当场打开**——原因见类注释的入口侧退栈顺序。
+        ///
+        /// <para><paramref name="fixedLevel"/> 是需求点名的关卡，留 null 则回落关卡池抽取（§8.4）。
+        /// 收的是一张关卡资产而不是 NeedDef——宿主继续不认识需求侧的类型，§8.5 的依赖方向不因选关而破。</para>
         /// </summary>
-        public static void Request(MinigameDef def, int visitorInstanceId, string needId)
+        public static void Request(MinigameDef def, int visitorInstanceId, string needId,
+            MinigameLevelDef fixedLevel = null)
         {
             if (def == null) return;
             if (pending.Def != null)
@@ -76,6 +83,7 @@ namespace MasterHouse
                 Def = def,
                 VisitorInstanceId = visitorInstanceId,
                 NeedId = needId,
+                FixedLevel = fixedLevel,
             };
         }
 
@@ -112,13 +120,19 @@ namespace MasterHouse
                 return;
             }
 
-            // 抽关卡（§3.5）：同一位访客反复进出恒定抽到同一张
-            var visitors = GameManager.Instance != null ? GameManager.Instance.VisitorManager : null;
-            var runSeed = visitors != null ? visitors.Data.RunSeed : VisitorManager.DefaultRunSeed;
-            var level = def.PickLevel(runSeed, request.VisitorInstanceId, request.NeedId);
+            // 选关（§8.4）：需求点名了就打那一关，没点名才回落确定性抽取
+            // ——同一位访客反复进出恒定抽到同一张
+            var level = request.FixedLevel;
             if (level == null)
             {
-                Debug.LogError($"[小游戏] 「{def.DisplayId}」的关卡池是空的，无法开局", def);
+                var visitors = GameManager.Instance != null ? GameManager.Instance.VisitorManager : null;
+                var runSeed = visitors != null ? visitors.Data.RunSeed : VisitorManager.DefaultRunSeed;
+                level = def.PickLevel(runSeed, request.VisitorInstanceId, request.NeedId);
+            }
+            if (level == null)
+            {
+                Debug.LogError($"[小游戏] 「{def.DisplayId}」开不了局：需求没有点名关卡，" +
+                               "而它的关卡池也是空的——两者至少要有一个", def);
                 return;
             }
 

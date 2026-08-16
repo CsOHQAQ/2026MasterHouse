@@ -30,7 +30,9 @@ namespace MasterHouse
         private const float FunctionIconPaddingFactor = 0.18f;
         private const float MessageSeconds = 3.5f;
 
-        private readonly LevelData level;
+        /// <summary>当前在画的那一关。课程包换关时由 <see cref="SetLevel"/> 换掉（不是 readonly 的唯一理由）。</summary>
+        private LevelData level;
+
         private readonly LevelManager levelManager;
         private readonly LinkManager linkManager;
         private readonly CircuitMinigameView view;
@@ -85,6 +87,28 @@ namespace MasterHouse
             linkPool = new Pool<Image>(view.linkRoot, NewImage);
             previewPool = new Pool<Image>(view.previewRoot, NewImage);
             labelPool = new Pool<Text>(view.nodeRoot, NewLabel);
+        }
+
+        /// <summary>
+        /// 换一关（课程包逐关推进用）。调用方随后必须自己调 <see cref="LayoutRoots"/> + <see cref="RebuildAll"/>：
+        /// 换关同时也可能换画布尺寸，格子大小得重算。
+        ///
+        /// **必须换关而不是每关 new 一个 CircuitBoard**：对象池绑在共享的 gridRoot/nodeRoot/linkRoot 上、
+        /// 且各自持有自己的 items 列表，新 board 不认识旧 board 造的图元，上一关的线会原样留在屏幕上。
+        ///
+        /// 顺带清掉所有握着上一关对象引用的瞬时状态（正在描的线、正在拖的节点）——
+        /// 玩家在换关按钮上松手时这些状态未必是干净的。
+        /// </summary>
+        public void SetLevel(LevelData next)
+        {
+            level = next;
+
+            drawFromPin = null;
+            drawPath.Clear();
+            pendingPlacement = null;
+            draggingNode = null;
+            hoverValid = false;
+            rmbHeld = false;
         }
 
         // ═══════════ 布局与坐标 ═══════════

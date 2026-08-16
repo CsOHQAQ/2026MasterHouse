@@ -246,7 +246,8 @@ namespace MasterHouse.EditorTools
                 EditorGUILayout.HelpBox("在左侧选一条需求开始编辑。\n\n" +
                                         "· 条件类：所住房间里存在家具列表中的**任意一件**即通过（OR 语义），" +
                                         "家具 id 走下拉，不要手打字符串。\n" +
-                                        "· 小游戏类：本包只有描述可配，小游戏本体随小游戏框架定案（§7）。\n\n" +
+                                        "· 小游戏类：选一个小游戏；「指定关卡」可留空——留空则从该小游戏的关卡池" +
+                                        "按访客确定性抽取，填了就固定打那一关（修理电路的手工题面一般逐条点名）。\n\n" +
                                         "描述（description）就是访客说出来的那句话，台词里用 {需求} 占位符引用它。",
                     MessageType.Info);
                 EditorGUILayout.EndScrollView();

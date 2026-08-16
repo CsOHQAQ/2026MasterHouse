@@ -30,8 +30,17 @@ namespace MasterHouse.EditorTools
         private const string PrefabPath = Folder + "/CircuitMinigame.prefab";
         private const string MinigameDefPath = Folder + "/Minigame_修理电路.asset";
         private const string NeedDefPath = "Assets/GameData/Needs/Need_修理电路.asset";
-        private const string SampleLevelPath = "Assets/GameData/Levels/General_1_Intro00.asset";
+        private const string LevelFolder = "Assets/GameData/Levels";
+        private const string SampleLevelPath = LevelFolder + "/General_1_Intro00.asset";
         private const string SchedulePath = "Assets/Resources/OutGameUI/VisitorScheduleTable.asset";
+
+        // ── 教程包链路（2026-08-16）：课程包 → 专属 MinigameDef → 专属需求 ──
+        private const string LessonPackPath = LevelFolder + "/Pack_电路教程.asset";
+        private const string TutorialDefPath = Folder + "/Minigame_电路教程.asset";
+        private const string TutorialNeedPath = "Assets/GameData/Needs/Need_电路教程.asset";
+
+        /// <summary>课程包默认收哪些关：资产名里带这个词的就是教程关。仅生成期用一次，运行时不认命名约定。</summary>
+        private const string LessonNameMarker = "Intro";
 
         // 占位配色（无美术阶段）
         private static readonly Color Backdrop = new Color(0.078f, 0.063f, 0.106f, 0.97f);
@@ -107,6 +116,113 @@ namespace MasterHouse.EditorTools
                   "\n① 一条带需求的日程 → 菜单 MasterHouse → 小游戏 → 接通测试链路（只补空缺）" +
                   "\n② 一段能触发小游戏的对话 → 在 Excel/对话表.xlsx 里给 Need_修理电路 配 needTalk"
                 : "[修理电路] 资产已齐全，未做修改。");
+        }
+
+        // ══════════ 教程包链路（2026-08-16）══════════
+
+        /// <summary>
+        /// 建出「课程包 → Minigame_电路教程 → Need_电路教程」这条链路，**只补缺失、绝不覆盖**。
+        ///
+        /// 课程包默认收 <c>GameData/Levels</c> 下所有名字带 <see cref="LessonNameMarker"/> 的关卡，按资产名排序。
+        /// 这个自动收集**只发生在生成这一刻**：产物是一张写死了顺序的资产，之后策划怎么增删排序都以资产为准，
+        /// 运行时不认任何命名约定（见 <see cref="CircuitLessonPackDef"/> 的类注释）。
+        ///
+        /// 教学文案从各关的 <c>DeveloperNotes</c> 拷一份作为初稿——那是给策划自己看的字段、
+        /// 明确不参与运行时，这里只是 authoring 期的一次性复制，方便在此基础上改成对玩家说的话。
+        /// </summary>
+        [MenuItem("MasterHouse/小游戏/创建电路教程资产（补齐缺失）")]
+        public static void CreateTutorialIfMissing()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            if (prefab == null)
+            {
+                Debug.LogError("[电路教程] 找不到 " + PrefabPath +
+                               "，请先执行菜单 MasterHouse → 小游戏 → 创建修理电路资产（补齐缺失）。" +
+                               "教程与单关共用同一个 Prefab，不另建一套。");
+                return;
+            }
+
+            var created = new List<string>();
+
+            var pack = AssetDatabase.LoadAssetAtPath<CircuitLessonPackDef>(LessonPackPath);
+            if (pack == null)
+            {
+                pack = ScriptableObject.CreateInstance<CircuitLessonPackDef>();
+                pack.DeveloperNotes = "自动收集 " + LevelFolder + " 下名字带 " + LessonNameMarker +
+                                      " 的关卡建成的初稿，顺序与文案请按需调整。";
+                pack.Lessons = CollectLessons();
+                AssetDatabase.CreateAsset(pack, LessonPackPath);
+                created.Add($"{LessonPackPath}（收了 {pack.Lessons.Count} 关）");
+            }
+
+            var def = AssetDatabase.LoadAssetAtPath<MinigameDef>(TutorialDefPath);
+            if (def == null)
+            {
+                def = ScriptableObject.CreateInstance<MinigameDef>();
+                def.minigameId = "circuit_tutorial";
+                def.displayName = "电路教程";
+                def.prefab = prefab;
+                def.levels = new List<MinigameLevelDef> { pack };
+                // 「必须全亮才能进下一关」⇒ 唯一出口是打穿全程 ⇒ 分数恒为 100。
+                // 三档都配 100，让「只有完美一个结局」在资产里也是显式的，而不是留 1/60/100 让人以为有梯度
+                def.plainMin = 100;
+                def.satisfiedMin = 100;
+                def.perfectMin = 100;
+                AssetDatabase.CreateAsset(def, TutorialDefPath);
+                created.Add(TutorialDefPath);
+            }
+
+            var need = AssetDatabase.LoadAssetAtPath<MinigameNeedDef>(TutorialNeedPath);
+            if (need == null && AssetDatabase.IsValidFolder("Assets/GameData/Needs"))
+            {
+                need = ScriptableObject.CreateInstance<MinigameNeedDef>();
+                need.needId = "circuit_tutorial";
+                need.description = "想从头学一遍怎么修电路";
+                need.minigame = def;
+                need.level = pack; // 点名课程包：教程不参与关卡池随机
+                AssetDatabase.CreateAsset(need, TutorialNeedPath);
+                created.Add(TutorialNeedPath);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            Debug.Log((created.Count > 0
+                          ? "[电路教程] 已创建：\n" + string.Join("\n", created)
+                          : "[电路教程] 资产已齐全，未做修改。") +
+                      "\n\n还缺两样共享内容才跑得通：" +
+                      "\n① 日程表某一行的「需求」列指向 Need_电路教程" +
+                      "\n② 在 Excel/对话表.xlsx 里给 Need_电路教程 配 needTalk，" +
+                      "第二页写一个带 StartMinigame 事件的选项，然后跑 Tools/导表/export_config.bat");
+        }
+
+        /// <summary>按资产名排序收集教程关，并用 DeveloperNotes 起草教学文案。</summary>
+        private static List<CircuitLessonEntry> CollectLessons()
+        {
+            var levels = new List<LevelDef>();
+            foreach (var guid in AssetDatabase.FindAssets("t:LevelDef", new[] { LevelFolder }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var level = AssetDatabase.LoadAssetAtPath<LevelDef>(path);
+                if (level == null) continue;
+                if (level.name.IndexOf(LessonNameMarker, System.StringComparison.OrdinalIgnoreCase) < 0) continue;
+                levels.Add(level);
+            }
+            levels.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+
+            var lessons = new List<CircuitLessonEntry>();
+            for (int i = 0; i < levels.Count; i++)
+                lessons.Add(new CircuitLessonEntry
+                {
+                    Level = levels[i],
+                    Title = $"第 {i + 1} 课",
+                    Brief = levels[i].DeveloperNotes,
+                });
+
+            if (lessons.Count == 0)
+                Debug.LogWarning("[电路教程] 在 " + LevelFolder + " 下没找到名字带 " + LessonNameMarker +
+                                 " 的关卡，课程包建出来是空的。");
+            return lessons;
         }
 
         // ══════════ 测试链路：补共享内容里的空缺 ══════════
@@ -192,7 +308,9 @@ namespace MasterHouse.EditorTools
             BuildTopBar(rootRect, view);
             BuildPalette(rootRect, view);
             BuildBoard(rootRect, view);
+            BuildLessonPanel(rootRect, view);
             BuildFooter(rootRect, view);
+            BuildSummaryPanel(rootRect, view); // 最后建 = 兄弟顺序最靠后 = 压在所有内容之上
 
             bool ok;
             var asset = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out ok);
@@ -206,12 +324,15 @@ namespace MasterHouse.EditorTools
             var bar = Rect(parent, "TopBar", new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -52), new Vector2(-160, 72));
             ImageOn(bar, PanelTint);
 
+            // 四等分：进度（课程包专用，单关时隐藏）/ 导线 / 中转件 / 已点亮
+            view.progressLabel = Label(bar, "Progress", "第 1/1 关", 28, Muted,
+                new Vector2(0, 0), new Vector2(.25f, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter);
             view.linkBudgetLabel = Label(bar, "LinkBudget", "导线 0/0", 28, Ink,
-                new Vector2(0, 0), new Vector2(.33f, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter);
+                new Vector2(.25f, 0), new Vector2(.5f, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter);
             view.pieceBudgetLabel = Label(bar, "PieceBudget", "中转件 0/0", 28, Ink,
-                new Vector2(.33f, 0), new Vector2(.66f, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter);
+                new Vector2(.5f, 0), new Vector2(.75f, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter);
             view.litLabel = Label(bar, "Lit", "已点亮 0/0", 28, Ink,
-                new Vector2(.66f, 0), new Vector2(1, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter);
+                new Vector2(.75f, 0), new Vector2(1, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter);
         }
 
         private static void BuildPalette(RectTransform parent, CircuitMinigameView view)
@@ -254,9 +375,11 @@ namespace MasterHouse.EditorTools
 
         private static void BuildBoard(RectTransform parent, CircuitMinigameView view)
         {
-            // 棋盘可用区：左让开件库、右留边、上让开预算条、下让开按钮条。
-            // 它的位置与大小由 Prefab 说了算；格子大小由 CircuitBoard 按关卡行列数在运行时算
-            var area = Rect(parent, "BoardArea", new Vector2(0, 0), new Vector2(1, 1), new Vector2(180, 10), new Vector2(-760, -220));
+            // 棋盘可用区：左让开件库、右让开教学栏、上让开预算条、下让开按钮条。
+            // 它的位置与大小由 Prefab 说了算；格子大小由 CircuitBoard 按关卡行列数在运行时算。
+            // 2026-08-16 右边界从 760 收到 540，让出 360 宽给课程包的教学栏——
+            // 单关模式下教学栏整体隐藏，那一列就是空白，不额外把棋盘撑回去（布局只有一套，不按模式重排）
+            var area = Rect(parent, "BoardArea", new Vector2(0, 0), new Vector2(1, 1), new Vector2(70, 10), new Vector2(-980, -220));
             view.boardArea = area;
 
             view.gridRoot = Rect(area, "GridRoot", Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
@@ -266,15 +389,77 @@ namespace MasterHouse.EditorTools
             // 兄弟顺序即绘制顺序：格子 → 导线 → 节点 → 预览（预览压最上）
         }
 
+        /// <summary>
+        /// 右侧教学栏（课程包专用）：课程标题 + 教学说明。单关模式下由 CircuitMinigame 整体隐藏。
+        /// </summary>
+        private static void BuildLessonPanel(RectTransform parent, CircuitMinigameView view)
+        {
+            var panel = Rect(parent, "LessonPanel", new Vector2(1, 0), new Vector2(1, 1),
+                new Vector2(-200, 10), new Vector2(360, -220));
+            ImageOn(panel, PanelTint);
+            view.lessonPanel = panel.gameObject;
+
+            view.lessonTitleLabel = Label(panel, "Title", "课程标题", 30, Ink,
+                new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -46), new Vector2(-32, 56), TextAnchor.MiddleLeft);
+
+            // 说明是多行的：换行必须开，否则长句直接溢出到面板外
+            view.lessonBriefLabel = Label(panel, "Brief", "教学说明", 24, Muted,
+                new Vector2(0, 0), new Vector2(1, 1), new Vector2(0, -46), new Vector2(-32, -140), TextAnchor.UpperLeft);
+            view.lessonBriefLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
+            view.lessonBriefLabel.verticalOverflow = VerticalWrapMode.Truncate;
+        }
+
         private static void BuildFooter(RectTransform parent, CircuitMinigameView view)
         {
             view.messageLabel = Label(parent, "Message", string.Empty, 24, new Color(1f, .72f, .35f, 1f),
                 new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 116), new Vector2(-400, 40), TextAnchor.MiddleCenter);
 
+            // 右下＝结束本关的动作；左下＝关卡导航（课程包专用，单关时隐藏）
+            Text finishCaption;
             view.finishButton = Button(parent, "FinishButton", "完成", ButtonPrimary,
-                new Vector2(-140, 64), new Vector2(200, 68));
+                new Vector2(-140, 64), new Vector2(200, 68), out finishCaption);
+            view.finishButtonLabel = finishCaption;
             view.abortButton = Button(parent, "AbortButton", "放弃", ButtonGhost,
                 new Vector2(-360, 64), new Vector2(180, 68));
+
+            view.prevLessonButton = ButtonAt(parent, "PrevLessonButton", "上一关", ButtonGhost,
+                new Vector2(0, 0), new Vector2(140, 64), new Vector2(180, 68));
+            view.retryLessonButton = ButtonAt(parent, "RetryLessonButton", "重试本关", ButtonGhost,
+                new Vector2(0, 0), new Vector2(340, 64), new Vector2(200, 68));
+        }
+
+        /// <summary>
+        /// 过关小结（课程包专用）：全屏压黑 + 居中卡片。默认关闭，由 CircuitMinigame 开合。
+        ///
+        /// 背板的 raycastTarget 开着只是挡 UGUI 的点击；**棋盘挡不住**——它的命中判定走
+        /// 「鼠标屏幕坐标 → 棋盘局部坐标」一条路，不靠 raycast。所以面板开着时棋盘输入
+        /// 是由 CircuitMinigame 主动跳过的，不是靠这层背板。
+        /// </summary>
+        private static void BuildSummaryPanel(RectTransform parent, CircuitMinigameView view)
+        {
+            var panel = Rect(parent, "SummaryPanel", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            ImageOn(panel, new Color(0.04f, 0.03f, 0.06f, 0.78f)).raycastTarget = true;
+            view.summaryPanel = panel.gameObject;
+
+            var card = Rect(panel, "Card", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                Vector2.zero, new Vector2(640, 360));
+            ImageOn(card, new Color(0.13f, 0.12f, 0.17f, 0.98f));
+
+            view.summaryTitleLabel = Label(card, "Title", "第 1/7 关 完成", 36, Ink,
+                new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -66), new Vector2(-48, 64), TextAnchor.MiddleCenter);
+
+            view.summaryBodyLabel = Label(card, "Body", "已点亮 0/0", 26, Muted,
+                new Vector2(0, 0), new Vector2(1, 1), new Vector2(0, 10), new Vector2(-72, -220), TextAnchor.UpperCenter);
+            view.summaryBodyLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
+
+            Text continueCaption;
+            view.summaryContinueButton = ButtonAt(card, "ContinueButton", "下一关", ButtonPrimary,
+                new Vector2(.5f, 0), new Vector2(110, 58), new Vector2(220, 68), out continueCaption);
+            view.summaryContinueLabel = continueCaption;
+            view.summaryStayButton = ButtonAt(card, "StayButton", "继续调整", ButtonGhost,
+                new Vector2(.5f, 0), new Vector2(-110, 58), new Vector2(220, 68));
+
+            panel.gameObject.SetActive(false);
         }
 
         // ══════════ 绘制原语 ══════════
@@ -325,15 +510,39 @@ namespace MasterHouse.EditorTools
             return text;
         }
 
+        /// <summary>右下角锚点的按钮（结束本关的那两个）。</summary>
         private static Button Button(Transform parent, string name, string caption, Color color,
             Vector2 position, Vector2 size)
         {
-            var rect = Rect(parent, name, new Vector2(1, 0), new Vector2(1, 0), position, size);
+            Text ignored;
+            return ButtonAt(parent, name, caption, color, new Vector2(1, 0), position, size, out ignored);
+        }
+
+        private static Button Button(Transform parent, string name, string caption, Color color,
+            Vector2 position, Vector2 size, out Text captionLabel)
+            => ButtonAt(parent, name, caption, color, new Vector2(1, 0), position, size, out captionLabel);
+
+        private static Button ButtonAt(Transform parent, string name, string caption, Color color,
+            Vector2 anchor, Vector2 position, Vector2 size)
+        {
+            Text ignored;
+            return ButtonAt(parent, name, caption, color, anchor, position, size, out ignored);
+        }
+
+        /// <summary>
+        /// 任意锚点的按钮。<paramref name="captionLabel"/> 抛出来是给运行时改文案用的
+        /// （【完成】要在课程包模式下变成「下一关」/「交卷」）——View 里存显式引用，
+        /// 不在运行时 GetComponentInChildren 去猜哪个 Text 是文案。
+        /// </summary>
+        private static Button ButtonAt(Transform parent, string name, string caption, Color color,
+            Vector2 anchor, Vector2 position, Vector2 size, out Text captionLabel)
+        {
+            var rect = Rect(parent, name, anchor, anchor, position, size);
             var image = ImageOn(rect, color);
             var button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
-            Label(rect, "Caption", caption, 28, Ink, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-                TextAnchor.MiddleCenter);
+            captionLabel = Label(rect, "Caption", caption, 28, Ink, Vector2.zero, Vector2.one, Vector2.zero,
+                Vector2.zero, TextAnchor.MiddleCenter);
             return button;
         }
 

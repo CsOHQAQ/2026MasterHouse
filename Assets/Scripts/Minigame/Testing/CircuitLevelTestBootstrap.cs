@@ -23,6 +23,10 @@ namespace MasterHouse
         [Tooltip("本次 Play 要测试的修理电路关卡。直接把 LevelDef 资产拖到这里即可。")]
         public LevelDef level;
 
+        [Tooltip("要测的是整个课程包（连打多关的教程）就拖到这里。\n" +
+                 "**填了就以它为准**，上面的单关与下面的关卡下拉都会被忽略。")]
+        public CircuitLessonPackDef lessonPack;
+
         [Tooltip("正式修理电路 Prefab。通常保持 CircuitMinigame.prefab，不要复制测试专用版本。")]
         public GameObject minigamePrefab;
 
@@ -63,9 +67,11 @@ namespace MasterHouse
         [ContextMenu("启动当前关卡")]
         public void Launch()
         {
-            if (level == null)
+            // 课程包优先：它自己也是一张 MinigameLevelDef，递进 Launch 的方式与单关完全一样
+            MinigameLevelDef target = lessonPack != null ? (MinigameLevelDef)lessonPack : level;
+            if (target == null)
             {
-                Debug.LogError("[电路关卡测试] 没有配置 LevelDef。请在 GameTest_Electric 场景的测试入口上指定关卡。", this);
+                Debug.LogError("[电路关卡测试] 没有配置关卡或课程包。请在 GameTest_Electric 场景的测试入口上指定。", this);
                 return;
             }
 
@@ -98,14 +104,15 @@ namespace MasterHouse
                 return;
             }
 
-            minigame.Launch(level, HandleFinish, HandleAbort);
-            Debug.Log($"[电路关卡测试] 已启动 {level.name}。按 R 随时重开。", level);
+            minigame.Launch(target, HandleFinish, HandleAbort);
+            Debug.Log($"[电路关卡测试] 已启动 {target.name}。按 R 随时重开。", target);
         }
 
         [ContextMenu("重开当前关卡")]
         public void Restart()
         {
-            Debug.Log($"[电路关卡测试] 重开 {(level != null ? level.name : "<未配置>")}。", this);
+            var current = lessonPack != null ? lessonPack.name : (level != null ? level.name : "<未配置>");
+            Debug.Log($"[电路关卡测试] 重开 {current}。", this);
             Launch();
         }
 
@@ -115,6 +122,7 @@ namespace MasterHouse
             var selected = availableLevels[selectedLevelIndex];
             if (selected == null) return;
 
+            lessonPack = null; // 从下拉里点单关 = 退出课程包模式，否则选了也不生效
             level = selected;
             dropdownOpen = false;
             Launch();
