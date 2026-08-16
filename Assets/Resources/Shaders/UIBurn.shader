@@ -1,6 +1,6 @@
-// 相片火烧转场（2026-08-14 标题页进入主背景）：对整屏快照做「从起点向外烧穿」的溶解。
+// 相片火烧转场（2026-08-16 开场推镜第一段）：对整屏快照做「从起点向外烧穿」的溶解。
 // 烧穿边缘分两层：先焦黑（char）再余烬亮线（ember），毛边由噪声贴图提供。
-// 仅供 TitleBurnFx 的全屏 RawImage 使用；放 Resources 保证运行时 Load 可得。
+// 仅供 OpeningZoomFx 的全屏 RawImage 使用；放 Resources 保证运行时 Load 可得。
 Shader "MasterHouse/UIBurn"
 {
     Properties

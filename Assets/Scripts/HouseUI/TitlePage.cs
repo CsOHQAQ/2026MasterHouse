@@ -46,7 +46,8 @@ namespace MasterHouse
             EnsureTitleTextures();
             if (view.cover != null)
             {
-                if (view.cover.texture == null) view.cover.texture = Resources.Load<Texture2D>("OutGameUI/og-meros");
+                // 登录页重做（2026-08-16）：封面 = 登录图（菜单文案烘焙在图上），Prefab 未迁移时兜底加载
+                if (view.cover.texture == null) view.cover.texture = Resources.Load<Texture2D>("OutGameUI/title-login");
                 ConfigureCover(view.cover);
                 view.cover.color = new Color(1, 1, 1, 0);
                 view.cover.rectTransform.localScale = Vector3.one * 1.035f;
@@ -78,20 +79,22 @@ namespace MasterHouse
             {
                 var item = items[i];
                 var button = menuButtons[i];
+                // 登录图上只有四行菜单（NEW GAME / LOAD GAME / OPTIONS / EXIT）：
+                // 「继续游戏」「画廊」没有图上位，整个隐藏（2026-08-16 登录页重做）
+                if (i == 0 || i == 3)
+                {
+                    button.interactable = false;
+                    button.gameObject.SetActive(false);
+                    continue;
+                }
                 button.onClick.RemoveAllListeners();
                 if (item.Action != null) button.onClick.AddListener(() => item.Action());
                 button.interactable = item.Enabled;
+                // 文字烘焙在登录图上，运行时标签清空、只留透明热区 + 悬停高亮
                 if (i < view.menuMainLabels.Length && view.menuMainLabels[i] != null)
-                {
-                    view.menuMainLabels[i].text = item.Cn;
-                    view.menuMainLabels[i].color = i == 1 ? HouseUIUtil.Hex("F0A080") : HouseUIUtil.Hex("DBC9BD");
-                    HouseUIUtil.EnsureLetterSpacing(view.menuMainLabels[i], 3.2f);
-                }
+                    view.menuMainLabels[i].text = string.Empty;
                 if (i < view.menuSubtitles.Length && view.menuSubtitles[i] != null)
-                {
-                    view.menuSubtitles[i].text = item.En;
-                    HouseUIUtil.EnsureLetterSpacing(view.menuSubtitles[i], 1.5f);
-                }
+                    view.menuSubtitles[i].text = string.Empty;
                 if (i < view.menuHoverImages.Length && view.menuHoverImages[i] != null)
                 {
                     view.menuHoverImages[i].texture = titleHoverGradient;
@@ -160,9 +163,8 @@ namespace MasterHouse
             gm.HouseClockManager.ResetNew();
             FurnitureRoomController.ResetSession();
             FurnitureSceneComposer.ClearBaked();
-            // 相片火烧转场（2026-08-14）：标题快照从点击处烧穿，直接露出 Hub 主背景
-            //（原「开门过场页」OpeningPage 已随本转场退役删除，欢迎语沿用）
-            TitleBurnFx.Play(UI, Input.mousePosition, () => UI.ShowPage(new HubPage("新的一天开始了 · 欢迎回家")));
+            // 开场推镜（2026-08-16 登录页重做，取代火烧转场）：镜头推向外景旅馆 → 淡入主楼剖面 → 无缝落到 Hub 总览
+            OpeningZoomFx.Play(UI, () => UI.ShowPage(new HubPage("新的一天开始了 · 欢迎回家")));
         }
 
         // ── 标题页程序化贴图（复刻网页版渐变/晕影；随本页使用，非布局兜底）──

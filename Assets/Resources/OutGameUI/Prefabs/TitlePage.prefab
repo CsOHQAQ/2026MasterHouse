@@ -38,10 +38,10 @@ RectTransform:
   - {fileID: 4975272323252989304}
   m_Father: {fileID: 3036099132453513273}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.264, y: 1}
-  m_AnchorMax: {x: 0.264, y: 1}
-  m_AnchoredPosition: {x: 0, y: -888}
-  m_SizeDelta: {x: 520, y: 70}
+  m_AnchorMin: {x: 0.774, y: 0.288}
+  m_AnchorMax: {x: 0.774, y: 0.288}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 360, y: 66}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3036547191851503122
 CanvasRenderer:
@@ -139,6 +139,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverScale: 1.055
   hoverGraphic: {fileID: 3017527422528251515}
+  clickSfx: 1
 --- !u!225 &290391654929439601
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -333,7 +334,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &9108326842200234406
 RectTransform:
   m_ObjectHideFlags: 0
@@ -570,10 +571,10 @@ RectTransform:
   - {fileID: 1772567634994972404}
   m_Father: {fileID: 3036099132453513273}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.264, y: 1}
-  m_AnchorMax: {x: 0.264, y: 1}
-  m_AnchoredPosition: {x: 0, y: -660}
-  m_SizeDelta: {x: 520, y: 70}
+  m_AnchorMin: {x: 0.7825, y: 0.458}
+  m_AnchorMax: {x: 0.7825, y: 0.458}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 360, y: 66}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7936435977357089214
 CanvasRenderer:
@@ -671,6 +672,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverScale: 1.055
   hoverGraphic: {fileID: 4710829157548262139}
+  clickSfx: 1
 --- !u!225 &3059692539133439380
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -842,7 +844,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Texture: {fileID: 2800000, guid: f10473136820ac140ac9a42fd6706e31, type: 3}
+  m_Texture: {fileID: 2800000, guid: 63a4c63c934f22b49a7d974e894bdd35, type: 3}
   m_UVRect:
     serializedVersion: 2
     x: 0
@@ -862,7 +864,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_AspectMode: 4
-  m_AspectRatio: 1.7768332
+  m_AspectRatio: 1.7777778
 --- !u!1 &1795861758699886481
 GameObject:
   m_ObjectHideFlags: 0
@@ -1175,9 +1177,9 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 3036099132453513273}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.264, y: 1}
-  m_AnchorMax: {x: 0.264, y: 1}
-  m_AnchoredPosition: {x: 0, y: -1063}
+  m_AnchorMin: {x: 0.78, y: 0.13}
+  m_AnchorMax: {x: 0.78, y: 0.13}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 500, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &16685042743269144
@@ -1344,7 +1346,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &4214847808848503073
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1501,10 +1503,10 @@ RectTransform:
   - {fileID: 206690579412502670}
   m_Father: {fileID: 3036099132453513273}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.264, y: 1}
-  m_AnchorMax: {x: 0.264, y: 1}
-  m_AnchoredPosition: {x: 0, y: -736}
-  m_SizeDelta: {x: 520, y: 70}
+  m_AnchorMin: {x: 0.784, y: 0.37}
+  m_AnchorMax: {x: 0.784, y: 0.37}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 360, y: 66}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7179508882238065538
 CanvasRenderer:
@@ -1602,6 +1604,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverScale: 1.055
   hoverGraphic: {fileID: 9100199826812015314}
+  clickSfx: 1
 --- !u!225 &1407990794669331110
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -1884,7 +1887,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2994990099159932939
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2222,6 +2225,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverScale: 1.055
   hoverGraphic: {fileID: 3483443207121726908}
+  clickSfx: 1
 --- !u!225 &2179723635907270189
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -2466,6 +2470,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverScale: 1.055
   hoverGraphic: {fileID: 8393798792672990780}
+  clickSfx: 1
 --- !u!225 &2101394327217005147
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -2516,10 +2521,10 @@ RectTransform:
   - {fileID: 3153828638309082002}
   m_Father: {fileID: 3036099132453513273}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.264, y: 1}
-  m_AnchorMax: {x: 0.264, y: 1}
-  m_AnchoredPosition: {x: 0, y: -964}
-  m_SizeDelta: {x: 520, y: 70}
+  m_AnchorMin: {x: 0.78, y: 0.211}
+  m_AnchorMax: {x: 0.78, y: 0.211}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 360, y: 66}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8191096150745927135
 CanvasRenderer:
@@ -2617,6 +2622,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverScale: 1.055
   hoverGraphic: {fileID: 11687339695169640}
+  clickSfx: 1
 --- !u!225 &2894658794778059651
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -3043,7 +3049,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &7767099018672812866
 RectTransform:
   m_ObjectHideFlags: 0
