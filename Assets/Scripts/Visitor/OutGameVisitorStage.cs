@@ -38,8 +38,12 @@ namespace MasterHouse
         private static readonly Rect ReceptionWalkArea = Rect.MinMaxRect(.06f, .03f, .94f, .22f);
         private static readonly Rect ReceptionEntryArea = Rect.MinMaxRect(.06f, .04f, .4f, .2f);
         private const int MaxAmbient = 3;
-        /// <summary>演员的统一世界缩放（2026-08-16）：全场访客同一大小；调访客整体大小改这里。</summary>
+        /// <summary>演员的统一世界缩放（2026-08-16）：全场访客同一基准大小；调访客整体大小改这里。</summary>
         private const float ActorWorldScale = .3f;
+        /// <summary>假透视深度缩小（2026-08-16 反馈）：脚底 y 每升高 1（房内归一化）缩小的比例与下限——
+        /// 地面带内轻微收小，被拖出活动区贴墙时继续缩，不会「贴在墙上还原大」。</summary>
+        private const float ActorDepthShrink = 1.1f;
+        private const float ActorMinDepthScale = .35f;
         /// <summary>氛围邻居（串门临时访客）总开关：2026-08-14 屏蔽——名册与逻辑保留，改 true 即恢复。</summary>
         private const bool AmbientEnabled = false;
 
@@ -67,6 +71,15 @@ namespace MasterHouse
 
         /// <summary>是否有访客正在被拖拽（HubSceneBinder 边缘推屏的开关）。</summary>
         public bool HasActiveDrag => draggingActor != null && draggingActor.Dragging;
+
+        /// <summary>取某业务访客当前的世界归一化站位（相机「聚焦访客」用；不在场返回 false）。</summary>
+        public bool TryGetActorWorld(int instanceId, out Vector2 world01)
+        {
+            world01 = default;
+            if (!businessActors.TryGetValue(instanceId, out var actor) || actor == null) return false;
+            world01 = HubWorldGrid.RoomToWorld(actor.RoomIndex, actor.ScenePosition);
+            return true;
+        }
 
         /// <summary>按当前鼠标位置重投影被拖拽的访客（相机平移/缩放后由相机层每帧调用；无拖拽时空转）。</summary>
         public void RefreshDragProjection()
@@ -151,7 +164,7 @@ namespace MasterHouse
             var actor = OutGameVisitorActor.Create(layerRoot, "i" + instanceId, instance.DisplayName,
                 race != null ? race.sheetPath : string.Empty,
                 isAmbient: false, spawnDelay: walkIn ? UnityEngine.Random.Range(0f, .6f) : delay,
-                RandomEntryPoint(HubWorldGrid.Reception), frontPoint, WalkArea, EntryArea,
+                RandomEntryPoint(HubWorldGrid.Reception), frontPoint, RandomWalkPoint, EntryArea,
                 () => onGuestClicked?.Invoke(instanceId), null,
                 spawnInside: !walkIn, startRoom: HubWorldGrid.Reception);
             if (actor == null) return;
@@ -200,26 +213,76 @@ namespace MasterHouse
             trigger.triggers.Add(entry);
         }
 
-        /// <summary>房间的访客活动区（归一化矩形，房间表可配、按房间美术红框标定；缺配回落默认带）。</summary>
-        internal static Rect WalkArea(int roomIndex)
+        /// <summary>
+        /// 访客可走体积（2026-08-16 用户定案）：与家具**地面网格**同一块梯形透视区——
+        /// 近沿全宽、越远越向中心收（读网格的远端宽度比），随机落点/松手钳制共用。
+        /// 接待室没有地面网格，用代码常量矩形按轻微透视处理。
+        /// </summary>
+        private struct WalkVolume
         {
-            if (roomIndex == HubWorldGrid.Reception) return ReceptionWalkArea;
-            var table = GameManager.Instance != null ? GameManager.Instance.FurnitureRoomTable : null;
-            if (table != null && roomIndex >= 0 && roomIndex < table.rooms.Count && table.rooms[roomIndex] != null)
-            {
-                var area = table.rooms[roomIndex].visitorWalkArea;
-                if (area.width > .01f && area.height > .01f) return area;
-            }
-            return DefaultWalkArea;
+            public float centerX, nearHalf, farScale, yNear, yFar;
         }
 
-        /// <summary>活动区内随机取一个落点。</summary>
-        private static Vector2 RandomWalkPoint(int roomIndex)
+        private static WalkVolume WalkVolumeOf(int roomIndex)
         {
-            var area = WalkArea(roomIndex);
-            return new Vector2(
-                UnityEngine.Random.Range(area.xMin, area.xMax),
-                UnityEngine.Random.Range(area.yMin, area.yMax));
+            var table = GameManager.Instance != null ? GameManager.Instance.FurnitureRoomTable : null;
+            if (roomIndex >= 0 && roomIndex < HubWorldGrid.RoomCount &&
+                table != null && roomIndex < table.rooms.Count && table.rooms[roomIndex] != null)
+            {
+                var room = table.rooms[roomIndex];
+                foreach (var grid in room.grids)
+                {
+                    if (grid == null || grid.surface != FurnitureSurfaceType.Floor) continue;
+                    var width = grid.cols * grid.cellWidth;
+                    return new WalkVolume
+                    {
+                        centerX = (grid.x + width * .5f) / room.sceneWidth,
+                        nearHalf = Mathf.Max(.05f, width * .5f / room.sceneWidth - .01f),
+                        farScale = Mathf.Clamp(grid.farWidthScale, .2f, 1f),
+                        yNear = Mathf.Max(0f, 1f - (grid.y + grid.rows * grid.cellHeight) / room.sceneHeight) + .015f,
+                        yFar = 1f - grid.y / room.sceneHeight - .015f,
+                    };
+                }
+            }
+            var area = roomIndex == HubWorldGrid.Reception ? ReceptionWalkArea : DefaultWalkArea;
+            return new WalkVolume
+            {
+                centerX = area.center.x,
+                nearHalf = area.width * .5f,
+                farScale = .8f,
+                yNear = area.yMin,
+                yFar = area.yMax,
+            };
+        }
+
+        /// <summary>给定脚底 y 的假透视深度缩放。</summary>
+        private static float DepthScaleAt(float y) =>
+            Mathf.Clamp(1f - y * ActorDepthShrink, ActorMinDepthScale, 1f);
+
+        /// <summary>给定深度 y 处的半宽（梯形：近沿 → 远沿按远端宽度比向中心收）。</summary>
+        private static float HalfWidthAt(in WalkVolume volume, float y)
+        {
+            var t = Mathf.InverseLerp(volume.yNear, volume.yFar, y);
+            return volume.nearHalf * Mathf.Lerp(1f, volume.farScale, t);
+        }
+
+        /// <summary>把点钳进可走梯形（拖拽落位用）。</summary>
+        internal static Vector2 ClampWalk(int roomIndex, Vector2 point)
+        {
+            var volume = WalkVolumeOf(roomIndex);
+            point.y = Mathf.Clamp(point.y, volume.yNear, volume.yFar);
+            var half = HalfWidthAt(volume, point.y);
+            point.x = Mathf.Clamp(point.x, volume.centerX - half, volume.centerX + half);
+            return point;
+        }
+
+        /// <summary>可走梯形内随机取一个落点（先取深度、按该深度的宽度取横向）。</summary>
+        internal static Vector2 RandomWalkPoint(int roomIndex)
+        {
+            var volume = WalkVolumeOf(roomIndex);
+            var y = UnityEngine.Random.Range(volume.yNear, volume.yFar);
+            var half = HalfWidthAt(volume, y);
+            return new Vector2(volume.centerX + UnityEngine.Random.Range(-half, half), y);
         }
 
         /// <summary>房间的访客入口区（归一化矩形，房间表可配、按房间美术门位标定；缺配回落默认门位）。</summary>
@@ -304,12 +367,8 @@ namespace MasterHouse
                 actor.CancelPlayerDrag();
                 return;
             }
-            // 落位钳回活动区（拖拽中自由跟手，约束在这里补上）
-            var area = WalkArea(room);
-            var point = actor.ScenePosition;
-            point.x = Mathf.Clamp(point.x, area.xMin, area.xMax);
-            point.y = Mathf.Clamp(point.y, area.yMin, area.yMax);
-            actor.UpdatePlayerDrag(room, point);
+            // 落位钳回可走梯形（拖拽中自由跟手，约束在这里补上）
+            actor.UpdatePlayerDrag(room, ClampWalk(room, actor.ScenePosition));
             var accepted = onGuestDropped != null && onGuestDropped(instanceId, room);
             if (accepted) actor.EndPlayerDrag();
             else actor.CancelPlayerDrag();
@@ -321,7 +380,7 @@ namespace MasterHouse
             var actor = OutGameVisitorActor.Create(layerRoot, "neighbor_" + neighbor.id,
                 neighbor.displayName, neighbor.sheetPath,
                 isAmbient: true, spawnDelay: delay,
-                RandomEntryPoint(HubWorldGrid.Reception), EntrySlotPoint(HubWorldGrid.Reception, 0), WalkArea, EntryArea,
+                RandomEntryPoint(HubWorldGrid.Reception), EntrySlotPoint(HubWorldGrid.Reception, 0), RandomWalkPoint, EntryArea,
                 null, () => OnAmbientGone(rosterIndex), startRoom: HubWorldGrid.Reception);
             if (actor == null) return;
             activeAmbient.Add(rosterIndex);
@@ -450,8 +509,10 @@ namespace MasterHouse
                 var anchor = HubWorldGrid.RoomToWorld(actor.RoomIndex, actor.ScenePosition);
                 rect.anchorMin = rect.anchorMax = anchor;
                 rect.anchoredPosition = Vector2.zero;
-                // 演员统一世界缩放（2026-08-16 用户定案）：不随所在区域宽度变化
-                rect.localScale = Vector3.one * ActorWorldScale;
+                // 演员统一世界缩放 × 假透视深度（2026-08-16）：基准不随房间变化，
+                // 地面带内脚底越靠里越小；**离开地面（超过地面带远沿）后定格**不再继续缩
+                var cappedY = Mathf.Min(actor.ScenePosition.y, WalkVolumeOf(actor.RoomIndex).yFar);
+                rect.localScale = Vector3.one * (ActorWorldScale * DepthScaleAt(cappedY));
                 var depthY = actor.Dragging ? float.MinValue : anchor.y; // 拖拽中永远压最上
                 depthSortCache.Add((rect, depthY, int.MaxValue));
             }

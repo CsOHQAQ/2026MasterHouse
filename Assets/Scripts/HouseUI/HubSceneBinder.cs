@@ -204,6 +204,55 @@ namespace MasterHouse
             return new Rect(authored.center.x - width * .5f, authored.y, width, authored.height);
         }
 
+        /// <summary>
+        /// 聚焦场上某访客（2026-08-16 用户定案）：镜头移动到**访客站位**并放大——
+        /// 倍率取所在区域标准取景的 1.25 倍（下限 2.5），比看整间房更贴近人物。
+        /// </summary>
+        public void FocusVisitor(int instanceId)
+        {
+            if (stage == null || !stage.TryGetActorWorld(instanceId, out var world01)) return;
+            var room = HubWorldGrid.RoomAt(world01);
+            var targetZoom = Mathf.Clamp(
+                (room != HubWorldGrid.None ? HubWorldGrid.FocusZoom(room) : 3f) * 1.25f, 2.5f, MaxZoom);
+            FocusWorldPoint(world01, targetZoom);
+        }
+
+        /// <summary>相机平滑推到「世界点居中 + 指定倍率」（聚焦访客用；边界仍由 ClampCamera 兜底）。</summary>
+        private void FocusWorldPoint(Vector2 world01, float targetZoom)
+        {
+            if (worldRoot == null || sceneRoot == null) return;
+            var viewport = sceneRoot.rect.size;
+            if (viewport.x < 1f) viewport = new Vector2(1920f, 1080f);
+            SyncWorldSize(viewport);
+            var targetPan = viewport * .5f - Vector2.Scale(world01, viewport) * targetZoom;
+            KillFocusTween();
+            var fromPan = camPan;
+            var fromZoom = camZoom;
+            focusTween = DOTween.To(() => 0f, t =>
+            {
+                if (sceneRoot == null || worldRoot == null) { KillFocusTween(); return; }
+                camZoom = Mathf.Lerp(fromZoom, targetZoom, t);
+                camPan = Vector2.Lerp(fromPan, targetPan, t);
+                var size = sceneRoot.rect.size;
+                ClampCamera(size);
+                ApplyCamera();
+                DetectCurrentRoom(size);
+            }, 1f, .55f).SetEase(Ease.InOutCubic).SetUpdate(true);
+        }
+
+        /// <summary>相机当前是否已聚焦在某区域（缩放到聚焦档且视口中心落在该区域）。</summary>
+        public bool IsFocusedOn(int roomIndex)
+        {
+            if (worldRoot == null || sceneRoot == null || camZoom < FocusedZoomThreshold) return false;
+            var viewport = sceneRoot.rect.size;
+            if (viewport.x < 1f) return false;
+            var centerPoint = (viewport * .5f - camPan) / camZoom;
+            var world01 = new Vector2(
+                Mathf.Clamp01(centerPoint.x / viewport.x),
+                Mathf.Clamp01(centerPoint.y / viewport.y));
+            return HubWorldGrid.RoomAt(world01) == roomIndex;
+        }
+
         /// <summary>无动画直达总览（建层初始化用）。</summary>
         private void SnapOverview()
         {
@@ -453,15 +502,15 @@ namespace MasterHouse
             }, 1f, .55f).SetEase(Ease.InOutCubic).SetUpdate(true);
         }
 
-        /// <summary>房间导航/方向键切换：相机平滑推到目标区域（区域宽推满视口宽；已比聚焦更深时保持深度）。</summary>
+        /// <summary>房间导航/方向键/访客聚焦共用：相机平滑推到目标区域的**标准取景**（区域宽推满视口宽）。
+        /// 不再保留更深的当前缩放（2026-08-16：带着客房深缩放跳接待厅会糊成特写）。</summary>
         public void FocusRoom(int roomIndex)
         {
             if (worldRoot == null || sceneRoot == null) return;
             var viewport = sceneRoot.rect.size;
             if (viewport.x < 1f) { SnapToRoom(roomIndex); return; }
             SyncWorldSize(viewport);
-            var focusZoom = HubWorldGrid.FocusZoom(roomIndex);
-            var targetZoom = camZoom >= FocusedZoomThreshold ? Mathf.Max(focusZoom, camZoom) : focusZoom;
+            var targetZoom = HubWorldGrid.FocusZoom(roomIndex);
             var targetPan = PanCenteredOn(roomIndex, targetZoom, viewport);
             KillFocusTween();
             var fromPan = camPan;
