@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Race_cat
   m_EditorClassIdentifier: 
   raceId: cat
-  displayName: "\u732B\u65CF"
+  displayName: "\u9ED1\u55B5\u8B66\u957F"
   waitTalkTimeoutTicks: 3000
   waitDeliverTimeoutTicks: 6000
   wanderMaxTicks: 3600

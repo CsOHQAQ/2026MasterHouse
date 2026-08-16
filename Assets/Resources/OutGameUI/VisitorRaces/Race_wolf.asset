@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Race_wolf
   m_EditorClassIdentifier: 
   raceId: wolf
-  displayName: "\u72FC\u65CF"
+  displayName: "\u5609\u568E"
   waitTalkTimeoutTicks: 1800
   waitDeliverTimeoutTicks: 3600
   wanderMaxTicks: 2400

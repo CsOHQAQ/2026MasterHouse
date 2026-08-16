@@ -1,9 +1,9 @@
 ﻿种族id,显示名,等搭话超时tick,等交货超时tick,闲逛上限tick,默认立绘ID,序列帧
-rabbit,兔族,4200,7200,6000,rabbit_平静,OutGameUI/Visitors/rabbit
-goat,羊族,3600,6600,5400,goat_平静,OutGameUI/Visitors/goat
-wolf,狼族,1800,3600,2400,wolf_平静,OutGameUI/Visitors/wolf
-leopard,豹族,2400,4800,3000,leopard_平静,OutGameUI/Visitors/leopard
-cheetah,猎豹族,2100,4200,2700,cheetah_平静,OutGameUI/Visitors/cheetah
-ox,牛族,4800,8400,6600,ox_平静,OutGameUI/Visitors/ox
-cat,猫族,3000,6000,3600,cat_平静,OutGameUI/Visitors/cat
-yak,牦牛族,3900,7000,5600,yak_平静,OutGameUI/Visitors/yak
+rabbit,兔米露,4200,7200,6000,rabbit_平静,OutGameUI/Visitors/rabbit
+goat,嘻洋羊,3600,6600,5400,goat_平静,OutGameUI/Visitors/goat
+wolf,嘉嚎,1800,3600,2400,wolf_平静,OutGameUI/Visitors/wolf
+leopard,豹酷酷,2400,4800,3000,leopard_平静,OutGameUI/Visitors/leopard
+cheetah,豹冲冲,2100,4200,2700,cheetah_平静,OutGameUI/Visitors/cheetah
+ox,牛小顿,4800,8400,6600,ox_平静,OutGameUI/Visitors/ox
+cat,黑喵警长,3000,6000,3600,cat_平静,OutGameUI/Visitors/cat
+yak,牛莱老师,3900,7000,5600,yak_平静,OutGameUI/Visitors/yak

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Race_cheetah
   m_EditorClassIdentifier: 
   raceId: cheetah
-  displayName: "\u730E\u8C79\u65CF"
+  displayName: "\u8C79\u51B2\u51B2"
   waitTalkTimeoutTicks: 2100
   waitDeliverTimeoutTicks: 4200
   wanderMaxTicks: 2700

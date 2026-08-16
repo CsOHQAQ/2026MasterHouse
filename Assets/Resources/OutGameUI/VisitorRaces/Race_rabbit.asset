@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Race_rabbit
   m_EditorClassIdentifier: 
   raceId: rabbit
-  displayName: "\u5154\u65CF"
+  displayName: "\u5154\u7C73\u9732"
   waitTalkTimeoutTicks: 4200
   waitDeliverTimeoutTicks: 7200
   wanderMaxTicks: 6000

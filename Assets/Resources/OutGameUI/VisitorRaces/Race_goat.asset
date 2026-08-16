@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Race_goat
   m_EditorClassIdentifier: 
   raceId: goat
-  displayName: "\u7F8A\u65CF"
+  displayName: "\u563B\u6D0B\u7F8A"
   waitTalkTimeoutTicks: 3600
   waitDeliverTimeoutTicks: 6600
   wanderMaxTicks: 5400

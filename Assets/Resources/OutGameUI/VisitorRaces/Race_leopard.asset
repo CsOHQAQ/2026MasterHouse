@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Race_leopard
   m_EditorClassIdentifier: 
   raceId: leopard
-  displayName: "\u8C79\u65CF"
+  displayName: "\u8C79\u9177\u9177"
   waitTalkTimeoutTicks: 2400
   waitDeliverTimeoutTicks: 4800
   wanderMaxTicks: 3000
