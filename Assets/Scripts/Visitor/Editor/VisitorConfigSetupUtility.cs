@@ -5,9 +5,11 @@ using UnityEngine;
 namespace MasterHouse.EditorTools
 {
     /// <summary>
-    /// 访客系统示例资产生成器（访客交付说明 §10：现有 4 个动物访客的立绘/序列帧素材保留，改挂到对应种族上作为示例内容）。
+    /// 访客系统示例资产生成器（访客交付说明 §10）。
     /// 默认菜单只补齐缺失资产、不覆盖手工调整（与家具配置生成器同一策略）。
-    /// 生成物：4 个种族 + 日程表 + 调参配置（Assets/Resources/OutGameUI，运行时经 Resources 加载）。
+    /// 生成物：8 个种族 + 日程表 + 调参配置（Assets/Resources/OutGameUI，运行时经 Resources 加载）。
+    /// **这些内容的真相源是 Excel/访客种族表.xlsx 与访客日程表.xlsx**，本工具只是新工程首跑时的兜底；
+    /// 改数值请改 Excel 再导表，别改这里（改这里也不会生效——资产已存在时本工具不覆盖）。
     /// 种族的需求权重表已随 tag 需求体系退役（需求重做说明 §9.1），需求改由日程条目逐条配；
     /// 标签森林与示例物资的生成也已随 TagDef/ItemDef 一并删除（§9.2）。
     /// </summary>
@@ -27,18 +29,26 @@ namespace MasterHouse.EditorTools
             EnsureFolder(RaceDir);
             var created = new List<string>();
 
-            // ── 种族（§4.3）：沿用原 4 个动物访客的序列帧素材 ──
+            // ── 种族（§4.3）：2026-08-16 换成美术交付的 8 个角色 ──
             // 性格数值以 tick 计（10 tick/秒、10 tick/游戏分钟）：如 9000 tick = 15 现实分钟 = 900 游戏分钟
-            // 「默认立绘ID」指向 Excel/立绘表.xlsx 里的行；这里给的四个 ID 与
-            // Tools/导表/make_portrait_template.py 生成的初始内容对齐（2026-08-14 立绘 ID 化）
-            var fox = Race(created, "fox", "狐族", "fox_平静", "OutGameUI/Visitors/orange_cat",
-                waitTalk: 3000, waitDeliver: 6000, wanderMax: 3600);
-            var crow = Race(created, "crow", "鸦族", "crow_平静", "OutGameUI/Visitors/rottweiler",
-                waitTalk: 1800, waitDeliver: 3600, wanderMax: 2400);
-            var rabbit = Race(created, "rabbit", "兔族", "rabbit_平静", "OutGameUI/Visitors/xueqiu",
+            // 「默认立绘ID」指向 Excel/立绘表.xlsx 里的行（2026-08-14 立绘 ID 化）；
+            // 这里的内容与 Excel/访客种族表.xlsx 一致，**真相源仍是 Excel**——本菜单只管新工程首跑时不空手。
+            var rabbit = Race(created, "rabbit", "兔族", "rabbit_平静", "OutGameUI/Visitors/rabbit",
                 waitTalk: 4200, waitDeliver: 7200, wanderMax: 6000);
-            var hedgehog = Race(created, "hedgehog", "猬族", "hedgehog_平静", "OutGameUI/Visitors/wangcai",
+            var goat = Race(created, "goat", "羊族", "goat_平静", "OutGameUI/Visitors/goat",
+                waitTalk: 3600, waitDeliver: 6600, wanderMax: 5400);
+            var wolf = Race(created, "wolf", "狼族", "wolf_平静", "OutGameUI/Visitors/wolf",
+                waitTalk: 1800, waitDeliver: 3600, wanderMax: 2400);
+            var leopard = Race(created, "leopard", "豹族", "leopard_平静", "OutGameUI/Visitors/leopard",
                 waitTalk: 2400, waitDeliver: 4800, wanderMax: 3000);
+            var cheetah = Race(created, "cheetah", "猎豹族", "cheetah_平静", "OutGameUI/Visitors/cheetah",
+                waitTalk: 2100, waitDeliver: 4200, wanderMax: 2700);
+            var ox = Race(created, "ox", "牛族", "ox_平静", "OutGameUI/Visitors/ox",
+                waitTalk: 4800, waitDeliver: 8400, wanderMax: 6600);
+            var cat = Race(created, "cat", "猫族", "cat_平静", "OutGameUI/Visitors/cat",
+                waitTalk: 3000, waitDeliver: 6000, wanderMax: 3600);
+            var yak = Race(created, "yak", "牦牛族", "yak_平静", "OutGameUI/Visitors/yak",
+                waitTalk: 3900, waitDeliver: 7000, wanderMax: 5600);
 
             // ── 日程表（§4.4：零随机零上限，谁在第几天几点带什么需求出现由策划配死；加内容请追加表尾）──
             // **这里生成的条目不带需求**：本包只做结构与导表列，需求资产由策划自己建（2026-08-13 访谈定案）。
@@ -50,15 +60,16 @@ namespace MasterHouse.EditorTools
                 schedule = ScriptableObject.CreateInstance<VisitorScheduleTable>();
                 schedule.entries = new List<VisitorScheduleEntry>
                 {
-                    Entry(1, 8 * 60 + 30, fox),
-                    Entry(1, 9 * 60 + 10, crow),
-                    Entry(1, 10 * 60, rabbit),
-                    Entry(1, 14 * 60, hedgehog),
-                    Entry(2, 8 * 60 + 40, rabbit),
-                    Entry(2, 9 * 60 + 30, fox),
-                    Entry(2, 13 * 60, crow),
-                    Entry(3, 9 * 60, hedgehog),
-                    Entry(3, 11 * 60, fox),
+                    Entry(1, 8 * 60 + 30, rabbit),
+                    Entry(1, 9 * 60 + 10, cat),
+                    Entry(1, 10 * 60, goat),
+                    Entry(1, 14 * 60, wolf),
+                    Entry(2, 8 * 60 + 40, ox),
+                    Entry(2, 9 * 60 + 30, leopard),
+                    Entry(2, 13 * 60, cheetah),
+                    Entry(3, 9 * 60, yak),
+                    Entry(3, 11 * 60, rabbit),
+                    Entry(3, 12 * 60 + 30, cat),
                 };
                 AssetDatabase.CreateAsset(schedule, SchedulePath);
                 created.Add(SchedulePath);

@@ -71,7 +71,7 @@ FurnitureFamilyTable / FurnitureTable / StoreTable / FurnitureRoomTable / 访客
 - 对话表第二页的「立绘ID」列、访客种族表的「默认立绘ID」列都引用它。**加一张图 = 加一行**。
 - 表情枚举已于 2026-08-14 退役——差分数量与命名完全交给美术，不必再改代码。
 - 路径找不到贴图只给**警告**（「先占 ID 后补图」是常态）；ID 空/重复、路径空是错误，整表不落盘。
-- 重建模板：`python Tools/导表/make_portrait_template.py --force`（扫 `Resources/OutGameUI/Guests` 铺初始行）。
+- 重建模板：`python Tools/导表/make_portrait_template.py --force`（扫 `Resources/OutGameUI/Portraits` 铺初始行）。
 
 ## 对话表.xlsx · 两页（+ 一页参考）
 

@@ -160,6 +160,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
+  clickSfx: 1
 --- !u!1 &3635348499477806479
 GameObject:
   m_ObjectHideFlags: 0
@@ -319,7 +320,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3736255206249758614}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
   m_Name: 

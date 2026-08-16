@@ -19,12 +19,28 @@ namespace MasterHouse
 
         public float Aspect => frameHeight > 0 ? (float)frameWidth / frameHeight : 1f;
 
-        /// <summary>从 Resources 同名加载 PNG（Texture2D）与 JSON（TextAsset）。缺任意一个返回 null。</summary>
+        /// <summary>
+        /// 从 Resources 同名加载 PNG（Texture2D）与 JSON（TextAsset）。PNG 缺失返回 null。
+        ///
+        /// **JSON 可以没有**：那就是一张单帧定格图（2026-08-16 入库的 QQ 小人就是这种），
+        /// 按 1×1×1 的图集处理——uvRect 铺满整张图，播放逻辑一行都不用分叉。
+        /// 序列帧素材（CatVsDog 导出的那批）必须带 JSON，缺了会当成单帧而不是报错，
+        /// 这是有意的：动图退化成定格图是能看的表现，比整只访客不出现好。
+        /// </summary>
         public static OutGameVisitorSheet Load(string resourcePath, out Texture2D texture)
         {
             texture = Resources.Load<Texture2D>(resourcePath);
+            if (texture == null) return null;
             var json = Resources.Load<TextAsset>(resourcePath);
-            if (texture == null || json == null) return null;
+            if (json == null)
+                return new OutGameVisitorSheet
+                {
+                    frameWidth = texture.width,
+                    frameHeight = texture.height,
+                    columns = 1,
+                    rows = 1,
+                    frameCount = 1,
+                };
             var sheet = JsonUtility.FromJson<OutGameVisitorSheet>(json.text);
             return sheet != null && sheet.columns > 0 && sheet.rows > 0 && sheet.frameCount > 0 ? sheet : null;
         }
@@ -36,6 +52,9 @@ namespace MasterHouse
     /// </summary>
     internal sealed class OutGameVisitorSheetAnimator : MonoBehaviour
     {
+        /// <summary>单帧定格图当「一次性动作」播时的停留时长（秒）。按 fps 算只有 1/14 秒，眼睛跟不上。</summary>
+        private const float StaticHoldSeconds = 1.1f;
+
         private RawImage image;
         private OutGameVisitorSheet sheet;
         private float fps = 12f;
@@ -69,9 +88,12 @@ namespace MasterHouse
         private void Update()
         {
             if (!playing || sheet == null) return;
+            // 单帧定格图循环播 = 一张不动的立牌，没有帧要推
+            if (sheet.frameCount <= 1 && loop) return;
             // 局外 UI 全部按不受 timeScale 影响的节奏运行（与 DOTween SetUpdate(true) 一致）
             timer += Time.unscaledDeltaTime;
-            var step = 1f / fps;
+            // 单帧一次性动作按固定时长停留，否则 1/fps 秒就切回待机、根本看不见
+            var step = sheet.frameCount <= 1 ? StaticHoldSeconds : 1f / fps;
             while (timer >= step)
             {
                 timer -= step;

@@ -147,7 +147,7 @@ namespace MasterHouse.EditorTools
                 if (Resources.Load<Texture2D>(path) == null)
                     report.Warn(Sheet, excelRow,
                         $"立绘「{id}」的资源路径找不到贴图：{path}" +
-                        "（写法是 Resources 相对路径、不带扩展名，如 OutGameUI/Guests/fox；素材必须在某个 Resources 目录下）");
+                        "（写法是 Resources 相对路径、不带扩展名，如 OutGameUI/Portraits/rabbit；素材必须在某个 Resources 目录下）");
 
                 result.Add(new PortraitEntry
                 {

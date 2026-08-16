@@ -1,13 +1,97 @@
 ﻿对话组ID,种族,需求ID,所属对话池,进入条件,备注,行号
-10001,fox,,firstMeeting,,开场：打招呼 + 接待/拒绝分支,3
-20001,fox,,waitingReception,,已经打过招呼、再点他时说的话（同样要带接待/拒绝）,4
-30001,fox,Need_修理电路,needTalk,,小游戏类需求「Need_修理电路」的说辞与交付分支,5
-30002,fox,Need_新需求,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,6
-30003,fox,Need_要蓝色椅子,needTalk,,条件类需求「Need_要蓝色椅子」的说辞与交付分支,7
-40001,fox,,feedbackDisappointed,,服务超时后说的话,8
-40002,fox,,feedbackPlain,,只有小游戏类会走到,9
-40003,fox,,feedbackFine,,只有小游戏类会走到,10
-40004,fox,,feedbackPerfect,,条件类交付成功 / 小游戏满分,11
-50001,fox,,smallTalk,,,12
-50002,fox,,smallTalk,,,13
-50003,fox,,smallTalk,,,14
+10001,rabbit,,firstMeeting,,开场：打招呼 + 接待/拒绝分支,3
+20001,rabbit,,waitingReception,,已经打过招呼、再点他时说的话（同样要带接待/拒绝）,4
+30001,rabbit,Need_修理电路,needTalk,,小游戏类需求「Need_修理电路」的说辞与交付分支,5
+30002,rabbit,Need_新需求,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,6
+30003,rabbit,Need_要蓝色椅子,needTalk,,条件类需求「Need_要蓝色椅子」的说辞与交付分支,7
+40001,rabbit,,feedbackDisappointed,,服务超时后说的话,8
+40002,rabbit,,feedbackPlain,,只有小游戏类会走到,9
+40003,rabbit,,feedbackFine,,只有小游戏类会走到,10
+40004,rabbit,,feedbackPerfect,,条件类交付成功 / 小游戏满分,11
+50001,rabbit,,smallTalk,,,12
+50002,rabbit,,smallTalk,,,13
+50003,rabbit,,smallTalk,,,14
+10101,goat,,firstMeeting,,开场：打招呼 + 接待/拒绝分支,15
+20101,goat,,waitingReception,,已经打过招呼、再点他时说的话（同样要带接待/拒绝）,16
+30101,goat,Need_修理电路,needTalk,,小游戏类需求「Need_修理电路」的说辞与交付分支,17
+30102,goat,Need_新需求,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,18
+30103,goat,Need_要蓝色椅子,needTalk,,条件类需求「Need_要蓝色椅子」的说辞与交付分支,19
+40101,goat,,feedbackDisappointed,,服务超时后说的话,20
+40102,goat,,feedbackPlain,,只有小游戏类会走到,21
+40103,goat,,feedbackFine,,只有小游戏类会走到,22
+40104,goat,,feedbackPerfect,,条件类交付成功 / 小游戏满分,23
+50101,goat,,smallTalk,,,24
+50102,goat,,smallTalk,,,25
+50103,goat,,smallTalk,,,26
+10201,wolf,,firstMeeting,,开场：打招呼 + 接待/拒绝分支,27
+20201,wolf,,waitingReception,,已经打过招呼、再点他时说的话（同样要带接待/拒绝）,28
+30201,wolf,Need_修理电路,needTalk,,小游戏类需求「Need_修理电路」的说辞与交付分支,29
+30202,wolf,Need_新需求,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,30
+30203,wolf,Need_要蓝色椅子,needTalk,,条件类需求「Need_要蓝色椅子」的说辞与交付分支,31
+40201,wolf,,feedbackDisappointed,,服务超时后说的话,32
+40202,wolf,,feedbackPlain,,只有小游戏类会走到,33
+40203,wolf,,feedbackFine,,只有小游戏类会走到,34
+40204,wolf,,feedbackPerfect,,条件类交付成功 / 小游戏满分,35
+50201,wolf,,smallTalk,,,36
+50202,wolf,,smallTalk,,,37
+50203,wolf,,smallTalk,,,38
+10301,leopard,,firstMeeting,,开场：打招呼 + 接待/拒绝分支,39
+20301,leopard,,waitingReception,,已经打过招呼、再点他时说的话（同样要带接待/拒绝）,40
+30301,leopard,Need_修理电路,needTalk,,小游戏类需求「Need_修理电路」的说辞与交付分支,41
+30302,leopard,Need_新需求,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,42
+30303,leopard,Need_要蓝色椅子,needTalk,,条件类需求「Need_要蓝色椅子」的说辞与交付分支,43
+40301,leopard,,feedbackDisappointed,,服务超时后说的话,44
+40302,leopard,,feedbackPlain,,只有小游戏类会走到,45
+40303,leopard,,feedbackFine,,只有小游戏类会走到,46
+40304,leopard,,feedbackPerfect,,条件类交付成功 / 小游戏满分,47
+50301,leopard,,smallTalk,,,48
+50302,leopard,,smallTalk,,,49
+50303,leopard,,smallTalk,,,50
+10401,cheetah,,firstMeeting,,开场：打招呼 + 接待/拒绝分支,51
+20401,cheetah,,waitingReception,,已经打过招呼、再点他时说的话（同样要带接待/拒绝）,52
+30401,cheetah,Need_修理电路,needTalk,,小游戏类需求「Need_修理电路」的说辞与交付分支,53
+30402,cheetah,Need_新需求,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,54
+30403,cheetah,Need_要蓝色椅子,needTalk,,条件类需求「Need_要蓝色椅子」的说辞与交付分支,55
+40401,cheetah,,feedbackDisappointed,,服务超时后说的话,56
+40402,cheetah,,feedbackPlain,,只有小游戏类会走到,57
+40403,cheetah,,feedbackFine,,只有小游戏类会走到,58
+40404,cheetah,,feedbackPerfect,,条件类交付成功 / 小游戏满分,59
+50401,cheetah,,smallTalk,,,60
+50402,cheetah,,smallTalk,,,61
+50403,cheetah,,smallTalk,,,62
+10501,ox,,firstMeeting,,开场：打招呼 + 接待/拒绝分支,63
+20501,ox,,waitingReception,,已经打过招呼、再点他时说的话（同样要带接待/拒绝）,64
+30501,ox,Need_修理电路,needTalk,,小游戏类需求「Need_修理电路」的说辞与交付分支,65
+30502,ox,Need_新需求,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,66
+30503,ox,Need_要蓝色椅子,needTalk,,条件类需求「Need_要蓝色椅子」的说辞与交付分支,67
+40501,ox,,feedbackDisappointed,,服务超时后说的话,68
+40502,ox,,feedbackPlain,,只有小游戏类会走到,69
+40503,ox,,feedbackFine,,只有小游戏类会走到,70
+40504,ox,,feedbackPerfect,,条件类交付成功 / 小游戏满分,71
+50501,ox,,smallTalk,,,72
+50502,ox,,smallTalk,,,73
+50503,ox,,smallTalk,,,74
+10601,cat,,firstMeeting,,开场：打招呼 + 接待/拒绝分支,75
+20601,cat,,waitingReception,,已经打过招呼、再点他时说的话（同样要带接待/拒绝）,76
+30601,cat,Need_修理电路,needTalk,,小游戏类需求「Need_修理电路」的说辞与交付分支,77
+30602,cat,Need_新需求,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,78
+30603,cat,Need_要蓝色椅子,needTalk,,条件类需求「Need_要蓝色椅子」的说辞与交付分支,79
+40601,cat,,feedbackDisappointed,,服务超时后说的话,80
+40602,cat,,feedbackPlain,,只有小游戏类会走到,81
+40603,cat,,feedbackFine,,只有小游戏类会走到,82
+40604,cat,,feedbackPerfect,,条件类交付成功 / 小游戏满分,83
+50601,cat,,smallTalk,,,84
+50602,cat,,smallTalk,,,85
+50603,cat,,smallTalk,,,86
+10701,yak,,firstMeeting,,开场：打招呼 + 接待/拒绝分支,87
+20701,yak,,waitingReception,,已经打过招呼、再点他时说的话（同样要带接待/拒绝）,88
+30701,yak,Need_修理电路,needTalk,,小游戏类需求「Need_修理电路」的说辞与交付分支,89
+30702,yak,Need_新需求,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,90
+30703,yak,Need_要蓝色椅子,needTalk,,条件类需求「Need_要蓝色椅子」的说辞与交付分支,91
+40701,yak,,feedbackDisappointed,,服务超时后说的话,92
+40702,yak,,feedbackPlain,,只有小游戏类会走到,93
+40703,yak,,feedbackFine,,只有小游戏类会走到,94
+40704,yak,,feedbackPerfect,,条件类交付成功 / 小游戏满分,95
+50701,yak,,smallTalk,,,96
+50702,yak,,smallTalk,,,97
+50703,yak,,smallTalk,,,98

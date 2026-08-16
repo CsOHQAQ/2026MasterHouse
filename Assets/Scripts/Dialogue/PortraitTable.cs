@@ -13,7 +13,7 @@ namespace MasterHouse
                  "唯一的硬约束是不能带逗号（CSV 分隔符）")]
         public string portraitId;
 
-        [Tooltip("Resources 相对路径（不带扩展名），如 OutGameUI/Guests/fox。\n" +
+        [Tooltip("Resources 相对路径（不带扩展名），如 OutGameUI/Portraits/rabbit。\n" +
                  "**素材必须位于某个 Resources 目录下**，运行时靠 Resources.Load<Texture2D> 取图")]
         public string path;
 
