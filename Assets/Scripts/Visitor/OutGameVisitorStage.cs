@@ -33,6 +33,10 @@ namespace MasterHouse
         };
         /// <summary>活动区兜底（房间表缺配时）：与旧的手摆游走带大致等价。</summary>
         private static readonly Rect DefaultWalkArea = Rect.MinMaxRect(.04f, .03f, .96f, .35f);
+        /// <summary>接待室的活动/入口区（2026-08-16 主楼场景）：房间表只配业务四间，接待室先走代码常量；
+        /// 入口区取左侧大门一带，游走带铺满底层地面。</summary>
+        private static readonly Rect ReceptionWalkArea = Rect.MinMaxRect(.06f, .05f, .94f, .4f);
+        private static readonly Rect ReceptionEntryArea = Rect.MinMaxRect(.06f, .06f, .4f, .34f);
         private const int MaxAmbient = 3;
         /// <summary>氛围邻居（串门临时访客）总开关：2026-08-14 屏蔽——名册与逻辑保留，改 true 即恢复。</summary>
         private const bool AmbientEnabled = false;
@@ -137,15 +141,16 @@ namespace MasterHouse
         private void SpawnBusiness(VisitorInstance instance, bool walkIn, float delay = 0f)
         {
             var race = instance.Race;
-            var frontPoint = EntrySlotPoint(0, frontDeskSlot);
+            // 访客进场/排队都在底层接待室（2026-08-16 主楼场景）
+            var frontPoint = EntrySlotPoint(HubWorldGrid.Reception, frontDeskSlot);
             frontDeskSlot++;
             var instanceId = instance.InstanceId;
             var actor = OutGameVisitorActor.Create(layerRoot, "i" + instanceId, instance.DisplayName,
                 race != null ? race.sheetPath : string.Empty,
                 isAmbient: false, spawnDelay: walkIn ? UnityEngine.Random.Range(0f, .6f) : delay,
-                RandomEntryPoint(0), frontPoint, WalkArea, EntryArea,
+                RandomEntryPoint(HubWorldGrid.Reception), frontPoint, WalkArea, EntryArea,
                 () => onGuestClicked?.Invoke(instanceId), null,
-                spawnInside: !walkIn);
+                spawnInside: !walkIn, startRoom: HubWorldGrid.Reception);
             if (actor == null) return;
             actor.SyncBusinessState(instance.State);
             AttachDrag(actor, instanceId);
@@ -195,6 +200,7 @@ namespace MasterHouse
         /// <summary>房间的访客活动区（归一化矩形，房间表可配、按房间美术红框标定；缺配回落默认带）。</summary>
         internal static Rect WalkArea(int roomIndex)
         {
+            if (roomIndex == HubWorldGrid.Reception) return ReceptionWalkArea;
             var table = GameManager.Instance != null ? GameManager.Instance.FurnitureRoomTable : null;
             if (table != null && roomIndex >= 0 && roomIndex < table.rooms.Count && table.rooms[roomIndex] != null)
             {
@@ -216,6 +222,7 @@ namespace MasterHouse
         /// <summary>房间的访客入口区（归一化矩形，房间表可配、按房间美术门位标定；缺配回落默认门位）。</summary>
         internal static Rect EntryArea(int roomIndex)
         {
+            if (roomIndex == HubWorldGrid.Reception) return ReceptionEntryArea;
             var table = GameManager.Instance != null ? GameManager.Instance.FurnitureRoomTable : null;
             if (table != null && roomIndex >= 0 && roomIndex < table.rooms.Count && table.rooms[roomIndex] != null)
             {
@@ -272,7 +279,9 @@ namespace MasterHouse
             if (!TryScreenToWorld(screenPosition, out var world)) return;
             world.x = Mathf.Clamp01(world.x + dragGrabOffset.x);
             world.y = Mathf.Clamp01(world.y + dragGrabOffset.y);
+            // 指针在墙体/天空等无效区时沿用当前房间坐标系（拖拽本就自由跟手，落位时才裁决）
             var room = HubWorldGrid.RoomAt(world);
+            if (room == HubWorldGrid.None) room = actor.RoomIndex;
             actor.UpdatePlayerDrag(room, HubWorldGrid.WorldToLocal(room, world));
         }
 
@@ -286,6 +295,12 @@ namespace MasterHouse
             if (draggingActor == actor) draggingActor = null; // 边缘推屏停表
             if (!actor.Dragging) return;
             var room = actor.RoomIndex;
+            // 丢在接待室或无效区 = 不换房，弹回起手位置（接待室不是业务房间，分不了房）
+            if (room < 0 || room >= HubWorldGrid.RoomCount)
+            {
+                actor.CancelPlayerDrag();
+                return;
+            }
             // 落位钳回活动区（拖拽中自由跟手，约束在这里补上）
             var area = WalkArea(room);
             var point = actor.ScenePosition;
@@ -303,8 +318,8 @@ namespace MasterHouse
             var actor = OutGameVisitorActor.Create(layerRoot, "neighbor_" + neighbor.id,
                 neighbor.displayName, neighbor.sheetPath,
                 isAmbient: true, spawnDelay: delay,
-                RandomEntryPoint(0), EntrySlotPoint(0, 0), WalkArea, EntryArea,
-                null, () => OnAmbientGone(rosterIndex));
+                RandomEntryPoint(HubWorldGrid.Reception), EntrySlotPoint(HubWorldGrid.Reception, 0), WalkArea, EntryArea,
+                null, () => OnAmbientGone(rosterIndex), startRoom: HubWorldGrid.Reception);
             if (actor == null) return;
             activeAmbient.Add(rosterIndex);
             actors.Add(actor);
@@ -328,9 +343,13 @@ namespace MasterHouse
                 {
                     actor.SyncBusinessState(instance.State);
                     // 房间同步：业务真相在 instance.RoomIndex（拖拽被业务层拒绝时这里把演员弹回原房间；
-                    // 舞台重建回填时把演员落到上次所在的房间）
-                    if (!actor.Dragging && actor.RoomIndex != instance.RoomIndex)
-                        actor.TeleportToRoom(instance.RoomIndex, RandomWalkPoint(instance.RoomIndex));
+                    // 舞台重建回填时把演员落到上次所在的房间）。
+                    // 前台排队/等分房两态还没有真正的房间，表现上住在底层接待室（2026-08-16 主楼场景）
+                    var homeRoom = instance.State == EVisitorState.FrontDesk || instance.State == EVisitorState.AwaitingRoom
+                        ? HubWorldGrid.Reception
+                        : instance.RoomIndex;
+                    if (!actor.Dragging && actor.RoomIndex != homeRoom)
+                        actor.TeleportToRoom(homeRoom, RandomWalkPoint(homeRoom));
                 }
                 else
                 {
@@ -368,7 +387,7 @@ namespace MasterHouse
             foreach (var actor in ambientOrder)
             {
                 if (!actor.IsQueuingAtDoor) continue;
-                actor.SetWaitPoint(EntrySlotPoint(0, slot));
+                actor.SetWaitPoint(EntrySlotPoint(HubWorldGrid.Reception, slot));
                 slot++;
             }
         }
@@ -390,6 +409,9 @@ namespace MasterHouse
                 var anchor = HubWorldGrid.RoomToWorld(actor.RoomIndex, actor.ScenePosition);
                 rect.anchorMin = rect.anchorMax = anchor;
                 rect.anchoredPosition = Vector2.zero;
+                // 主楼场景（2026-08-16）：演员像素尺寸是按「单房满视口」标定的，世界里房间只占
+                // 区域宽的比例，按所在区域宽反向缩放——聚焦时恢复原大，总览时自然成微缩小人
+                rect.localScale = Vector3.one * HubWorldGrid.RegionOf(actor.RoomIndex).width;
             }
         }
     }

@@ -18,8 +18,13 @@ namespace MasterHouse
     /// </summary>
     public sealed class HubSceneBinder
     {
-        private const float MinZoom = .5f;   // 恰好看全 2×2 四个房间
-        private const float MaxZoom = 3.5f;
+        private const float OverviewZoom = 1f; // 恰好看全整栋主楼剖面
+        private const float MaxZoom = 6f;      // 比「单房推满视口宽」再深一档
+        /// <summary>低于此缩放视为「总览态」（看整栋楼，无当前房间概念）；聚焦单房的缩放约 3.7~4.8。</summary>
+        private const float FocusedZoomThreshold = 2f;
+        /// <summary>外景层级（2026-08-16）：总览再缩小，主楼剖面淡出并落到外景图中房屋的位置——
+        /// 复用开场推镜的对齐变换（反向），进出取景一致。此档的最小缩放。</summary>
+        private static float ExteriorMinZoom => 1f / OpeningZoomFx.AlignScale;
         /// <summary>拖访客的 RTS 边缘推屏：指针距场景边缘阈值（视口像素）与推屏速度（视口像素/秒）。</summary>
         private const float EdgeScrollMargin = 56f;
         private const float EdgeScrollSpeed = 1100f;
@@ -31,6 +36,11 @@ namespace MasterHouse
         private HubPage page;
         private RectTransform sceneRoot;
         private RectTransform worldRoot;
+        private CanvasGroup worldGroup;
+        private RectTransform exteriorRect;
+        private RawImage exteriorBackdrop;
+        private Vector2 viewportSize = new Vector2(1920f, 1080f);
+        private RawImage houseBackdrop;
         private readonly RawImage[] roomArts = new RawImage[HubWorldGrid.RoomCount];
         private Image sceneWash;
         private Image ambientLight;
@@ -64,19 +74,65 @@ namespace MasterHouse
             var clip = HouseUIRuntime.Stretch(sceneRoot, "WorldClip");
             clip.gameObject.AddComponent<RectMask2D>();
 
-            // 世界根：2× 视口大小（每个房间一个视口大），pivot 左下，位置/缩放即相机
-            worldRoot = HouseUIRuntime.Rect(clip, "World", Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
-            worldRoot.pivot = Vector2.zero;
+            // 外景层（2026-08-16 外景层级）：与主楼世界锁在同一坐标系随相机缩放——
+            // 外景缩放 = AlignScale × 相机缩放（对齐变换），缩到最小档恰好整张外景满屏；
+            // 压在世界层之下，总览及以上被不透明的主楼世界盖住
+            exteriorRect = HouseUIRuntime.Rect(clip, "ExteriorBackdrop", Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
+            exteriorRect.pivot = Vector2.zero;
+            exteriorBackdrop = exteriorRect.gameObject.AddComponent<RawImage>();
+            exteriorBackdrop.texture = Resources.Load<Texture2D>("OutGameUI/house-exterior");
+            exteriorBackdrop.raycastTarget = false;
 
+            // 世界层改由 Prefab 固化（2026-08-16）：主楼底图 + 房间矩形 + 接待室标记，
+            // 布局以 Prefab 为唯一真相，缺失是报错不是回退（§16.2）
+            var worldPrefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.HubSceneWorld);
+            if (worldPrefab == null)
+            {
+                Debug.LogError("[HouseUI] Hub 场景世界层 Prefab 缺失，无法建场景（§16.2 不回退代码布局）：" + OutGamePrefabResourcePaths.HubSceneWorld);
+                return;
+            }
+            var worldGo = Object.Instantiate(worldPrefab, clip, false);
+            worldGo.name = "World";
+            var worldView = worldGo.GetComponent<OutGameHubWorldView>();
+            if (worldView == null || worldView.houseBackdrop == null || worldView.roomArts == null)
+            {
+                Debug.LogError("[HouseUI] Hub 场景世界层 Prefab 缺少视图组件或引用：OutGameHubWorldView");
+                return;
+            }
+            worldRoot = (RectTransform)worldGo.transform;
+            worldRoot.pivot = Vector2.zero; // 相机数学以左下角为原点（双保险，Prefab 已固化）
+            worldGroup = worldGo.AddComponent<CanvasGroup>(); // 外景层级的淡出用（表现，不碰布局）
+            houseBackdrop = worldView.houseBackdrop;
+            for (var room = 0; room < HubWorldGrid.RoomCount && room < worldView.roomArts.Length; room++)
+                roomArts[room] = worldView.roomArts[room];
+
+            ApplySceneArt(); // 先喂烘焙图：下面按图的真实宽高比内嵌，需要贴图尺寸
+
+            // Prefab 布局是真相：反读各矩形的实际归一化区域同步给 HubWorldGrid（相机聚焦/访客站位/热点全跟着走）。
+            // 锚点 + 偏移一起算：在 Prefab 模式里用矩形工具直接拖（改的是 offset）也能生效。
+            // 房间画面按烘焙图**真实宽高比**内嵌进手调矩形（贴底居中，缺口露主楼自己的墙面）——
+            // 内容完整显示、永不拉伸（2026-08-16 修复：不再裁内容）
+            var designSize = worldRoot.rect.size;
+            if (designSize.x < 1f) designSize = new Vector2(1920f, 1080f);
+            var regions = new Rect[HubWorldGrid.RoomCount + 1];
+            var crops = new Rect[HubWorldGrid.RoomCount + 1];
             for (var room = 0; room < HubWorldGrid.RoomCount; room++)
             {
-                var origin = HubWorldGrid.CellOrigin(room);
-                var art = HouseUIRuntime.Rect(worldRoot, "RoomArt" + room,
-                    origin, origin + new Vector2(.5f, .5f), Vector2.zero, Vector2.zero);
-                roomArts[room] = art.gameObject.AddComponent<RawImage>();
-                roomArts[room].raycastTarget = false; // 场景图不拦截指针：拖拽平移与热点/演员都依赖穿透
+                crops[room] = Rect.MinMaxRect(0, 0, 1, 1);
+                if (roomArts[room] == null) { regions[room] = HubWorldGrid.RegionOf(room); continue; }
+                var authored = NormalizedRegion(roomArts[room].rectTransform, designSize);
+                var display = FitTextureInRegion(authored, roomArts[room].texture, designSize);
+                var rect = roomArts[room].rectTransform;
+                rect.anchorMin = display.min;
+                rect.anchorMax = display.max;
+                rect.offsetMin = rect.offsetMax = Vector2.zero;
+                regions[room] = display;
             }
-            ApplySceneArt();
+            regions[HubWorldGrid.Reception] = worldView.receptionArea != null
+                ? NormalizedRegion(worldView.receptionArea, designSize)
+                : HubWorldGrid.RegionOf(HubWorldGrid.Reception);
+            crops[HubWorldGrid.Reception] = Rect.MinMaxRect(0, 0, 1, 1);
+            HubWorldGrid.Configure(regions, crops);
 
             // 洗色层盖在房间图之上、热点与演员之下（与旧版层序一致）；随世界一起缩放（纯色无所谓拉伸）
             sceneWash = HouseUIRuntime.StretchPanel(worldRoot, "SceneWash", new Color(.015f, .02f, .04f, .22f));
@@ -95,8 +151,50 @@ namespace MasterHouse
 
             BindOverlay();
 
-            // 初始相机：满屏当前房间
-            SnapToRoom(page.RoomIndex);
+            // 初始相机：整栋主楼总览（开场推镜落点就是这幅画面，2026-08-16）
+            SnapOverview();
+        }
+
+        /// <summary>矩形在世界根中的归一化区域：锚点 + 像素偏移（按设计尺寸折算）。</summary>
+        private static Rect NormalizedRegion(RectTransform rect, Vector2 designSize)
+        {
+            var min = rect.anchorMin + new Vector2(rect.offsetMin.x / designSize.x, rect.offsetMin.y / designSize.y);
+            var max = rect.anchorMax + new Vector2(rect.offsetMax.x / designSize.x, rect.offsetMax.y / designSize.y);
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+        }
+
+        /// <summary>
+        /// 在手调矩形内按贴图真实宽高比取最大内嵌矩形（贴底、水平居中）：
+        /// 世界归一化坐标不是等比的，比较时都换算到设计像素。贴图缺失时原样返回。
+        /// </summary>
+        private static Rect FitTextureInRegion(Rect authored, Texture texture, Vector2 designSize)
+        {
+            if (texture == null || authored.width <= 0f || authored.height <= 0f) return authored;
+            var textureRatio = texture.width / (float)Mathf.Max(texture.height, 1);
+            var regionPxWidth = authored.width * designSize.x;
+            var regionPxHeight = authored.height * designSize.y;
+            var regionRatio = regionPxWidth / regionPxHeight;
+            if (Mathf.Approximately(textureRatio, regionRatio)) return authored;
+            if (textureRatio > regionRatio)
+            {
+                // 图比矩形扁：占满宽，高度收缩、贴底
+                var height = authored.width * designSize.x / textureRatio / designSize.y;
+                return new Rect(authored.x, authored.y, authored.width, height);
+            }
+            // 图比矩形高：占满高，宽度收缩、水平居中
+            var width = authored.height * designSize.y * textureRatio / designSize.x;
+            return new Rect(authored.center.x - width * .5f, authored.y, width, authored.height);
+        }
+
+        /// <summary>无动画直达总览（建层初始化用）。</summary>
+        private void SnapOverview()
+        {
+            var viewport = sceneRoot.rect.size;
+            if (viewport.x < 1f) viewport = new Vector2(1920f, 1080f);
+            SyncWorldSize(viewport);
+            camZoom = OverviewZoom;
+            camPan = Vector2.zero;
+            ApplyCamera();
         }
 
         // ══════════ 昼夜光照 ══════════
@@ -107,6 +205,8 @@ namespace MasterHouse
         {
             if (ambientLight == null) return;
             var (tint, veil) = HouseDayLight.Now();
+            if (exteriorBackdrop != null) exteriorBackdrop.color = tint;
+            if (houseBackdrop != null) houseBackdrop.color = tint;
             for (var room = 0; room < roomArts.Length; room++)
                 if (roomArts[room] != null) roomArts[room].color = tint;
             ambientLight.color = veil;
@@ -131,7 +231,7 @@ namespace MasterHouse
             if (Mathf.Abs(scroll) > .01f && insideScene)
             {
                 KillFocusTween();
-                var nextZoom = Mathf.Clamp(camZoom * (1f + scroll * .12f), MinZoom, MaxZoom);
+                var nextZoom = Mathf.Clamp(camZoom * (1f + scroll * .12f), ExteriorMinZoom, MaxZoom);
                 if (!Mathf.Approximately(nextZoom, camZoom))
                 {
                     // 以鼠标为锚缩放：光标下的世界点在缩放前后保持不动
@@ -200,6 +300,28 @@ namespace MasterHouse
         private void HandleSceneClick(Vector2 pointerLocal, Vector2 viewport)
         {
             var hotspot = HotspotUnderPointer();
+            var worldPoint = (pointerLocal - camPan) / camZoom;
+            var world01 = new Vector2(
+                Mathf.Clamp01(worldPoint.x / viewport.x),
+                Mathf.Clamp01(worldPoint.y / viewport.y));
+            var clickedRoom = hotspot != null ? hotspot.RoomIndex : HubWorldGrid.RoomAt(world01);
+            // 当前聚焦对象 = 视口中心所在区域（总览/外景态没有聚焦对象）
+            var centerPoint = (viewport * .5f - camPan) / camZoom;
+            var center01 = new Vector2(
+                Mathf.Clamp01(centerPoint.x / viewport.x),
+                Mathf.Clamp01(centerPoint.y / viewport.y));
+            var focusedRoom = camZoom >= FocusedZoomThreshold ? HubWorldGrid.RoomAt(center01) : HubWorldGrid.None;
+
+            // 任意缩放**单击**房间即聚焦（2026-08-16 用户定案）：点中的不是当前聚焦房间就推过去；
+            // 接待室也可聚焦（招呼排队的客人）；墙体/天空不响应
+            if (clickedRoom != HubWorldGrid.None && clickedRoom != focusedRoom)
+            {
+                SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：视野切换即转场
+                FocusRoom(clickedRoom);
+                lastGroundClickTime = 0f;
+                return;
+            }
+            // 点的是当前聚焦房间：家具热点开详情，空地走双击缩回总览
             if (hotspot != null)
             {
                 page.OpenFurnitureDetail(hotspot.RoomIndex, hotspot.FurnitureId);
@@ -216,20 +338,8 @@ namespace MasterHouse
                 return;
             }
             lastGroundClickTime = 0f; // 消费掉，免得三连击又触发一次
-            SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：视野切换即转场
-            if (camZoom < 1f)
-            {
-                // 总览态：推到双击处所在的房间满屏
-                var worldPoint = (pointerLocal - camPan) / camZoom;
-                var world01 = new Vector2(
-                    Mathf.Clamp01(worldPoint.x / (viewport.x * 2f)),
-                    Mathf.Clamp01(worldPoint.y / (viewport.y * 2f)));
-                FocusRoom(HubWorldGrid.RoomAt(world01));
-            }
-            else
-            {
-                ZoomToOverview();
-            }
+            SfxManager.Play(ESfx.PageTransition);
+            ZoomToOverview();
         }
 
         /// <summary>
@@ -248,7 +358,7 @@ namespace MasterHouse
             return raycastCache[0].gameObject.GetComponentInParent<HubFurnitureHotspot>();
         }
 
-        /// <summary>缩回总览（zoom 0.5 = 四个房间尽收眼底）。此时世界尺寸恰等于视口，平移会被 ClampCamera 钳成 0。</summary>
+        /// <summary>缩回总览（zoom 1 = 整栋主楼尽收眼底）。此时世界尺寸恰等于视口，平移会被 ClampCamera 钳成 0。</summary>
         private void ZoomToOverview()
         {
             if (worldRoot == null || sceneRoot == null) return;
@@ -258,7 +368,7 @@ namespace MasterHouse
             focusTween = DOTween.To(() => 0f, t =>
             {
                 if (sceneRoot == null || worldRoot == null) { KillFocusTween(); return; }
-                camZoom = Mathf.Lerp(fromZoom, MinZoom, t);
+                camZoom = Mathf.Lerp(fromZoom, OverviewZoom, t);
                 camPan = Vector2.Lerp(fromPan, Vector2.zero, t);
                 ClampCamera(sceneRoot.rect.size);
                 ApplyCamera();
@@ -266,14 +376,15 @@ namespace MasterHouse
             }, 1f, .55f).SetEase(Ease.InOutCubic).SetUpdate(true);
         }
 
-        /// <summary>房间导航/方向键切换：相机平滑推到目标房间（1 倍缩放满屏该房间）。</summary>
+        /// <summary>房间导航/方向键切换：相机平滑推到目标区域（区域宽推满视口宽；已比聚焦更深时保持深度）。</summary>
         public void FocusRoom(int roomIndex)
         {
             if (worldRoot == null || sceneRoot == null) return;
             var viewport = sceneRoot.rect.size;
             if (viewport.x < 1f) { SnapToRoom(roomIndex); return; }
             SyncWorldSize(viewport);
-            var targetZoom = Mathf.Max(1f, camZoom);
+            var focusZoom = HubWorldGrid.FocusZoom(roomIndex);
+            var targetZoom = camZoom >= FocusedZoomThreshold ? Mathf.Max(focusZoom, camZoom) : focusZoom;
             var targetPan = PanCenteredOn(roomIndex, targetZoom, viewport);
             KillFocusTween();
             var fromPan = camPan;
@@ -301,58 +412,84 @@ namespace MasterHouse
             var viewport = sceneRoot.rect.size;
             if (viewport.x < 1f) viewport = new Vector2(1920f, 1080f); // 首帧布局未算完，用设计分辨率近似
             SyncWorldSize(viewport);
-            camZoom = 1f;
+            camZoom = HubWorldGrid.FocusZoom(roomIndex);
             camPan = PanCenteredOn(roomIndex, camZoom, viewport);
             ClampCamera(viewport);
             ApplyCamera();
         }
 
-        /// <summary>让某房间中心对准视口中心时的平移量。</summary>
+        /// <summary>让某区域中心对准视口中心时的平移量。</summary>
         private Vector2 PanCenteredOn(int roomIndex, float zoom, Vector2 viewport)
         {
-            var worldCenter01 = HubWorldGrid.CellOrigin(roomIndex) + new Vector2(.25f, .25f);
-            var worldPoint = Vector2.Scale(worldCenter01, viewport * 2f); // 世界尺寸 = 2× 视口
+            var worldCenter01 = HubWorldGrid.RegionOf(roomIndex).center;
+            var worldPoint = Vector2.Scale(worldCenter01, viewport); // 世界尺寸 = 1× 视口（总览即全楼）
             return viewport * .5f - worldPoint * zoom;
         }
 
-        /// <summary>世界根尺寸恒为 2× 视口（分辨率变化时跟随）。</summary>
+        /// <summary>世界根/外景层尺寸恒等于视口（图均 16:9，分辨率变化时跟随）。</summary>
         private void SyncWorldSize(Vector2 viewport)
         {
-            var target = viewport * 2f;
-            if ((worldRoot.sizeDelta - target).sqrMagnitude > .5f) worldRoot.sizeDelta = target;
+            viewportSize = viewport;
+            if ((worldRoot.sizeDelta - viewport).sqrMagnitude > .5f) worldRoot.sizeDelta = viewport;
+            if (exteriorRect != null && (exteriorRect.sizeDelta - viewport).sqrMagnitude > .5f)
+                exteriorRect.sizeDelta = viewport;
         }
 
         private void ApplyCamera()
         {
             worldRoot.localScale = new Vector3(camZoom, camZoom, 1f);
             worldRoot.anchoredPosition = camPan;
+            if (exteriorRect != null)
+            {
+                // 外景点 e 对应主楼点 m = s·e + t，代入世界渲染式 → 外景缩放 s·z、位移 t·视口·z + 相机位移
+                var scale = OpeningZoomFx.AlignScale * camZoom;
+                exteriorRect.localScale = new Vector3(scale, scale, 1f);
+                exteriorRect.anchoredPosition =
+                    Vector2.Scale(OpeningZoomFx.AlignOffset, viewportSize) * camZoom + camPan;
+            }
         }
 
-        /// <summary>把世界钳在视口内：任何缩放下画面边缘都不露底。</summary>
+        /// <summary>
+        /// 把世界钳在视口内：任何缩放下画面边缘都不露底。
+        /// 总览以下进入**外景层级**（2026-08-16）：世界小于视口，普通钳制失效——
+        /// 位移锁在「总览 ⇄ 外景房屋对齐」的插值路径上，同时主楼剖面按进度淡出（放大回来即四房浮现）。
+        /// </summary>
         private void ClampCamera(Vector2 viewport)
         {
-            camZoom = Mathf.Clamp(camZoom, MinZoom, MaxZoom);
-            var worldSize = viewport * 2f * camZoom;
+            camZoom = Mathf.Clamp(camZoom, ExteriorMinZoom, MaxZoom);
+            if (camZoom < OverviewZoom)
+            {
+                var t = Mathf.InverseLerp(OverviewZoom, ExteriorMinZoom, camZoom);
+                // 外景对齐位（反用开场推镜的变换）：主楼世界缩到 1/AlignScale 并平移到外景图中房屋的位置
+                var exteriorPan = Vector2.Scale(-OpeningZoomFx.AlignOffset / OpeningZoomFx.AlignScale, viewport);
+                camPan = Vector2.Lerp(Vector2.zero, exteriorPan, t);
+                // 内景浮现集中在贴近总览的后段（放大到房屋接近剖面大小才显形，2026-08-16 用户定案）
+                var fadeStart = Mathf.Lerp(ExteriorMinZoom, OverviewZoom, .4f);
+                if (worldGroup != null) worldGroup.alpha = Mathf.InverseLerp(fadeStart, OverviewZoom, camZoom);
+                return;
+            }
+            if (worldGroup != null) worldGroup.alpha = 1f;
+            var worldSize = viewport * camZoom;
             camPan.x = Mathf.Clamp(camPan.x, viewport.x - worldSize.x, 0f);
             camPan.y = Mathf.Clamp(camPan.y, viewport.y - worldSize.y, 0f);
         }
 
         /// <summary>
-        /// 视口中心落在哪个象限即当前房间；变化时回调页面刷新导航与说明卡。
+        /// 视口中心落在哪个业务房间即当前房间；变化时回调页面刷新导航与说明卡。
         ///
-        /// **总览态直接短路**（§4.4）：zoom 0.5 时视口中心恰好落在世界正中心 (0.5, 0.5)，
-        /// 而 HubWorldGrid.RoomAt 的边界判定是 `>=`，于是恒返回房间 1（卧室）——
-        /// 导航高亮、说明卡、以及点「家具摆放」进哪间房全会跟着跳。总览态本就没有「当前房间」
-        /// 这个概念，沿用缩回前的那间是最小意外；双击选房时 zoom 推回 1，这里自然恢复工作。
+        /// **总览态直接短路**（§4.4）：看整栋楼时没有「当前房间」概念，沿用聚焦前的那间是最小意外；
+        /// 双击选房把 zoom 推到聚焦档，这里自然恢复工作。
+        /// 接待室与墙体/天空不算业务房间（RoomAt 返回 Reception/None 时保持现状）。
         /// </summary>
         private void DetectCurrentRoom(Vector2 viewport)
         {
-            if (camZoom < 1f) return;
+            if (camZoom < FocusedZoomThreshold) return;
             var worldPoint = (viewport * .5f - camPan) / camZoom;
             var world01 = new Vector2(
-                Mathf.Clamp01(worldPoint.x / (viewport.x * 2f)),
-                Mathf.Clamp01(worldPoint.y / (viewport.y * 2f)));
+                Mathf.Clamp01(worldPoint.x / viewport.x),
+                Mathf.Clamp01(worldPoint.y / viewport.y));
             var room = HubWorldGrid.RoomAt(world01);
+            if (room < 0 || room >= HubWorldGrid.RoomCount) return;
             if (room != page.RoomIndex)
             {
                 page.NotifyCameraRoomChanged(room);
@@ -456,6 +593,8 @@ namespace MasterHouse
 
                     var card = HouseUIRuntime.Panel(hotspot, "Card", new Vector2(.5f, 1),
                         new Vector2(0, 46), new Vector2(250, 76), new Color(.32f, .06f, .18f, .92f));
+                    // 悬浮卡像素尺寸按「单房满视口」标定，随区域宽反缩放（同访客演员，2026-08-16）
+                    card.transform.localScale = Vector3.one * HubWorldGrid.RegionOf(room).width;
                     HouseUIRuntime.StretchLabel(card.transform, "Text",
                         $"＋  {info.Entry.displayName}\n<size=13>查看家具</size>", 19, HouseUIUtil.White,
                         TextAnchor.MiddleCenter, FontStyle.Bold);

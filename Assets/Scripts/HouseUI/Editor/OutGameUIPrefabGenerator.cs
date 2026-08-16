@@ -66,6 +66,8 @@ namespace MasterHouse
         // 结束今天确认弹窗 + 开始新一天日出过场（2026-08-14）
         private const string ConfirmPopupPath = Folder + "/ConfirmPopup.prefab";
         private const string DayTransitionPath = Folder + "/DayTransition.prefab";
+        // Hub 场景世界层（主楼剖面 + 房间矩形，2026-08-16 场景固化）
+        private const string HubSceneWorldPath = Folder + "/HubSceneWorld.prefab";
 
         static OutGameUIPrefabGenerator()
         {
@@ -127,6 +129,7 @@ namespace MasterHouse
             BuildDaySettlePanel(DaySettlePanelPath);
             BuildConfirmPopup(ConfirmPopupPath);
             BuildDayTransition(DayTransitionPath);
+            BuildHubSceneWorld(HubSceneWorldPath);
             BuildPanelPage(CalendarPagePath, "CalendarPage", "REAL TIME", "日程与时间", "历", CalendarPanelPath);
             BuildPanelPage(TasksPagePath, "TasksPage", "TODAY / 03", "今日委托", "任", TasksPanelPath);
             BuildPanelPage(DevicePagePath, "DevicePage", "HOUSE INDEX", "家具图鉴", "家", DevicePanelPath);
@@ -182,6 +185,7 @@ namespace MasterHouse
             if (!File.Exists(DaySettlePanelPath)) { BuildDaySettlePanel(DaySettlePanelPath); changed = true; }
             if (!File.Exists(ConfirmPopupPath)) { BuildConfirmPopup(ConfirmPopupPath); changed = true; }
             if (!File.Exists(DayTransitionPath)) { BuildDayTransition(DayTransitionPath); changed = true; }
+            if (!File.Exists(HubSceneWorldPath)) { BuildHubSceneWorld(HubSceneWorldPath); changed = true; }
             if (!File.Exists(CalendarPagePath)) { BuildPanelPage(CalendarPagePath, "CalendarPage", "REAL TIME", "日程与时间", "历", CalendarPanelPath); changed = true; }
             if (!File.Exists(TasksPagePath)) { BuildPanelPage(TasksPagePath, "TasksPage", "TODAY / 03", "今日委托", "任", TasksPanelPath); changed = true; }
             if (!File.Exists(DevicePagePath)) { BuildPanelPage(DevicePagePath, "DevicePage", "HOUSE INDEX", "家具图鉴", "家", DevicePanelPath); changed = true; }
@@ -213,7 +217,9 @@ namespace MasterHouse
         private static bool RepairExistingPrefabs()
         {
             var repaired = false;
-            repaired |= RepairPrefab<OutGameTitleView>(TitlePath, RepairTitle);
+            repaired |= RepairPrefab<OutGameTitleView>(TitlePath,
+                (root, view) => { RepairTitle(root, view); MigrateTitleLogin(view); },
+                view => view.cover != null && (view.cover.texture == null || view.cover.texture.name != "title-login"));
             repaired |= RepairPrefab<OutGamePaperView>(PaperPath, RepairPaper);
             repaired |= RepairPrefab<OutGameSavePageView>(SavePagePath, RepairSavePage);
             repaired |= RepairPrefab<OutGameGalleryPageView>(GalleryPagePath, RepairGalleryPage);
@@ -257,6 +263,19 @@ namespace MasterHouse
             repaired |= RepairPrefab<OutGameCalendarPanelView>(CalendarPanelPath,
                 (root, view) => AppendPhaseButtons(view),
                 view => view.phaseButtons == null || view.phaseButtons.Length < 6 || view.phaseButtons[0] == null);
+            // Hub 场景世界层：根节点补设计尺寸 + uvRect 重置为整图
+            //（房间图已由美术裁成纯内容，旧的黑框裁切退役；显示比例由运行时按贴图内嵌保证，2026-08-16）
+            repaired |= RepairPrefab<OutGameHubWorldView>(HubSceneWorldPath,
+                (root, view) =>
+                {
+                    ((RectTransform)root.transform).sizeDelta = new Vector2(1920, 1080);
+                    if (view.roomArts == null) return;
+                    foreach (var art in view.roomArts)
+                        if (art != null) art.uvRect = new Rect(0, 0, 1, 1);
+                },
+                view => ((RectTransform)view.transform).sizeDelta.x < 1f ||
+                        (view.roomArts != null && System.Array.Exists(view.roomArts,
+                            art => art != null && (art.uvRect.width < .999f || art.uvRect.height < .999f))));
             // 图鉴详情区：补「前往修理」按钮（2026-08-14）
             repaired |= RepairPrefab<OutGameDevicePanelView>(DevicePanelPath,
                 (root, view) => AppendDeviceRepairButton(view),
@@ -499,6 +518,46 @@ namespace MasterHouse
             EnsureSpacing(view.hints, .8f);
         }
 
+        /// <summary>
+        /// 登录页重做（2026-08-16 新美术）：封面换成登录图（NEW GAME 等菜单文案已烘焙在图上），
+        /// 四个可用入口（新游戏/读取存档/设置/退出）移到图上文字的位置做透明热区；
+        /// 旧左列装饰（渐变底/分隔线/存档状态行）退场。继续游戏/画廊按钮的显隐由 TitlePage 运行时处理。
+        /// </summary>
+        private static void MigrateTitleLogin(OutGameTitleView view)
+        {
+            var login = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/OutGameUI/title-login.png");
+            if (view.cover != null && login != null)
+            {
+                view.cover.texture = login;
+                var fitter = view.cover.GetComponent<AspectRatioFitter>();
+                if (fitter != null) fitter.aspectRatio = (float)login.width / login.height;
+            }
+            if (view.menuGradient != null) view.menuGradient.gameObject.SetActive(false);
+            if (view.topRule != null) view.topRule.gameObject.SetActive(false);
+            if (view.bottomRule != null) view.bottomRule.gameObject.SetActive(false);
+            if (view.saveState != null) view.saveState.transform.parent.gameObject.SetActive(false);
+            // 图上四行文字的中心（按登录图量取的屏幕锚点，y 自底）；下标对齐 menuButtons（0 继续/3 画廊无图上位）
+            var anchors = new[]
+            {
+                Vector2.zero, new Vector2(.7825f, .458f), new Vector2(.784f, .37f),
+                Vector2.zero, new Vector2(.774f, .288f), new Vector2(.78f, .211f),
+            };
+            for (var i = 0; i < anchors.Length && i < view.menuButtons.Length; i++)
+            {
+                if (anchors[i] == Vector2.zero || view.menuButtons[i] == null) continue;
+                var rect = (RectTransform)view.menuButtons[i].transform;
+                rect.anchorMin = rect.anchorMax = anchors[i];
+                rect.anchoredPosition = Vector2.zero;
+                rect.sizeDelta = new Vector2(360, 66);
+            }
+            if (view.hints != null)
+            {
+                var rect = view.hints.rectTransform;
+                rect.anchorMin = rect.anchorMax = new Vector2(.78f, .13f);
+                rect.anchoredPosition = Vector2.zero;
+            }
+        }
+
         private static void RepairPaper(GameObject root, OutGamePaperView view)
         {
             RepairPaperCommon(root, view);
@@ -679,6 +738,7 @@ namespace MasterHouse
             refs.hints = Label(menu, "Hints", "↑ ↓ 选择     ENTER 确认", 8, Hex("756B67"),
                 new Vector2(.264f, 1), new Vector2(.264f, 1), new Vector2(0, -1063), new Vector2(500, 18), TextAnchor.MiddleCenter, FontStyle.Bold);
             refs.hints.gameObject.AddComponent<OutGameLetterSpacing>().spacing = .8f;
+            MigrateTitleLogin(refs); // 登录页新美术布局（2026-08-16）
             Save(root, path);
         }
 
@@ -1449,6 +1509,36 @@ namespace MasterHouse
             view.confirmButton = PageButton(view.panel, "Confirm", "开始新的一天 →", new Vector2(0, 55),
                 new Vector2(300, 62), Hex("6E243E"), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
             view.confirmLabel = view.confirmButton.GetComponentInChildren<Text>();
+            Save(root, path);
+        }
+
+        /// <summary>
+        /// Hub 场景世界层（2026-08-16 场景固化）：主楼剖面底图 + 四间房画面矩形 + 接待室区域标记。
+        /// 锚点/uvRect 初值取 HubWorldGrid 的标定常量，之后在 Prefab 里手调即为真相（运行时反读同步）。
+        /// </summary>
+        private static void BuildHubSceneWorld(string path)
+        {
+            var root = new GameObject("HubSceneWorld", typeof(RectTransform));
+            root.layer = 5;
+            var rootRect = (RectTransform)root.transform;
+            rootRect.pivot = Vector2.zero; // 相机数学以左下角为原点
+            rootRect.anchorMin = rootRect.anchorMax = Vector2.zero;
+            rootRect.sizeDelta = new Vector2(1920, 1080); // 设计尺寸：Prefab 模式可视化编辑用；运行时按视口重设
+            var view = root.AddComponent<OutGameHubWorldView>();
+
+            view.houseBackdrop = Raw(root.transform, "HouseBackdrop", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            view.houseBackdrop.texture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/OutGameUI/house-main.png");
+
+            view.roomArts = new RawImage[HubWorldGrid.RoomCount];
+            for (var room = 0; room < HubWorldGrid.RoomCount; room++)
+            {
+                var region = HubWorldGrid.RegionOf(room);
+                var art = Raw(root.transform, "RoomArt" + room, region.min, region.max, Vector2.zero, Vector2.zero);
+                art.uvRect = HubWorldGrid.ContentCropOf(room);
+                view.roomArts[room] = art;
+            }
+            var reception = HubWorldGrid.RegionOf(HubWorldGrid.Reception);
+            view.receptionArea = Rect(root.transform, "ReceptionArea", reception.min, reception.max, Vector2.zero, Vector2.zero);
             Save(root, path);
         }
 

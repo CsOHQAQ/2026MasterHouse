@@ -87,7 +87,7 @@ namespace MasterHouse
         public static OutGameVisitorActor Create(Transform parent, string actorId, string actorName, string sheetBase,
             bool isAmbient, float spawnDelay, Vector2 door, Vector2 wait,
             Func<int, Rect> walkArea, Func<int, Rect> entryArea,
-            Action clicked, Action gone, bool spawnInside = false)
+            Action clicked, Action gone, bool spawnInside = false, int startRoom = 0)
         {
             var awaitMeta = OutGameVisitorSheet.Load(sheetBase + "_await_sheet", out var awaitTex);
             if (awaitMeta == null)
@@ -110,6 +110,7 @@ namespace MasterHouse
             actor.onClicked = clicked;
             actor.onGone = gone;
             actor.spawnInside = spawnInside;
+            actor.RoomIndex = startRoom; // 主楼场景（2026-08-16）：访客进场落在接待室，而不是默认房间 0
             actor.walkSpeed = .055f * UnityEngine.Random.Range(.85f, 1.15f);
             actor.stateTimer = Mathf.Max(0f, spawnDelay);
             actor.BuildHierarchy();
