@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 185ed5bc5ce815f48a5b9b0699cb5bb0, type: 3}
   m_Name: Step_2_SplitNCombine01
   m_EditorClassIdentifier: 
-  DeveloperNotes: 
+  DeveloperNotes: "\u7B80\u5355\u65B0\u624B\u5173\uFF1A\u4E24\u79CD\u901A\u5173\u8DEF\u5F84"
   Canvas:
     Grids:
     - DeltaPosition: {x: 0, y: 3}
