@@ -47,7 +47,7 @@ namespace MasterHouse
         private Vector2 doorPoint;
         private Vector2 waitPoint;
         /// <summary>所在房间的访客活动区（房间表可配；由舞台层注入，游走落点与拖拽钳制共用）。</summary>
-        private Func<int, Rect> walkArea;
+        private Func<int, Vector2> randomWalkPoint;
         /// <summary>所在房间的访客入口区（房间表可配）：离场时走向本房间的门口范围。</summary>
         private Func<int, Rect> entryArea;
         private Vector2 moveTarget;
@@ -89,7 +89,7 @@ namespace MasterHouse
 
         public static OutGameVisitorActor Create(Transform parent, string actorId, string actorName, string sheetBase,
             bool isAmbient, float spawnDelay, Vector2 door, Vector2 wait,
-            Func<int, Rect> walkArea, Func<int, Rect> entryArea,
+            Func<int, Vector2> randomWalkPoint, Func<int, Rect> entryArea,
             Action clicked, Action gone, bool spawnInside = false, int startRoom = 0)
         {
             var awaitMeta = OutGameVisitorSheet.Load(sheetBase + "_await_sheet", out var awaitTex);
@@ -108,7 +108,7 @@ namespace MasterHouse
             actor.celebrateSheet = OutGameVisitorSheet.Load(sheetBase + "_attack_sheet", out actor.celebrateTexture);
             actor.doorPoint = door;
             actor.waitPoint = wait;
-            actor.walkArea = walkArea;
+            actor.randomWalkPoint = randomWalkPoint;
             actor.entryArea = entryArea;
             actor.onClicked = clicked;
             actor.onGone = gone;
@@ -524,7 +524,9 @@ namespace MasterHouse
         /// <summary>所在房间活动区内随机取落点（活动区按房间美术红框配置在房间表）。</summary>
         private Vector2 RandomWalkPoint()
         {
-            var area = walkArea != null ? walkArea(RoomIndex) : Rect.MinMaxRect(.04f, .03f, .96f, .35f);
+            // 可走梯形的取样逻辑在舞台层（与家具地面网格同源，2026-08-16）；无委托时回落旧矩形
+            if (randomWalkPoint != null) return randomWalkPoint(RoomIndex);
+            var area = Rect.MinMaxRect(.04f, .03f, .96f, .35f);
             return new Vector2(
                 UnityEngine.Random.Range(area.xMin, area.xMax),
                 UnityEngine.Random.Range(area.yMin, area.yMax));

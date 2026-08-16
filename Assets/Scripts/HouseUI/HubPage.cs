@@ -319,7 +319,25 @@ namespace MasterHouse
             // 音效需求 #3：点访客卡/NPC 的交互音在此统一发（两条点击路径都汇到这里；访客卡按钮的基础点击音已关避免叠响）
             SfxManager.Play(ESfx.GuestInteract);
 
-            // 对话框由 DialogueManager.PlaybackStarted 事件拉起（见 OnDialogueStarted）
+            // 先把镜头移动到访客站位并放大、再弹对话（2026-08-16 用户定案）
+            scene.FocusVisitor(instanceId);
+            DG.Tweening.DOVirtual.DelayedCall(.6f, () => // 与推镜时长（.55s）衔接
+            {
+                if (view == null || furnitureModeOpen) return; // 页面已退出/进了摆放模式就不再弹
+                TalkTo(instanceId);
+            }, true);
+        }
+
+        /// <summary>推镜到位后真正发起对话（对话框由 DialogueManager.PlaybackStarted 事件拉起）。</summary>
+        private void TalkTo(int instanceId)
+        {
+            var visitors = GameManager.Instance.VisitorManager;
+            var instance = visitors.Find(instanceId);
+            if (instance == null)
+            {
+                Toast("这位访客已经离开了");
+                return;
+            }
             if (visitors.RequestTalk(instanceId)) return;
 
             // 走到这里有两种可能：他本来就不该有对话（按原因给提示），
