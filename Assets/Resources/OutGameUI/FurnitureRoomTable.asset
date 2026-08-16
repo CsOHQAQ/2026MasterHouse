@@ -16,8 +16,8 @@ MonoBehaviour:
   - id: living
     displayName: "\u8D77\u5C45\u5BA4"
     sceneWidth: 1672
-    sceneHeight: 941
-    background: {fileID: 21300000, guid: 34f9bbefb390a7d4ab0198896cba191e, type: 3}
+    sceneHeight: 630
+    background: {fileID: 21300000, guid: 0db2009c3c0dde44dbcbcdb8c19649d5, type: 3}
     depthBlurOverlay: {fileID: 0}
     focusBlurOverlay: {fileID: 0}
     startCredit: 2480
@@ -36,22 +36,22 @@ MonoBehaviour:
     grids:
     - id: wall
       surface: 2
-      cols: 51
-      rows: 15
+      cols: 34
+      rows: 14
       cellWidth: 30
       cellHeight: 30
-      x: 56
-      y: 110
+      x: 316
+      y: 75
       farWidthScale: 1
     - id: floor
       surface: 0
-      cols: 51
+      cols: 53
       rows: 6
       cellWidth: 30
-      cellHeight: 22.5
-      x: 56
-      y: 581
-      farWidthScale: 0.6
+      cellHeight: 21.6
+      x: 40
+      y: 500
+      farWidthScale: 0.65
     blockedCells: []
     initialPlacements:
     - furnitureId: landscape_poster_02
@@ -89,8 +89,8 @@ MonoBehaviour:
   - id: bedroom
     displayName: "\u5367\u5BA4"
     sceneWidth: 1672
-    sceneHeight: 941
-    background: {fileID: 21300000, guid: d93ecc63c2130974c87a60ff949daace, type: 3}
+    sceneHeight: 635
+    background: {fileID: 21300000, guid: d8ae190b6ff5a764ea525793053c4ac1, type: 3}
     depthBlurOverlay: {fileID: 0}
     focusBlurOverlay: {fileID: 0}
     startCredit: 2480
@@ -109,22 +109,22 @@ MonoBehaviour:
     grids:
     - id: wall
       surface: 2
-      cols: 52
-      rows: 15
+      cols: 28
+      rows: 13
       cellWidth: 30
       cellHeight: 30
-      x: 56
-      y: 110
+      x: 242
+      y: 109
       farWidthScale: 1
     - id: floor
       surface: 0
-      cols: 52
-      rows: 6
+      cols: 53
+      rows: 5
       cellWidth: 30
-      cellHeight: 22.5
-      x: 56
-      y: 581
-      farWidthScale: 0.45
+      cellHeight: 21
+      x: 40
+      y: 530
+      farWidthScale: 0.74
     blockedCells: []
     initialPlacements:
     - furnitureId: landscape_poster_03
@@ -162,8 +162,8 @@ MonoBehaviour:
   - id: kitchen
     displayName: "\u53A8\u623F"
     sceneWidth: 1672
-    sceneHeight: 941
-    background: {fileID: 21300000, guid: 518657f7cd27e9748a2ff9361ea5d3e6, type: 3}
+    sceneHeight: 627
+    background: {fileID: 21300000, guid: 9097d71638002674eb2e834ddc66d3b2, type: 3}
     depthBlurOverlay: {fileID: 0}
     focusBlurOverlay: {fileID: 0}
     startCredit: 2480
@@ -182,22 +182,22 @@ MonoBehaviour:
     grids:
     - id: wall
       surface: 2
-      cols: 52
-      rows: 15
+      cols: 24
+      rows: 14
       cellWidth: 30
       cellHeight: 30
-      x: 56
-      y: 110
+      x: 562
+      y: 75
       farWidthScale: 1
     - id: floor
       surface: 0
-      cols: 52
+      cols: 53
       rows: 6
       cellWidth: 30
-      cellHeight: 22.5
-      x: 56
-      y: 581
-      farWidthScale: 0.6
+      cellHeight: 20.8
+      x: 40
+      y: 502
+      farWidthScale: 0.65
     blockedCells: []
     initialPlacements:
     - furnitureId: vintage_square_clock_02
@@ -227,8 +227,8 @@ MonoBehaviour:
   - id: study
     displayName: "\u4E66\u623F"
     sceneWidth: 1672
-    sceneHeight: 941
-    background: {fileID: 21300000, guid: d64c5844519fc064fa15388d83193f79, type: 3}
+    sceneHeight: 623
+    background: {fileID: 21300000, guid: 3822a90d495a7e74584941ee5b1e36cf, type: 3}
     depthBlurOverlay: {fileID: 0}
     focusBlurOverlay: {fileID: 0}
     startCredit: 2480
@@ -247,21 +247,21 @@ MonoBehaviour:
     grids:
     - id: wall
       surface: 2
-      cols: 52
-      rows: 15
+      cols: 46
+      rows: 14
       cellWidth: 30
       cellHeight: 30
-      x: 56
-      y: 110
+      x: 130
+      y: 59
       farWidthScale: 1
     - id: floor
       surface: 0
-      cols: 52
+      cols: 53
       rows: 6
       cellWidth: 30
-      cellHeight: 22.5
-      x: 56
-      y: 581
+      cellHeight: 20.1
+      x: 40
+      y: 502
       farWidthScale: 0.88
     blockedCells: []
     initialPlacements:
