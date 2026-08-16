@@ -109,6 +109,7 @@ namespace MasterHouse
 
             board = new CircuitBoard(levels[0], levelManager, linkManager, view, ResolveUiCamera());
             board.LayoutChanged += Refresh;
+            board.DrawingChanged += RefreshLinkBudget;
 
             BindButtons();
             SetupChrome();
@@ -334,7 +335,11 @@ namespace MasterHouse
 
         private void OnDestroy()
         {
-            if (board != null) board.LayoutChanged -= Refresh;
+            if (board != null)
+            {
+                board.LayoutChanged -= Refresh;
+                board.DrawingChanged -= RefreshLinkBudget;
+            }
             // 页面被壳直接销毁（ESC / 遮罩）时，宿主已经按「关掉页面且不结算」处理，
             // 这里不再补调 onAbort——重复回调会违反「只调一次」的契约
             running = false;
@@ -369,15 +374,7 @@ namespace MasterHouse
         /// <summary>预算条与件库余量。布局一改就刷，不逐帧刷。</summary>
         private void Refresh()
         {
-            int usedCells = level.UsedLinkCells;
-            int budget = level.LinkCellBudget;
-            if (view.linkBudgetLabel != null)
-            {
-                view.linkBudgetLabel.text = budget > 0 ? $"导线 {usedCells}/{budget}" : $"导线 {usedCells}";
-                view.linkBudgetLabel.color = budget > 0 && usedCells >= budget
-                    ? view.budgetWarnColor
-                    : view.budgetNormalColor;
-            }
+            RefreshLinkBudget();
 
             int placed = 0, cap = 0;
             foreach (var entry in level.Def.BuildableNodes)
@@ -389,8 +386,9 @@ namespace MasterHouse
             if (view.pieceBudgetLabel != null)
             {
                 view.pieceBudgetLabel.text = $"中转件 {placed}/{cap}";
+                // 摆满 = 提示色而非报红：CanBuild 硬拦着，摆满是常态不是错误（与导线栏同一套语义）
                 view.pieceBudgetLabel.color = cap > 0 && placed >= cap
-                    ? view.budgetWarnColor
+                    ? view.budgetFullColor
                     : view.budgetNormalColor;
             }
 
@@ -398,6 +396,31 @@ namespace MasterHouse
                 view.litLabel.text = $"已点亮 {CircuitSolver.CountLit(level)}/{CircuitSolver.CountBatteries(level)}";
 
             RefreshPalette();
+        }
+
+        /// <summary>
+        /// 导线预算标签。描格途中每变一格就刷一次（<see cref="CircuitBoard.DrawingChanged"/>），
+        /// 所以这里**只碰这一个标签**——整套 <see cref="Refresh"/> 有 CountLit 遍历与件库重建，逐格调不划算。
+        ///
+        /// 口径 = 已成线格数 +（正在描的格数），与建线校验一致（§8.3）；
+        /// 正在描时分开显示成 `12(+5)/30`，玩家才知道退回能省下多少。
+        /// 三档配色：未满白、正好用满提示色、**超出才报红**——用满是合法解，报红会误导（2026-08-16 改）。
+        /// </summary>
+        private void RefreshLinkBudget()
+        {
+            if (view.linkBudgetLabel == null) return;
+
+            int committed = level.UsedLinkCells;
+            int pending = board != null ? board.PendingLinkCells : 0;
+            int total = committed + pending;
+            int budget = level.LinkCellBudget;
+
+            var used = pending > 0 ? $"{committed}(+{pending})" : committed.ToString();
+            view.linkBudgetLabel.text = budget > 0 ? $"导线 {used}/{budget}" : $"导线 {used}";
+
+            if (budget <= 0 || total < budget) view.linkBudgetLabel.color = view.budgetNormalColor;
+            else if (total == budget) view.linkBudgetLabel.color = view.budgetFullColor;
+            else view.linkBudgetLabel.color = view.budgetWarnColor;
         }
 
         // ══════════ 件库 ══════════

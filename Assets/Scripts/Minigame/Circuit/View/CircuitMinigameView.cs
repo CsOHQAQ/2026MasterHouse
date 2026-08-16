@@ -97,7 +97,12 @@ namespace MasterHouse
         public Color previewColor = new Color(0.95f, 0.90f, 0.45f, 0.75f);
         public Color legalColor = new Color(0.40f, 0.90f, 0.45f, 0.55f);
         public Color illegalColor = new Color(0.92f, 0.35f, 0.32f, 0.55f);
+        [Tooltip("预算超出上限时的数字颜色（只有导线会超；中转件被 CanBuild 硬拦，到不了这一档）")]
         public Color budgetWarnColor = new Color(0.95f, 0.36f, 0.33f, 1f);
+
+        [Tooltip("预算正好用满时的数字颜色。用满是合法甚至最优解，不该报红，但要看得见")]
+        public Color budgetFullColor = new Color(0.98f, 0.78f, 0.35f, 1f);
+
         public Color budgetNormalColor = Color.white;
     }
 }

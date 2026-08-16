@@ -29,8 +29,8 @@ namespace MasterHouse
         [Tooltip("本关可摆的中转件与各自数量上限：难度的主要调节旋钮之一（§4.3）")]
         public List<BuildableNodeEntry> BuildableNodes = new List<BuildableNodeEntry>();
 
-        [Tooltip("导线总格数上限，0 = 不限（§4.3）。口径 = Σ 每条线的途径格数；" +
-                 "描格时预算耗尽即停住不延伸，与撞墙同一手感；删线退还")]
+        [Tooltip("导线总格数上限，0 = 不限（§8.3）。口径 = Σ 每条线的途径格数；" +
+                 "描格时可以画超（超出段标红），松手提交时才被拒；删线退还")]
         public int MaxLinkCells;
     }
 

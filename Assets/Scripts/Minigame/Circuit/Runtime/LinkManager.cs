@@ -63,7 +63,8 @@ namespace MasterHouse
             var pathCells = ValidatePlayerPath(level, path, start, goal, out failReason);
             if (pathCells == null) return null;
 
-            // 导线预算（§4.3）：描格时交互层已按预算停住，这里是不信任 Controller 的复核
+            // 导线预算（§8.3）：**这里是唯一的闸门**。2026-08-16 起描格不再按预算停住——玩家可以画超，
+            // 超出的部分在棋盘上画成红色、顶栏数字同步标红，松手提交时才在这里被拒（失败原因会显示给玩家）
             int budget = level.LinkCellBudget;
             if (budget > 0 && level.UsedLinkCells + pathCells.Count > budget)
             {

@@ -69,8 +69,15 @@ namespace MasterHouse
         /// <summary>布局发生了改变（增删线、摆件、移件）：预算条与件库余量要重刷。</summary>
         public event Action LayoutChanged;
 
+        /// <summary>正在描的线长度变了：只有导线预算那一个标签要重刷，别走整套 <see cref="LayoutChanged"/>。</summary>
+        public event Action DrawingChanged;
+
         /// <summary>玩家当前从件库选中的中转件；null = 没选。</summary>
         public NodeDef PendingPlacement => pendingPlacement;
+
+        /// <summary>正在描的这条线已经占了几格，没在描线时为 0。
+        /// **含起点接线格**——与 <see cref="LinkManager.TryCreateLink"/> 的预算口径一致（§8.3）。</summary>
+        public int PendingLinkCells => drawFromPin != null ? drawPath.Count : 0;
 
         public CircuitBoard(LevelData level, LevelManager levelManager, LinkManager linkManager,
             CircuitMinigameView view, Camera uiCamera)
@@ -201,16 +208,26 @@ namespace MasterHouse
                 BeginLeftGesture(cell, offset);
 
             if (drawFromPin != null)
+            {
+                int before = drawPath.Count;
                 UpdateDrawPath();
+                if (drawPath.Count != before) DrawingChanged?.Invoke();
+            }
 
             if (!Input.GetMouseButtonUp(0)) return;
 
-            if (drawFromPin != null) FinishLinkDrag();
+            bool wasDrawing = drawFromPin != null;
+            if (wasDrawing) FinishLinkDrag();
             else if (draggingNode != null) FinishNodeDrag();
 
             drawFromPin = null;
             draggingNode = null;
             drawPath.Clear();
+
+            // 描格一结束预算标签就得把「正在画」的部分退回去。建线成功那条路径已经自己清干净并发过
+            // LayoutChanged 了，这里再发一次也只是重刷一个标签；而没接到 Pin 的静默作废根本不发
+            // LayoutChanged，数字会卡在松手前的值上——所以这一发不能省
+            if (wasDrawing) DrawingChanged?.Invoke();
         }
 
         private void BeginLeftGesture(Vector2Int cell, Vector2 offset)
@@ -236,6 +253,7 @@ namespace MasterHouse
                 drawFromPin = pin;
                 drawPath.Clear();
                 drawPath.Add(pin.Owner.GetPinPortCell(pin.IndexInNode));
+                DrawingChanged?.Invoke(); // 起点那一格也计入预算，按下即可见
                 return;
             }
 
@@ -249,7 +267,11 @@ namespace MasterHouse
         /// 描格（§4.6，手感规则原样沿用旧实现）：
         /// - 鼠标落回已描过的格 → 截断到那一格（可一次退多格，鼠标快也不卡）；
         /// - 斜向移动 → 优先沿上一段方向先走一格再转弯（拐角更少）；
-        /// - 撞到非法格或预算耗尽 → **停住不延伸、不作废**，玩家绕开或退回继续描。
+        /// - 撞到非法格 → **停住不延伸、不作废**，玩家绕开或退回继续描。
+        ///
+        /// **预算不拦描格**（2026-08-16 改）：可以照画不误，超出的那一段画成非法色，
+        /// 松手提交时才由 <see cref="LinkManager.TryCreateLink"/> 拒掉（§8.3）。
+        /// 旧版在这里夹死，玩家撞到预算墙时手感与撞画布边界无异，分不清是「没地方了」还是「没预算了」。
         /// </summary>
         private void UpdateDrawPath()
         {
@@ -293,10 +315,9 @@ namespace MasterHouse
             return new Vector2Int(0, diff.y > 0 ? 1 : -1);
         }
 
+        /// <summary>能否把线延伸进这一格。**不看预算**——超预算由提交时拒绝，见 <see cref="UpdateDrawPath"/>。</summary>
         private bool CanDrawInto(Vector2Int cell)
         {
-            // 预算耗尽即停住不延伸，与撞墙同一手感（§4.3）。首格也计入，所以是 >=
-            if (drawPath.Count >= level.RemainingLinkCells) return false;
             if (!level.IsInCanvas(cell) || level.IsOccupied(cell)) return false;
             return !drawPath.Contains(cell);
         }
@@ -312,9 +333,15 @@ namespace MasterHouse
             var link = linkManager.TryCreateLink(level, drawFromPin, toPin, out var reason, drawPath);
             if (link == null)
             {
-                ShowMessage($"连线失败：{reason}"); // 失败原因必须在界面可见
+                ShowMessage($"连线失败：{reason}"); // 失败原因必须在界面可见（超预算也走这里）
                 return;
             }
+
+            // 先清描格状态再播 LayoutChanged：这条线的格数此刻已经进了 UsedLinkCells，
+            // drawPath 不清的话标签会把它和 PendingLinkCells 重复加一遍
+            drawFromPin = null;
+            drawPath.Clear();
+
             RebuildLinks();
             RebuildNodes(); // 点亮状态可能变了
             LayoutChanged?.Invoke();
@@ -602,7 +629,10 @@ namespace MasterHouse
             previewPool.Begin();
 
             if (drawFromPin != null && drawPath.Count > 0)
-                DrawPolyline(previewPool, drawPath, view.previewColor, WireWidthFactor * 0.85f);
+                // 超出预算的那一段直接画成非法色：顶栏数字之外，棋盘上也要一眼看得出超了多少（§8.3）。
+                // 不限预算时 RemainingLinkCells 是 int.MaxValue，整条线都在预算内
+                DrawPolyline(previewPool, drawPath, view.previewColor, WireWidthFactor * 0.85f,
+                    level.RemainingLinkCells, view.illegalColor);
 
             var ghostDef = pendingPlacement ?? draggingNode?.Def;
             if (ghostDef != null && hoverValid)
@@ -626,12 +656,21 @@ namespace MasterHouse
         }
 
         private void DrawPolyline(Pool<Image> pool, IReadOnlyList<Vector2Int> cells, Color color, float widthFactor)
+            => DrawPolyline(pool, cells, color, widthFactor, int.MaxValue, color);
+
+        /// <summary>
+        /// 折线；下标 ≥ <paramref name="overflowFrom"/> 的格与其连接段改用 <paramref name="overflowColor"/>。
+        /// 传下标而不是传委托：本方法逐帧跑，闭包会churn 出 GC。
+        /// </summary>
+        private void DrawPolyline(Pool<Image> pool, IReadOnlyList<Vector2Int> cells, Color color, float widthFactor,
+            int overflowFrom, Color overflowColor)
         {
             float w = cellSize * widthFactor;
             for (int i = 0; i < cells.Count; i++)
             {
+                var tint = i < overflowFrom ? color : overflowColor;
                 var joint = pool.Next();
-                joint.color = color;
+                joint.color = tint;
                 var jointRect = joint.rectTransform;
                 jointRect.sizeDelta = new Vector2(w, w);
                 jointRect.anchoredPosition = CellToLocal(cells[i]);
@@ -641,7 +680,7 @@ namespace MasterHouse
                 var a = CellToLocal(cells[i - 1]);
                 var b = CellToLocal(cells[i]);
                 var segment = pool.Next();
-                segment.color = color;
+                segment.color = tint;
                 var segmentRect = segment.rectTransform;
                 segmentRect.anchoredPosition = (a + b) * .5f;
                 segmentRect.sizeDelta = Mathf.Approximately(a.x, b.x)
