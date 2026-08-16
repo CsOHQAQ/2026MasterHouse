@@ -10,31 +10,31 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 971427e70e2d55448ac0c6ac091c734a, type: 3}
-  m_Name: Cond_2x3_5_DeviceIntro00
+  m_Name: Cond_3x2_5_VerDevice01
   m_EditorClassIdentifier: 
-  DisplayName: DeviceIntro00
+  DisplayName: VerDevice01
   BackgroundSprite: {fileID: 21300000, guid: 22f384bd905bb7343b94af2a76e3d038, type: 3}
   Shape:
     Grids:
-    - DeltaPosition: {x: 0, y: 2}
-      Type: 0
     - DeltaPosition: {x: 0, y: 1}
-      Type: 0
-    - DeltaPosition: {x: 1, y: 1}
-      Type: 0
-    - DeltaPosition: {x: 1, y: 0}
       Type: 0
     - DeltaPosition: {x: 0, y: 0}
       Type: 0
-    - DeltaPosition: {x: 1, y: 2}
+    - DeltaPosition: {x: 1, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 1}
       Type: 0
   Pins:
   - Pin:
       MaxRate: 1
       Direction: 1
       PinGroup: -1
-    LocalCell: {x: 0, y: 1}
-    Facing: 3
+    LocalCell: {x: 1, y: 1}
+    Facing: 0
   Conditions:
   - RequiredAmount: 5
     AllowExcess: 0

@@ -652,6 +652,10 @@ namespace MasterHouse.EditorTools
         static void CopyBaseNodeFields(NodeDef source, NodeDef destination)
         {
             destination.DisplayName = source.DisplayName;
+            destination.BackgroundSprite = source.BackgroundSprite;
+            destination.FunctionIconSprite = source.FunctionIconSprite;
+            destination.BackgroundColor = source.BackgroundColor;
+            destination.IconColor = source.IconColor;
             destination.Shape = new GridGroup
             {
                 Grids = source.Shape != null ? new List<GridData>(source.Shape.Grids) : new List<GridData>(),

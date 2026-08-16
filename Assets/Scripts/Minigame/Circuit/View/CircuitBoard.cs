@@ -27,6 +27,7 @@ namespace MasterHouse
         private const float WireWidthFactor = 0.30f;
         private const float PinMarkerFactor = 0.24f;
         private const float CellGap = 2f;
+        private const float FunctionIconPaddingFactor = 0.18f;
         private const float MessageSeconds = 3.5f;
 
         private readonly LevelData level;
@@ -37,6 +38,7 @@ namespace MasterHouse
 
         private readonly Pool<Image> gridPool;
         private readonly Pool<Image> nodePool;
+        private readonly Pool<Image> iconPool;
         private readonly Pool<Image> linkPool;
         private readonly Pool<Image> previewPool;
         private readonly Pool<Text> labelPool;
@@ -79,6 +81,7 @@ namespace MasterHouse
 
             gridPool = new Pool<Image>(view.gridRoot, NewImage);
             nodePool = new Pool<Image>(view.nodeRoot, NewImage);
+            iconPool = new Pool<Image>(view.nodeRoot, NewImage);
             linkPool = new Pool<Image>(view.linkRoot, NewImage);
             previewPool = new Pool<Image>(view.previewRoot, NewImage);
             labelPool = new Pool<Text>(view.nodeRoot, NewLabel);
@@ -446,19 +449,12 @@ namespace MasterHouse
         private void RebuildNodes()
         {
             nodePool.Begin();
+            iconPool.Begin();
             labelPool.Begin();
 
             foreach (var node in level.Nodes) // NodeId 稳定顺序
             {
-                var body = BodyColor(node);
-                foreach (var cell in node.Def.Shape.CellsAt(node.Origin))
-                {
-                    var image = nodePool.Next();
-                    image.color = body;
-                    var rect = image.rectTransform;
-                    rect.sizeDelta = new Vector2(cellSize - CellGap, cellSize - CellGap);
-                    rect.anchoredPosition = CellToLocal(cell);
-                }
+                DrawNodeBody(node);
 
                 for (int i = 0; i < node.Pins.Count; i++)
                     DrawPinMarker(node, node.Pins[i]);
@@ -474,7 +470,81 @@ namespace MasterHouse
             }
 
             nodePool.End();
+            iconPool.End();
             labelPool.End();
+        }
+
+        /// <summary>
+        /// 标准节点皮肤只覆盖完整矩形：一张九宫格底图 + 一张等比功能图标。
+        /// Shape 的玩法判定仍逐格进行；未来若真做异形节点，安全地退回旧逐格表现，
+        /// 而不是把一张矩形底图错误铺进空格。
+        /// </summary>
+        private void DrawNodeBody(NodeData node)
+        {
+            if (node.Def.BackgroundSprite != null && TryGetFilledRectangle(node.Def.Shape,
+                    out int minX, out int minY, out int width, out int height))
+            {
+                var background = nodePool.Next();
+                background.sprite = node.Def.BackgroundSprite;
+                background.type = Image.Type.Sliced;
+                background.preserveAspect = false;
+                background.color = BodyColor(node);
+                var backgroundRect = background.rectTransform;
+                backgroundRect.sizeDelta = new Vector2(width * cellSize - CellGap, height * cellSize - CellGap);
+                backgroundRect.anchoredPosition = CellToLocal(node.Origin + new Vector2Int(minX, minY)) +
+                                                 new Vector2((width - 1) * cellSize, (height - 1) * cellSize) * .5f;
+
+                if (node.Def.FunctionIconSprite == null) return;
+
+                var icon = iconPool.Next();
+                icon.sprite = node.Def.FunctionIconSprite;
+                icon.type = Image.Type.Simple;
+                icon.preserveAspect = true;
+                icon.color = node.Def.IconColor;
+                var iconRect = icon.rectTransform;
+                float padding = cellSize * FunctionIconPaddingFactor;
+                iconRect.sizeDelta = new Vector2(
+                    Mathf.Max(0f, backgroundRect.sizeDelta.x - padding * 2f),
+                    Mathf.Max(0f, backgroundRect.sizeDelta.y - padding * 2f));
+                iconRect.anchoredPosition = backgroundRect.anchoredPosition;
+                return;
+            }
+
+            // 无美术或非矩形节点的兼容表现：保持原先逐格渲染，绝不改变占格可读性。
+            var body = BodyColor(node);
+            foreach (var cell in node.Def.Shape.CellsAt(node.Origin))
+            {
+                var image = nodePool.Next();
+                image.sprite = null;
+                image.type = Image.Type.Simple;
+                image.preserveAspect = false;
+                image.color = body;
+                var rect = image.rectTransform;
+                rect.sizeDelta = new Vector2(cellSize - CellGap, cellSize - CellGap);
+                rect.anchoredPosition = CellToLocal(cell);
+            }
+        }
+
+        private static bool TryGetFilledRectangle(GridGroup shape, out int minX, out int minY,
+            out int width, out int height)
+        {
+            minX = minY = width = height = 0;
+            if (shape == null || shape.Grids == null || shape.Grids.Count == 0) return false;
+
+            int maxX, maxY;
+            minX = maxX = shape.Grids[0].DeltaPosition.x;
+            minY = maxY = shape.Grids[0].DeltaPosition.y;
+            foreach (var grid in shape.Grids)
+            {
+                minX = Mathf.Min(minX, grid.DeltaPosition.x);
+                maxX = Mathf.Max(maxX, grid.DeltaPosition.x);
+                minY = Mathf.Min(minY, grid.DeltaPosition.y);
+                maxY = Mathf.Max(maxY, grid.DeltaPosition.y);
+            }
+
+            width = maxX - minX + 1;
+            height = maxY - minY + 1;
+            return shape.Grids.Count == width * height;
         }
 
         private void DrawPinMarker(NodeData node, PinData pin)
@@ -482,6 +552,9 @@ namespace MasterHouse
             var layout = pin.Layout;
             var outward = Direction4.ToOffset(layout.Facing);
             var image = nodePool.Next();
+            image.sprite = null;
+            image.type = Image.Type.Simple;
+            image.preserveAspect = false;
             image.color = PinColor(node, pin);
             var rect = image.rectTransform;
             float s = cellSize * PinMarkerFactor;
@@ -555,6 +628,15 @@ namespace MasterHouse
 
         private Color BodyColor(NodeData node)
         {
+            var configured = node.Def.BackgroundColor;
+            if (configured.a > 0f)
+            {
+                // 点亮是运行时状态，不占用第三张美术图；先以颜色反馈保留扩展位。
+                return node.Def.NodeType == ENodeType.Condition && node.IsLit
+                    ? Color.Lerp(configured, view.batteryLitColor, .45f)
+                    : configured;
+            }
+
             switch (node.Def.NodeType)
             {
                 case ENodeType.Resource: return view.sourceColor;
