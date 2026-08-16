@@ -1,0 +1,412 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 185ed5bc5ce815f48a5b9b0699cb5bb0, type: 3}
+  m_Name: Step_2_SplitNCombine01
+  m_EditorClassIdentifier: 
+  DeveloperNotes: 
+  Canvas:
+    Grids:
+    - DeltaPosition: {x: 0, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 9, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 10, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 10, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 3, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 4, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 11, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 12, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 13, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 3, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 4, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 9, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 11, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 12, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 13, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 3, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 4, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 9, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 10, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 11, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 12, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 13, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 3, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 4, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 9, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 10, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 11, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 12, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 13, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 3, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 4, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 11, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 12, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 13, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 3, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 4, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 9, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 10, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 11, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 12, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 13, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 13, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 3, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 4, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 12, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 11, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 10, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 9, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 15, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 16, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 15, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 16, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 15, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 16, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 15, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 16, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 15, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 16, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 15, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 16, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 15, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 16, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 14, y: 0}
+      Type: 0
+    - DeltaPosition: {x: 14, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 14, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 14, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 14, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 14, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 14, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 3, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 4, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 9, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 10, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 11, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 12, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 13, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 14, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 15, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 16, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 3, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 4, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 9, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 10, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 11, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 12, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 13, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 14, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 15, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 16, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 0, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 1, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 2, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 3, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 4, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 5, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 9, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 10, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 11, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 12, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 13, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 14, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 15, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 16, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 9, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 10, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 7, y: 5}
+      Type: 0
+    - DeltaPosition: {x: 8, y: 5}
+      Type: 0
+    - DeltaPosition: {x: 9, y: 5}
+      Type: 0
+    - DeltaPosition: {x: 6, y: 5}
+      Type: 0
+    - DeltaPosition: {x: 10, y: 5}
+      Type: 0
+    - DeltaPosition: {x: 17, y: 10}
+      Type: 0
+    - DeltaPosition: {x: 17, y: 9}
+      Type: 0
+    - DeltaPosition: {x: 17, y: 8}
+      Type: 0
+    - DeltaPosition: {x: 17, y: 7}
+      Type: 0
+    - DeltaPosition: {x: 17, y: 6}
+      Type: 0
+    - DeltaPosition: {x: 17, y: 4}
+      Type: 0
+    - DeltaPosition: {x: 17, y: 3}
+      Type: 0
+    - DeltaPosition: {x: 17, y: 2}
+      Type: 0
+    - DeltaPosition: {x: 17, y: 1}
+      Type: 0
+    - DeltaPosition: {x: 17, y: 0}
+      Type: 0
+  PresetNodes:
+  - Node: {fileID: 11400000, guid: 580381940ed818543b96d7ae14fedca5, type: 2}
+    Cell: {x: 1, y: 7}
+    CanMove: 0
+    CanDelete: 0
+  - Node: {fileID: 11400000, guid: 8277973e0dff14d43bf303712f4d1a90, type: 2}
+    Cell: {x: 1, y: 1}
+    CanMove: 0
+    CanDelete: 0
+  - Node: {fileID: 11400000, guid: 651323a4639ba5344ad44c6b136bf09e, type: 2}
+    Cell: {x: 15, y: 7}
+    CanMove: 0
+    CanDelete: 0
+  - Node: {fileID: 11400000, guid: 651323a4639ba5344ad44c6b136bf09e, type: 2}
+    Cell: {x: 15, y: 1}
+    CanMove: 0
+    CanDelete: 0
+  BuildableNodes:
+  - Node: {fileID: 11400000, guid: 80d41760a31595745b9eb64a1762d42f, type: 2}
+    MaxCount: 2
+  - Node: {fileID: 11400000, guid: dac06f68809e8f54c967908dbea5bcd2, type: 2}
+    MaxCount: 2
+  - Node: {fileID: 11400000, guid: 53f7655b3cd4660439ddb5ea98cb3912, type: 2}
+    MaxCount: 1
+  MaxLinkCells: 24
