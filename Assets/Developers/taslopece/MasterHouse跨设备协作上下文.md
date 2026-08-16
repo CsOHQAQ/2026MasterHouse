@@ -76,6 +76,7 @@
 - 修理电路关卡规则、题型、教学顺序、难度旋钮与评审模板：`Assets/Developers/taslopece/MiniGame_Electric/修理电路关卡设计指南.md`。
 - 修理电路 A–J 原型所需节点、美术包装拆包与制作检查：`Assets/Developers/taslopece/MiniGame_Electric/修理电路关卡原型-节点与美术包装需求.md`。
 - 修理电路八个难度维度、组合原则、伪难度红线与单关填写模板：`Assets/Developers/taslopece/MiniGame_Electric/修理电路关卡难度设计.md`。
+- 四张待搭建跑测的进阶关卡图与初始配置：`Assets/Developers/taslopece/MiniGame_Electric/关卡原型Test.md`。
 - 权威技术决策：`Docs/架构设计.md`；本轮迁移与落地记录：`Docs/待办工作流/小游戏框架与修理电路说明.md`。
 
 遇到待定项：保留占位并注释编号，或先向用户确认；不得自行定案。
