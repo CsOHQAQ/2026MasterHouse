@@ -29,6 +29,9 @@ namespace MasterHouse
         /// <summary>可叠放家具（地毯类）的渲染带：压在所有立式地面家具（OrderFloorItemBase 起）之下。</summary>
         private const int OrderFloorStackableBase = 70;
         private const int OrderFloorItemBase = 100;
+        /// <summary>昼夜罩色层：压在全部场景内容之上（家具层序 100+n 远够不到 500）。</summary>
+        private const int OrderDayVeil = 500;
+        private const float ZDayVeil = .05f;
         private const int OrderGhost = 400;
 
         // 分层 Z 偏移（只用于相机视差，绘制次序由 sortingOrder 决定）
@@ -79,6 +82,9 @@ namespace MasterHouse
         private FurnitureCameraRig rig;
         private FurnitureRoomHud hud;
         private SpriteRenderer focusBlurRenderer;
+        private SpriteRenderer backgroundRenderer;
+        private SpriteRenderer depthBlurRenderer;
+        private SpriteRenderer dayVeilRenderer;
 
         private readonly Dictionary<string, FurnitureRuntimeGrid> grids = new Dictionary<string, FurnitureRuntimeGrid>();
         private readonly Dictionary<string, FurnitureRuntimeItem> items = new Dictionary<string, FurnitureRuntimeItem>();
@@ -163,11 +169,33 @@ namespace MasterHouse
 
         private void BuildBackground()
         {
-            CreateLayer("Background", room.background, OrderBackground, ZBackground, 1f);
+            backgroundRenderer = CreateLayer("Background", room.background, OrderBackground, ZBackground, 1f);
             if (room.depthBlurOverlay != null)
-                CreateLayer("DepthBlur", room.depthBlurOverlay, OrderDepthBlur, ZDepthBlur, 1f);
+                depthBlurRenderer = CreateLayer("DepthBlur", room.depthBlurOverlay, OrderDepthBlur, ZDepthBlur, 1f);
             if (room.focusBlurOverlay != null)
                 focusBlurRenderer = CreateLayer("FocusBlur", room.focusBlurOverlay, OrderFocusBlur, ZFocusBlur, 0f);
+            // 昼夜光照（2026-08-16）：与 Hub/标题页同一条 HouseDayLight 色带——
+            // 背景与家具乘调色；深夜罩色单独一层盖在全部场景内容之上（HUD 是独立 Canvas 不受影响）
+            dayVeilRenderer = CreateLayer("DayVeil", HouseUIRuntime.WhiteSprite, OrderDayVeil, ZDayVeil, 0f);
+            ApplyDayLight();
+        }
+
+        /// <summary>每帧按局内时钟推昼夜光照（乘法调色保对比度；只改 rgb、保留各层自己的透明度动画）。</summary>
+        private void ApplyDayLight()
+        {
+            var (tint, veil) = HouseDayLight.Now();
+            TintPreserveAlpha(backgroundRenderer, tint);
+            TintPreserveAlpha(depthBlurRenderer, tint);
+            TintPreserveAlpha(focusBlurRenderer, tint);
+            foreach (var item in items.Values)
+                TintPreserveAlpha(item.Renderer, tint);
+            if (dayVeilRenderer != null) dayVeilRenderer.color = veil;
+        }
+
+        private static void TintPreserveAlpha(SpriteRenderer renderer, Color tint)
+        {
+            if (renderer == null) return;
+            renderer.color = new Color(tint.r, tint.g, tint.b, renderer.color.a);
         }
 
         private SpriteRenderer CreateLayer(string name, Sprite sprite, int order, float z, float alpha)
@@ -489,6 +517,7 @@ namespace MasterHouse
         private void Update()
         {
             if (closing) return;
+            ApplyDayLight(); // 昼夜光照随时钟流动（摆放中时钟若在走，天色照常变化）
 
             if (Input.GetKeyDown(KeyCode.Escape))
             {
