@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DisplayName: PowerIntro03
   BackgroundSprite: {fileID: 21300000, guid: 22f384bd905bb7343b94af2a76e3d038, type: 3}
-  FunctionIconSprite: {fileID: 21300000, guid: 46cf985d0f187264d877f13d5e2ef236, type: 3}
+  FunctionIconSprite: {fileID: 21300000, guid: a8ac9f4f03a52594ab9eff6c4100fc9b, type: 3}
   Shape:
     Grids:
     - DeltaPosition: {x: 0, y: 2}
