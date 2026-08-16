@@ -163,6 +163,17 @@ namespace MasterHouse
             if (!File.Exists(SavePagePath)) { BuildSavePage(SavePagePath); changed = true; }
             if (!File.Exists(GalleryPagePath)) { BuildGalleryPage(GalleryPagePath); changed = true; }
             if (!File.Exists(SettingsPagePath)) { BuildSettingsPage(SettingsPagePath); changed = true; }
+            else
+            {
+                // 设置页重做（2026-08-16 用户定案）：检测到旧纸张版结构（无 rowsRoot）时整页重建覆盖
+                var settingsRoot = AssetDatabase.LoadAssetAtPath<GameObject>(SettingsPagePath);
+                var settingsView = settingsRoot != null ? settingsRoot.GetComponent<OutGameSettingsPageView>() : null;
+                if (settingsView == null || settingsView.rowsRoot == null)
+                {
+                    BuildSettingsPage(SettingsPagePath);
+                    changed = true;
+                }
+            }
             if (!File.Exists(ExitPagePath)) { BuildExitPage(ExitPagePath); changed = true; }
             if (!File.Exists(HubGuestCardPath)) { BuildHubGuestCard(HubGuestCardPath); changed = true; }
             if (!File.Exists(HubDockButtonPath)) { BuildHubDockButton(HubDockButtonPath); changed = true; }
@@ -223,7 +234,14 @@ namespace MasterHouse
             repaired |= RepairPrefab<OutGamePaperView>(PaperPath, RepairPaper);
             repaired |= RepairPrefab<OutGameSavePageView>(SavePagePath, RepairSavePage);
             repaired |= RepairPrefab<OutGameGalleryPageView>(GalleryPagePath, RepairGalleryPage);
-            repaired |= RepairPrefab<OutGameSettingsPageView>(SettingsPagePath, RepairSettingsPage);
+            repaired |= RepairPrefab<OutGameSettingsPageView>(SettingsPagePath,
+                (root, view) => { RepairSettingsPage(root, view); MigrateSettingsPageBottomBar(root, view); },
+                view => view.applyButton == null ||
+                        view.transform.Find("TitleArt") == null ||
+                        (view.sliderTemplate != null && view.sliderTemplate.slider != null &&
+                         view.sliderTemplate.slider.handleRect != null &&
+                         Mathf.Abs(view.sliderTemplate.slider.handleRect.sizeDelta.x -
+                                   view.sliderTemplate.slider.handleRect.sizeDelta.y) > .5f));
             repaired |= RepairPrefab<OutGameExitPageView>(ExitPagePath, RepairExitPage);
             repaired |= RepairPrefab<OutGameSaveSlotView>(SaveSlotPath, RepairSaveSlot);
             repaired |= RepairPrefab<OutGameHubView>(HubPath, RepairHub, view => view.topBar == null ||
@@ -594,13 +612,27 @@ namespace MasterHouse
 
         private static void RepairSettingsPage(GameObject root, OutGameSettingsPageView view)
         {
-            RepairPaperCommon(root, view);
-            view.dataSummary = Required<Text>(view.contentRoot, "InterfaceData/DataSummary");
-            view.saveButton = Required<Button>(view.contentRoot, "InterfaceData/Save");
-            view.loadButton = Required<Button>(view.contentRoot, "InterfaceData/Load");
-            view.autoDialogueToggle = Required<Toggle>(view.contentRoot, "Gameplay/AutoDialogue");
-            view.hintToggle = Required<Toggle>(view.contentRoot, "Gameplay/ShowHints");
-            view.cameraShakeToggle = Required<Toggle>(view.contentRoot, "Gameplay/CameraShake");
+            // 2026-08-16 新结构：底板 + 分页 + 行模板 + 键位栏（旧纸张版由 EnsureMissingPrefabs 的重建触发接管）
+            view.background = Required<RawImage>(root.transform, "Background");
+            var tabNames = new[] { "基础", "画面", "音频", "控制", "玩法", "账户", "制作组" };
+            view.tabButtons = new Button[tabNames.Length];
+            view.tabBackgrounds = new Image[tabNames.Length];
+            view.tabLabels = new Text[tabNames.Length];
+            for (var i = 0; i < tabNames.Length; i++)
+            {
+                var tab = RequiredTransform(root.transform, "Tab_" + tabNames[i]);
+                view.tabButtons[i] = Required<Button>(tab);
+                view.tabBackgrounds[i] = Required<Image>(tab);
+                view.tabLabels[i] = Required<Text>(tab, "Label");
+            }
+            view.rowsRoot = RequiredTransform(root.transform, "Rows") as RectTransform;
+            var templates = RequiredTransform(root.transform, "Templates");
+            view.headerTemplate = Required<OutGameSettingsHeaderRow>(templates, "HeaderRow");
+            view.sliderTemplate = Required<OutGameSettingsSliderRow>(templates, "SliderRow");
+            view.optionTemplate = Required<OutGameSettingsOptionRow>(templates, "OptionRow");
+            view.tabNormal = SettingsSprite("侧面tab-默认");
+            view.tabSelected = SettingsSprite("侧面tab-选中");
+            view.tabHover = SettingsSprite("侧面tab-悬停");
         }
 
         private static void RepairExitPage(GameObject root, OutGameExitPageView view)
@@ -869,22 +901,235 @@ namespace MasterHouse
             Save(root, path);
         }
 
+        private const string SettingsArtDir = "Assets/Arts/设置/";
+        private const string KeycapDir = "Assets/PC ui/button/default/";
+
+        private static Sprite SettingsSprite(string name) =>
+            AssetDatabase.LoadAssetAtPath<Sprite>(SettingsArtDir + name + ".png");
+
+        /// <summary>设置页（2026-08-16 按新美术全量重做）：底板 + 左侧分页 + 右侧内容行模板 + 底部键位栏。
+        /// 行模板保持未激活，由 SettingsPageBinder 按分页实例化。坐标按效果图 2560×1440 × 0.75 折到 1920×1080。</summary>
         private static void BuildSettingsPage(string path)
         {
             var root = Root("SettingsPage");
-            var refs = BuildCompletePaperPage<OutGameSettingsPageView>(root, "OPTIONS", "设置",
-                "调整显示、音量和界面偏好。所有设置会随当前存档保留。");
-            var left = PaperSectionEditor(refs.contentRoot, "InterfaceData", new Vector2(490, -505), new Vector2(720, 420), "INTERFACE & DATA", "界面与存档");
-            refs.dataSummary = Label(left, "DataSummary", "界面切换       沉浸式\n\n当前存档         Slot 01", 22, Hex("514142"),
-                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -40), new Vector2(610, 130), TextAnchor.MiddleLeft, FontStyle.Normal);
-            refs.saveButton = PageButton(left, "Save", "保存", new Vector2(190, 55), new Vector2(245, 62), Hex("6E243E"), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(0, 0));
-            refs.loadButton = PageButton(left, "Load", "读取存档", new Vector2(-190, 55), new Vector2(245, 62), new Color(1, 1, 1, .08f), Hex("6E243E"), 20, TextAnchor.MiddleCenter, new Vector2(1, 0));
+            var view = root.AddComponent<OutGameSettingsPageView>();
+            view.background = Raw(root.transform, "Background", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            view.background.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(SettingsArtDir + "底板.png");
+            view.background.raycastTarget = true; // 整页承接点击（空白处不穿透到下层）
 
-            var right = PaperSectionEditor(refs.contentRoot, "Gameplay", new Vector2(1270, -505), new Vector2(720, 420), "GAMEPLAY", "游戏性");
-            refs.autoDialogueToggle = PageToggle(right, "AutoDialogue", "对话自动播放", new Vector2(0, 25), false);
-            refs.hintToggle = PageToggle(right, "ShowHints", "显示交互提示", new Vector2(0, -55), true);
-            refs.cameraShakeToggle = PageToggle(right, "CameraShake", "镜头轻微晃动", new Vector2(0, -135), true);
+            view.tabNormal = SettingsSprite("侧面tab-默认");
+            view.tabSelected = SettingsSprite("侧面tab-选中");
+            view.tabHover = SettingsSprite("侧面tab-悬停");
+
+            // 左侧分页列
+            var tabNames = new[] { "基础", "画面", "音频", "控制", "玩法", "账户", "制作组" };
+            view.tabButtons = new Button[tabNames.Length];
+            view.tabBackgrounds = new Image[tabNames.Length];
+            view.tabLabels = new Text[tabNames.Length];
+            for (var i = 0; i < tabNames.Length; i++)
+            {
+                var tab = Image(root.transform, "Tab_" + tabNames[i], new Vector2(0, 1), new Vector2(0, 1),
+                    new Vector2(285, -310 - i * 96), new Vector2(255, 76), Color.white);
+                tab.sprite = view.tabNormal;
+                var button = tab.gameObject.AddComponent<Button>();
+                button.targetGraphic = tab;
+                button.transition = Selectable.Transition.None; // 选中态由绑定器 sprite swap，避免双重换肤打架
+                var label = Label(tab.transform, "Label", tabNames[i], 23, Hex("EDE6E6"),
+                    new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(85, 0), new Vector2(160, 40),
+                    TextAnchor.MiddleLeft, FontStyle.Bold);
+                view.tabButtons[i] = button;
+                view.tabBackgrounds[i] = tab;
+                view.tabLabels[i] = label;
+            }
+
+            // 右侧内容行容器（行由模板实例化，pivot 顶部向下排）
+            view.rowsRoot = Rect(root.transform, "Rows", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(1050, -285), new Vector2(1030, 740));
+            view.rowsRoot.pivot = new Vector2(.5f, 1);
+
+            // 行模板（未激活）
+            var templates = Rect(root.transform, "Templates", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(1050, -285), new Vector2(1030, 90));
+            templates.gameObject.SetActive(false);
+            view.headerTemplate = BuildSettingsHeaderTemplate(templates);
+            view.sliderTemplate = BuildSettingsSliderTemplate(templates);
+            view.optionTemplate = BuildSettingsOptionTemplate(templates);
+
+            // 底部键位栏（可点热区由 MigrateSettingsPageBottomBar 统一补，与旧 Prefab 增量迁移同一份代码）
+            BuildSettingsKeycap(root.transform, "EscHint", "ESC", "返回", new Vector2(0, 0), new Vector2(110, 58), new Vector2(74, 46));
+            BuildSettingsKeycap(root.transform, "ResetHint", "R", "重置修改", new Vector2(1, 0), new Vector2(-345, 58), new Vector2(48, 46));
+            BuildSettingsKeycap(root.transform, "ApplyHint", "space", "应用", new Vector2(1, 0), new Vector2(-135, 58), new Vector2(100, 46));
+            MigrateSettingsPageBottomBar(root, view);
             Save(root, path);
+        }
+
+        /// <summary>
+        /// 设置页增量迁移（2026-08-16 反馈，只补缺失不覆盖手调）：
+        /// ①底部三个键位提示升级为可点热区（透明 Button 盖住键帽+文字）；②「应用」键帽换成 space 图。
+        /// 新建与旧 Prefab 修复共用本函数。
+        /// </summary>
+        private static void MigrateSettingsPageBottomBar(GameObject root, OutGameSettingsPageView view)
+        {
+            view.backButton = EnsureHintButton(root.transform, "EscHint", new Vector2(0, 0), new Vector2(170, 58), new Vector2(250, 66));
+            view.resetButton = EnsureHintButton(root.transform, "ResetHint", new Vector2(1, 0), new Vector2(-290, 58), new Vector2(240, 66));
+            view.applyButton = EnsureHintButton(root.transform, "ApplyHint", new Vector2(1, 0), new Vector2(-85, 58), new Vector2(230, 66));
+            var applyCap = root.transform.Find("ApplyHint") as RectTransform;
+            if (applyCap != null)
+            {
+                var image = applyCap.GetComponent<Image>();
+                var space = AssetDatabase.LoadAssetAtPath<Sprite>(KeycapDir + "space.png");
+                if (image != null && space != null && image.sprite != space)
+                {
+                    image.sprite = space;
+                    applyCap.sizeDelta = new Vector2(100, 46);
+                }
+            }
+            // ⑤左上角 SETTINGS 标题（2026-08-16 反馈）：从效果图裁出的字样，缺失才补
+            if (root.transform.Find("TitleArt") == null)
+            {
+                var title = Image(root.transform, "TitleArt", new Vector2(0, 1), new Vector2(0, 1),
+                    new Vector2(340, -140), new Vector2(463, 113), Color.white);
+                title.sprite = SettingsSprite("标题");
+                title.preserveAspect = true;
+                title.raycastTarget = false;
+            }
+            // ④滑条圆点修圆（2026-08-16 反馈）：把手矩形压回正方形、锚点归中、图按比例绘制
+            if (view.sliderTemplate != null && view.sliderTemplate.slider != null &&
+                view.sliderTemplate.slider.handleRect != null)
+            {
+                var handle = view.sliderTemplate.slider.handleRect;
+                handle.anchorMin = handle.anchorMax = new Vector2(.5f, .5f);
+                handle.sizeDelta = new Vector2(38, 38);
+                var handleImage = handle.GetComponent<Image>();
+                if (handleImage != null) handleImage.preserveAspect = true;
+            }
+            // ③分页列拉开间距（太紧凑，2026-08-16 反馈）：仍是生成默认 79 间距才迁移到 96，手调过不动
+            if (view.tabBackgrounds != null && view.tabBackgrounds.Length >= 2 &&
+                view.tabBackgrounds[0] != null && view.tabBackgrounds[1] != null)
+            {
+                var first = (RectTransform)view.tabBackgrounds[0].transform;
+                var second = (RectTransform)view.tabBackgrounds[1].transform;
+                if (Mathf.Abs(first.anchoredPosition.y - second.anchoredPosition.y - 79f) < 2f)
+                {
+                    for (var i = 1; i < view.tabBackgrounds.Length; i++)
+                    {
+                        if (view.tabBackgrounds[i] == null) continue;
+                        var rect = (RectTransform)view.tabBackgrounds[i].transform;
+                        rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, first.anchoredPosition.y - i * 96f);
+                    }
+                }
+            }
+        }
+
+        /// <summary>键位提示的透明可点热区：已存在则复用（不动手调），缺失才创建。</summary>
+        private static Button EnsureHintButton(Transform root, string baseName, Vector2 anchor, Vector2 position, Vector2 size)
+        {
+            var name = baseName + "Button";
+            var existing = root.Find(name);
+            if (existing != null) return existing.GetComponent<Button>();
+            var image = Image(root, name, anchor, anchor, position, size, Color.clear);
+            image.sprite = HouseUIRuntimeWhite();
+            var button = image.gameObject.AddComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            button.targetGraphic = image;
+            return button;
+        }
+
+        /// <summary>透明热区用的白图（编辑器语境不能用运行时 WhiteSprite，取内置资源）。</summary>
+        private static Sprite HouseUIRuntimeWhite() =>
+            AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+
+        private static OutGameSettingsHeaderRow BuildSettingsHeaderTemplate(RectTransform parent)
+        {
+            var row = Rect(parent, "HeaderRow", new Vector2(.5f, 1), new Vector2(.5f, 1), Vector2.zero, new Vector2(1030, 44));
+            row.pivot = new Vector2(.5f, 1);
+            var refs = row.gameObject.AddComponent<OutGameSettingsHeaderRow>();
+            refs.rule = Image(row, "Rule", new Vector2(0, .5f), new Vector2(0, .5f),
+                new Vector2(360, 0), new Vector2(660, 14), Color.white);
+            refs.rule.sprite = SettingsSprite("分隔栏");
+            refs.rule.raycastTarget = false;
+            refs.title = Label(row, "Title", "<color=#F5437B>|</color> 通用", 24, Hex("F3E8DD"),
+                new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(90, 0), new Vector2(170, 36),
+                TextAnchor.MiddleLeft, FontStyle.Bold);
+            return refs;
+        }
+
+        private static OutGameSettingsSliderRow BuildSettingsSliderTemplate(RectTransform parent)
+        {
+            var row = Rect(parent, "SliderRow", new Vector2(.5f, 1), new Vector2(.5f, 1), Vector2.zero, new Vector2(1030, 78));
+            row.pivot = new Vector2(.5f, 1);
+            var refs = row.gameObject.AddComponent<OutGameSettingsSliderRow>();
+            refs.background = ImageOn(row, Color.white);
+            refs.background.sprite = SettingsSprite("选项-默认");
+            refs.label = Label(row, "Label", "音量", 24, Hex("F3E8DD"),
+                new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(170, 0), new Vector2(280, 40),
+                TextAnchor.MiddleLeft, FontStyle.Bold);
+
+            var sliderRect = Rect(row, "Slider", new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-215, 0), new Vector2(280, 22));
+            var track = ImageOn(Rect(sliderRect, "Background", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero), Color.white);
+            track.sprite = SettingsSprite("进度条-底板");
+            var fillArea = Rect(sliderRect, "FillArea", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            var fill = ImageOn(Rect(fillArea, "Fill", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero), Color.white);
+            fill.sprite = SettingsSprite("进度条-进度");
+            var handleArea = Rect(sliderRect, "HandleArea", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            var handle = ImageOn(Rect(handleArea, "Handle", new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(38, 38)), Color.white);
+            handle.sprite = SettingsSprite("滑块-默认");
+            var slider = sliderRect.gameObject.AddComponent<Slider>();
+            slider.fillRect = (RectTransform)fill.transform;
+            slider.handleRect = (RectTransform)handle.transform;
+            slider.targetGraphic = handle;
+            slider.minValue = 0;
+            slider.maxValue = 100;
+            slider.wholeNumbers = true;
+            refs.slider = slider;
+
+            refs.value = Label(row, "Value", "45", 26, Hex("F3E8DD"),
+                new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-55, 0), new Vector2(80, 40),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            return refs;
+        }
+
+        private static OutGameSettingsOptionRow BuildSettingsOptionTemplate(RectTransform parent)
+        {
+            var row = Rect(parent, "OptionRow", new Vector2(.5f, 1), new Vector2(.5f, 1), Vector2.zero, new Vector2(1030, 78));
+            row.pivot = new Vector2(.5f, 1);
+            var refs = row.gameObject.AddComponent<OutGameSettingsOptionRow>();
+            refs.background = ImageOn(row, Color.white);
+            refs.background.sprite = SettingsSprite("选项-默认");
+            refs.label = Label(row, "Label", "选项", 24, Hex("F3E8DD"),
+                new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(170, 0), new Vector2(280, 40),
+                TextAnchor.MiddleLeft, FontStyle.Bold);
+            var leftImage = Image(row, "Left", new Vector2(1, .5f), new Vector2(1, .5f),
+                new Vector2(-430, 0), new Vector2(30, 36), Color.white);
+            leftImage.sprite = SettingsSprite("切换控件-左箭头-默认");
+            refs.left = leftImage.gameObject.AddComponent<Button>();
+            refs.left.targetGraphic = leftImage;
+            var rightImage = Image(row, "Right", new Vector2(1, .5f), new Vector2(1, .5f),
+                new Vector2(-100, 0), new Vector2(30, 36), Color.white);
+            rightImage.sprite = SettingsSprite("切换控件-左箭头-默认");
+            rightImage.transform.localScale = new Vector3(-1, 1, 1); // 右箭头 = 左箭头镜像
+            refs.right = rightImage.gameObject.AddComponent<Button>();
+            refs.right.targetGraphic = rightImage;
+            refs.value = Label(row, "Value", "开", 24, Hex("F3E8DD"),
+                new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-265, 4), new Vector2(260, 36),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            refs.indicator = Image(row, "Indicator", new Vector2(1, .5f), new Vector2(1, .5f),
+                new Vector2(-265, -22), new Vector2(220, 5), Color.white);
+            refs.indicator.sprite = SettingsSprite("切换控件-指示器-默认");
+            refs.indicator.raycastTarget = false;
+            return refs;
+        }
+
+        private static void BuildSettingsKeycap(Transform parent, string name, string key, string caption,
+            Vector2 anchor, Vector2 position, Vector2 keySize)
+        {
+            var cap = Image(parent, name, anchor, anchor, position, keySize, Color.white);
+            cap.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(KeycapDir + key + ".png");
+            cap.preserveAspect = true;
+            cap.raycastTarget = false;
+            Label(parent, name + "Label", caption, 20, Hex("EDE6E6"),
+                anchor, anchor, position + new Vector2(keySize.x * .5f + 55, 0), new Vector2(120, 32),
+                TextAnchor.MiddleLeft, FontStyle.Bold);
         }
 
         private static void BuildExitPage(string path)
