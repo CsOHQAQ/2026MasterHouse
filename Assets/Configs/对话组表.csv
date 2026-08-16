@@ -2,7 +2,7 @@
 10001,rabbit,,firstMeeting,,开场：打招呼 + 接待/拒绝分支,3
 20001,rabbit,,waitingReception,,已经打过招呼、再点他时说的话（同样要带接待/拒绝）,4
 30001,rabbit,Need_修理电路,needTalk,,小游戏类需求「Need_修理电路」的说辞与交付分支,5
-30002,rabbit,Need_新需求,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,6
+30002,rabbit,Need_制作咖啡,needTalk,,条件类需求「Need_制作咖啡」的说辞与交付分支,6
 30003,rabbit,Need_要蓝色椅子,needTalk,,条件类需求「Need_要蓝色椅子」的说辞与交付分支,7
 40001,rabbit,,feedbackDisappointed,,服务超时后说的话,8
 40002,rabbit,,feedbackPlain,,只有小游戏类会走到,9
@@ -26,7 +26,7 @@
 10201,wolf,,firstMeeting,,开场：打招呼 + 接待/拒绝分支,27
 20201,wolf,,waitingReception,,已经打过招呼、再点他时说的话（同样要带接待/拒绝）,28
 30201,wolf,Need_修理电路,needTalk,,小游戏类需求「Need_修理电路」的说辞与交付分支,29
-30202,wolf,Need_新需求,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,30
+30202,wolf,Need_制作咖啡,needTalk,,条件类需求「Need_新需求」的说辞与交付分支,30
 30203,wolf,Need_要蓝色椅子,needTalk,,条件类需求「Need_要蓝色椅子」的说辞与交付分支,31
 40201,wolf,,feedbackDisappointed,,服务超时后说的话,32
 40202,wolf,,feedbackPlain,,只有小游戏类会走到,33

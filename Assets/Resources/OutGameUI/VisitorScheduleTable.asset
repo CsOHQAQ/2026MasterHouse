@@ -16,7 +16,7 @@ MonoBehaviour:
   - day: 1
     appearMinute: 510
     race: {fileID: 11400000, guid: baca918edc19fa54a89959d88b512972, type: 2}
-    need: {fileID: 11400000, guid: 14a6f0f7966dc5b4d9cc658c99fa5671, type: 2}
+    need: {fileID: 11400000, guid: 87fd44765a7ff224cb4084d79cc0d1d2, type: 2}
     namedOverride: {fileID: 0}
   - day: 1
     appearMinute: 550
@@ -26,7 +26,7 @@ MonoBehaviour:
   - day: 1
     appearMinute: 600
     race: {fileID: 11400000, guid: 4a0a9ea2a74b71742b4aaff26e32166a, type: 2}
-    need: {fileID: 0}
+    need: {fileID: 11400000, guid: 14a6f0f7966dc5b4d9cc658c99fa5671, type: 2}
     namedOverride: {fileID: 0}
   - day: 1
     appearMinute: 840

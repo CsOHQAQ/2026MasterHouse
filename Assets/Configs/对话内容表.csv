@@ -22,7 +22,7 @@
 30001,,,2,2,,Branch,等我准备一下,,23
 30001,visitor,rabbit_平静,2,2,1,Line,好，我等着。,,24
 30002,visitor,rabbit_平静,1,,,Line,{需求},,25
-30002,,,2,1,,Branch,我把你要的搬来了,RoomHasNeedFurniture,26
+30002,,,2,1,,Branch,好,,26
 30002,visitor,rabbit_平静,2,1,1,Line,就是这个！太谢谢你了。,,27
 30002,,,2,1,2,Action,CompleteNeed(perfect),,28
 30002,,,2,2,,Branch,我这就去弄,,29

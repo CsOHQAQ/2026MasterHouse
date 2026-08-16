@@ -1169,10 +1169,8 @@ MonoBehaviour:
         portraitId: 
       actions: []
       options:
-      - text: "\u6211\u628A\u4F60\u8981\u7684\u642C\u6765\u4E86"
-        conditions:
-        - func: RoomHasNeedFurniture
-          args: []
+      - text: "\u597D"
+        conditions: []
         steps:
         - kind: 0
           line:
@@ -3258,7 +3256,7 @@ MonoBehaviour:
     sourceRow: 5
   - groupId: 30002
     raceId: rabbit
-    needId: "Need_\u65B0\u9700\u6C42"
+    needId: "Need_\u5236\u4F5C\u5496\u5561"
     category: 2
     conditions: []
     sourceRow: 6
@@ -3402,7 +3400,7 @@ MonoBehaviour:
     sourceRow: 29
   - groupId: 30202
     raceId: wolf
-    needId: "Need_\u65B0\u9700\u6C42"
+    needId: "Need_\u5236\u4F5C\u5496\u5561"
     category: 2
     conditions: []
     sourceRow: 30
