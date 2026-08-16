@@ -23,16 +23,16 @@ MonoBehaviour:
     startCredit: 2480
     visitorWalkArea:
       serializedVersion: 2
-      x: 0.03
-      y: 0.233
-      width: 0.93
-      height: 0.13700001
+      x: 0.05
+      y: 0.02
+      width: 0.9
+      height: 0.120000005
     visitorEntryArea:
       serializedVersion: 2
-      x: 0.7
-      y: 0.233
-      width: 0.13999999
-      height: 0.177
+      x: 0.8
+      y: 0.03
+      width: 0.13
+      height: 0.089999996
     grids:
     - id: wall
       surface: 2
@@ -96,16 +96,16 @@ MonoBehaviour:
     startCredit: 2480
     visitorWalkArea:
       serializedVersion: 2
-      x: 0.03
-      y: 0.234
-      width: 0.94000006
-      height: 0.13100001
+      x: 0.05
+      y: 0.02
+      width: 0.9
+      height: 0.099999994
     visitorEntryArea:
       serializedVersion: 2
-      x: 0.01
-      y: 0.234
-      width: 0.09
-      height: 0.16600001
+      x: 0.66
+      y: 0.03
+      width: 0.13
+      height: 0.08
     grids:
     - id: wall
       surface: 2
@@ -169,16 +169,16 @@ MonoBehaviour:
     startCredit: 2480
     visitorWalkArea:
       serializedVersion: 2
-      x: 0.04
-      y: 0.231
-      width: 0.93
-      height: 0.12900001
+      x: 0.05
+      y: 0.02
+      width: 0.9
+      height: 0.11
     visitorEntryArea:
       serializedVersion: 2
-      x: 0.12
-      y: 0.231
-      width: 0.12
-      height: 0.12900001
+      x: 0.2
+      y: 0.03
+      width: 0.13000001
+      height: 0.089999996
     grids:
     - id: wall
       surface: 2
@@ -234,16 +234,16 @@ MonoBehaviour:
     startCredit: 2480
     visitorWalkArea:
       serializedVersion: 2
-      x: 0.03
-      y: 0.231
-      width: 0.94000006
-      height: 0.12900001
+      x: 0.04
+      y: 0.02
+      width: 0.91999996
+      height: 0.11
     visitorEntryArea:
       serializedVersion: 2
-      x: 0.33
-      y: 0.231
-      width: 0.16999999
-      height: 0.12900001
+      x: 0.87
+      y: 0.03
+      width: 0.100000024
+      height: 0.089999996
     grids:
     - id: wall
       surface: 2

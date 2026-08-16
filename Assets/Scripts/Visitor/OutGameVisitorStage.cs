@@ -35,9 +35,11 @@ namespace MasterHouse
         private static readonly Rect DefaultWalkArea = Rect.MinMaxRect(.04f, .03f, .96f, .35f);
         /// <summary>接待室的活动/入口区（2026-08-16 主楼场景）：房间表只配业务四间，接待室先走代码常量；
         /// 入口区取左侧大门一带，游走带铺满底层地面。</summary>
-        private static readonly Rect ReceptionWalkArea = Rect.MinMaxRect(.06f, .05f, .94f, .4f);
-        private static readonly Rect ReceptionEntryArea = Rect.MinMaxRect(.06f, .06f, .4f, .34f);
+        private static readonly Rect ReceptionWalkArea = Rect.MinMaxRect(.06f, .03f, .94f, .22f);
+        private static readonly Rect ReceptionEntryArea = Rect.MinMaxRect(.06f, .04f, .4f, .2f);
         private const int MaxAmbient = 3;
+        /// <summary>演员的统一世界缩放（2026-08-16）：全场访客同一大小；调访客整体大小改这里。</summary>
+        private const float ActorWorldScale = .3f;
         /// <summary>氛围邻居（串门临时访客）总开关：2026-08-14 屏蔽——名册与逻辑保留，改 true 即恢复。</summary>
         private const bool AmbientEnabled = false;
 
@@ -115,6 +117,7 @@ namespace MasterHouse
             // 全在 DialogueManager 里，舞台只负责把成文的句子送到对应演员头顶
             if (GameManager.Instance != null && GameManager.Instance.DialogueManager != null)
                 GameManager.Instance.DialogueManager.BubbleRequested += stage.OnBubbleRequested;
+            stage.RebuildFurnitureProxies(); // 家具深度代理（2026-08-16 访客与家具分层）
             return stage;
         }
 
@@ -392,27 +395,73 @@ namespace MasterHouse
             }
         }
 
+        // ── 家具深度代理（2026-08-16 访客与家具分层）──
+        // 家具烘焙在房间贴图里没有独立层级，这里给每件已摆家具生成一张与烘焙像素重合的前景代理，
+        // 与访客一起按「脚底世界 y」排兄弟序：访客站到家具后面就会被正确遮挡。
+
+        /// <summary>家具代理及其深度键（脚底世界 y；并列时按烘焙序稳定排序）。</summary>
+        private readonly List<(RectTransform rect, Image image, float depthY, int order)> furnitureProxies =
+            new List<(RectTransform, Image, float, int)>();
+        private readonly List<(Transform transform, float depthY, int order)> depthSortCache =
+            new List<(Transform, float, int)>();
+
+        /// <summary>重建家具深度代理（建层与摆放变化后由场景层调用）。</summary>
+        public void RebuildFurnitureProxies()
+        {
+            foreach (var proxy in furnitureProxies)
+                if (proxy.rect != null) Destroy(proxy.rect.gameObject);
+            furnitureProxies.Clear();
+            for (var room = 0; room < HubWorldGrid.RoomCount; room++)
+            {
+                foreach (var info in FurnitureSceneComposer.GetPlacedFurniture(room))
+                {
+                    if (info.Entry == null || info.Entry.sprite == null) continue;
+                    var min = HubWorldGrid.RoomToWorld(room, info.ViewportRect.min);
+                    var max = HubWorldGrid.RoomToWorld(room, info.ViewportRect.max);
+                    var rect = F.Rect(layerRoot, $"Furniture_{room}_{info.Entry.id}", min, max, Vector2.zero, Vector2.zero);
+                    var image = rect.gameObject.AddComponent<Image>();
+                    image.sprite = info.Entry.sprite;
+                    image.raycastTarget = false; // 点击仍归家具热点/演员
+                    if (info.Flipped) rect.localScale = new Vector3(-1f, 1f, 1f);
+                    var depthY = HubWorldGrid.RoomToWorld(room, new Vector2(info.ViewportRect.center.x, info.ViewportRect.yMin)).y;
+                    furnitureProxies.Add((rect, image, depthY, info.Order));
+                }
+            }
+        }
+
         private void LateUpdate()
         {
             actors.RemoveAll(actor => actor == null);
-            // 按世界 y 深度排前后：y 大（远/上排房间）在前面的兄弟位，y 小（近）在后，
-            // 同房间内天然形成近处遮挡远处；跨房间不重叠、排序无副作用
-            actors.Sort((a, b) =>
-                HubWorldGrid.RoomToWorld(b.RoomIndex, b.ScenePosition).y
-                    .CompareTo(HubWorldGrid.RoomToWorld(a.RoomIndex, a.ScenePosition).y));
-            for (var i = 0; i < actors.Count; i++)
+
+            // 统一深度排序：家具代理 + 访客按脚底世界 y 从远到近排兄弟序（y 大在前、被 y 小的遮挡）；
+            // 拖拽中的访客压最上层；家具代理随昼夜调色与烘焙底图保持一致
+            depthSortCache.Clear();
+            var tint = HouseDayLight.Now().tint;
+            foreach (var proxy in furnitureProxies)
             {
-                var actor = actors[i];
+                if (proxy.rect == null) continue;
+                proxy.image.color = tint;
+                depthSortCache.Add((proxy.rect, proxy.depthY, proxy.order));
+            }
+            foreach (var actor in actors)
+            {
                 var rect = (RectTransform)actor.transform;
-                rect.SetSiblingIndex(i);
                 // 平移缩放由世界根的 transform 承担，这里只需把 (房间, 房内坐标) 换算成世界锚点
                 var anchor = HubWorldGrid.RoomToWorld(actor.RoomIndex, actor.ScenePosition);
                 rect.anchorMin = rect.anchorMax = anchor;
                 rect.anchoredPosition = Vector2.zero;
-                // 主楼场景（2026-08-16）：演员像素尺寸是按「单房满视口」标定的，世界里房间只占
-                // 区域宽的比例，按所在区域宽反向缩放——聚焦时恢复原大，总览时自然成微缩小人
-                rect.localScale = Vector3.one * HubWorldGrid.RegionOf(actor.RoomIndex).width;
+                // 演员统一世界缩放（2026-08-16 用户定案）：不随所在区域宽度变化
+                rect.localScale = Vector3.one * ActorWorldScale;
+                var depthY = actor.Dragging ? float.MinValue : anchor.y; // 拖拽中永远压最上
+                depthSortCache.Add((rect, depthY, int.MaxValue));
             }
+            depthSortCache.Sort((a, b) =>
+            {
+                var byDepth = b.depthY.CompareTo(a.depthY);
+                return byDepth != 0 ? byDepth : a.order.CompareTo(b.order);
+            });
+            for (var i = 0; i < depthSortCache.Count; i++)
+                depthSortCache[i].transform.SetSiblingIndex(i);
         }
     }
 }

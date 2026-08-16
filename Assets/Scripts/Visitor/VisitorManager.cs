@@ -17,11 +17,16 @@ namespace MasterHouse
 
         // ── 房间语义常量（需求重做说明 §5.1；禁止把这些数字散落成魔数）──
 
-        /// <summary>起居室 = 大堂：大门所在地，访客到场在此入口区排队等接待。**不可分配为客房**。</summary>
+        /// <summary>
+        /// 排队访客的业务落点占位（装饰分基准等沿用起居室）。
+        /// 2026-08-16 主楼场景后：大门/排队的**表现**已移到底层接待室（HubWorldGrid.Reception，非业务房间），
+        /// 起居室随之升格为可分配客房——本常量只剩「排队期业务占位」语义。
+        /// </summary>
         public const int LobbyRoomIndex = 0;
 
-        /// <summary>可分配客房的下标区间 [FirstGuestRoomIndex, LastGuestRoomIndex]（卧室/厨房/书房），一房一客。</summary>
-        public const int FirstGuestRoomIndex = 1;
+        /// <summary>可分配客房的下标区间 [FirstGuestRoomIndex, LastGuestRoomIndex]（起居室/卧室/厨房/书房），一房一客。
+        /// 2026-08-16：接待厅落地后四间全部可分配（原先起居室=大堂不可分配）。</summary>
+        public const int FirstGuestRoomIndex = 0;
         public const int LastGuestRoomIndex = 3;
 
         /// <summary>
@@ -361,7 +366,7 @@ namespace MasterHouse
             return false;
         }
 
-        /// <summary>是否还有空客房（1~3 中至少一间未被占用）。**投放**的前置条件用它。</summary>
+        /// <summary>是否还有空客房（0~3 中至少一间未被占用）。**投放**的前置条件用它。</summary>
         public bool HasFreeRoom
         {
             get

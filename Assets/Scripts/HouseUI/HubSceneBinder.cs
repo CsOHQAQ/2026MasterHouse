@@ -550,8 +550,10 @@ namespace MasterHouse
             }
             if (worldGroup != null) worldGroup.alpha = 1f;
             var worldSize = viewport * camZoom;
+            // 底部松绑（2026-08-16 反馈）：聚焦得越深允许越多的向下越界，看清地面与接待室脚下
+            var bottomSlack = Mathf.Clamp01((camZoom - OverviewZoom) / (FocusedZoomThreshold - OverviewZoom)) * 180f;
             camPan.x = Mathf.Clamp(camPan.x, viewport.x - worldSize.x, 0f);
-            camPan.y = Mathf.Clamp(camPan.y, viewport.y - worldSize.y, 0f);
+            camPan.y = Mathf.Clamp(camPan.y, viewport.y - worldSize.y, bottomSlack);
         }
 
         /// <summary>
@@ -641,6 +643,7 @@ namespace MasterHouse
             {
                 ApplySceneArt();
                 BuildHotspots();
+                if (stage != null) stage.RebuildFurnitureProxies(); // 深度代理跟着新布局走
                 // 说明卡平时只在建层与换房时刷新，而刚摆完家具正是装饰分变化的那一刻
                 BindOverlay();
             });

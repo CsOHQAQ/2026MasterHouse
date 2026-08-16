@@ -74,7 +74,10 @@ namespace MasterHouse
         public bool Dragging { get; private set; }
 
         /// <summary>业务访客在等待/闲逛时可被拖到其他房间；邻居与过场状态不可拖。</summary>
-        public bool IsDraggable => !ambient && IsInteractable;
+        /// <summary>可拖拽 = 等分房（分房手势）或停留游走（换房）；前台排队的**接待后才能拖**、
+        /// 服务中锁房不可拖（2026-08-16 修复：未对话的访客不再能被拖动）。</summary>
+        public bool IsDraggable => !ambient && IsInteractable &&
+            (businessState == (int)EVisitorState.AwaitingRoom || businessState == (int)EVisitorState.Wandering);
 
         public bool IsInteractable => state == ActorState.Waiting || state == ActorState.Wandering;
 
