@@ -41,8 +41,11 @@ namespace MasterHouse
             return (last.tint, last.veil);
         }
 
-        /// <summary>当前游戏时刻的光照。</summary>
+        /// <summary>当前游戏时刻的光照。设置里关掉「昼夜交替」时恒为正午基准（无调色无罩色）。</summary>
         public static (Color tint, Color veil) Now()
-            => At(GameManager.Instance.HouseClockManager.Data.MinuteOfDayF);
+        {
+            if (!HouseSettings.Data.dayNightEnabled) return (Color.white, Color.clear);
+            return At(GameManager.Instance.HouseClockManager.Data.MinuteOfDayF);
+        }
     }
 }

@@ -14,9 +14,12 @@ namespace MasterHouse
         [Serializable]
         public sealed class SettingsData
         {
-            public int bgmVolume = 64;
-            public int sfxVolume = 78;
+            public int masterVolume = 45;
+            public int bgmVolume = 45;
+            public int sfxVolume = 45;
             public string windowMode = "无边框";
+            public bool dayNightEnabled = true;
+            public string language = "中文";
             public bool autoDialogue;
             public bool showInteractionHints = true;
             public bool cameraShake = true;
@@ -27,6 +30,22 @@ namespace MasterHouse
         private static string FilePath => Path.Combine(Application.persistentDataPath, "house-settings.json");
 
         public static SettingsData Data => data ?? (data = Load());
+
+        /// <summary>
+        /// 把当前设置作用到运行时（启动与设置页改动时调，2026-08-16 设置页重做）：
+        /// 主音量走 AudioListener；音效音量由 SfxManager 播放时自行读取；BGM 音量留给将来的音乐播放器；
+        /// 昼夜交替开关由 HouseDayLight 读取；窗口模式映射 Screen.fullScreenMode。
+        /// </summary>
+        public static void Apply()
+        {
+            AudioListener.volume = Mathf.Clamp01(Data.masterVolume / 100f);
+            switch (Data.windowMode)
+            {
+                case "全屏": Screen.fullScreenMode = FullScreenMode.ExclusiveFullScreen; break;
+                case "窗口": Screen.fullScreenMode = FullScreenMode.Windowed; break;
+                default: Screen.fullScreenMode = FullScreenMode.FullScreenWindow; break; // 无边框
+            }
+        }
 
         public static void Save()
         {

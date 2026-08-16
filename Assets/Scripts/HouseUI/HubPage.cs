@@ -183,7 +183,11 @@ namespace MasterHouse
 
         public void Toast(string message) => UI.ShowToast(message);
 
-        public void BackToTitle() => UI.ShowPage(new TitlePage());
+        /// <summary>回标题（顶栏品牌按钮 / ESC 共用）：存档未实现、离开即丢进度，先弹确认（2026-08-16 退出保护）。</summary>
+        public void BackToTitle() =>
+            ConfirmOverlay.Open(UI, "退出到主菜单",
+                "暂时没有存档功能，退出后本局进度将丢失、需要重新开始。\n确定退出吗？",
+                "确定退出", () => UI.ShowPage(new TitlePage()));
 
         /// <summary>打开已迁移的系统面板（叠加层压栈；ESC/遮罩/返回弹栈）。</summary>
         public void OpenPanel(EHousePanel panel)

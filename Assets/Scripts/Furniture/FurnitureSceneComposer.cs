@@ -4,17 +4,23 @@ using UnityEngine;
 
 namespace MasterHouse
 {
-    /// <summary>已摆放家具在场景中的位置信息（供 Hub 背景热点等交互使用）。</summary>
+    /// <summary>已摆放家具在场景中的位置信息（供 Hub 背景热点/前景深度代理等使用）。</summary>
     public readonly struct PlacedFurnitureInfo
     {
         public readonly FurnitureEntry Entry;
         /// <summary>归一化视口矩形（0..1，左下原点），可直接用作全屏 UI 的锚点区间。</summary>
         public readonly Rect ViewportRect;
+        /// <summary>烘焙绘制序（同深度并列时的稳定次序）。</summary>
+        public readonly int Order;
+        /// <summary>水平翻转（深度代理要与烘焙像素重合，必须同向）。</summary>
+        public readonly bool Flipped;
 
-        public PlacedFurnitureInfo(FurnitureEntry entry, Rect viewportRect)
+        public PlacedFurnitureInfo(FurnitureEntry entry, Rect viewportRect, int order = 0, bool flipped = false)
         {
             Entry = entry;
             ViewportRect = viewportRect;
+            Order = order;
+            Flipped = flipped;
         }
     }
 
@@ -148,14 +154,14 @@ namespace MasterHouse
             var table = GameManager.Instance.FurnitureTable;
             var room = RoomAt(roomIndex);
             if (table == null || room == null) return result;
-            foreach (var (entry, _, rect, _) in Collect(table, room))
+            foreach (var (entry, order, rect, flipped) in Collect(table, room))
             {
                 var viewport = new Rect(
                     rect.x / room.sceneWidth,
                     1f - (rect.y + rect.height) / room.sceneHeight,
                     rect.width / room.sceneWidth,
                     rect.height / room.sceneHeight);
-                result.Add(new PlacedFurnitureInfo(entry, viewport));
+                result.Add(new PlacedFurnitureInfo(entry, viewport, order, flipped));
             }
             return result;
         }

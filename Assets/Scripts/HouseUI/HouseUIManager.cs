@@ -51,6 +51,7 @@ namespace MasterHouse
         {
             Instance = this;
             Canvas = GetComponent<Canvas>();
+            HouseSettings.Apply(); // 启动即作用设置（主音量/窗口模式；2026-08-16 设置页重做）
         }
 
         private void Start()
@@ -80,6 +81,10 @@ namespace MasterHouse
         }
 
         public void PushOverlay(IHouseOverlay overlay) => overlayStack.Add(overlay);
+
+        /// <summary>某叠加层当前是否处于栈顶（设置层在确认弹窗压顶时挂起自身热键用）。</summary>
+        public bool IsTopOverlay(IHouseOverlay overlay) =>
+            overlayStack.Count > 0 && overlayStack[overlayStack.Count - 1] == overlay;
 
         public void PopOverlay()
         {

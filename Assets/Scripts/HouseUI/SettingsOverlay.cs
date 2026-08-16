@@ -5,16 +5,19 @@ namespace MasterHouse
 {
     /// <summary>
     /// Hub 内设置叠加层：复用标题设置 Prefab（§16.8），不另做面板布局。
-    /// 返回/ESC 弹栈回 Hub；内容绑定与标题设置页共用 TitleSettingsPage.BindContent。
+    /// 返回/ESC 弹栈回 Hub（丢弃未应用改动）；内容绑定与标题设置页共用 SettingsPageBinder；
+    /// R/回车键位由 SettingsHotkeys 组件转发（叠加层打开时页面输入被壳拦下）。
     /// </summary>
     public sealed class SettingsOverlay : IHouseOverlay
     {
         private readonly RectTransform root;
+        private readonly SettingsPageBinder binder;
         private bool closing;
 
-        private SettingsOverlay(RectTransform root)
+        private SettingsOverlay(RectTransform root, SettingsPageBinder binder)
         {
             this.root = root;
+            this.binder = binder;
         }
 
         public static void Open(HouseUIManager ui)
@@ -42,18 +45,15 @@ namespace MasterHouse
             rect.localScale = Vector3.one;
             rect.SetAsLastSibling();
 
-            var overlay = new SettingsOverlay(rect);
-            view.backButton.onClick.RemoveAllListeners();
-            view.backButton.onClick.AddListener(ui.PopOverlay);
-            TitleSettingsPage.BindContent(view, ui);
-            HouseUIUtil.ApplyFallbackFont(rect);
+            var binder = new SettingsPageBinder();
+            binder.Bind(view, ui, ui.PopOverlay);
+            instance.AddComponent<SettingsHotkeys>().Init(binder);
 
-            var target = view.frame.anchoredPosition;
-            var group = HouseUIUtil.Group(view.frame.gameObject, 0);
-            view.frame.anchoredPosition = target + new Vector2(0, -30);
-            group.DOFade(1, .28f).SetEase(Ease.OutQuad).SetUpdate(true);
-            view.frame.DOAnchorPos(target, .42f).SetEase(Ease.OutCubic).SetUpdate(true);
-
+            var overlay = new SettingsOverlay(rect, binder);
+            // 确认弹窗压顶时挂起本层 R/空格热键，避免连开多个弹窗
+            binder.HotkeyGate = () => ui.IsTopOverlay(overlay);
+            var group = HouseUIUtil.Group(rect.gameObject, 0);
+            group.DOFade(1, .28f).SetEase(Ease.OutQuad).SetUpdate(true).SetLink(instance);
             ui.PushOverlay(overlay);
         }
 
@@ -61,6 +61,7 @@ namespace MasterHouse
         {
             if (closing || root == null) return;
             closing = true;
+            binder.DiscardUnsaved(); // ESC/返回 = 放弃未应用的改动
             var group = HouseUIUtil.Group(root.gameObject);
             group.blocksRaycasts = false;
             group.DOFade(0, .2f).SetUpdate(true).OnComplete(() =>

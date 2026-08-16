@@ -48,6 +48,14 @@ namespace MasterHouse
             ((RectTransform)instance.transform).SetAsLastSibling();
             HouseUIUtil.ApplyFallbackFont(instance.transform);
 
+            // 结算信息板套用通用面板皮肤（2026-08-16：与 Hub 各卡片同一套 common 框，替掉纯黑底）
+            var settleScrim = view.transform.Find("SettleScrim");
+            if (settleScrim != null)
+            {
+                var scrimImage = settleScrim.GetComponent<UnityEngine.UI.Image>();
+                if (scrimImage != null) HouseUIUtil.ApplyPanelSkin(scrimImage, .92f, 2.5f);
+            }
+
             SetText(view.dayLabel, $"DAY {endedDay:00} 结算");
             SetText(view.subLabel, "新的一天，开门迎客");
             SetText(view.bodyLabel, summary != null ? BuildBody(summary) : string.Empty);
@@ -71,7 +79,7 @@ namespace MasterHouse
                     shown = frame;
                     view.cycleFrames.texture = frames[frame];
                 }, frames.Length - 1, (frames.Length - 1) / CycleFps)
-                    .SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).SetUpdate(true).SetLink(instance);
+                    .SetEase(Ease.Linear).SetUpdate(true).SetLink(instance); // 只播一遍，停在最后一帧（2026-08-16 用户定案）
             }
 
             var group = HouseUIUtil.Group(instance, 0);

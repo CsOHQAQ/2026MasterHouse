@@ -39,6 +39,10 @@ namespace MasterHouse
         private CanvasGroup worldGroup;
         private RectTransform exteriorRect;
         private RawImage exteriorBackdrop;
+        private RawImage worldMoon;
+        private RawImage exteriorMoon;
+        private RawImage worldSun;
+        private RawImage exteriorSun;
         private Vector2 viewportSize = new Vector2(1920f, 1080f);
         private RawImage houseBackdrop;
         private readonly RawImage[] roomArts = new RawImage[HubWorldGrid.RoomCount];
@@ -105,6 +109,20 @@ namespace MasterHouse
             houseBackdrop = worldView.houseBackdrop;
             for (var room = 0; room < HubWorldGrid.RoomCount && room < worldView.roomArts.Length; room++)
                 roomArts[room] = worldView.roomArts[room];
+
+            // 月亮（2026-08-16 东升西落）：烘焙月亮已从底图擦除，改为独立精灵按时钟走弧线。
+            // 主楼层/外景层各挂一颗（外景按对齐变换换算同一天空位置），压在底图之上、房间图之下
+            var moonTexture = Resources.Load<Texture2D>("OutGameUI/moon");
+            worldMoon = CreateMoon(worldRoot, moonTexture, new Vector2(80, 116));
+            if (worldMoon != null && houseBackdrop != null)
+                worldMoon.transform.SetSiblingIndex(houseBackdrop.transform.GetSiblingIndex() + 1);
+            exteriorMoon = CreateMoon(exteriorRect, moonTexture, new Vector2(60, 87));
+            // 太阳（2026-08-16）：白天 7:00 右升 18:00 左落，与月亮交接班
+            var sunTexture = Resources.Load<Texture2D>("OutGameUI/sun");
+            worldSun = CreateMoon(worldRoot, sunTexture, new Vector2(120, 120));
+            if (worldSun != null && houseBackdrop != null)
+                worldSun.transform.SetSiblingIndex(houseBackdrop.transform.GetSiblingIndex() + 1);
+            exteriorSun = CreateMoon(exteriorRect, sunTexture, new Vector2(90, 90));
 
             ApplySceneArt(); // 先喂烘焙图：下面按图的真实宽高比内嵌，需要贴图尺寸
 
@@ -210,6 +228,65 @@ namespace MasterHouse
             for (var room = 0; room < roomArts.Length; room++)
                 if (roomArts[room] != null) roomArts[room].color = tint;
             ambientLight.color = veil;
+            UpdateMoon();
+        }
+
+        /// <summary>
+        /// 日月东升西落（2026-08-16）：都从右侧天际升起、天顶过境、落到左侧——
+        /// 月亮值夜班 18:00→7:00，太阳值白班 7:00→18:00，交接各带一段淡入淡出。
+        /// 「昼夜交替」关闭时都隐藏；日月不吃昼夜调色（它们就是光源）。
+        /// </summary>
+        private void UpdateMoon()
+        {
+            var minute = GameManager.Instance.HouseClockManager.Data.MinuteOfDayF;
+            UpdateCelestial(worldMoon, exteriorMoon, minute, 18f * 60f, 7f * 60f);
+            UpdateCelestial(worldSun, exteriorSun, minute, 7f * 60f, 18f * 60f);
+        }
+
+        private void UpdateCelestial(RawImage world, RawImage exterior, float minute, float rise, float set)
+        {
+            if (world == null) return;
+            var span = set > rise ? set - rise : (24f * 60f - rise) + set;
+            float progress;
+            if (set > rise)
+                progress = minute >= rise && minute < set ? (minute - rise) / span : -1f;
+            else if (minute >= rise) progress = (minute - rise) / span;
+            else if (minute < set) progress = (minute + (24f * 60f - rise)) / span;
+            else progress = -1f;
+            var visible = progress >= 0f && HouseSettings.Data.dayNightEnabled;
+            world.gameObject.SetActive(visible);
+            if (exterior != null) exterior.gameObject.SetActive(visible);
+            if (!visible) return;
+
+            var sky = new Vector2(
+                Mathf.Lerp(.95f, .05f, progress),
+                .78f + .2f * Mathf.Sin(progress * Mathf.PI));
+            var alpha = Mathf.Clamp01(Mathf.Min(progress, 1f - progress) * 8f); // 升起/落下各 ~1 小时淡变
+            PlaceMoon(world, sky, alpha);
+            if (exterior != null)
+            {
+                // 同一天空位置换算到外景坐标系：主楼点 m = s·e + t → e = (m - t) / s
+                var ext = (sky - OpeningZoomFx.AlignOffset) / OpeningZoomFx.AlignScale;
+                PlaceMoon(exterior, ext, alpha);
+            }
+        }
+
+        private static void PlaceMoon(RawImage moon, Vector2 anchor, float alpha)
+        {
+            var rect = moon.rectTransform;
+            rect.anchorMin = rect.anchorMax = anchor;
+            rect.anchoredPosition = Vector2.zero;
+            moon.color = new Color(1f, 1f, 1f, alpha);
+        }
+
+        private static RawImage CreateMoon(RectTransform parent, Texture2D texture, Vector2 size)
+        {
+            if (parent == null || texture == null) return null;
+            var rect = HouseUIRuntime.Rect(parent, "Moon", new Vector2(.5f, .9f), new Vector2(.5f, .9f), Vector2.zero, size);
+            var image = rect.gameObject.AddComponent<RawImage>();
+            image.texture = texture;
+            image.raycastTarget = false;
+            return image;
         }
 
         // ══════════ 相机 ══════════
@@ -459,10 +536,13 @@ namespace MasterHouse
             camZoom = Mathf.Clamp(camZoom, ExteriorMinZoom, MaxZoom);
             if (camZoom < OverviewZoom)
             {
-                var t = Mathf.InverseLerp(OverviewZoom, ExteriorMinZoom, camZoom);
-                // 外景对齐位（反用开场推镜的变换）：主楼世界缩到 1/AlignScale 并平移到外景图中房屋的位置
-                var exteriorPan = Vector2.Scale(-OpeningZoomFx.AlignOffset / OpeningZoomFx.AlignScale, viewport);
-                camPan = Vector2.Lerp(Vector2.zero, exteriorPan, t);
+                // 外景段可自由拖动（2026-08-16 用户定案），边界 = 外景图不露底：
+                // 外景屏幕矩形 [extOffset+camPan, +视口×extScale]，钳到覆盖整个视口；
+                // 最小档 extScale=1 时边界收敛为单点，恰好就是对齐位——无需再锁路径
+                var extScale = OpeningZoomFx.AlignScale * camZoom;
+                var extOffset = Vector2.Scale(OpeningZoomFx.AlignOffset, viewport) * camZoom;
+                camPan.x = Mathf.Clamp(camPan.x, viewport.x * (1f - extScale) - extOffset.x, -extOffset.x);
+                camPan.y = Mathf.Clamp(camPan.y, viewport.y * (1f - extScale) - extOffset.y, -extOffset.y);
                 // 内景浮现集中在贴近总览的后段（放大到房屋接近剖面大小才显形，2026-08-16 用户定案）
                 var fadeStart = Mathf.Lerp(ExteriorMinZoom, OverviewZoom, .4f);
                 if (worldGroup != null) worldGroup.alpha = Mathf.InverseLerp(fadeStart, OverviewZoom, camZoom);
@@ -470,8 +550,10 @@ namespace MasterHouse
             }
             if (worldGroup != null) worldGroup.alpha = 1f;
             var worldSize = viewport * camZoom;
+            // 底部松绑（2026-08-16 反馈）：聚焦得越深允许越多的向下越界，看清地面与接待室脚下
+            var bottomSlack = Mathf.Clamp01((camZoom - OverviewZoom) / (FocusedZoomThreshold - OverviewZoom)) * 180f;
             camPan.x = Mathf.Clamp(camPan.x, viewport.x - worldSize.x, 0f);
-            camPan.y = Mathf.Clamp(camPan.y, viewport.y - worldSize.y, 0f);
+            camPan.y = Mathf.Clamp(camPan.y, viewport.y - worldSize.y, bottomSlack);
         }
 
         /// <summary>
@@ -561,6 +643,7 @@ namespace MasterHouse
             {
                 ApplySceneArt();
                 BuildHotspots();
+                if (stage != null) stage.RebuildFurnitureProxies(); // 深度代理跟着新布局走
                 // 说明卡平时只在建层与换房时刷新，而刚摆完家具正是装饰分变化的那一刻
                 BindOverlay();
             });
