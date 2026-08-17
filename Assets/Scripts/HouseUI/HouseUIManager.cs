@@ -52,6 +52,7 @@ namespace MasterHouse
             Instance = this;
             Canvas = GetComponent<Canvas>();
             HouseSettings.Apply(); // 启动即作用设置（主音量/窗口模式；2026-08-16 设置页重做）
+            BgmManager.Ensure();   // BGM 常驻循环（2026-08-17：全程不停，音量随设置）
         }
 
         private void Start()

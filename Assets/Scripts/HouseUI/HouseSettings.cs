@@ -39,6 +39,7 @@ namespace MasterHouse
         public static void Apply()
         {
             AudioListener.volume = Mathf.Clamp01(Data.masterVolume / 100f);
+            BgmManager.SetVolume(Data.bgmVolume / 100f);
             switch (Data.windowMode)
             {
                 case "全屏": Screen.fullScreenMode = FullScreenMode.ExclusiveFullScreen; break;
