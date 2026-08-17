@@ -25,7 +25,7 @@ namespace MasterHouse
         private const float NodeGrabDeadZone = 0.30f;
 
         private const float WireWidthFactor = 0.30f;
-        private const float PinMarkerFactor = 0.24f;
+        private const float DefaultPinSizeInCells = 0.24f;
         private const float CellGap = 2f;
         private const float FunctionIconPaddingFactor = 0.18f;
         private const float MessageSeconds = 3.5f;
@@ -510,6 +510,8 @@ namespace MasterHouse
                 for (int i = 0; i < node.Pins.Count; i++)
                     DrawPinMarker(node, node.Pins[i]);
 
+                DrawMobilityIcon(node);
+
                 var caption = Caption(node);
                 if (string.IsNullOrEmpty(caption)) continue;
                 var label = labelPool.Next();
@@ -579,6 +581,13 @@ namespace MasterHouse
         private static bool TryGetFilledRectangle(GridGroup shape, out int minX, out int minY,
             out int width, out int height)
         {
+            if (!TryGetShapeBounds(shape, out minX, out minY, out width, out height)) return false;
+            return shape.Grids.Count == width * height;
+        }
+
+        private static bool TryGetShapeBounds(GridGroup shape, out int minX, out int minY,
+            out int width, out int height)
+        {
             minX = minY = width = height = 0;
             if (shape == null || shape.Grids == null || shape.Grids.Count == 0) return false;
 
@@ -595,7 +604,42 @@ namespace MasterHouse
 
             width = maxX - minX + 1;
             height = maxY - minY + 1;
-            return shape.Grids.Count == width * height;
+            return true;
+        }
+
+        /// <summary>
+        /// 节点右上角的全局移动状态图标。实际可移动性必须同时满足「中转件」与关卡实例 CanMove：
+        /// LevelManager 会拒绝移动电源/电池，即使资产误把它们的 CanMove 勾上，表现也不能撒谎。
+        /// </summary>
+        private void DrawMobilityIcon(NodeData node)
+        {
+            var style = view.visualStyle;
+            if (style == null ||
+                !TryGetShapeBounds(node.Def.Shape, out int minX, out int minY, out int width, out int height))
+                return;
+
+            bool movable = node.Def.NodeType == ENodeType.Transit && node.CanMove;
+            var sprite = movable ? style.movableIcon : style.immovableIcon;
+            if (sprite == null) return;
+
+            var icon = iconPool.Next();
+            icon.sprite = sprite;
+            icon.type = Image.Type.Simple;
+            icon.preserveAspect = true;
+            icon.color = movable ? style.movableIconColor : style.immovableIconColor;
+
+            var bottomLeftCell = CellToLocal(node.Origin + new Vector2Int(minX, minY));
+            var nodeCenter = bottomLeftCell +
+                             new Vector2((width - 1) * cellSize, (height - 1) * cellSize) * .5f;
+            var visualSize = new Vector2(width * cellSize - CellGap, height * cellSize - CellGap);
+            float size = cellSize * Mathf.Max(0f, style.mobilityIconSizeInCells);
+            float padding = cellSize * Mathf.Max(0f, style.mobilityIconPaddingInCells);
+
+            var rect = icon.rectTransform;
+            rect.sizeDelta = new Vector2(size, size);
+            rect.anchoredPosition = new Vector2(
+                nodeCenter.x + visualSize.x * .5f - padding - size * .5f,
+                nodeCenter.y + visualSize.y * .5f - padding - size * .5f);
         }
 
         private void DrawPinMarker(NodeData node, PinData pin)
@@ -603,12 +647,17 @@ namespace MasterHouse
             var layout = pin.Layout;
             var outward = Direction4.ToOffset(layout.Facing);
             var image = nodePool.Next();
-            image.sprite = null;
+            var style = view.visualStyle;
+            var sprite = style != null ? style.pinSprite : null;
+            image.sprite = sprite;
             image.type = Image.Type.Simple;
-            image.preserveAspect = false;
-            image.color = PinColor(node, pin);
+            image.preserveAspect = sprite != null;
+            image.color = PinColor(node, pin) * (style != null ? style.pinColorMultiplier : Color.white);
             var rect = image.rectTransform;
-            float s = cellSize * PinMarkerFactor;
+            float sizeInCells = style != null
+                ? Mathf.Max(0f, style.pinSizeInCells)
+                : DefaultPinSizeInCells;
+            float s = cellSize * sizeInCells;
             rect.sizeDelta = new Vector2(s, s);
             rect.anchoredPosition = CellToLocal(node.Origin + layout.LocalCell) +
                                     new Vector2(outward.x, outward.y) * (cellSize * .34f);

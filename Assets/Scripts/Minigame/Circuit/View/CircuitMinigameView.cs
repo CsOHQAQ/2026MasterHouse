@@ -28,6 +28,10 @@ namespace MasterHouse
         [Tooltip("描线与幽灵预览层，压在最上面")]
         public RectTransform previewRoot;
 
+        [Header("全局视觉样式")]
+        [Tooltip("所有节点共用的状态图标等表现资产")]
+        public CircuitVisualStyleConfig visualStyle;
+
         [Header("顶部预算条")]
         public Text linkBudgetLabel;
         public Text pieceBudgetLabel;

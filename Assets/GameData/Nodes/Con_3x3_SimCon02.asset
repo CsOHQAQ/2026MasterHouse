@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DisplayName: SimCon02
   BackgroundSprite: {fileID: 21300000, guid: 2076370049aadd24f89642e83fd986ca, type: 3}
+  FunctionIconSprite: {fileID: 21300000, guid: 9e3ccb87f6db26048af2e6e243c03266, type: 3}
   Shape:
     Grids:
     - DeltaPosition: {x: 0, y: 2}
