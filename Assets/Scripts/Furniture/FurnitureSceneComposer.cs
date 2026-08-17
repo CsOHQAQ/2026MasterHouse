@@ -33,6 +33,9 @@ namespace MasterHouse
     /// </summary>
     public static class FurnitureSceneComposer
     {
+        /// <summary>烘焙分辨率倍数（2026-08-17）：房间推到满屏时按场景像素 1:1 会发糊，×2 接近原画密度。</summary>
+        private const float BakeScale = 2f;
+
         /// <summary>房间 id → 合成图（惰性创建，尺寸随房间场景尺寸）。</summary>
         private static readonly Dictionary<string, RenderTexture> bakes = new Dictionary<string, RenderTexture>();
 
@@ -78,13 +81,19 @@ namespace MasterHouse
             var room = RoomAt(roomIndex);
             if (table == null || room == null || room.background == null) return null;
 
-            var width = Mathf.RoundToInt(room.sceneWidth);
-            var height = Mathf.RoundToInt(room.sceneHeight);
+            // 烘焙分辨率放大（2026-08-17）：场景像素 1672 宽的画布推到单房间满屏时只有 ~40% 像素密度，
+            // 放大后明显发糊；×2 后接近原画分辨率，家具坐标按同一倍数缩放，几何关系不变。
+            var width = Mathf.RoundToInt(room.sceneWidth * BakeScale);
+            var height = Mathf.RoundToInt(room.sceneHeight * BakeScale);
             bakes.TryGetValue(room.id, out var baked);
             if (baked == null || baked.width != width || baked.height != height)
             {
                 if (baked != null) baked.Release();
-                baked = new RenderTexture(width, height, 0) { name = "FurnitureSceneBaked_" + room.id };
+                // ARGB32：需要 alpha 通道（家具层是透明底，2026-08-17）
+                baked = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32)
+                {
+                    name = "FurnitureSceneBaked_" + room.id,
+                };
                 baked.Create();
                 bakes[room.id] = baked;
             }
@@ -111,11 +120,14 @@ namespace MasterHouse
 
             var previous = RenderTexture.active;
             Graphics.SetRenderTarget(baked);
-            GL.Clear(true, true, Color.black);
+            // 房间背景重新画进来（2026-08-17）：聚焦单间时这张高清图取代延时帧显示，
+            // 延时帧只有 1280 宽，推近了糊；总览时本层淡出、由延时帧的室内光影当家（见 HubSceneBinder 的 LOD）。
+            GL.Clear(true, true, Color.clear);
             GL.PushMatrix();
             // 像素坐标系（左上原点、Y 向下），与场景像素坐标一一对应
-            GL.LoadPixelMatrix(0, width, height, 0);
-            DrawSprite(room.background, new Rect(0, 0, width, height), false);
+            // 绘制坐标系仍用**场景像素**口径（家具矩形都按它算），渲染目标分辨率高一档即自动提清晰度
+            GL.LoadPixelMatrix(0, room.sceneWidth, room.sceneHeight, 0);
+            DrawSprite(room.background, new Rect(0, 0, room.sceneWidth, room.sceneHeight), false);
             foreach (var draw in draws)
                 DrawSprite(draw.entry != null ? draw.entry.sprite : shadowSprite, draw.rect, draw.flipped);
             GL.PopMatrix();
