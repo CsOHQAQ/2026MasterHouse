@@ -155,6 +155,11 @@ namespace MasterHouse
             // 洗色层盖在房间图之上、热点与演员之下（与旧版层序一致）；随世界一起缩放（纯色无所谓拉伸）
             sceneWash = HouseUIRuntime.StretchPanel(worldRoot, "SceneWash", new Color(.015f, .02f, .04f, .22f));
             sceneWash.raycastTarget = false;
+            // 洗色层扩展到外景范围（2026-08-17）：相机可越出主楼边界，止步于主楼边缘会形成一圈明暗接缝
+            var washRect = sceneWash.rectTransform;
+            washRect.anchorMin = OpeningZoomFx.AlignOffset;
+            washRect.anchorMax = OpeningZoomFx.AlignOffset + Vector2.one * OpeningZoomFx.AlignScale;
+            washRect.offsetMin = washRect.offsetMax = Vector2.zero;
 
             hotspotRoot = HouseUIRuntime.Stretch(worldRoot, "FurnitureHotspots");
             BuildHotspots();
@@ -165,6 +170,11 @@ namespace MasterHouse
             // 纯表现件不拦截点击；随世界缩放平移，天然只影响场景不影响四周 UI。
             ambientLight = HouseUIRuntime.StretchPanel(worldRoot, "AmbientLight", Color.clear);
             ambientLight.raycastTarget = false;
+            // 罩层扩展到外景范围（2026-08-17：相机可越出主楼边界，夜色要盖住外景余量）
+            var ambientRect = ambientLight.rectTransform;
+            ambientRect.anchorMin = OpeningZoomFx.AlignOffset;
+            ambientRect.anchorMax = OpeningZoomFx.AlignOffset + Vector2.one * OpeningZoomFx.AlignScale;
+            ambientRect.offsetMin = ambientRect.offsetMax = Vector2.zero;
             UpdateDayLight();
 
             BindOverlay();
@@ -576,33 +586,29 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 把世界钳在视口内：任何缩放下画面边缘都不露底。
-        /// 总览以下进入**外景层级**（2026-08-16）：世界小于视口，普通钳制失效——
-        /// 位移锁在「总览 ⇄ 外景房屋对齐」的插值路径上，同时主楼剖面按进度淡出（放大回来即四房浮现）。
+        /// 把画面钳在**外景图**范围内（2026-08-17 用户定案）：外景层与主楼按对齐变换同坐标系渲染、
+        /// 始终垫在主楼后面，所以任何缩放下都以外景不露底为界——主楼四周多出外景余量
+        /// （左 23%/右 10%/下 17%/上 17%），放大后也能继续往下拖看到山坡海面；主楼底图四边已羽化融进外景。
+        /// 最小档外景恰好满屏（边界收敛为对齐位）；总览以下主楼剖面按进度淡出（放大回来四房浮现）。
         /// </summary>
         private void ClampCamera(Vector2 viewport)
         {
             camZoom = Mathf.Clamp(camZoom, ExteriorMinZoom, MaxZoom);
+            var extScale = OpeningZoomFx.AlignScale * camZoom;
+            var extOffset = Vector2.Scale(OpeningZoomFx.AlignOffset, viewport) * camZoom;
+            camPan.x = Mathf.Clamp(camPan.x, viewport.x * (1f - extScale) - extOffset.x, -extOffset.x);
+            camPan.y = Mathf.Clamp(camPan.y, viewport.y * (1f - extScale) - extOffset.y, -extOffset.y);
+            if (worldGroup == null) return;
             if (camZoom < OverviewZoom)
             {
-                // 外景段可自由拖动（2026-08-16 用户定案），边界 = 外景图不露底：
-                // 外景屏幕矩形 [extOffset+camPan, +视口×extScale]，钳到覆盖整个视口；
-                // 最小档 extScale=1 时边界收敛为单点，恰好就是对齐位——无需再锁路径
-                var extScale = OpeningZoomFx.AlignScale * camZoom;
-                var extOffset = Vector2.Scale(OpeningZoomFx.AlignOffset, viewport) * camZoom;
-                camPan.x = Mathf.Clamp(camPan.x, viewport.x * (1f - extScale) - extOffset.x, -extOffset.x);
-                camPan.y = Mathf.Clamp(camPan.y, viewport.y * (1f - extScale) - extOffset.y, -extOffset.y);
                 // 内景浮现集中在贴近总览的后段（放大到房屋接近剖面大小才显形，2026-08-16 用户定案）
                 var fadeStart = Mathf.Lerp(ExteriorMinZoom, OverviewZoom, .4f);
-                if (worldGroup != null) worldGroup.alpha = Mathf.InverseLerp(fadeStart, OverviewZoom, camZoom);
-                return;
+                worldGroup.alpha = Mathf.InverseLerp(fadeStart, OverviewZoom, camZoom);
             }
-            if (worldGroup != null) worldGroup.alpha = 1f;
-            var worldSize = viewport * camZoom;
-            // 底部松绑（2026-08-16 反馈）：聚焦得越深允许越多的向下越界，看清地面与接待室脚下
-            var bottomSlack = Mathf.Clamp01((camZoom - OverviewZoom) / (FocusedZoomThreshold - OverviewZoom)) * 180f;
-            camPan.x = Mathf.Clamp(camPan.x, viewport.x - worldSize.x, 0f);
-            camPan.y = Mathf.Clamp(camPan.y, viewport.y - worldSize.y, bottomSlack);
+            else
+            {
+                worldGroup.alpha = 1f;
+            }
         }
 
         /// <summary>

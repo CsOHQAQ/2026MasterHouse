@@ -459,8 +459,8 @@ namespace MasterHouse
         // 与访客一起按「脚底世界 y」排兄弟序：访客站到家具后面就会被正确遮挡。
 
         /// <summary>家具代理及其深度键（脚底世界 y；并列时按烘焙序稳定排序）。</summary>
-        private readonly List<(RectTransform rect, Image image, float depthY, int order)> furnitureProxies =
-            new List<(RectTransform, Image, float, int)>();
+        private readonly List<(RectTransform rect, RawImage image, float depthY, int order)> furnitureProxies =
+            new List<(RectTransform, RawImage, float, int)>();
         private readonly List<(Transform transform, float depthY, int order)> depthSortCache =
             new List<(Transform, float, int)>();
 
@@ -474,12 +474,19 @@ namespace MasterHouse
             {
                 foreach (var info in FurnitureSceneComposer.GetPlacedFurniture(room))
                 {
-                    if (info.Entry == null || info.Entry.sprite == null) continue;
+                    if (info.Entry == null || info.Entry.sprite == null || info.Entry.sprite.texture == null) continue;
                     var min = HubWorldGrid.RoomToWorld(room, info.ViewportRect.min);
                     var max = HubWorldGrid.RoomToWorld(room, info.ViewportRect.max);
                     var rect = F.Rect(layerRoot, $"Furniture_{room}_{info.Entry.id}", min, max, Vector2.zero, Vector2.zero);
-                    var image = rect.gameObject.AddComponent<Image>();
-                    image.sprite = info.Entry.sprite;
+                    // 与烘焙同语义（2026-08-17 修复大小偏差）：烘焙把精灵的**紧致可见区**（textureRect）
+                    // 拉伸填满矩形，而 Image 画的是含透明留白的完整精灵框——这里用 RawImage + 紧致 uv 对齐
+                    var sprite = info.Entry.sprite;
+                    var texture = sprite.texture;
+                    var tight = sprite.textureRect;
+                    var image = rect.gameObject.AddComponent<RawImage>();
+                    image.texture = texture;
+                    image.uvRect = new Rect(tight.x / texture.width, tight.y / texture.height,
+                        tight.width / texture.width, tight.height / texture.height);
                     image.raycastTarget = false; // 点击仍归家具热点/演员
                     if (info.Flipped) rect.localScale = new Vector3(-1f, 1f, 1f);
                     var depthY = HubWorldGrid.RoomToWorld(room, new Vector2(info.ViewportRect.center.x, info.ViewportRect.yMin)).y;
