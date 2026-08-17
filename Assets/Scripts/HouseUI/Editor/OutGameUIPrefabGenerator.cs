@@ -294,6 +294,11 @@ namespace MasterHouse
                 view => ((RectTransform)view.transform).sizeDelta.x < 1f ||
                         (view.roomArts != null && System.Array.Exists(view.roomArts,
                             art => art != null && (art.uvRect.width < .999f || art.uvRect.height < .999f))));
+            // 确认弹窗：按钮补 ESC/空格键帽（2026-08-17 键位可视化）
+            repaired |= RepairPrefab<OutGameConfirmPopupView>(ConfirmPopupPath,
+                (root, view) => AppendConfirmKeycaps(view),
+                view => (view.cancelButton != null && view.cancelButton.transform.Find("EscCap") == null) ||
+                        (view.confirmButton != null && view.confirmButton.transform.Find("SpaceCap") == null));
             // 图鉴详情区：补「前往修理」按钮（2026-08-14）
             repaired |= RepairPrefab<OutGameDevicePanelView>(DevicePanelPath,
                 (root, view) => AppendDeviceRepairButton(view),
@@ -1809,7 +1814,29 @@ namespace MasterHouse
             view.confirmButton = PageButton(view.panel, "Confirm", "确认", new Vector2(125, 48),
                 new Vector2(210, 58), Hex("6E243E"), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
             view.confirmLabel = view.confirmButton.GetComponentInChildren<Text>();
+            AppendConfirmKeycaps(view); // ESC/空格键帽（2026-08-17）
             Save(root, path);
+        }
+
+        /// <summary>确认弹窗增量（2026-08-17 键位可视化）：取消钮左侧补 ESC 键帽、确认钮左侧补空格键帽，只补缺失。</summary>
+        private static void AppendConfirmKeycaps(OutGameConfirmPopupView view)
+        {
+            if (view.cancelButton != null && view.cancelButton.transform.Find("EscCap") == null)
+            {
+                var cap = Image(view.cancelButton.transform, "EscCap", new Vector2(0, .5f), new Vector2(0, .5f),
+                    new Vector2(32, 0), new Vector2(44, 28), Color.white);
+                cap.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(KeycapDir + "ESC.png");
+                cap.preserveAspect = true;
+                cap.raycastTarget = false;
+            }
+            if (view.confirmButton != null && view.confirmButton.transform.Find("SpaceCap") == null)
+            {
+                var cap = Image(view.confirmButton.transform, "SpaceCap", new Vector2(0, .5f), new Vector2(0, .5f),
+                    new Vector2(36, 0), new Vector2(54, 26), Color.white);
+                cap.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(KeycapDir + "space.png");
+                cap.preserveAspect = true;
+                cap.raycastTarget = false;
+            }
         }
 
         /// <summary>开始新一天的日出过场层（2026-08-14）。Prefab 存入夜静态状态，破晓推移在 DayTransitionFx。</summary>

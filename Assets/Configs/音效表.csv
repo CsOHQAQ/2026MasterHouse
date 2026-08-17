@@ -10,3 +10,4 @@ VisitorArrive,访客到来通知,SoundEffect/6_InfoCome_260812,1,0.1
 VisitorLeave,访客离开通知,SoundEffect/6_InfoLeave_260812,1,0.1
 Reward,资源&奖励获得：任务奖励/商城购买/对话发放,SoundEffect/7_Reward_260812,1,0.1
 DialogueTyping,对话逐字显示音：单声击键采样池（由原连击音按波形拆分），一字一声随机挑,SoundEffect/TypingTaps/*,1,0.055
+Bgm,背景音乐：全程循环主题曲（BgmManager 消费，非一次性音效通道）,SoundEffect/BGM,1,0

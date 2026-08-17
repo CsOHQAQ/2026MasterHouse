@@ -53,6 +53,9 @@ namespace MasterHouse
             if (view.cancelButton != null) HouseUIUtil.BindButton(view.cancelButton, ui.PopOverlay, ESfx.None);
             HouseUIUtil.ApplyFallbackFont(instance.transform);
 
+            // 键位（2026-08-17）：空格确认；ESC 取消走壳的叠加层弹栈
+            instance.AddComponent<ConfirmHotkeys>().Init(view.confirmButton, () => ui.IsTopOverlay(overlay));
+
             var group = HouseUIUtil.Group(rect.gameObject, 0);
             group.DOFade(1, .22f).SetUpdate(true).SetLink(instance);
             if (view.panel != null)

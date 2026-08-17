@@ -35,6 +35,8 @@ namespace MasterHouse
         Reward = 10,
         /// <summary>需求 8 · 对话逐字显示音（打字机）。</summary>
         DialogueTyping = 11,
+        /// <summary>背景音乐：全程循环主题曲（由 BgmManager 消费，不走一次性音效通道，2026-08-17）。</summary>
+        Bgm = 12,
     }
 
     /// <summary>音效表单条：ID → 剪辑与播放参数。</summary>
@@ -62,5 +64,13 @@ namespace MasterHouse
     public sealed class SfxTable : ScriptableObject
     {
         public List<SfxEntry> entries = new List<SfxEntry>();
+
+        /// <summary>按 ID 找条目（BgmManager 等非 SfxManager 消费方用）；缺失返回 null。</summary>
+        public SfxEntry Find(ESfx id)
+        {
+            foreach (var entry in entries)
+                if (entry != null && entry.id == id) return entry;
+            return null;
+        }
     }
 }
