@@ -669,7 +669,8 @@ namespace MasterHouse
             var style = view.visualStyle;
             foreach (var link in level.Links) // LinkId 稳定顺序
                 DrawPolyline(linkPool, link.PathCells,
-                    link.Power > 0 ? style.wirePoweredColor : style.wireUnpoweredColor, WireWidthFactor);
+                    link.Power > 0 ? style.wirePoweredColor : style.wireUnpoweredColor, WireWidthFactor,
+                    link.FromPin, link.ToPin);
             linkPool.End();
         }
 
@@ -684,7 +685,7 @@ namespace MasterHouse
                 // 不限预算时 RemainingLinkCells 是 int.MaxValue，整条线都在预算内
                 var style = view.visualStyle;
                 DrawPolyline(previewPool, drawPath, style.wirePreviewColor, WireWidthFactor * 0.85f,
-                    level.RemainingLinkCells, style.wireOverflowColor, true);
+                    level.RemainingLinkCells, style.wireOverflowColor, true, drawFromPin);
             }
 
             var ghostDef = pendingPlacement ?? draggingNode?.Def;
@@ -708,20 +709,21 @@ namespace MasterHouse
             previewPool.End();
         }
 
-        private void DrawPolyline(Pool<Image> pool, IReadOnlyList<Vector2Int> cells, Color color, float widthFactor)
-            => DrawPolyline(pool, cells, color, widthFactor, int.MaxValue, color, false);
+        private void DrawPolyline(Pool<Image> pool, IReadOnlyList<Vector2Int> cells, Color color, float widthFactor,
+            PinData startPin = null, PinData endPin = null)
+            => DrawPolyline(pool, cells, color, widthFactor, int.MaxValue, color, false, startPin, endPin);
 
         /// <summary>
         /// 折线；下标 ≥ <paramref name="overflowFrom"/> 的格与其连接段改用 <paramref name="overflowColor"/>。
         /// 传下标而不是传委托：本方法逐帧跑，闭包会churn 出 GC。
         /// </summary>
         private void DrawPolyline(Pool<Image> pool, IReadOnlyList<Vector2Int> cells, Color color, float widthFactor,
-            int overflowFrom, Color overflowColor, bool isPreview = false)
+            int overflowFrom, Color overflowColor, bool isPreview = false, PinData startPin = null, PinData endPin = null)
         {
             var style = view.visualStyle;
             if (style != null && style.wireStraightSprite != null && style.wireCornerSprite != null)
             {
-                DrawStyledPolyline(pool, cells, color, overflowFrom, overflowColor, isPreview, style);
+                DrawStyledPolyline(pool, cells, color, overflowFrom, overflowColor, isPreview, startPin, endPin, style);
                 return;
             }
 
@@ -762,7 +764,8 @@ namespace MasterHouse
         /// PathCells 已由 LinkManager 保证是 from→to 的四向连续路径；本方法只读取它，不参与任何判定。
         /// </summary>
         private void DrawStyledPolyline(Pool<Image> pool, IReadOnlyList<Vector2Int> cells, Color color,
-            int overflowFrom, Color overflowColor, bool isPreview, CircuitVisualStyleConfig style)
+            int overflowFrom, Color overflowColor, bool isPreview, PinData startPin, PinData endPin,
+            CircuitVisualStyleConfig style)
         {
             for (int i = 0; i < cells.Count; i++)
             {
@@ -770,6 +773,7 @@ namespace MasterHouse
                 var tint = i < overflowFrom ? color : overflowColor;
                 Sprite sprite;
                 float rotation;
+                bool mirrorX = false;
 
                 if (cells.Count == 1)
                 {
@@ -779,15 +783,56 @@ namespace MasterHouse
                 }
                 else if (i == 0)
                 {
-                    sprite = style.wireConnectedEndSprite != null ? style.wireConnectedEndSprite : style.wireStraightSprite;
-                    rotation = RotationFromRight(cells[0] - cells[1]);
+                    var toNext = cells[1] - cells[0];
+                    var toNode = startPin != null
+                        ? -Direction4.ToOffset(startPin.Layout.Facing)
+                        : -toNext;
+                    if (startPin != null && toNext + toNode != Vector2Int.zero)
+                    {
+                        // 起点格也可能立即转弯后才离开节点 Pin，和终点的情况完全对称。
+                        if (style.wireCornerPinSprite != null &&
+                            TryGetCornerPinTransform(toNext, toNode, out rotation, out mirrorX))
+                            sprite = style.wireCornerPinSprite;
+                        else
+                        {
+                            sprite = style.wireCornerSprite;
+                            rotation = CornerRotation(toNext, toNode);
+                        }
+                    }
+                    else
+                    {
+                        sprite = style.wireConnectedEndSprite != null
+                            ? style.wireConnectedEndSprite
+                            : style.wireStraightSprite;
+                        rotation = RotationFromRight(toNode);
+                    }
                 }
                 else if (i == cells.Count - 1)
                 {
-                    sprite = isPreview && style.wireOpenEndSprite != null
-                        ? style.wireOpenEndSprite
-                        : style.wireConnectedEndSprite != null ? style.wireConnectedEndSprite : style.wireStraightSprite;
-                    rotation = RotationFromRight(cells[i] - cells[i - 1]);
+                    var toPrevious = cells[i - 1] - cells[i];
+                    var toNode = endPin != null
+                        ? -Direction4.ToOffset(endPin.Layout.Facing)
+                        : -toPrevious;
+                    if (!isPreview && endPin != null && toPrevious + toNode != Vector2Int.zero)
+                    {
+                        // CornerPin 本身是一张「右侧带接口的转角」完整图；按两条臂的方向选旋转/镜像，
+                        // 不与普通 Corner 叠加，避免在拐角中心出现双重管线。
+                        if (style.wireCornerPinSprite != null &&
+                            TryGetCornerPinTransform(toPrevious, toNode, out rotation, out mirrorX))
+                            sprite = style.wireCornerPinSprite;
+                        else
+                        {
+                            sprite = style.wireCornerSprite;
+                            rotation = CornerRotation(toPrevious, toNode);
+                        }
+                    }
+                    else
+                    {
+                        sprite = isPreview && style.wireOpenEndSprite != null
+                            ? style.wireOpenEndSprite
+                            : style.wireConnectedEndSprite != null ? style.wireConnectedEndSprite : style.wireStraightSprite;
+                        rotation = RotationFromRight(toNode);
+                    }
                 }
                 else
                 {
@@ -811,9 +856,45 @@ namespace MasterHouse
                 image.color = tint;
                 var rect = image.rectTransform;
                 rect.localRotation = Quaternion.Euler(0f, 0f, rotation);
+                rect.localScale = new Vector3(mirrorX ? -1f : 1f, 1f, 1f);
                 rect.sizeDelta = new Vector2(cellSize, cellSize);
                 rect.anchoredPosition = CellToLocal(cells[i]);
             }
+        }
+
+        /// <summary>
+        /// CornerPin 的原图有两条臂：接口在右，另一条线朝下。
+        /// 四种旋转只能覆盖同一手性的转角；另一手性必须先左右镜像，再旋转。
+        /// </summary>
+        private static bool TryGetCornerPinTransform(Vector2Int toLine, Vector2Int toNode,
+            out float rotation, out bool mirrorX)
+        {
+            for (int mirror = 0; mirror <= 1; mirror++)
+            {
+                bool mirrored = mirror != 0;
+                for (int quarterTurns = 0; quarterTurns < 4; quarterTurns++)
+                {
+                    var pinDirection = RotateCounterClockwise(mirrored ? Vector2Int.left : Vector2Int.right,
+                        quarterTurns);
+                    var lineDirection = RotateCounterClockwise(Vector2Int.down, quarterTurns);
+                    if (pinDirection != toNode || lineDirection != toLine) continue;
+
+                    rotation = quarterTurns * 90f;
+                    mirrorX = mirrored;
+                    return true;
+                }
+            }
+
+            rotation = 0f;
+            mirrorX = false;
+            return false;
+        }
+
+        private static Vector2Int RotateCounterClockwise(Vector2Int direction, int quarterTurns)
+        {
+            for (int i = 0; i < quarterTurns; i++)
+                direction = new Vector2Int(-direction.y, direction.x);
+            return direction;
         }
 
         private static float RotationFromUp(Vector2Int direction)

@@ -31,6 +31,9 @@ namespace MasterHouse
         [Tooltip("已完成连线的两端使用的 Sprite。图片默认接口朝右，运行时会朝向对应节点。")]
         public Sprite wireConnectedEndSprite;
 
+        [Tooltip("连线在端点格转弯后接入 Pin 时，叠加在转角上的接口 Sprite。图片默认接口朝右。")]
+        public Sprite wireCornerPinSprite;
+
         [Tooltip("正在描线但尚未接到目标的末端 Sprite。图片默认末端朝右，运行时会沿描线方向旋转。")]
         public Sprite wireOpenEndSprite;
 
