@@ -96,9 +96,6 @@ namespace MasterHouse
         public Color batteryColor = new Color(0.34f, 0.52f, 0.85f, 0.95f);
         public Color batteryLitColor = new Color(0.98f, 0.83f, 0.30f, 1f);
         public Color transitColor = new Color(0.62f, 0.45f, 0.80f, 0.95f);
-        public Color wireColor = new Color(0.85f, 0.88f, 0.92f, 0.95f);
-        public Color wireDeadColor = new Color(0.45f, 0.47f, 0.52f, 0.85f);
-        public Color previewColor = new Color(0.95f, 0.90f, 0.45f, 0.75f);
         public Color legalColor = new Color(0.40f, 0.90f, 0.45f, 0.55f);
         public Color illegalColor = new Color(0.92f, 0.35f, 0.32f, 0.55f);
         [Tooltip("预算超出上限时的数字颜色（只有导线会超；中转件被 CanBuild 硬拦，到不了这一档）")]

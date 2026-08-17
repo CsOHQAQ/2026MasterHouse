@@ -25,7 +25,7 @@ namespace MasterHouse
         private const float NodeGrabDeadZone = 0.30f;
 
         private const float WireWidthFactor = 0.30f;
-        private const float DefaultPinSizeInCells = 0.24f;
+        private const float DefaultPinSizeInCells = 0.75f;
         private const float CellGap = 2f;
         private const float FunctionIconPaddingFactor = 0.18f;
         private const float MessageSeconds = 3.5f;
@@ -666,9 +666,10 @@ namespace MasterHouse
         private void RebuildLinks()
         {
             linkPool.Begin();
+            var style = view.visualStyle;
             foreach (var link in level.Links) // LinkId 稳定顺序
                 DrawPolyline(linkPool, link.PathCells,
-                    link.Power > 0 ? view.wireColor : view.wireDeadColor, WireWidthFactor);
+                    link.Power > 0 ? style.wirePoweredColor : style.wireUnpoweredColor, WireWidthFactor);
             linkPool.End();
         }
 
@@ -678,10 +679,13 @@ namespace MasterHouse
             previewPool.Begin();
 
             if (drawFromPin != null && drawPath.Count > 0)
+            {
                 // 超出预算的那一段直接画成非法色：顶栏数字之外，棋盘上也要一眼看得出超了多少（§8.3）。
                 // 不限预算时 RemainingLinkCells 是 int.MaxValue，整条线都在预算内
-                DrawPolyline(previewPool, drawPath, view.previewColor, WireWidthFactor * 0.85f,
-                    level.RemainingLinkCells, view.illegalColor);
+                var style = view.visualStyle;
+                DrawPolyline(previewPool, drawPath, style.wirePreviewColor, WireWidthFactor * 0.85f,
+                    level.RemainingLinkCells, style.wireOverflowColor, true);
+            }
 
             var ghostDef = pendingPlacement ?? draggingNode?.Def;
             if (ghostDef != null && hoverValid)
@@ -705,22 +709,33 @@ namespace MasterHouse
         }
 
         private void DrawPolyline(Pool<Image> pool, IReadOnlyList<Vector2Int> cells, Color color, float widthFactor)
-            => DrawPolyline(pool, cells, color, widthFactor, int.MaxValue, color);
+            => DrawPolyline(pool, cells, color, widthFactor, int.MaxValue, color, false);
 
         /// <summary>
         /// 折线；下标 ≥ <paramref name="overflowFrom"/> 的格与其连接段改用 <paramref name="overflowColor"/>。
         /// 传下标而不是传委托：本方法逐帧跑，闭包会churn 出 GC。
         /// </summary>
         private void DrawPolyline(Pool<Image> pool, IReadOnlyList<Vector2Int> cells, Color color, float widthFactor,
-            int overflowFrom, Color overflowColor)
+            int overflowFrom, Color overflowColor, bool isPreview = false)
         {
+            var style = view.visualStyle;
+            if (style != null && style.wireStraightSprite != null && style.wireCornerSprite != null)
+            {
+                DrawStyledPolyline(pool, cells, color, overflowFrom, overflowColor, isPreview, style);
+                return;
+            }
+
             float w = cellSize * widthFactor;
             for (int i = 0; i < cells.Count; i++)
             {
                 var tint = i < overflowFrom ? color : overflowColor;
                 var joint = pool.Next();
+                joint.sprite = null;
+                joint.type = Image.Type.Simple;
+                joint.preserveAspect = false;
                 joint.color = tint;
                 var jointRect = joint.rectTransform;
+                jointRect.localRotation = Quaternion.identity;
                 jointRect.sizeDelta = new Vector2(w, w);
                 jointRect.anchoredPosition = CellToLocal(cells[i]);
 
@@ -729,13 +744,106 @@ namespace MasterHouse
                 var a = CellToLocal(cells[i - 1]);
                 var b = CellToLocal(cells[i]);
                 var segment = pool.Next();
+                segment.sprite = null;
+                segment.type = Image.Type.Simple;
+                segment.preserveAspect = false;
                 segment.color = tint;
                 var segmentRect = segment.rectTransform;
+                segmentRect.localRotation = Quaternion.identity;
                 segmentRect.anchoredPosition = (a + b) * .5f;
                 segmentRect.sizeDelta = Mathf.Approximately(a.x, b.x)
                     ? new Vector2(w, cellSize)
                     : new Vector2(cellSize, w);
             }
+        }
+
+        /// <summary>
+        /// 美术版折线：每个路径格恰好一张图，按相邻格决定直线、转角或端点，并旋转到正确朝向。
+        /// PathCells 已由 LinkManager 保证是 from→to 的四向连续路径；本方法只读取它，不参与任何判定。
+        /// </summary>
+        private void DrawStyledPolyline(Pool<Image> pool, IReadOnlyList<Vector2Int> cells, Color color,
+            int overflowFrom, Color overflowColor, bool isPreview, CircuitVisualStyleConfig style)
+        {
+            for (int i = 0; i < cells.Count; i++)
+            {
+                var image = pool.Next();
+                var tint = i < overflowFrom ? color : overflowColor;
+                Sprite sprite;
+                float rotation;
+
+                if (cells.Count == 1)
+                {
+                    // 刚按下 Pin、还没经过第二格时，显示一个朝默认方向的断头，给玩家明确的起笔反馈。
+                    sprite = style.wireOpenEndSprite != null ? style.wireOpenEndSprite : style.wireStraightSprite;
+                    rotation = 0f;
+                }
+                else if (i == 0)
+                {
+                    sprite = style.wireConnectedEndSprite != null ? style.wireConnectedEndSprite : style.wireStraightSprite;
+                    rotation = RotationFromRight(cells[0] - cells[1]);
+                }
+                else if (i == cells.Count - 1)
+                {
+                    sprite = isPreview && style.wireOpenEndSprite != null
+                        ? style.wireOpenEndSprite
+                        : style.wireConnectedEndSprite != null ? style.wireConnectedEndSprite : style.wireStraightSprite;
+                    rotation = RotationFromRight(cells[i] - cells[i - 1]);
+                }
+                else
+                {
+                    var toPrevious = cells[i - 1] - cells[i];
+                    var toNext = cells[i + 1] - cells[i];
+                    if (toPrevious + toNext == Vector2Int.zero)
+                    {
+                        sprite = style.wireStraightSprite;
+                        rotation = RotationFromUp(toNext);
+                    }
+                    else
+                    {
+                        sprite = style.wireCornerSprite;
+                        rotation = CornerRotation(toPrevious, toNext);
+                    }
+                }
+
+                image.sprite = sprite;
+                image.type = Image.Type.Simple;
+                image.preserveAspect = false;
+                image.color = tint;
+                var rect = image.rectTransform;
+                rect.localRotation = Quaternion.Euler(0f, 0f, rotation);
+                rect.sizeDelta = new Vector2(cellSize, cellSize);
+                rect.anchoredPosition = CellToLocal(cells[i]);
+            }
+        }
+
+        private static float RotationFromUp(Vector2Int direction)
+        {
+            if (direction == Vector2Int.up) return 0f;
+            if (direction == Vector2Int.right) return -90f;
+            if (direction == Vector2Int.down) return 180f;
+            return 90f; // left
+        }
+
+        private static float RotationFromRight(Vector2Int direction)
+        {
+            if (direction == Vector2Int.right) return 0f;
+            if (direction == Vector2Int.down) return -90f;
+            if (direction == Vector2Int.left) return 180f;
+            return 90f; // up
+        }
+
+        /// <summary>Corner Sprite 的默认连接方向为下 + 右。</summary>
+        private static float CornerRotation(Vector2Int a, Vector2Int b)
+        {
+            bool up = a == Vector2Int.up || b == Vector2Int.up;
+            bool right = a == Vector2Int.right || b == Vector2Int.right;
+            bool down = a == Vector2Int.down || b == Vector2Int.down;
+            bool left = a == Vector2Int.left || b == Vector2Int.left;
+
+            if (down && right) return 0f;
+            if (up && right) return 90f;
+            if (up && left) return 180f;
+            return -90f; // down + left
         }
 
         private Color BodyColor(NodeData node)

@@ -13,11 +13,19 @@ MonoBehaviour:
   m_Name: CircuitVisualStyle_Default
   m_EditorClassIdentifier: 
   pinSprite: {fileID: 21300000, guid: 7a3f356de84ae5e40aaee1e267bbb0fc, type: 3}
-  pinSizeInCells: 0.24
+  pinSizeInCells: 0.75
   pinColorMultiplier: {r: 1, g: 1, b: 1, a: 1}
+  wireStraightSprite: {fileID: 21300000, guid: ffb63753dfb93bb4581e18b5faba990e, type: 3}
+  wireCornerSprite: {fileID: 21300000, guid: 9c5dd81929d32c04dbe68cd2719a218b, type: 3}
+  wireConnectedEndSprite: {fileID: 21300000, guid: 267373afb6e69da4abcf5aa9a7156b34, type: 3}
+  wireOpenEndSprite: {fileID: 21300000, guid: e7e81ba588f632643b6e4d39c1baaaf4, type: 3}
+  wirePoweredColor: {r: 0.85, g: 0.88, b: 0.92, a: 0.95}
+  wireUnpoweredColor: {r: 0.45, g: 0.47, b: 0.52, a: 0.85}
+  wirePreviewColor: {r: 0.95, g: 0.9, b: 0.45, a: 0.75}
+  wireOverflowColor: {r: 0.92, g: 0.35, b: 0.32, a: 0.55}
   movableIcon: {fileID: 21300000, guid: abcd9de31ae1e2841b1bebf758095e5f, type: 3}
   immovableIcon: {fileID: 21300000, guid: b5c8598e6593e2b4eb4a203a56607480, type: 3}
   movableIconColor: {r: 1, g: 1, b: 1, a: 1}
   immovableIconColor: {r: 1, g: 1, b: 1, a: 1}
-  mobilityIconSizeInCells: 0.4
+  mobilityIconSizeInCells: 0.8
   mobilityIconPaddingInCells: 0.12
