@@ -38,8 +38,12 @@ namespace MasterHouse
         private static readonly Rect ReceptionWalkArea = Rect.MinMaxRect(.06f, .03f, .94f, .22f);
         private static readonly Rect ReceptionEntryArea = Rect.MinMaxRect(.06f, .04f, .4f, .2f);
         private const int MaxAmbient = 3;
-        /// <summary>演员的统一世界缩放（2026-08-16）：全场访客同一基准大小；调访客整体大小改这里。</summary>
-        private const float ActorWorldScale = .3f;
+        /// <summary>
+        /// 演员的统一世界缩放（2026-08-17 按截图调大；2026-08-17 按参考视频再调）：
+        /// 参考视频里人身高 ≈ 小屋高的 1/3 ≈ 单层楼高的 0.7，故把访客调到约 0.7 个房间高。
+        /// 全场访客同一基准大小；调整体大小改这里。
+        /// </summary>
+        private const float ActorWorldScale = .68f;
         /// <summary>假透视深度缩小（2026-08-16 反馈）：脚底 y 每升高 1（房内归一化）缩小的比例与下限——
         /// 地面带内轻微收小，被拖出活动区贴墙时继续缩，不会「贴在墙上还原大」。</summary>
         private const float ActorDepthShrink = 1.1f;
