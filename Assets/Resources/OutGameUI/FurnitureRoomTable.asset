@@ -59,7 +59,7 @@ MonoBehaviour:
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 17
+      col: 8
       row: 3
       flipped: 0
     - furnitureId: hanging_plant_01
@@ -67,8 +67,8 @@ MonoBehaviour:
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 31
-      row: 9
+      col: 25
+      row: 3
       flipped: 0
     - furnitureId: armchair_01
       gridId: floor
@@ -132,8 +132,8 @@ MonoBehaviour:
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 9
-      row: 11
+      col: 16
+      row: 2
       flipped: 0
     - furnitureId: single_sofa_02
       gridId: floor
@@ -206,7 +206,7 @@ MonoBehaviour:
       hostCol: 0
       hostRow: 0
       col: 19
-      row: 9
+      row: 4
       flipped: 0
     - furnitureId: round_table_02
       gridId: floor
@@ -286,8 +286,8 @@ MonoBehaviour:
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 29
-      row: 11
+      col: 35
+      row: 4
       flipped: 0
     - furnitureId: single_sofa_04
       gridId: floor
