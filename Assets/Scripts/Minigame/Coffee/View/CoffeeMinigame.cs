@@ -26,10 +26,29 @@ namespace MasterHouse
         private GrindGame grind;
         private PourGame pour;
 
+        private static readonly int WaterFillRadiusId = Shader.PropertyToID("_FillRadius");
+        private static readonly int WaterWobblePhaseId = Shader.PropertyToID("_WobblePhase");
+        private static readonly int WaterWobbleAmpId = Shader.PropertyToID("_WobbleAmp");
+        private static readonly int WaterRingsId = Shader.PropertyToID("_Rings");
+
+        /// <summary>与 shader 的 RING_SLOTS 一致；默认间隔 0.03s × 寿命 0.9s ≈ 30 个并存 + 水花，32 够用</summary>
+        private const int WaterRingSlots = 32;
+
         private EPhase phase;
         private int grindScore;
         private float settleRemaining;
         private float messageResetRemaining;
+
+        private Material waterMaterial;
+        private float wobblePhase;
+        private float wobbleAmp;
+        private bool wasPouring;
+        private float ringTimer;
+        private int ringCursor;
+        private readonly Vector2[] ringCenter = new Vector2[WaterRingSlots];
+        private readonly float[] ringAge = new float[WaterRingSlots];
+        private readonly float[] ringStrength = new float[WaterRingSlots];
+        private readonly Vector4[] ringUpload = new Vector4[WaterRingSlots];
 
         private Action<int> onFinish;
         private Action onAbort;
@@ -72,6 +91,7 @@ namespace MasterHouse
             grind.Hit += OnGrindHit;
             grind.Init();
             pour = new PourGame(view, level, ResolveUiCamera());
+            SetupWater();
 
             if (view.abortButton != null) view.abortButton.onClick.AddListener(OnAbortClicked);
 
@@ -117,6 +137,9 @@ namespace MasterHouse
                     if (settleRemaining <= 0f) Finish();
                     break;
             }
+
+            // 水面是纯表现：磨豆阶段 pourRoot 未激活，不喂；结算展示期间余波继续
+            if (phase != EPhase.Grind) TickWater(dt);
         }
 
         // ══════════ 环节切换 ══════════
@@ -177,6 +200,7 @@ namespace MasterHouse
         private void OnDestroy()
         {
             if (grind != null) grind.Hit -= OnGrindHit;
+            if (waterMaterial != null) Destroy(waterMaterial);
             // 页面被壳直接销毁（ESC / 遮罩）时，宿主已经按「关掉页面且不结算」处理，
             // 这里不再补调 onAbort——重复回调会违反「只调一次」的契约
             running = false;
@@ -233,6 +257,110 @@ namespace MasterHouse
             }
         }
 
+        // ══════════ 水面表现 ══════════
+
+        /// <summary>
+        /// 水面材质运行时创建（Prefab 不挂材质资产，同 HubSceneBinder 的延时序列做法）。
+        /// shader 缺失只失去特效、照常游玩——它不是布局，不走 §16.2 的缺件即中止。
+        /// </summary>
+        private void SetupWater()
+        {
+            var shader = Resources.Load<Shader>("Shaders/UIWater");
+            if (shader == null)
+            {
+                Debug.LogWarning("[制作咖啡] 水面 shader 缺失（Resources/Shaders/UIWater），本局不显示水面");
+                view.waterImage.gameObject.SetActive(false);
+                return;
+            }
+
+            waterMaterial = new Material(shader);
+            waterMaterial.SetColor("_WaterColor", view.waterColor);
+            waterMaterial.SetColor("_RippleColor", view.waterRippleColor);
+            waterMaterial.SetFloat(WaterFillRadiusId, 0f);
+            view.waterImage.gameObject.SetActive(true);
+            view.waterImage.material = waterMaterial;
+
+            wobblePhase = 0f;
+            wobbleAmp = view.waterWobbleAmpIdle;
+            wasPouring = false;
+            ringTimer = 0f;
+            ringCursor = 0;
+            for (int i = 0; i < WaterRingSlots; i++)
+            {
+                ringStrength[i] = 0f;
+                ringUpload[i] = Vector4.zero;
+            }
+            waterMaterial.SetVectorArray(WaterRingsId, ringUpload);
+        }
+
+        /// <summary>
+        /// 逐帧喂水面材质（俯视·尾迹，2026-08-17 访谈拍板后同日改为船尾波观感）：
+        /// - 液面半径随进度扩展；
+        /// - 边缘晃动：速度由最近一段的速度方差线性归一映射（手越抖晃越快），幅度由倒水状态阻尼趋近；
+        /// - 尾迹：按下瞬间冒落水水花；倒水期间按固定高频间隔在倒水点冒微弱的细波元，
+        ///   每个波元记住出生点、自行扩散变淡。拖动比波元扩散快时，波元包络自动叠出
+        ///   船尾那样的 V 形尾迹（开尔文尾迹的成因），原地不动则是同点持续搅动的光斑；
+        ///   松手不再冒新波元，旧波元飘完即静。
+        /// 相位不用 shader 的 _Time——时间统一走本组件的 dt，暂停时水面跟着停；
+        /// 单局时长有限，相位不做回绕（float 精度在这个量级绰绰有余）。
+        /// </summary>
+        private void TickWater(float dt)
+        {
+            if (waterMaterial == null) return;
+
+            bool pouring = phase == EPhase.Pour && pour.IsPouring;
+
+            // ① 边缘晃动：方差 → 晃动速度（线性归一），倒水状态 → 幅度（指数趋近，帧率无关）
+            float variance = pour.RecentVariance(view.waterVarianceWindowSeconds);
+            float unrest = Mathf.Clamp01(variance / Mathf.Max(1e-4f, view.waterVarianceNormalizer));
+            wobblePhase += Mathf.Lerp(view.waterWobbleSpeedMin, view.waterWobbleSpeedMax, unrest) * dt;
+            float ampTarget = pouring ? view.waterWobbleAmpPouring : view.waterWobbleAmpIdle;
+            wobbleAmp = Mathf.Lerp(ampTarget, wobbleAmp, Mathf.Exp(-view.waterWaveDamping * dt));
+
+            // ② 尾迹：落水水花（按下/回杯瞬间）＋ 高频波元（固定时间节奏，原地不动也冒）
+            if (pouring && !wasPouring)
+            {
+                SpawnRing(view.waterSplashStrength);
+                ringTimer = view.waterWakeSpawnInterval; // 水花已即时反馈，波元从下个间隔起算
+            }
+            else if (pouring)
+            {
+                ringTimer -= dt;
+                if (ringTimer <= 0f)
+                {
+                    SpawnRing(view.waterWakeStrength);
+                    ringTimer += Mathf.Max(0.01f, view.waterWakeSpawnInterval);
+                }
+            }
+            wasPouring = pouring;
+
+            // 波元老化：半径线性长，强度按剩余寿命平方衰减（先快后慢地淡出）
+            float life = Mathf.Max(0.1f, view.waterWakeLifetime);
+            for (int i = 0; i < WaterRingSlots; i++)
+            {
+                ringAge[i] += dt;
+                float remain = 1f - ringAge[i] / life;
+                float fade = remain > 0f ? ringStrength[i] * remain * remain : 0f;
+                ringUpload[i] = new Vector4(
+                    ringCenter[i].x, ringCenter[i].y, ringAge[i] * view.waterWakeWaveSpeed, fade);
+            }
+
+            // 半径取进度的开方：液面面积 ∝ 半径²，开方后面积随进度线性长，观感上是匀速灌满
+            waterMaterial.SetFloat(WaterFillRadiusId, 0.5f * Mathf.Sqrt(Mathf.Clamp01(pour.Progress)));
+            waterMaterial.SetFloat(WaterWobblePhaseId, wobblePhase);
+            waterMaterial.SetFloat(WaterWobbleAmpId, wobbleAmp);
+            waterMaterial.SetVectorArray(WaterRingsId, ringUpload);
+        }
+
+        /// <summary>在当前倒水点冒一个新波元。槽位循环复用：满了就顶掉最老的（正常节奏刚好用不满）。</summary>
+        private void SpawnRing(float strength)
+        {
+            ringCenter[ringCursor] = pour.PourPointUv;
+            ringAge[ringCursor] = 0f;
+            ringStrength[ringCursor] = strength;
+            ringCursor = (ringCursor + 1) % WaterRingSlots;
+        }
+
         // ══════════ 杂项 ══════════
 
         /// <summary>Screen Space Overlay 的 Canvas 传 null 相机；其余模式取 Canvas 自己的。</summary>
@@ -256,11 +384,13 @@ namespace MasterHouse
             if (view.pointer == null) missing.Add(nameof(view.pointer));
             if (view.cupArea == null) missing.Add(nameof(view.cupArea));
             if (view.cupImage == null) missing.Add(nameof(view.cupImage));
+            if (view.waterImage == null) missing.Add(nameof(view.waterImage));
             if (view.progressFill == null) missing.Add(nameof(view.progressFill));
             if (missing.Count == 0) return true;
 
             Debug.LogError($"[制作咖啡] Prefab 缺少必需的布局引用：{string.Join("、", missing)}。" +
-                           $"请执行菜单 MasterHouse → 小游戏 → 重建制作咖啡 Prefab（会覆盖手调）", gameObject);
+                           $"请先执行菜单 MasterHouse → 小游戏 → 创建制作咖啡资产（补齐缺失，会给老 Prefab 补新节点）；" +
+                           $"仍缺再重建（覆盖手调）", gameObject);
             return false;
         }
     }

@@ -383,6 +383,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2207494280467031931}
   - component: {fileID: 4038715981227469939}
+  - component: {fileID: 7461003912850027306}
   m_Layer: 5
   m_Name: HubSceneOverlay
   m_TagString: Untagged
@@ -586,3 +587,21 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &7461003912850027306
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4311554269499083106}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 218662f0ac21200b3261e0f2f87874c3, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  visibleInExterior: 0
+  visibleInOverview: 0
+  visibleInRoomFocus: 1
+  floatOffset: {x: 0, y: 22}
+  fadeDuration: 0.3
+  moveDuration: 0.42

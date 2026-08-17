@@ -21,6 +21,7 @@ namespace MasterHouse
         private readonly HubGuestRailBinder guestRail = new HubGuestRailBinder();
         private readonly HubRightDockBinder rightDock = new HubRightDockBinder();
         private readonly HubRoomNavBinder roomNav = new HubRoomNavBinder();
+        private readonly HubTierUiBinder tierUi = new HubTierUiBinder();
         private readonly HubSceneBinder scene = new HubSceneBinder();
 
         private Text immersiveLabel;
@@ -29,6 +30,9 @@ namespace MasterHouse
 
         /// <summary>当前房间下标（四宫格：由场景相机的视口中心决定，见 HubSceneBinder.DetectCurrentRoom）。</summary>
         public int RoomIndex { get; private set; }
+
+        /// <summary>当前相机视角档位（HubSceneBinder 按 camZoom 判定；初始相机即总览）。</summary>
+        public EHubViewTier ViewTier { get; private set; } = EHubViewTier.Overview;
 
         /// <summary>当前选中的访客实例 id（任务卡与对话层共用；-1 = 未选中）。</summary>
         public int SelectedInstanceId { get; private set; } = -1;
@@ -71,6 +75,7 @@ namespace MasterHouse
             guestRail.Bind(view.guestRail, this);
             rightDock.Bind(view.rightDock, this, view.chromeRoot);
             roomNav.Bind(view.roomNavigation, this);
+            tierUi.Bind(view, this); // 档位显隐：须在 AnimateHubIn 之前绑（原位采样要赶在入场动效挪位前）
             BuildImmersiveToggle(view.chromeRoot);
             if (view.footer != null)
                 view.footer.text = "NEW LIFE, NEW HOME · UI/UX CONCEPT                                      ESC 返回 · ↑↓←→ 移动房间 · I 仓库";
@@ -240,6 +245,13 @@ namespace MasterHouse
         {
             RoomIndex = index;
             roomNav.Refresh();
+        }
+
+        /// <summary>场景相机跨过档位分界（HubSceneBinder 回调，带回滞）：刷新档位区块显隐。</summary>
+        public void NotifyCameraTierChanged(EHubViewTier tier)
+        {
+            ViewTier = tier;
+            tierUi.OnTierChanged();
         }
 
         /// <summary>
@@ -450,12 +462,16 @@ namespace MasterHouse
             foreach (Transform child in view.chromeRoot)
             {
                 if (child == view.sceneRoot || child.name == "ImmersiveToggle") continue;
+                // 挂了档位标记的区块归 tierUi 统一开合（连位移浮动一起做）——两套 Tween 抢同一个
+                // CanvasGroup 会互杀；展开界面时它只恢复当前档该见的，不会把档位藏起的也拉回来
+                if (child.GetComponent<HubTierVisibility>() != null) continue;
                 var group = HouseUIUtil.Group(child.gameObject);
                 group.DOKill();
                 group.DOFade(on ? 0f : 1f, .25f).SetUpdate(true);
                 group.blocksRaycasts = !on;
                 group.interactable = !on;
             }
+            tierUi.SetImmersive(on);
             scene.SetImmersiveVisual(on);
             if (immersiveLabel != null)
                 immersiveLabel.text = on ? "展开界面\n<size=12>ESC</size>" : "收起界面";
@@ -497,6 +513,7 @@ namespace MasterHouse
             foreach (Transform child in view.chromeRoot)
             {
                 if (child == view.sceneRoot || child.name == "Scene") continue;
+                if (!tierUi.ShouldShow(child)) continue; // 初始档位看不见的区块不入场（tierUi.Bind 已把它藏好）
                 var rt = child as RectTransform;
                 if (rt == null) continue;
                 var group = HouseUIUtil.Group(child.gameObject, 0);

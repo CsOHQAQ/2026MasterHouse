@@ -173,6 +173,7 @@ GameObject:
   - component: {fileID: 4222324980409695649}
   - component: {fileID: 8932374920495507551}
   - component: {fileID: 5423578553943416453}
+  - component: {fileID: 7461003912850027302}
   m_Layer: 5
   m_Name: HubTaskCard
   m_TagString: Untagged
@@ -474,3 +475,21 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: "CURRENT VISITOR TASK                         \u8FDB\u884C\u4E2D"
+--- !u!114 &7461003912850027302
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3921113999108682874}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 218662f0ac21200b3261e0f2f87874c3, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  visibleInExterior: 0
+  visibleInOverview: 1
+  visibleInRoomFocus: 1
+  floatOffset: {x: 0, y: 22}
+  fadeDuration: 0.3
+  moveDuration: 0.42

@@ -34,6 +34,12 @@ namespace MasterHouse
         public float Progress => progress;
         public bool IsComplete => complete;
 
+        /// <summary>本帧是否在有效倒水（按住且在杯内）。纯表现用：驱动冒环节奏与边缘晃动幅度。</summary>
+        public bool IsPouring => wasActive;
+
+        /// <summary>最近一次有效倒水点（cupArea 的 uv 坐标 0~1）；从未倒过时为杯心。纯表现用：涡环在这里出生。</summary>
+        public Vector2 PourPointUv { get; private set; } = new Vector2(0.5f, 0.5f);
+
         /// <summary>结算后有效（IsComplete 之前是 0 / null）。</summary>
         public int Score { get; private set; }
         public string GradeName { get; private set; }
@@ -62,6 +68,7 @@ namespace MasterHouse
                     lastLocal = LocalMouse();
                     windowTime = 0f;
                     windowDist = 0f;
+                    UpdatePourPointUv();
                 }
                 else
                 {
@@ -71,6 +78,7 @@ namespace MasterHouse
                     windowDist += (now - lastLocal).magnitude / Mathf.Max(1f, diameter);
                     windowTime += dt;
                     lastLocal = now;
+                    UpdatePourPointUv();
 
                     if (windowTime >= level.SpeedSampleSeconds)
                     {
@@ -123,6 +131,34 @@ namespace MasterHouse
             return (mean, variance, count);
         }
 
+        /// <summary>
+        /// 最近 windowSeconds 内样本的速度方差（基准公式与 Stats 同款：max(窗口均速, MinAverageSpeed)，
+        /// 按住不动同样会被顶到 MinAverageSpeed²，视觉反馈和判分口径一致）。
+        /// 纯表现用（驱动液面边缘晃动速度），结算仍走 Stats() 的累计方差。
+        /// 尚无样本时返回 0：开局没倒过水，液面该是平静的。
+        /// </summary>
+        public float RecentVariance(float windowSeconds)
+        {
+            int count = samples.Count;
+            if (count == 0) return 0f;
+
+            int n = Mathf.Clamp(
+                Mathf.RoundToInt(windowSeconds / Mathf.Max(0.01f, level.SpeedSampleSeconds)), 1, count);
+
+            float mean = 0f;
+            for (int i = count - n; i < count; i++) mean += samples[i];
+            mean /= n;
+
+            float reference = Mathf.Max(mean, level.MinAverageSpeed);
+            float variance = 0f;
+            for (int i = count - n; i < count; i++)
+            {
+                float d = samples[i] - reference;
+                variance += d * d;
+            }
+            return variance / n;
+        }
+
         private void Settle()
         {
             var (_, variance, _) = Stats();
@@ -149,6 +185,15 @@ namespace MasterHouse
             var rect = view.cupArea.rect;
             float radius = Mathf.Min(rect.width, rect.height) * 0.5f;
             return (local - rect.center).sqrMagnitude <= radius * radius;
+        }
+
+        /// <summary>把 lastLocal（局部坐标）换算成 cupArea 的 uv，喂给水面材质当波源。</summary>
+        private void UpdatePourPointUv()
+        {
+            var rect = view.cupArea.rect;
+            PourPointUv = new Vector2(
+                (lastLocal.x - rect.xMin) / Mathf.Max(1f, rect.width),
+                (lastLocal.y - rect.yMin) / Mathf.Max(1f, rect.height));
         }
 
         private Vector2 LocalMouse()

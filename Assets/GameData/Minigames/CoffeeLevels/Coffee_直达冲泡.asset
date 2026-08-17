@@ -17,15 +17,16 @@ MonoBehaviour:
   ObstacleCount: 0
   ObstacleArcDegrees: 24
   ObstacleMinGapDegrees: 30
+  SpawnSafeDegrees: 30
   GrindMaxScore: 50
   HitScorePenalty: 10
   HitProgressPenalty: 0.15
   HitStunSeconds: 1
-  PourFillSeconds: 6
+  PourFillSeconds: 15
   SpeedSampleSeconds: 0.05
-  MinAverageSpeed: 0.3
+  MinAverageSpeed: 0.25
   ExcellentVarianceMax: 0.02
-  GoodVarianceMax: 0.08
+  GoodVarianceMax: 0.05
   PourExcellentScore: 50
   PourGoodScore: 30
   PourPlainScore: 20

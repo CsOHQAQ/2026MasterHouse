@@ -35,6 +35,9 @@ namespace MasterHouse
         public RectTransform cupArea;
         public Image cupImage;
 
+        [Tooltip("杯内水面：材质由根组件在 Launch 时用 UIWater shader 创建（Prefab 不挂材质资产），水位=冲泡进度")]
+        public Image waterImage;
+
         [Header("HUD")]
         public Text phaseLabel;
         public Text scoreLabel;
@@ -64,6 +67,46 @@ namespace MasterHouse
         [Tooltip("结算展示（研磨 X + 冲泡 Y = Z 分）停留秒数，之后才真正 onFinish")]
         public float settleShowSeconds = 1.6f;
 
+        [Header("水面表现（不影响判定；俯视：液面从杯心扩展，倒水点高频冒波元叠出尾迹）")]
+        [Tooltip("边缘晃动速度下限（弧度/秒；滑窗方差=0 时，2026-08-17 访谈：速度由方差线性归一驱动）")]
+        public float waterWobbleSpeedMin = 1.5f;
+
+        [Tooltip("边缘晃动速度上限（弧度/秒；滑窗方差≥归一上限时）")]
+        public float waterWobbleSpeedMax = 8f;
+
+        [Tooltip("方差线性归一的分母，单位(杯径/秒)²：滑窗方差除以它 clamp 到 0~1 后映射晃动速度。\n" +
+                 "纯表现常数，不与关卡阈值挂钩（2026-08-17 访谈拍板）")]
+        public float waterVarianceNormalizer = 0.1f;
+
+        [Tooltip("方差滑动窗口宽度（秒）：只看最近这段的表现，反馈跟手")]
+        public float waterVarianceWindowSeconds = 1f;
+
+        [Tooltip("倒水时边缘晃动幅度（0~1，乘材质的 _EdgeWobble 基准值）")]
+        [Range(0f, 1f)] public float waterWobbleAmpPouring = 1f;
+
+        [Tooltip("停手时边缘微晃幅度（余环飘完后画面不死全靠它）")]
+        [Range(0f, 1f)] public float waterWobbleAmpIdle = 0.35f;
+
+        [Tooltip("晃动幅度趋向目标的响应速度（越大切换越干脆）")]
+        public float waterWaveDamping = 5f;
+
+        [Tooltip("倒水时波元生成间隔（秒）：要密（≈每帧半），单个波元才隐进包络里。\n" +
+                 "槽位共 32 个，间隔 × 32 ≥ 寿命才不会提前顶掉活着的波元")]
+        public float waterWakeSpawnInterval = 0.03f;
+
+        [Tooltip("单个波元从出生到消散的寿命（秒）：尾迹拖多长")]
+        public float waterWakeLifetime = 0.9f;
+
+        [Tooltip("波元扩散速度（uv/秒；杯直径=1）。要小于正常拖动的速度，V 形尾迹才成形——\n" +
+                 "拖得比波快，波才会被甩在身后（开尔文尾迹的成因）")]
+        public float waterWakeWaveSpeed = 0.22f;
+
+        [Tooltip("单个波元的出生强度（0~1）：要弱，亮度只该在波元扎堆的包络处积累出来")]
+        [Range(0f, 1f)] public float waterWakeStrength = 0.12f;
+
+        [Tooltip("按下瞬间落水水花的出生强度（可超 1，与波元叠加后在 shader 里饱和）")]
+        public float waterSplashStrength = 1.4f;
+
         [Header("占位配色")]
         public Color ringColor = new Color(1f, 1f, 1f, 0.18f);
         public Color obstacleColor = new Color(0.92f, 0.35f, 0.32f, 0.95f);
@@ -71,6 +114,12 @@ namespace MasterHouse
         public Color pointerStunColor = new Color(0.92f, 0.35f, 0.32f, 1f);
         public Color cupIdleColor = new Color(1f, 1f, 1f, 0.08f);
         public Color cupActiveColor = new Color(0.42f, 0.68f, 0.94f, 0.28f);
+
+        [Tooltip("咖啡液色（UIWater 材质的水体色）")]
+        public Color waterColor = new Color(0.42f, 0.27f, 0.16f, 0.85f);
+
+        [Tooltip("波纹亮纹色（读作高光/咖啡油脂）")]
+        public Color waterRippleColor = new Color(0.85f, 0.68f, 0.45f, 0.95f);
         public Color messageNormalColor = new Color(0.94f, 0.94f, 0.96f, 1f);
         public Color messageWarnColor = new Color(1f, 0.72f, 0.35f, 1f);
     }

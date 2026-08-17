@@ -38,6 +38,12 @@ namespace MasterHouse
         };
         /// <summary>低于此缩放视为「总览态」（看整栋楼，无当前房间概念）；聚焦单房的缩放约 3.7~4.8。</summary>
         private const float FocusedZoomThreshold = 2f;
+        /// <summary>一/二档分界（2026-08-17 档位显隐）：低于它进「外景档」。取在主楼淡出区间
+        /// （fadeStart≈0.85 ~ 总览 1.0）内，UI 收起与剖面淡出大致同步。</summary>
+        private const float ExteriorTierBoundary = .92f;
+        /// <summary>档位分界回滞：滚轮连续缩放与推镜补间都会扫过分界，不带回滞会在界上来回抖、UI 反复闪。</summary>
+        private const float ExteriorTierHysteresis = .04f;
+        private const float FocusTierHysteresis = .1f;
         /// <summary>外景层级（2026-08-16）：总览再缩小，主楼剖面淡出并落到外景图中房屋的位置——
         /// 复用开场推镜的对齐变换（反向），进出取景一致。此档的最小缩放。</summary>
         private static float ExteriorMinZoom => 1f / OpeningZoomFx.AlignScale;
@@ -79,6 +85,8 @@ namespace MasterHouse
         /// <summary>相机状态：世界根左下角相对视口左下角的偏移（视口坐标）与缩放。</summary>
         private Vector2 camPan;
         private float camZoom = 1f;
+        /// <summary>当前视角档位（初始相机即总览）。纯表现派生态，只驱动 UI 显隐（§11 豁免区）。</summary>
+        private EHubViewTier viewTier = EHubViewTier.Overview;
         private bool panning;
         private Vector2 lastPointerLocal;
         /// <summary>本次按下的起点与有效性（区分「点一下聚焦房间」和「按住拖拽平移」）。</summary>
@@ -651,6 +659,39 @@ namespace MasterHouse
                 exteriorRect.anchoredPosition =
                     Vector2.Scale(OpeningZoomFx.AlignOffset, viewportSize) * camZoom + camPan;
             }
+            UpdateViewTier();
+        }
+
+        /// <summary>
+        /// 视角档位检测（ApplyCamera 是 camZoom 生效的唯一漏斗，滚轮/推镜补间/直达全走这里）：
+        /// 三档 = 外景（全局）/ 总览 / 聚焦单房，跨界须越过回滞带才换档。
+        /// 变化时回调页面刷新档位显隐；业务判定（DetectCurrentRoom 等）不依赖本档位。
+        /// </summary>
+        private void UpdateViewTier()
+        {
+            var next = viewTier;
+            switch (viewTier)
+            {
+                case EHubViewTier.Exterior:
+                    if (camZoom >= ExteriorTierBoundary + ExteriorTierHysteresis)
+                        next = camZoom >= FocusedZoomThreshold + FocusTierHysteresis
+                            ? EHubViewTier.RoomFocus : EHubViewTier.Overview;
+                    break;
+                case EHubViewTier.Overview:
+                    if (camZoom <= ExteriorTierBoundary - ExteriorTierHysteresis)
+                        next = EHubViewTier.Exterior;
+                    else if (camZoom >= FocusedZoomThreshold + FocusTierHysteresis)
+                        next = EHubViewTier.RoomFocus;
+                    break;
+                case EHubViewTier.RoomFocus:
+                    if (camZoom <= FocusedZoomThreshold - FocusTierHysteresis)
+                        next = camZoom <= ExteriorTierBoundary - ExteriorTierHysteresis
+                            ? EHubViewTier.Exterior : EHubViewTier.Overview;
+                    break;
+            }
+            if (next == viewTier) return;
+            viewTier = next;
+            page.NotifyCameraTierChanged(next);
         }
 
         /// <summary>

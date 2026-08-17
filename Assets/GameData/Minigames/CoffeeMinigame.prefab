@@ -180,6 +180,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 6391104138644713127}
   - {fileID: 2780542346716305333}
   m_Father: {fileID: 1320078250295518417}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -835,6 +836,7 @@ MonoBehaviour:
   pointerImage: {fileID: 7519607797668217963}
   cupArea: {fileID: 4235085161712997345}
   cupImage: {fileID: 4035885389370680794}
+  waterImage: {fileID: 7928304519028454085}
   phaseLabel: {fileID: 8685049622434641691}
   scoreLabel: {fileID: 4785527218883130860}
   progressFill: {fileID: 9046656851964401267}
@@ -848,12 +850,26 @@ MonoBehaviour:
   obstacleDotSize: 16
   hitMessageSeconds: 1.2
   settleShowSeconds: 1.6
+  waterWobbleSpeedMin: 0.6
+  waterWobbleSpeedMax: 5
+  waterVarianceNormalizer: 0.1
+  waterVarianceWindowSeconds: 1
+  waterWobbleAmpPouring: 0.699
+  waterWobbleAmpIdle: 0.35
+  waterWaveDamping: 3
+  waterWakeSpawnInterval: 0.03
+  waterWakeLifetime: 1.2
+  waterWakeWaveSpeed: 0.1
+  waterWakeStrength: 0.105
+  waterSplashStrength: 0.5
   ringColor: {r: 1, g: 1, b: 1, a: 0.18}
   obstacleColor: {r: 0.92, g: 0.35, b: 0.32, a: 0.95}
   pointerColor: {r: 0.98, g: 0.83, b: 0.3, a: 1}
   pointerStunColor: {r: 0.92, g: 0.35, b: 0.32, a: 1}
   cupIdleColor: {r: 1, g: 1, b: 1, a: 0.08}
   cupActiveColor: {r: 0.42, g: 0.68, b: 0.94, a: 0.28}
+  waterColor: {r: 0.42, g: 0.27, b: 0.16, a: 0.85}
+  waterRippleColor: {r: 0.85, g: 0.68, b: 0.45, a: 0.95}
   messageNormalColor: {r: 0.94, g: 0.94, b: 0.96, a: 1}
   messageWarnColor: {r: 1, g: 0.72, b: 0.35, a: 1}
 --- !u!114 &4397885219475246179
@@ -868,6 +884,81 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbb9d91d19e09b548a8538cbc5d1b597, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &6081543450473220277
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6391104138644713127}
+  - component: {fileID: 4120930828362138034}
+  - component: {fileID: 7928304519028454085}
+  m_Layer: 5
+  m_Name: Water
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &6391104138644713127
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6081543450473220277}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4235085161712997345}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &4120930828362138034
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6081543450473220277}
+  m_CullTransparentMesh: 1
+--- !u!114 &7928304519028454085
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6081543450473220277}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &6474901901395452202
 GameObject:
   m_ObjectHideFlags: 0

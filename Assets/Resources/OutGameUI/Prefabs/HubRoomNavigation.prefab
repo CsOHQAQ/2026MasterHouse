@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2157424868245135933}
   - component: {fileID: 569720322148742669}
   - component: {fileID: 6207133433749828491}
+  - component: {fileID: 7461003912850027305}
   m_Layer: 5
   m_Name: HubRoomNavigation
   m_TagString: Untagged
@@ -827,3 +828,21 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 2699000866661168876, guid: 6e2258455aa9b504bb588190c75b33ef, type: 3}
   m_PrefabInstance: {fileID: 9068723333039525802}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &7461003912850027305
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1655749773069227816}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 218662f0ac21200b3261e0f2f87874c3, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  visibleInExterior: 0
+  visibleInOverview: 1
+  visibleInRoomFocus: 1
+  floatOffset: {x: 0, y: -35}
+  fadeDuration: 0.3
+  moveDuration: 0.42

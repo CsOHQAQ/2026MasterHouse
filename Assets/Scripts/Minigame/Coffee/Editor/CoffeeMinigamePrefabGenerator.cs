@@ -60,6 +60,10 @@ namespace MasterHouse.EditorTools
                 prefab = BuildPrefab();
                 created.Add(PrefabPath + (overwritePrefab ? "（重建）" : string.Empty));
             }
+            else if (PatchPrefabIfMissing())
+            {
+                created.Add(PrefabPath + "（补水面节点）");
+            }
 
             var defaultLevel = AssetDatabase.LoadAssetAtPath<CoffeeLevelDef>(DefaultLevelPath);
             if (defaultLevel == null)
@@ -214,8 +218,41 @@ namespace MasterHouse.EditorTools
             view.cupArea = cup;
             view.cupImage = cupImage;
 
+            AddWaterImage(view);
+
             Label(cup, "Hint", "杯", 40, Muted,
                 new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(120, 60), TextAnchor.MiddleCenter);
+        }
+
+        /// <summary>
+        /// 节点粒度的「补缺失」：给已存在的 Prefab 补后加的水面节点，不动其他手调内容。
+        /// 以后再加新节点，照这个模式扩展本方法即可。
+        /// </summary>
+        private static bool PatchPrefabIfMissing()
+        {
+            var root = PrefabUtility.LoadPrefabContents(PrefabPath);
+            try
+            {
+                var view = root.GetComponent<CoffeeMinigameView>();
+                if (view == null || view.cupArea == null || view.waterImage != null) return false;
+                AddWaterImage(view);
+                PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+                return true;
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        /// <summary>杯内水面：铺满 cupArea，材质由 CoffeeMinigame 运行时创建（Prefab 不挂材质资产）。</summary>
+        private static void AddWaterImage(CoffeeMinigameView view)
+        {
+            var water = Rect(view.cupArea, "Water", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            water.SetAsFirstSibling(); // 兄弟顺序即绘制顺序：压在杯底图之上、提示字之下
+            var image = ImageOn(water, Color.white);
+            image.raycastTarget = false;
+            view.waterImage = image;
         }
 
         private static void BuildFooter(RectTransform parent, CoffeeMinigameView view)
