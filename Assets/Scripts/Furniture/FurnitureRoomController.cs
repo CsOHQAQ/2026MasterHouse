@@ -21,6 +21,7 @@ namespace MasterHouse
 
         // 渲染次序（同一 sortingLayer 内）
         private const int OrderBackground = 0;
+        private const int OrderNightBackground = 1;
         private const int OrderDepthBlur = 2;
         private const int OrderFocusBlur = 4;
         private const int OrderWallGrid = 10;
@@ -36,6 +37,7 @@ namespace MasterHouse
 
         // 分层 Z 偏移（只用于相机视差，绘制次序由 sortingOrder 决定）
         private const float ZBackground = .15f;
+        private const float ZNightBackground = .145f;
         private const float ZDepthBlur = .14f;
         private const float ZFocusBlur = .13f;
         private const float ZWall = .07f;
@@ -83,6 +85,7 @@ namespace MasterHouse
         private FurnitureRoomHud hud;
         private SpriteRenderer focusBlurRenderer;
         private SpriteRenderer backgroundRenderer;
+        private SpriteRenderer nightBackgroundRenderer;
         private SpriteRenderer depthBlurRenderer;
         private SpriteRenderer dayVeilRenderer;
 
@@ -170,6 +173,12 @@ namespace MasterHouse
         private void BuildBackground()
         {
             backgroundRenderer = CreateLayer("Background", room.background, OrderBackground, ZBackground, 1f);
+            var nightBackground = Resources.Load<Sprite>($"OutGameUI/RoomNight/room-night-{roomIndex + 1:00}");
+            if (nightBackground != null)
+                nightBackgroundRenderer = CreateLayer("NightBackground", nightBackground,
+                    OrderNightBackground, ZNightBackground, 0f);
+            else
+                Debug.LogWarning($"[Furniture] 夜间房间图缺失：room-night-{roomIndex + 1:00}");
             if (room.depthBlurOverlay != null)
                 depthBlurRenderer = CreateLayer("DepthBlur", room.depthBlurOverlay, OrderDepthBlur, ZDepthBlur, 1f);
             if (room.focusBlurOverlay != null)
@@ -184,12 +193,16 @@ namespace MasterHouse
         private void ApplyDayLight()
         {
             var (tint, veil) = HouseDayLight.Now();
+            var nightAlpha = HouseDayLight.NightRoomAlphaNow();
             TintPreserveAlpha(backgroundRenderer, tint);
+            if (nightBackgroundRenderer != null)
+                nightBackgroundRenderer.color = new Color(1f, 1f, 1f, nightAlpha);
             TintPreserveAlpha(depthBlurRenderer, tint);
             TintPreserveAlpha(focusBlurRenderer, tint);
             foreach (var item in items.Values)
                 TintPreserveAlpha(item.Renderer, tint);
-            if (dayVeilRenderer != null) dayVeilRenderer.color = veil;
+            // 夜图本身已经完成蓝调与灯光，浮现时同步退掉旧的纯色夜罩，避免双重压暗。
+            if (dayVeilRenderer != null) dayVeilRenderer.color = Color.Lerp(veil, Color.clear, nightAlpha);
         }
 
         private static void TintPreserveAlpha(SpriteRenderer renderer, Color tint)

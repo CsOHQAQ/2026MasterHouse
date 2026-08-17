@@ -108,11 +108,18 @@ namespace MasterHouse
                 foreach (var draw in draws)
                 {
                     if (draw.order < 100 || draw.entry.stackable) continue;
-                    var shadowW = draw.rect.width * 1.08f; // 与摆放模式同参：略宽于家具、扁度 0.26
-                    var shadowH = shadowW * .26f;
+                    // 2026-08-17 加强：投影更宽更实，且**叠两遍**（软影贴图单遍太淡，家具像浮在地上）
+                    var shadowW = draw.rect.width * 1.22f;
+                    var shadowH = shadowW * .3f;
+                    var shadowRect = new Rect(draw.rect.x - (shadowW - draw.rect.width) * .5f,
+                        draw.rect.yMax - shadowH * .55f, shadowW, shadowH);
+                    shadows.Add((null, draw.order - 2, shadowRect, false));
+                    // 第二遍略小、更集中，形成「接地处更深、边缘散开」的层次
+                    var coreW = draw.rect.width * .86f;
+                    var coreH = coreW * .28f;
                     shadows.Add((null, draw.order - 1,
-                        new Rect(draw.rect.x - (shadowW - draw.rect.width) * .5f,
-                            draw.rect.yMax - shadowH * .5f, shadowW, shadowH), false));
+                        new Rect(draw.rect.x + (draw.rect.width - coreW) * .5f,
+                            draw.rect.yMax - coreH * .5f, coreW, coreH), false));
                 }
                 draws.AddRange(shadows);
             }

@@ -76,17 +76,25 @@ namespace MasterHouse
         private Vector2 viewportSize = new Vector2(1920f, 1080f);
         private RawImage houseBackdrop;
         private readonly RawImage[] roomArts = new RawImage[HubWorldGrid.RoomCount];
+        private readonly RawImage[] nightRoomArts = new RawImage[HubWorldGrid.RoomCount];
         private Image sceneWash;
         private Image ambientLight;
         private OutGameHubSceneOverlayView overlay;
         private OutGameVisitorStage stage;
         private RectTransform hotspotRoot;
+        /// <summary>家具标签层：与热点分离并置顶，标签才不会被访客或相邻家具压住。</summary>
+        private RectTransform labelRoot;
 
         /// <summary>相机状态：世界根左下角相对视口左下角的偏移（视口坐标）与缩放。</summary>
         private Vector2 camPan;
         private float camZoom = 1f;
         /// <summary>当前视角档位（初始相机即总览）。纯表现派生态，只驱动 UI 显隐（§11 豁免区）。</summary>
         private EHubViewTier viewTier = EHubViewTier.Overview;
+        /// <summary>滚轮设的目标缩放；camZoom 每帧向它指数逼近，滚起来才是连续的而不是一节一节跳。</summary>
+        private float targetZoom = 1f;
+        private Vector2 zoomAnchorViewport;
+        private Vector2 zoomAnchorWorld;
+        private bool zoomAnchored;
         private bool panning;
         private Vector2 lastPointerLocal;
         /// <summary>本次按下的起点与有效性（区分「点一下聚焦房间」和「按住拖拽平移」）。</summary>
@@ -197,6 +205,7 @@ namespace MasterHouse
                 rect.offsetMin = rect.offsetMax = Vector2.zero;
                 regions[room] = display;
             }
+            BuildNightRoomArts();
             regions[HubWorldGrid.Reception] = worldView.receptionArea != null
                 ? NormalizedRegion(worldView.receptionArea, designSize)
                 : HubWorldGrid.RegionOf(HubWorldGrid.Reception);
@@ -214,6 +223,9 @@ namespace MasterHouse
             washRect.offsetMin = washRect.offsetMax = Vector2.zero;
 
             hotspotRoot = HouseUIRuntime.Stretch(worldRoot, "FurnitureHotspots");
+            // 家具标签单独一层、建在最后 = 画在最上（2026-08-17）：
+            // 热点本身不能置顶（它会挡住访客的点击），但标签必须压过访客与相邻家具
+            labelRoot = HouseUIRuntime.Stretch(worldRoot, "FurnitureLabels");
             BuildHotspots();
             BuildVisitorStage();
 
@@ -274,26 +286,63 @@ namespace MasterHouse
         }
 
         /// <summary>相机平滑推到「世界点居中 + 指定倍率」（聚焦访客用；边界仍由 ClampCamera 兜底）。</summary>
-        private void FocusWorldPoint(Vector2 world01, float targetZoom)
+        private void FocusWorldPoint(Vector2 world01, float endZoom)
         {
             if (worldRoot == null || sceneRoot == null) return;
             var viewport = sceneRoot.rect.size;
             if (viewport.x < 1f) viewport = new Vector2(1920f, 1080f);
             SyncWorldSize(viewport);
-            var targetPan = viewport * .5f - Vector2.Scale(world01, viewport) * targetZoom;
+            var targetPan = viewport * .5f - Vector2.Scale(world01, viewport) * endZoom;
             KillFocusTween();
             var fromPan = camPan;
             var fromZoom = camZoom;
             focusTween = DOTween.To(() => 0f, t =>
             {
                 if (sceneRoot == null || worldRoot == null) { KillFocusTween(); return; }
-                camZoom = Mathf.Lerp(fromZoom, targetZoom, t);
+                camZoom = Mathf.Lerp(fromZoom, endZoom, t);
                 camPan = Vector2.Lerp(fromPan, targetPan, t);
+                SyncZoomTarget(); // 补间在开车，别让滚轮的平滑逻辑再插手
                 var size = sceneRoot.rect.size;
                 ClampCamera(size);
                 ApplyCamera();
                 DetectCurrentRoom(size);
             }, 1f, .55f).SetEase(Ease.InOutCubic).SetUpdate(true);
+        }
+
+        // ── 缩放平滑与「重影档位」跳过（2026-08-17）──
+
+        /// <summary>
+        /// 重影带：总览 ⇄ 外景之间主楼层半透明的那段缩放（主楼建筑与外景那栋楼同时可见 = 招牌旗杆成双）。
+        /// 下界即主楼完全透明处，上界是总览（完全不透明）。滚轮的目标缩放不允许落在带内。
+        /// </summary>
+        private static float GhostBandLow => Mathf.Lerp(ExteriorMinZoom, OverviewZoom, .4f);
+
+        /// <summary>把目标缩放推出重影带：按滚动方向送到最近的一侧边界，玩家因此停不在重影档位上。</summary>
+        private static float SnapOutOfGhostBand(float zoom, float scroll)
+        {
+            if (zoom <= GhostBandLow || zoom >= OverviewZoom) return zoom;
+            return scroll < 0f ? GhostBandLow : OverviewZoom; // 往外滚就落到外景侧，往里滚就落到总览侧
+        }
+
+        /// <summary>每帧把 camZoom 指数逼近 targetZoom，并保持光标下的世界点不动。</summary>
+        private void ApplyZoomEasing()
+        {
+            if (Mathf.Approximately(camZoom, targetZoom)) return;
+            // 穿过重影带时加速通过（那几帧的半透明叠影不该被看清）
+            var inBand = camZoom > GhostBandLow && camZoom < OverviewZoom;
+            var speed = inBand ? 26f : 13f;
+            camZoom = Mathf.Lerp(camZoom, targetZoom, 1f - Mathf.Exp(-speed * Time.unscaledDeltaTime));
+            if (Mathf.Abs(camZoom - targetZoom) < 5e-4f) camZoom = targetZoom;
+            // 拖拽期间**不做**锚点校正：否则每帧把 camPan 重设回缩放锚点，会吃掉玩家拖出的位移，
+            // 在临界点（滚轮被吸附、逼近要持续十几帧）尤其明显 —— 手感就是拖不动、卡一下。
+            if (zoomAnchored && !panning) camPan = zoomAnchorViewport - zoomAnchorWorld * camZoom;
+        }
+
+        /// <summary>相机补间/直达后同步目标值，免得平滑逻辑把镜头又拉回去。</summary>
+        private void SyncZoomTarget()
+        {
+            targetZoom = camZoom;
+            zoomAnchored = false;
         }
 
         /// <summary>相机当前是否已聚焦在某区域（缩放到聚焦档且视口中心落在该区域）。</summary>
@@ -317,10 +366,36 @@ namespace MasterHouse
             SyncWorldSize(viewport);
             camZoom = OverviewZoom;
             camPan = Vector2.zero;
+            SyncZoomTarget();
             ApplyCamera();
         }
 
         // ══════════ 昼夜光照 ══════════
+
+        /// <summary>
+        /// 把四张夜间房间图铺在对应高清房间烘焙图上方。夜图只接管背景；家具前景代理与访客舞台
+        /// 后建在更高层，夜图完全浮现后家具和人物仍会保留。
+        /// </summary>
+        private void BuildNightRoomArts()
+        {
+            for (var room = 0; room < nightRoomArts.Length; room++)
+            {
+                if (roomArts[room] == null) continue;
+                var path = $"OutGameUI/RoomNight/room-night-{room + 1:00}";
+                var texture = Resources.Load<Texture2D>(path);
+                if (texture == null)
+                {
+                    Debug.LogWarning("[HouseUI] 夜间房间图缺失：" + path);
+                    continue;
+                }
+                var rect = HouseUIRuntime.Stretch(roomArts[room].rectTransform, "NightRoomArt");
+                var image = rect.gameObject.AddComponent<RawImage>();
+                image.texture = texture;
+                image.color = Color.clear;
+                image.raycastTarget = false;
+                nightRoomArts[room] = image;
+            }
+        }
 
         /// <summary>每帧按局内时钟推环境光（HubPage.OnUpdate 调；叠加层开着也走，面板后面的天色照常流动）。
         /// 色带定义在 HouseDayLight（与标题页封面共用）。</summary>
@@ -337,8 +412,13 @@ namespace MasterHouse
             if (houseStatic != null) houseStatic.color = new Color(tint.r, tint.g, tint.b, lod);
             var roomColor = Color.Lerp(Color.white, tint, .5f); // 家具/房间只上半强度，好跟延时帧衔接
             roomColor.a = lod;
+            var nightAlpha = HouseDayLight.NightRoomAlphaNow() * lod;
             for (var room = 0; room < roomArts.Length; room++)
+            {
                 if (roomArts[room] != null) roomArts[room].color = roomColor;
+                if (nightRoomArts[room] != null)
+                    nightRoomArts[room].color = new Color(1f, 1f, 1f, nightAlpha);
+            }
             ambientLight.color = Color.clear;
             UpdateSceneCycle();
         }
@@ -432,23 +512,24 @@ namespace MasterHouse
 
             var pointerLocal = PointerInViewport(out var insideScene);
 
+            // 滚轮只改**目标**缩放，实际缩放每帧指数逼近（2026-08-17）——直接改 camZoom 是一格一跳，太生硬。
             var scroll = Input.mouseScrollDelta.y;
             if (Mathf.Abs(scroll) > .01f && insideScene)
             {
                 KillFocusTween();
-                var nextZoom = Mathf.Clamp(camZoom * (1f + scroll * .12f), ExteriorMinZoom, MaxZoom);
-                if (!Mathf.Approximately(nextZoom, camZoom))
-                {
-                    // 以鼠标为锚缩放：光标下的世界点在缩放前后保持不动
-                    var worldAtPointer = (pointerLocal - camPan) / camZoom;
-                    camZoom = nextZoom;
-                    camPan = pointerLocal - worldAtPointer * camZoom;
-                }
+                // 以鼠标为锚：记下光标下的世界点，插值过程中让它始终停在光标处
+                zoomAnchorViewport = pointerLocal;
+                zoomAnchorWorld = (pointerLocal - camPan) / camZoom;
+                zoomAnchored = true;
+                targetZoom = SnapOutOfGhostBand(
+                    Mathf.Clamp(targetZoom * (1f + scroll * .16f), ExteriorMinZoom, MaxZoom), scroll);
             }
+            ApplyZoomEasing();
 
             if (Input.GetMouseButtonDown(0) && insideScene && !IsPointerOverBlockingUI())
             {
                 KillFocusTween();
+                zoomAnchored = false; // 手一按下就把平移控制权交给拖拽，缩放不再回拉视角
                 panning = true;
                 pressValid = true;
                 pressPointerLocal = pointerLocal;
@@ -575,6 +656,7 @@ namespace MasterHouse
                 if (sceneRoot == null || worldRoot == null) { KillFocusTween(); return; }
                 camZoom = Mathf.Lerp(fromZoom, OverviewZoom, t);
                 camPan = Vector2.Lerp(fromPan, Vector2.zero, t);
+                SyncZoomTarget();
                 ClampCamera(sceneRoot.rect.size);
                 ApplyCamera();
                 // 刻意**不**调 DetectCurrentRoom：总览态没有当前房间，沿用缩回前的那间（§4.4）
@@ -589,8 +671,8 @@ namespace MasterHouse
             var viewport = sceneRoot.rect.size;
             if (viewport.x < 1f) { SnapToRoom(roomIndex); return; }
             SyncWorldSize(viewport);
-            var targetZoom = HubWorldGrid.FocusZoom(roomIndex);
-            var targetPan = PanCenteredOn(roomIndex, targetZoom, viewport);
+            var endZoom = HubWorldGrid.FocusZoom(roomIndex);
+            var targetPan = PanCenteredOn(roomIndex, endZoom, viewport);
             KillFocusTween();
             var fromPan = camPan;
             var fromZoom = camZoom;
@@ -602,8 +684,9 @@ namespace MasterHouse
                     KillFocusTween();
                     return;
                 }
-                camZoom = Mathf.Lerp(fromZoom, targetZoom, t);
+                camZoom = Mathf.Lerp(fromZoom, endZoom, t);
                 camPan = Vector2.Lerp(fromPan, targetPan, t);
+                SyncZoomTarget();
                 var size = sceneRoot.rect.size;
                 ClampCamera(size);
                 ApplyCamera();
@@ -619,6 +702,7 @@ namespace MasterHouse
             SyncWorldSize(viewport);
             camZoom = HubWorldGrid.FocusZoom(roomIndex);
             camPan = PanCenteredOn(roomIndex, camZoom, viewport);
+            SyncZoomTarget();
             ClampCamera(viewport);
             ApplyCamera();
         }
@@ -820,6 +904,9 @@ namespace MasterHouse
             if (hotspotRoot == null) return;
             for (var i = hotspotRoot.childCount - 1; i >= 0; i--)
                 Object.Destroy(hotspotRoot.GetChild(i).gameObject);
+            if (labelRoot != null)
+                for (var i = labelRoot.childCount - 1; i >= 0; i--)
+                    Object.Destroy(labelRoot.GetChild(i).gameObject);
             for (var room = 0; room < HubWorldGrid.RoomCount; room++)
             {
                 foreach (var info in FurnitureSceneComposer.GetPlacedFurniture(room))
@@ -838,10 +925,14 @@ namespace MasterHouse
                     marker.RoomIndex = room;
                     marker.FurnitureId = info.Entry.id;
 
-                    var card = HouseUIRuntime.Panel(hotspot, "Card", new Vector2(.5f, 1),
-                        new Vector2(0, 46), new Vector2(250, 76), new Color(.32f, .06f, .18f, .92f));
-                    // 悬浮卡像素尺寸按「单房满视口」标定，随区域宽反缩放（同访客演员，2026-08-16）
-                    card.transform.localScale = Vector3.one * HubWorldGrid.RegionOf(room).width;
+                    // 标签建在**独立的置顶层**、锚在家具矩形上（2026-08-17）：
+                    // 紧贴家具顶沿（原来悬在 46px 外太远），且不会被访客或相邻家具压住
+                    var regionWidth = HubWorldGrid.RegionOf(room).width;
+                    var anchorRect = HouseUIRuntime.Rect(labelRoot != null ? labelRoot : hotspotRoot,
+                        $"Label_{room}_{info.Entry.id}", min, max, Vector2.zero, Vector2.zero);
+                    var card = HouseUIRuntime.Panel(anchorRect, "Card", new Vector2(.5f, 1),
+                        new Vector2(0, 34f * regionWidth), new Vector2(250, 76), new Color(.32f, .06f, .18f, .92f));
+                    card.transform.localScale = Vector3.one * regionWidth;
                     HouseUIRuntime.StretchLabel(card.transform, "Text",
                         $"＋  {info.Entry.displayName}\n<size=13>查看家具</size>", 19, HouseUIUtil.White,
                         TextAnchor.MiddleCenter, FontStyle.Bold);
@@ -851,6 +942,8 @@ namespace MasterHouse
 
                     var trigger = hotspot.gameObject.AddComponent<EventTrigger>();
                     var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+                    // 同层内也提到最上：几件家具挨着时，当前悬停的那个标签压过邻居
+                    enter.callback.AddListener(_ => anchorRect.SetAsLastSibling());
                     enter.callback.AddListener(_ => { cardGroup.DOKill(); cardGroup.DOFade(1f, .16f).SetUpdate(true); });
                     trigger.triggers.Add(enter);
                     var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };

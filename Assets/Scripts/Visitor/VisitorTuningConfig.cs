@@ -29,6 +29,11 @@ namespace MasterHouse
         [Tooltip("打烊时刻（分钟）：到点后一切 tick 业务统一冻结（§7 打烊闸门）")]
         public int closeMinute = 22 * 60;
 
+        [Header("场景表现")]
+        [Range(.2f, 1.2f)]
+        [Tooltip("访客演员的基础世界缩放；还会叠加脚底深度带来的轻微透视缩放")]
+        public float actorWorldScale = .6f;
+
         [Header("需求示意（tick，2026-08-14 对话重构）")]
         [Tooltip("入住后到「开口示意」的最短间隔（tick）：客人先安顿一会儿才会有话说")]
         public int needPromptMinTicks = 60;

@@ -39,15 +39,17 @@ namespace MasterHouse
         private static readonly Rect ReceptionEntryArea = Rect.MinMaxRect(.06f, .04f, .4f, .2f);
         private const int MaxAmbient = 3;
         /// <summary>
-        /// 演员的统一世界缩放（2026-08-17 按截图调大；2026-08-17 按参考视频再调）：
-        /// 参考视频里人身高 ≈ 小屋高的 1/3 ≈ 单层楼高的 0.7，故把访客调到约 0.7 个房间高。
-        /// 全场访客同一基准大小；调整体大小改这里。
+        /// 演员的统一世界缩放：全场访客共用 VisitorTuningConfig 的基准大小，
+        /// 再叠加脚底深度的轻微透视缩放。缺配置时按 0.6 兜底。
         /// </summary>
-        private const float ActorWorldScale = .68f;
+        private static float ActorWorldScale =>
+            Tuning != null ? Mathf.Clamp(Tuning.actorWorldScale, .2f, 1f) : .68f;
         /// <summary>假透视深度缩小（2026-08-16 反馈）：脚底 y 每升高 1（房内归一化）缩小的比例与下限——
         /// 地面带内轻微收小，被拖出活动区贴墙时继续缩，不会「贴在墙上还原大」。</summary>
         private const float ActorDepthShrink = 1.1f;
-        private const float ActorMinDepthScale = .35f;
+        /// <summary>深度缩小的下限（2026-08-17 调高）：走到房间最里侧也不小于这个比例，
+        /// 免得访客缩成一个看不清的小点。乘上 ActorWorldScale 即最小显示尺寸。</summary>
+        private const float ActorMinDepthScale = .68f;
         /// <summary>氛围邻居（串门临时访客）总开关：2026-08-14 屏蔽——名册与逻辑保留，改 true 即恢复。</summary>
         private const bool AmbientEnabled = false;
 
@@ -70,6 +72,8 @@ namespace MasterHouse
         private int frontDeskSlot;
         /// <summary>正被玩家拖拽的演员（RTS 边缘推屏用：相机层每帧据此重投影，保证访客钉在指针下）。</summary>
         private OutGameVisitorActor draggingActor;
+        /// <summary>拖拽起手时的局部缩放；拖拽全程锁定，避免随指针纵向位置发生透视缩放。</summary>
+        private Vector3 dragLockedLocalScale = Vector3.one;
         /// <summary>抓取偏移（世界归一化坐标）：起手时演员落脚点相对指针的差，拖拽全程保持。</summary>
         private Vector2 dragGrabOffset;
 
@@ -192,6 +196,8 @@ namespace MasterHouse
                     actor.BeginPlayerDrag();
                     if (!actor.Dragging) return;
                     draggingActor = actor;
+                    // 保留起手前由深度透视计算出的视觉尺寸；拖拽期间不再重算。
+                    dragLockedLocalScale = actor.transform.localScale;
                     // 抓取偏移（2026-08-14 跟手修复）：记住「演员落脚点 − 指针」的世界差，
                     // 拖拽全程按这个差跟随——否则起手瞬间演员脚底会吸到指针上，视觉上就是一跳
                     dragGrabOffset = Vector2.zero;
@@ -362,7 +368,11 @@ namespace MasterHouse
         /// </summary>
         private void DropActor(OutGameVisitorActor actor, int instanceId)
         {
-            if (draggingActor == actor) draggingActor = null; // 边缘推屏停表
+            if (draggingActor == actor)
+            {
+                draggingActor = null; // 边缘推屏停表
+                dragLockedLocalScale = Vector3.one;
+            }
             if (!actor.Dragging) return;
             var room = actor.RoomIndex;
             // 丢在接待室或无效区 = 不换房，弹回起手位置（接待室不是业务房间，分不了房）
@@ -522,8 +532,15 @@ namespace MasterHouse
                 rect.anchoredPosition = Vector2.zero;
                 // 演员统一世界缩放 × 假透视深度（2026-08-16）：基准不随房间变化，
                 // 地面带内脚底越靠里越小；**离开地面（超过地面带远沿）后定格**不再继续缩
-                var cappedY = Mathf.Min(actor.ScenePosition.y, WalkVolumeOf(actor.RoomIndex).yFar);
-                rect.localScale = Vector3.one * (ActorWorldScale * DepthScaleAt(cappedY));
+                if (actor.Dragging && actor == draggingActor)
+                {
+                    rect.localScale = dragLockedLocalScale;
+                }
+                else
+                {
+                    var cappedY = Mathf.Min(actor.ScenePosition.y, WalkVolumeOf(actor.RoomIndex).yFar);
+                    rect.localScale = Vector3.one * (ActorWorldScale * DepthScaleAt(cappedY));
+                }
                 var depthY = actor.Dragging ? float.MinValue : anchor.y; // 拖拽中永远压最上
                 depthSortCache.Add((rect, depthY, int.MaxValue));
             }

@@ -10,6 +10,13 @@ namespace MasterHouse
     /// </summary>
     public static class HouseDayLight
     {
+        /// <summary>20:30 入夜过渡完成后开始，至 21:30 缓慢浮现夜间高清房间图。</summary>
+        private const float NightRoomFadeStartMinute = 20.5f * 60f;
+        private const float NightRoomFadeEndMinute = 21.5f * 60f;
+        /// <summary>凌晨退场（通常玩家看不到；保留完整昼夜循环时的平滑闭环）。</summary>
+        private const float NightRoomFadeOutStartMinute = 5f * 60f;
+        private const float NightRoomFadeOutEndMinute = 7f * 60f;
+
         private static readonly (float minute, Color tint, Color veil)[] Keys =
         {
             (0f, new Color(.4f, .45f, .68f), new Color(.05f, .08f, .22f, .35f)),        // 深夜
@@ -47,5 +54,24 @@ namespace MasterHouse
             if (!HouseSettings.Data.dayNightEnabled) return (Color.white, Color.clear);
             return At(GameManager.Instance.HouseClockManager.Data.MinuteOfDayF);
         }
+
+        /// <summary>夜间房间图显隐曲线：入夜后缓入、凌晨缓出，跨午夜保持连续。</summary>
+        public static float NightRoomAlpha(float minuteOfDay)
+        {
+            if (!HouseSettings.Data.dayNightEnabled) return 0f;
+            var minute = Mathf.Repeat(minuteOfDay, 24f * 60f);
+            if (minute < NightRoomFadeOutStartMinute) return 1f;
+            if (minute < NightRoomFadeOutEndMinute)
+                return 1f - Mathf.SmoothStep(0f, 1f,
+                    Mathf.InverseLerp(NightRoomFadeOutStartMinute, NightRoomFadeOutEndMinute, minute));
+            if (minute < NightRoomFadeStartMinute) return 0f;
+            if (minute < NightRoomFadeEndMinute)
+                return Mathf.SmoothStep(0f, 1f,
+                    Mathf.InverseLerp(NightRoomFadeStartMinute, NightRoomFadeEndMinute, minute));
+            return 1f;
+        }
+
+        public static float NightRoomAlphaNow() =>
+            NightRoomAlpha(GameManager.Instance.HouseClockManager.Data.MinuteOfDayF);
     }
 }

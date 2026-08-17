@@ -200,6 +200,18 @@ namespace MasterHouse.EditorTools
             {
                 var key = Cell(row, col, "参数");
                 if (string.IsNullOrEmpty(key)) continue;
+                if (key == "actorWorldScale")
+                {
+                    var scale = Float(row, col, "值", float.NaN);
+                    if (float.IsNaN(scale))
+                    {
+                        Debug.LogWarning($"[导表] 访客调参「{key}」的值不是数字，已跳过");
+                        continue;
+                    }
+                    config.actorWorldScale = Mathf.Clamp(scale, .2f, 1.2f);
+                    count++;
+                    continue;
+                }
                 var value = Int(row, col, "值", int.MinValue);
                 if (value == int.MinValue)
                 {
@@ -276,6 +288,8 @@ namespace MasterHouse.EditorTools
             {
                 lines.Add(Line("openMinute", config.openMinute, "开门时刻（当天分钟数）"));
                 lines.Add(Line("closeMinute", config.closeMinute, "打烊时刻（当天分钟数）"));
+                lines.Add(Line("actorWorldScale", config.actorWorldScale.ToString("0.##", CultureInfo.InvariantCulture),
+                    "访客演员基础世界缩放（叠加透视缩放前）"));
                 lines.Add(Line("needPromptMinTicks", config.needPromptMinTicks, "入住后到开口示意的最短间隔（tick）"));
                 lines.Add(Line("needPromptMaxTicks", config.needPromptMaxTicks, "入住后到开口示意的最长间隔（tick）"));
                 lines.Add(Line("bubbleIntervalTicks", config.bubbleIntervalTicks, "闲逛冒泡间隔（tick）"));
@@ -392,6 +406,12 @@ namespace MasterHouse.EditorTools
         {
             var text = Cell(row, col, name);
             return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : fallback;
+        }
+
+        private static float Float(string[] row, Dictionary<string, int> col, string name, float fallback)
+        {
+            var text = Cell(row, col, name);
+            return float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : fallback;
         }
 
         private static T LoadOrCreate<T>(string path) where T : ScriptableObject
