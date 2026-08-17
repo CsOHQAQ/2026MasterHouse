@@ -141,7 +141,8 @@ namespace MasterHouse
             button.onClick.AddListener(OnClickSelf);
 
             // 情绪/台词气泡（在名牌卡之前创建，悬停时名牌盖在气泡上）
-            bubble = OutGameVisitorBubble.Create(transform, new Vector2(30, 24), ProvideEmote);
+            // 气泡以自身底边贴近演员头顶，稍微右移避免挡住脸。
+            bubble = OutGameVisitorBubble.Create(transform, new Vector2(18, 4), ProvideEmote);
 
             // 头顶悬停卡：访客名 + 当前状态
             var card = F.Panel(transform, "Card", new Vector2(.5f, 1), new Vector2(.5f, 1),
@@ -388,8 +389,9 @@ namespace MasterHouse
             var dt = Time.unscaledDeltaTime;
             if (Dragging)
             {
-                // 拖拽期间状态机整体停走，位置完全由玩家指针接管
-                ApplyDepth();
+                // 拖拽期间状态机整体停走，位置完全由玩家指针接管。
+                // 这里不能再调 ApplyDepth：舞台层虽已锁定 localScale，ApplyDepth 还会
+                // 通过 sizeDelta 做第二层缩放，导致访客往房间深处拖时依然变小。
                 group.blocksRaycasts = true;
                 return;
             }

@@ -16,6 +16,7 @@ namespace MasterHouse
     {
         private const float EmoteWidth = 46f;
         private const float SentenceMaxWidth = 320f;
+        private const float FloatDistance = 5f;
 
         private Func<string> emoteProvider;
         private CanvasGroup group;
@@ -30,6 +31,9 @@ namespace MasterHouse
             var panel = F.Panel(parent, "Bubble", new Vector2(.5f, 1), new Vector2(.5f, 1),
                 anchoredPosition, new Vector2(EmoteWidth, 42), new Color(.97f, .94f, .88f, .95f));
             panel.raycastTarget = false;
+            // 用底边做挂点：anchoredPosition.y 就是气泡与演员头顶的真实间距，
+            // 不再因气泡高度而额外抬高半个气泡。
+            panel.rectTransform.pivot = new Vector2(.5f, 0f);
             F.Outline(panel.gameObject, new Color(.25f, .12f, .18f, .35f), new Vector2(1, -1));
             var bubble = panel.gameObject.AddComponent<OutGameVisitorBubble>();
             bubble.rect = panel.rectTransform;
@@ -93,7 +97,7 @@ namespace MasterHouse
             rect.DOKill();
             rect.anchoredPosition = basePosition;
             group.DOFade(1f, .22f).SetTarget(this).SetUpdate(true);
-            rect.DOAnchorPos(basePosition + new Vector2(0, 14f), hold + .3f)
+            rect.DOAnchorPos(basePosition + new Vector2(0, FloatDistance), hold + .3f)
                 .SetEase(Ease.OutSine).SetTarget(this).SetUpdate(true);
         }
 

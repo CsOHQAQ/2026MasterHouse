@@ -82,6 +82,7 @@ namespace MasterHouse.EditorTools
                 tuning = ScriptableObject.CreateInstance<VisitorTuningConfig>();
                 tuning.openMinute = 8 * 60;
                 tuning.closeMinute = 22 * 60;
+                tuning.actorWorldScale = .6f;
                 tuning.bubbleIntervalTicks = 120;
                 tuning.bubbleJitterTicks = 40;
                 tuning.bubbleHoldTicks = 40;

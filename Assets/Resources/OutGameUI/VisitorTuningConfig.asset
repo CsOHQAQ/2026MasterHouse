@@ -19,6 +19,7 @@ MonoBehaviour:
   bubbleIntervalTicks: 120
   bubbleJitterTicks: 40
   bubbleHoldTicks: 40
+  actorWorldScale: 0.52
   ambientVisitors:
   - id: laoda
     displayName: "\u8001\u5927"
