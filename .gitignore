@@ -89,4 +89,8 @@ crashlytics-build.properties
 *.dwlt
 /UserSettings/Layouts
 
+# Project-local Python runtime for the BiRefNet editor tool
+/Tools/BiRefNet/.venv/
+/Tools/BiRefNet/__pycache__/
+
 ~$*

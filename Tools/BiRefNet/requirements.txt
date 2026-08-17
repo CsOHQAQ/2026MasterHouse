@@ -1,0 +1,16 @@
+# Runtime dependencies mirrored from the official ZhengPeng7/BiRefNet model card.
+# torch/torchvision are installed separately by setup_environment.py so CUDA and CPU wheels can be selected.
+numpy<2
+opencv-python
+timm
+scipy
+scikit-image
+kornia
+einops
+tqdm
+prettytable
+transformers>=4.45,<5
+huggingface-hub>0.25
+accelerate
+safetensors
+Pillow

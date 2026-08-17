@@ -20,6 +20,22 @@ namespace MasterHouse
     {
         private const float OverviewZoom = 1f; // 恰好看全整栋主楼剖面
         private const float MaxZoom = 6f;      // 比「单房推满视口宽」再深一档
+        /// <summary>外景下层栈桥独立对齐：柱距比主楼宽约 5.56%，以中心横向收缩；平台顶面向下校正约 23 px。</summary>
+        private const float LowerStructureScaleX = .9444f;
+        private const float LowerStructureShiftX = -.0007f;
+        private const float LowerStructureShiftY = .024f;
+        private static readonly Vector4[] LowerStructureGradeKeys =
+        {
+            new Vector4(0f, .5f, .577f, .813f),
+            new Vector4(60f, .473f, .623f, .765f),
+            new Vector4(300f, .65f, .74f, .846f),
+            new Vector4(660f, .5f, .615f, .772f),
+            new Vector4(750f, .45f, .625f, .791f),
+            new Vector4(810f, 1.321f, 1.068f, .973f),
+            new Vector4(900f, 1.429f, 1.136f, 1.027f),
+            new Vector4(1260f, 1.429f, 1.159f, 1.041f),
+            new Vector4(1440f, .5f, .577f, .813f),
+        };
         /// <summary>低于此缩放视为「总览态」（看整栋楼，无当前房间概念）；聚焦单房的缩放约 3.7~4.8。</summary>
         private const float FocusedZoomThreshold = 2f;
         /// <summary>外景层级（2026-08-16）：总览再缩小，主楼剖面淡出并落到外景图中房屋的位置——
@@ -39,10 +55,18 @@ namespace MasterHouse
         private CanvasGroup worldGroup;
         private RectTransform exteriorRect;
         private RawImage exteriorBackdrop;
-        private RawImage worldMoon;
-        private RawImage exteriorMoon;
-        private RawImage worldSun;
-        private RawImage exteriorSun;
+        /// <summary>天空循环的交叉淡化层：与外景底图重合，显示「下一帧」并按权重淡入。</summary>
+        /// <summary>两套延时序列的播放材质（当前帧 + 下一帧 + 遮罩，单次渲染内混合）。</summary>
+        private Material exteriorCycle;
+        private Material houseCycle;
+        /// <summary>纯天空层（房子抹掉）：主楼层可见时盖住外景的房子，避免旗杆/招牌重影。</summary>
+        private RawImage skyOnly;
+        private Material skyOnlyCycle;
+        private RectTransform lowerStructureRect;
+        private RawImage lowerStructure;
+        private Material lowerStructureCycle;
+        /// <summary>聚焦档接管的高清静态主楼图（延时帧分辨率不够，推近了糊）。</summary>
+        private RawImage houseStatic;
         private Vector2 viewportSize = new Vector2(1920f, 1080f);
         private RawImage houseBackdrop;
         private readonly RawImage[] roomArts = new RawImage[HubWorldGrid.RoomCount];
@@ -110,19 +134,38 @@ namespace MasterHouse
             for (var room = 0; room < HubWorldGrid.RoomCount && room < worldView.roomArts.Length; room++)
                 roomArts[room] = worldView.roomArts[room];
 
-            // 月亮（2026-08-16 东升西落）：烘焙月亮已从底图擦除，改为独立精灵按时钟走弧线。
-            // 主楼层/外景层各挂一颗（外景按对齐变换换算同一天空位置），压在底图之上、房间图之下
-            var moonTexture = Resources.Load<Texture2D>("OutGameUI/moon");
-            worldMoon = CreateMoon(worldRoot, moonTexture, new Vector2(80, 116));
-            if (worldMoon != null && houseBackdrop != null)
-                worldMoon.transform.SetSiblingIndex(houseBackdrop.transform.GetSiblingIndex() + 1);
-            exteriorMoon = CreateMoon(exteriorRect, moonTexture, new Vector2(60, 87));
-            // 太阳（2026-08-16）：白天 7:00 右升 18:00 左落，与月亮交接班
-            var sunTexture = Resources.Load<Texture2D>("OutGameUI/sun");
-            worldSun = CreateMoon(worldRoot, sunTexture, new Vector2(120, 120));
-            if (worldSun != null && houseBackdrop != null)
-                worldSun.transform.SetSiblingIndex(houseBackdrop.transform.GetSiblingIndex() + 1);
-            exteriorSun = CreateMoon(exteriorRect, sunTexture, new Vector2(90, 90));
+            // 天空循环（2026-08-17 用户定案）：外景层直接播参考延时视频的分帧——
+            // 日月升落、云层变换、星空、窗户亮灯全在帧里，不再单独实现各效果。
+            // 交叉淡化层叠在外景底图之上，两帧按时间权重混合，时间再慢也是平滑推进。
+            // 两层延时序列各用一个 UICycleBlend 材质：当前帧/下一帧在**同一次渲染**里混合。
+            // 主楼层贴紧贴建筑的遮罩（天空留透明，下层外景的太阳/云/星空才透得上来）；
+            // 遮罩自带四周渐隐，所以不再额外做 uv 羽化——羽化太宽会让建筑半透、露出外景那栋楼成重影。
+            exteriorCycle = CreateCycleMaterial(exteriorBackdrop, null, Vector2.zero);
+            // 去楼背景层：铺在完整外景之上，随主楼层的可见度淡入。
+            var skyOnlyRect = HouseUIRuntime.Stretch(exteriorRect, "SkyOnly");
+            skyOnly = skyOnlyRect.gameObject.AddComponent<RawImage>();
+            skyOnly.raycastTarget = false;
+            skyOnlyCycle = CreateCycleMaterial(skyOnly, null, Vector2.zero);
+
+            // HouseCycle 原帧在底边裁断了支柱：从外景帧单独抽出下层栈桥，置于去楼背景之上、主楼之下。
+            // 它与外景共用昼夜帧，但有独立纵向校正，使平台顶面与主楼底梁衔接。
+            lowerStructureRect = HouseUIRuntime.Stretch(exteriorRect, "LowerStructure");
+            lowerStructure = lowerStructureRect.gameObject.AddComponent<RawImage>();
+            lowerStructure.raycastTarget = false;
+            lowerStructureCycle = CreateCycleMaterial(lowerStructure, "OutGameUI/lower-structure-mask", Vector2.zero);
+            if (lowerStructureCycle != null)
+                lowerStructureCycle.SetVector("_GradeY", new Vector4(.055f, .245f, 1f, 0f));
+            houseCycle = CreateCycleMaterial(houseBackdrop, "OutGameUI/house-cycle-mask", Vector2.zero);
+
+            // 建筑清晰度分级（2026-08-17）：延时帧只有 1280 宽，推近 4~5 倍必糊。
+            // 聚焦时把 5120 宽的静态主楼图淡入接管（昼夜靠色带调色），总览时它透明、由延时帧的光影当家。
+            var staticRect = HouseUIRuntime.Stretch(worldRoot, "HouseStatic");
+            houseStatic = staticRect.gameObject.AddComponent<RawImage>();
+            houseStatic.texture = Resources.Load<Texture2D>("OutGameUI/house-main");
+            houseStatic.raycastTarget = false;
+            CreateCycleMaterial(houseStatic, "OutGameUI/house-cycle-mask", Vector2.zero); // 同一遮罩，只画建筑
+            if (houseBackdrop != null)
+                staticRect.SetSiblingIndex(houseBackdrop.transform.GetSiblingIndex() + 1);
 
             ApplySceneArt(); // 先喂烘焙图：下面按图的真实宽高比内嵌，需要贴图尺寸
 
@@ -152,10 +195,11 @@ namespace MasterHouse
             crops[HubWorldGrid.Reception] = Rect.MinMaxRect(0, 0, 1, 1);
             HubWorldGrid.Configure(regions, crops);
 
-            // 洗色层盖在房间图之上、热点与演员之下（与旧版层序一致）；随世界一起缩放（纯色无所谓拉伸）
-            sceneWash = HouseUIRuntime.StretchPanel(worldRoot, "SceneWash", new Color(.015f, .02f, .04f, .22f));
+            // 洗色层盖在房间图之上、热点与演员之下（与旧版层序一致）；随世界一起缩放（纯色无所谓拉伸）。
+            // 2026-08-17 起主楼剖面播延时分帧、自带昼夜，洗色只保留很淡的一层压对比度用；
+            // **必须铺到外景范围**——只盖主楼矩形的话，它自己的边界就是画面上那条竖直明暗线
+            sceneWash = HouseUIRuntime.StretchPanel(worldRoot, "SceneWash", new Color(.015f, .02f, .04f, .08f));
             sceneWash.raycastTarget = false;
-            // 洗色层扩展到外景范围（2026-08-17）：相机可越出主楼边界，止步于主楼边缘会形成一圈明暗接缝
             var washRect = sceneWash.rectTransform;
             washRect.anchorMin = OpeningZoomFx.AlignOffset;
             washRect.anchorMax = OpeningZoomFx.AlignOffset + Vector2.one * OpeningZoomFx.AlignScale;
@@ -165,16 +209,10 @@ namespace MasterHouse
             BuildHotspots();
             BuildVisitorStage();
 
-            // 环境光层（2026-08-14 昼夜光照）：盖在房间图/热点/访客之上、场景框架 UI 之下，
-            // 按局内时钟在色带上插值——清晨暖金→正午无色（原图即烈日基准）→黄昏橙红→入夜深蓝。
-            // 纯表现件不拦截点击；随世界缩放平移，天然只影响场景不影响四周 UI。
+            // 环境光层：2026-08-17 主楼改播延时分帧后夜色已在帧里，本层保留为接缝（恒透明），
+            // 需要额外染色时（如剧情特殊天气）直接给它上色即可
             ambientLight = HouseUIRuntime.StretchPanel(worldRoot, "AmbientLight", Color.clear);
             ambientLight.raycastTarget = false;
-            // 罩层扩展到外景范围（2026-08-17：相机可越出主楼边界，夜色要盖住外景余量）
-            var ambientRect = ambientLight.rectTransform;
-            ambientRect.anchorMin = OpeningZoomFx.AlignOffset;
-            ambientRect.anchorMax = OpeningZoomFx.AlignOffset + Vector2.one * OpeningZoomFx.AlignScale;
-            ambientRect.offsetMin = ambientRect.offsetMax = Vector2.zero;
             UpdateDayLight();
 
             BindOverlay();
@@ -281,71 +319,94 @@ namespace MasterHouse
         public void UpdateDayLight()
         {
             if (ambientLight == null) return;
-            var (tint, veil) = HouseDayLight.Now();
-            if (exteriorBackdrop != null) exteriorBackdrop.color = tint;
-            if (houseBackdrop != null) houseBackdrop.color = tint;
+            var (tint, _) = HouseDayLight.Now();
+            // 外景层与主楼剖面放的都是延时分帧，天色/夜色在帧里，不再叠调色与夜罩（叠了会双重变暗）
+            if (exteriorBackdrop != null) exteriorBackdrop.color = Color.white;
+            if (houseBackdrop != null) houseBackdrop.color = Color.white;
+            // 清晰度分级（2026-08-17）：总览时延时帧当家（有室内光影动画）；
+            // 往单间推近时，高清静态主楼图与高清房间烘焙图一起淡入接管（延时帧只有 1280 宽，推近了糊）
+            var lod = Mathf.InverseLerp(OverviewZoom * 1.35f, FocusedZoomThreshold, camZoom);
+            if (houseStatic != null) houseStatic.color = new Color(tint.r, tint.g, tint.b, lod);
+            var roomColor = Color.Lerp(Color.white, tint, .5f); // 家具/房间只上半强度，好跟延时帧衔接
+            roomColor.a = lod;
             for (var room = 0; room < roomArts.Length; room++)
-                if (roomArts[room] != null) roomArts[room].color = tint;
-            ambientLight.color = veil;
-            UpdateMoon();
+                if (roomArts[room] != null) roomArts[room].color = roomColor;
+            ambientLight.color = Color.clear;
+            UpdateSceneCycle();
+        }
+
+        /// <summary>建延时序列的播放材质；maskPath 空 = 整幅可见，fadeUV = 额外的四周羽化（uv 口径，零 = 不加）。</summary>
+        private static Material CreateCycleMaterial(RawImage layer, string maskPath, Vector2 fadeUV)
+        {
+            if (layer == null) return null;
+            var shader = Resources.Load<Shader>("Shaders/UICycleBlend");
+            if (shader == null)
+            {
+                Debug.LogWarning("[HouseUI] 延时播放 shader 缺失（Resources/Shaders/UICycleBlend），退化为单帧显示");
+                return null;
+            }
+            var material = new Material(shader);
+            var mask = string.IsNullOrEmpty(maskPath) ? null : Resources.Load<Texture2D>(maskPath);
+            if (mask == null && !string.IsNullOrEmpty(maskPath))
+                Debug.LogWarning("[HouseUI] 延时遮罩缺失：" + maskPath + "（该层会连天空一起画）");
+            material.SetTexture("_MaskTex", mask != null ? mask : Texture2D.whiteTexture);
+            material.SetVector("_FadeUV", fadeUV);
+            layer.material = material;
+            return material;
         }
 
         /// <summary>
-        /// 日月东升西落（2026-08-16）：都从右侧天际升起、天顶过境、落到左侧——
-        /// 月亮值夜班 18:00→7:00，太阳值白班 7:00→18:00，交接各带一段淡入淡出。
-        /// 「昼夜交替」关闭时都隐藏；日月不吃昼夜调色（它们就是光源）。
+        /// 场景昼夜循环（2026-08-17 用户定案）：外景层与主楼剖面各按局内时钟播自己的延时分帧，
+        /// 相邻两帧交叉淡化——日月升落、云层、星空、窗灯、室内光影都在帧里，随时间平滑推进。
+        /// 「昼夜交替」关闭时定格在正午。
         /// </summary>
-        private void UpdateMoon()
+        private void UpdateSceneCycle()
         {
-            var minute = GameManager.Instance.HouseClockManager.Data.MinuteOfDayF;
-            UpdateCelestial(worldMoon, exteriorMoon, minute, 18f * 60f, 7f * 60f);
-            UpdateCelestial(worldSun, exteriorSun, minute, 7f * 60f, 18f * 60f);
-        }
-
-        private void UpdateCelestial(RawImage world, RawImage exterior, float minute, float rise, float set)
-        {
-            if (world == null) return;
-            var span = set > rise ? set - rise : (24f * 60f - rise) + set;
-            float progress;
-            if (set > rise)
-                progress = minute >= rise && minute < set ? (minute - rise) / span : -1f;
-            else if (minute >= rise) progress = (minute - rise) / span;
-            else if (minute < set) progress = (minute + (24f * 60f - rise)) / span;
-            else progress = -1f;
-            var visible = progress >= 0f && HouseSettings.Data.dayNightEnabled;
-            world.gameObject.SetActive(visible);
-            if (exterior != null) exterior.gameObject.SetActive(visible);
-            if (!visible) return;
-
-            var sky = new Vector2(
-                Mathf.Lerp(.95f, .05f, progress),
-                .78f + .2f * Mathf.Sin(progress * Mathf.PI));
-            var alpha = Mathf.Clamp01(Mathf.Min(progress, 1f - progress) * 8f); // 升起/落下各 ~1 小时淡变
-            PlaceMoon(world, sky, alpha);
-            if (exterior != null)
+            var minute = HouseSettings.Data.dayNightEnabled
+                ? GameManager.Instance.HouseClockManager.Data.MinuteOfDayF
+                : 12f * 60f;
+            PlayCycle(SkyCycle.Exterior, minute, exteriorBackdrop, exteriorCycle);
+            PlayCycle(SkyCycle.SkyOnly, minute, skyOnly, skyOnlyCycle);
+            PlayCycle(SkyCycle.Exterior, minute, lowerStructure, lowerStructureCycle);
+            PlayCycle(SkyCycle.House, minute, houseBackdrop, houseCycle);
+            if (lowerStructureCycle != null)
             {
-                // 同一天空位置换算到外景坐标系：主楼点 m = s·e + t → e = (m - t) / s
-                var ext = (sky - OpeningZoomFx.AlignOffset) / OpeningZoomFx.AlignScale;
-                PlaceMoon(exterior, ext, alpha);
+                var gain = SampleLowerStructureGrade(minute);
+                lowerStructureCycle.SetVector("_GradeGain", new Vector4(gain.x, gain.y, gain.z, 1f));
             }
+            // 纯天空层的可见度 = 主楼层的可见度（主楼一露面，外景的房子就得被藏起来）
+            var worldAlpha = worldGroup != null ? worldGroup.alpha : 1f;
+            if (skyOnly != null) skyOnly.color = new Color(1f, 1f, 1f, worldAlpha);
+            if (lowerStructure != null) lowerStructure.color = new Color(1f, 1f, 1f, worldAlpha);
         }
 
-        private static void PlaceMoon(RawImage moon, Vector2 anchor, float alpha)
+        private static void PlayCycle(SkyCycle cycle, float minute, RawImage layer, Material material)
         {
-            var rect = moon.rectTransform;
-            rect.anchorMin = rect.anchorMax = anchor;
-            rect.anchoredPosition = Vector2.zero;
-            moon.color = new Color(1f, 1f, 1f, alpha);
+            if (layer == null) return;
+            if (!cycle.Sample(minute, out var from, out var to, out var blend)) return;
+            layer.texture = from; // → shader 的 _MainTex（CanvasRenderer 直接喂）
+            if (material == null) return;
+            material.SetTexture("_NextTex", to);
+            material.SetFloat("_Blend", blend);
         }
 
-        private static RawImage CreateMoon(RectTransform parent, Texture2D texture, Vector2 size)
+        /// <summary>下层支柱来自外景帧，接缝处需跟随 HouseCycle 的曝光与色温；关键点间连续插值避免跳色。</summary>
+        private static Vector3 SampleLowerStructureGrade(float minuteOfDay)
         {
-            if (parent == null || texture == null) return null;
-            var rect = HouseUIRuntime.Rect(parent, "Moon", new Vector2(.5f, .9f), new Vector2(.5f, .9f), Vector2.zero, size);
-            var image = rect.gameObject.AddComponent<RawImage>();
-            image.texture = texture;
-            image.raycastTarget = false;
-            return image;
+            var t = Mathf.Repeat(minuteOfDay - 420f, 1440f);
+            for (var i = 1; i < LowerStructureGradeKeys.Length; i++)
+            {
+                var next = LowerStructureGradeKeys[i];
+                if (t > next.x) continue;
+                var previous = LowerStructureGradeKeys[i - 1];
+                var blend = Mathf.InverseLerp(previous.x, next.x, t);
+                return Vector3.Lerp(
+                    new Vector3(previous.y, previous.z, previous.w),
+                    new Vector3(next.y, next.z, next.w),
+                    blend);
+            }
+            var fallback = LowerStructureGradeKeys[LowerStructureGradeKeys.Length - 1];
+            return new Vector3(fallback.y, fallback.z, fallback.w);
         }
 
         // ══════════ 相机 ══════════
@@ -569,6 +630,13 @@ namespace MasterHouse
             if ((worldRoot.sizeDelta - viewport).sqrMagnitude > .5f) worldRoot.sizeDelta = viewport;
             if (exteriorRect != null && (exteriorRect.sizeDelta - viewport).sqrMagnitude > .5f)
                 exteriorRect.sizeDelta = viewport;
+            if (lowerStructureRect != null)
+            {
+                lowerStructureRect.localScale = new Vector3(LowerStructureScaleX, 1f, 1f);
+                lowerStructureRect.anchoredPosition = new Vector2(
+                    viewport.x * LowerStructureShiftX,
+                    -viewport.y * LowerStructureShiftY);
+            }
         }
 
         private void ApplyCamera()
