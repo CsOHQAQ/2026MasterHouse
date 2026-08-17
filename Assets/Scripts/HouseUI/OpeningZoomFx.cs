@@ -31,11 +31,16 @@ namespace MasterHouse
 
         private static IEnumerator Run(HouseUIManager ui, Action showNext)
         {
-            var exterior = Resources.Load<Texture2D>("OutGameUI/house-exterior");
+            // 外景取**当前时刻的延时帧**（2026-08-17 用户定案）：新游戏落在清晨，开场就用那一帧的晨光，
+            // 于是推镜落地时与 Hub 的天色完全同一张画面，不再出现「开场蓝天、进屋晨曦」的色差。
+            var minute = GameManager.Instance.HouseClockManager.Data.MinuteOfDayF;
+            Texture exterior = SkyCycle.Exterior.Sample(minute, out var frame, out _, out _)
+                ? frame
+                : Resources.Load<Texture2D>("OutGameUI/house-exterior");
             var burnShader = Resources.Load<Shader>("Shaders/UIBurn");
             if (exterior == null)
             {
-                Debug.LogError("[HouseUI] 开场推镜素材缺失（Resources/OutGameUI/house-exterior），退化为直接切页");
+                Debug.LogError("[HouseUI] 开场推镜素材缺失（延时帧与 house-exterior 都没有），退化为直接切页");
                 showNext();
                 yield break;
             }
@@ -56,10 +61,10 @@ namespace MasterHouse
             layerRect.SetAsLastSibling();
 
             // ②外景：推近终点 = 房屋对齐主楼剖面的取景（淡出后与 Hub 总览重合）。
-            // 昼夜光照从入场特效就生效（2026-08-16）：外景按游戏时钟乘同一条色带，与标题页/Hub 场景连贯
+            // 帧本身已带天色（延时序列），所以**不再叠昼夜调色**——叠了就与 Hub 那层对不上（2026-08-17）
             var extRect = FullScreenImage(layerRect, "Exterior", exterior, ZoomPivot);
             var extImage = extRect.GetComponent<RawImage>();
-            extImage.color = HouseDayLight.Now().tint;
+            extImage.color = Color.white;
             // ①登录页快照：压最上，火烧揭开
             var burnRect = FullScreenImage(layerRect, "TitleShot", shot, new Vector2(.5f, .5f));
             var burnImage = burnRect.GetComponent<RawImage>();
@@ -90,7 +95,7 @@ namespace MasterHouse
 
             // 时间轴：火烧 [0, 1.1] → 外景推近对齐 [0.9, 2.4] → 换出 Hub 后整层淡出 [2.4, 2.95]
             var seq = DOTween.Sequence().SetUpdate(true).SetLink(layer);
-            seq.OnUpdate(() => { if (extImage != null) extImage.color = HouseDayLight.Now().tint; }); // 时钟走动时天色跟着流
+            // 推镜期间时钟仍停着（开门时刻），帧不用换；天色已在帧里，无需再逐帧调色
             if (burnMaterial != null)
             {
                 var material = burnMaterial;
