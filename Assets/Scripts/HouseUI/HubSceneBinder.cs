@@ -332,19 +332,34 @@ namespace MasterHouse
         /// </summary>
         private static float GhostBandLow => Mathf.Lerp(ExteriorMinZoom, OverviewZoom, .4f);
 
+        /// <summary>
+        /// 第二段重影带（2026-08-18）：高清层淡入的那段缩放。延时帧与美术原图几何对不齐，
+        /// 半混合状态就是重叠的双份房间。淡入效果保留，但目标缩放同样不许停在带内。
+        /// </summary>
+        private const float LodBandLow = OverviewZoom * 1.35f;
+        private const float LodBandHigh = FocusedZoomThreshold;
+
         /// <summary>把目标缩放推出重影带：按滚动方向送到最近的一侧边界，玩家因此停不在重影档位上。</summary>
         private static float SnapOutOfGhostBand(float zoom, float scroll)
         {
-            if (zoom <= GhostBandLow || zoom >= OverviewZoom) return zoom;
-            return scroll < 0f ? GhostBandLow : OverviewZoom; // 往外滚就落到外景侧，往里滚就落到总览侧
+            zoom = SnapOutOfBand(zoom, scroll, GhostBandLow, OverviewZoom);   // 总览 ⇄ 外景
+            zoom = SnapOutOfBand(zoom, scroll, LodBandLow, LodBandHigh);      // 延时帧 ⇄ 高清层
+            return zoom;
+        }
+
+        private static float SnapOutOfBand(float zoom, float scroll, float low, float high)
+        {
+            if (zoom <= low || zoom >= high) return zoom;
+            return scroll < 0f ? low : high; // 往外滚落到低侧，往里滚落到高侧
         }
 
         /// <summary>每帧把 camZoom 指数逼近 targetZoom，并保持光标下的世界点不动。</summary>
         private void ApplyZoomEasing()
         {
             if (Mathf.Approximately(camZoom, targetZoom)) return;
-            // 穿过重影带时加速通过（那几帧的半透明叠影不该被看清）
-            var inBand = camZoom > GhostBandLow && camZoom < OverviewZoom;
+            // 穿过重影带时加速通过（那几帧的半透明叠影不该被看清）——两段带都算
+            var inBand = (camZoom > GhostBandLow && camZoom < OverviewZoom) ||
+                         (camZoom > LodBandLow && camZoom < LodBandHigh);
             var speed = inBand ? 26f : 13f;
             camZoom = Mathf.Lerp(camZoom, targetZoom, 1f - Mathf.Exp(-speed * Time.unscaledDeltaTime));
             if (Mathf.Abs(camZoom - targetZoom) < 5e-4f) camZoom = targetZoom;
@@ -412,24 +427,6 @@ namespace MasterHouse
             }
         }
 
-        /// <summary>高清层是否已接管（硬切换的当前态）。</summary>
-        private bool sharpLodOn;
-
-        /// <summary>切入高清层的缩放阈值；退回延时帧的阈值更低，中间那段是迟滞区，避免边界抖动来回闪。</summary>
-        private const float SharpLodEnterZoom = FocusedZoomThreshold * .92f;
-        private const float SharpLodExitZoom = FocusedZoomThreshold * .72f;
-
-        /// <summary>
-        /// 硬切换 + 迟滞：推近越过 Enter 就整层换成高清，退回跌破 Exit 才换回延时帧。
-        /// 返回 0/1 给各层当 alpha——**不给中间值**，中间值就是重影。
-        /// </summary>
-        private float UpdateSharpLod()
-        {
-            if (!sharpLodOn && camZoom >= SharpLodEnterZoom) sharpLodOn = true;
-            else if (sharpLodOn && camZoom < SharpLodExitZoom) sharpLodOn = false;
-            return sharpLodOn ? 1f : 0f;
-        }
-
         /// <summary>每帧按局内时钟推环境光（HubPage.OnUpdate 调；叠加层开着也走，面板后面的天色照常流动）。
         /// 色带定义在 HouseDayLight（与标题页封面共用）。</summary>
         public void UpdateDayLight()
@@ -439,14 +436,15 @@ namespace MasterHouse
             // 外景层与主楼剖面放的都是延时分帧，天色/夜色在帧里，不再叠调色与夜罩（叠了会双重变暗）
             if (exteriorBackdrop != null) exteriorBackdrop.color = Color.white;
             // 清晰度分级（2026-08-17）：总览时延时帧当家（有室内光影动画）；
-            // 往单间推近时换成高清静态主楼图与高清房间烘焙图（延时帧只有 1280 宽，推近了糊）。
-            // 2026-08-18：这里原来是按缩放交叉淡入，但两层是**不同来源的同一栋楼**
-            // （延时视频的帧 vs 美术原图），几何对不齐，混合期必然看到两套重叠的房间。
-            // 改成带迟滞的硬切换：任一时刻只有一层在画，缩放全程都不会出现重影帧。
-            var lod = UpdateSharpLod();
+            // 往单间推近时，高清静态主楼图与高清房间烘焙图一起淡入接管（延时帧只有 1280 宽，推近了糊）。
+            // 淡入过程保留（那是想要的过渡效果），但**停不进去**：两层是不同来源的同一栋楼，
+            // 几何对不齐，半混合状态就是重叠的双份房间。目标缩放会被推出这段带（见 SnapOutOfGhostBand），
+            // 玩家只会快速穿过、不会停在中间。
+            var lod = Mathf.InverseLerp(LodBandLow, LodBandHigh, camZoom);
             if (houseStatic != null) houseStatic.color = new Color(tint.r, tint.g, tint.b, lod);
-            // 高清层接管时把延时帧那层整个关掉：两层同时在画才有重影，关掉就从根上没有。
-            // 高清图没就位时不关，否则整栋楼会没了。
+            // 高清层完全接管后把延时帧那层关掉：省一层绘制，也杜绝遮罩羽化处的边缘重影。
+            // 只在 lod 满格时关（淡入过程中两层都要在，否则过渡会闪）；高清图没就位时不关，
+            // 否则整栋楼会没了。
             var sharpReady = houseStatic != null && houseStatic.texture != null;
             if (houseBackdrop != null)
                 houseBackdrop.color = sharpReady && lod >= 1f ? Color.clear : Color.white;
