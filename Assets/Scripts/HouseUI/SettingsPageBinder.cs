@@ -244,13 +244,8 @@ namespace MasterHouse
             var row = SpawnRow(view.sliderTemplate, 78f);
             if (row.label != null) row.label.text = label;
             if (row.slider == null) return;
-            // 圆点保正圆（2026-08-16 反馈）：取短边压成正方形——尊重 Prefab 手调的大小，只修比例
-            var handle = row.slider.handleRect;
-            if (handle != null)
-            {
-                var side = Mathf.Min(handle.sizeDelta.x, handle.sizeDelta.y);
-                if (side > 0f) handle.sizeDelta = new Vector2(side, side);
-            }
+            // 圆点的正圆由模板保证（滑道高 = 直径、把手 sizeDelta.y = 0），运行时不再改尺寸：
+            // Slider 会把把手垂直锚点撑成拉伸，这里按 sizeDelta 取短边只会把它压没
             row.slider.SetValueWithoutNotify(getter());
             if (row.value != null) row.value.text = getter().ToString();
             row.slider.onValueChanged.AddListener(raw =>

@@ -239,11 +239,17 @@ namespace MasterHouse
             repaired |= RepairPrefab<OutGamePaperView>(PaperPath, RepairPaper);
             repaired |= RepairPrefab<OutGameSavePageView>(SavePagePath, RepairSavePage);
             repaired |= RepairPrefab<OutGameGalleryPageView>(GalleryPagePath, RepairGalleryPage);
-            // 2.0 设置页只做「引用掉了就重绑」：结构性升级交给 EnsureMissingPrefabs 的重建触发，
-            // 这里不再塞 1.0 的键位热区/标题图，免得把新 Prefab 改回旧样子
-            repaired |= RepairPrefab<OutGameSettingsPageView>(SettingsPagePath, RepairSettingsPage,
+            // 2.0 设置页只做「引用掉了就重绑」+ 两处行模板缺陷的定点修补：
+            // 结构性升级交给菜单「重建设置页」，这里绝不整页覆盖手调布局
+            repaired |= RepairPrefab<OutGameSettingsPageView>(SettingsPagePath,
+                (root, view) =>
+                {
+                    if (view.rowsRoot == null || view.headerTemplate == null) RepairSettingsPage(root, view);
+                    MigrateSettings2Rows(view);
+                },
                 view => view.rowsRoot != null && view.tabButtons != null && view.tabButtons.Length == 5 &&
-                        (view.applyButton == null || view.headerTemplate == null || view.background == null));
+                        (view.applyButton == null || view.headerTemplate == null || view.background == null ||
+                         Settings2RowsNeedFix(view)));
             repaired |= RepairPrefab<OutGameExitPageView>(ExitPagePath, RepairExitPage);
             repaired |= RepairPrefab<OutGameSaveSlotView>(SaveSlotPath, RepairSaveSlot);
             repaired |= RepairPrefab<OutGameHubView>(HubPath, RepairHub, view => view.topBar == null ||
@@ -270,7 +276,9 @@ namespace MasterHouse
                         (view.obtainedGroup != null && view.swatchRoot != null &&
                          view.swatchRoot.GetSiblingIndex() > view.obtainedGroup.transform.GetSiblingIndex()) ||
                         // 购买键改空格：旧回车键帽图触发换图迁移
-                        (view.buyKeycap != null && view.buyKeycap.sprite != null && view.buyKeycap.sprite.name == "enter"));
+                        (view.buyKeycap != null && view.buyKeycap.sprite != null && view.buyKeycap.sprite.name == "enter") ||
+                        // 「X 改变颜色」缺悬停图引用（绑定层靠它做 SpriteSwap，2026-08-18 反馈）
+                        view.colorKeycapHover == null);
             // 商店卡片：Thumb 包进 ThumbArea 容器（图在手调框内保比例自适应；容器承接原 Thumb 的手调 Rect）
             repaired |= RepairPrefab<OutGameStoreCardView>(StoreCardPath,
                 (root, view) => WrapStoreCardThumb(root, view),
@@ -341,6 +349,8 @@ namespace MasterHouse
         /// </summary>
         private static void AppendStoreRedesignNodes(GameObject root, OutGameStorePageView view)
         {
+            // 「X 改变颜色」的悬停图：只补引用，位置尺寸一概不动
+            if (view.colorKeycapHover == null) view.colorKeycapHover = Store2("X-悬停");
             if (view.swatchRoot == null)
             {
                 // 选色块行：右侧信息区、描述文本下方（色块运行时实例化，容器只做定位）
@@ -1023,10 +1033,60 @@ namespace MasterHouse
             var row = Rect(parent, "HeaderRow", new Vector2(.5f, 1), new Vector2(.5f, 1), Vector2.zero, new Vector2(1035, 46));
             row.pivot = new Vector2(.5f, 1);
             var refs = row.gameObject.AddComponent<OutGameSettingsHeaderRow>();
+            // 文本框 pivot 居中：x=200/宽400 → 左缘落在 0，与条目行标签（x=150/宽300）同一条竖线；
+            // 原来的 x=96/宽300 会把左缘顶到 -54，分节标题整个被视口裁掉（看不见）
             refs.title = Label(row, "Title", "<color=#4A6FA5>|</color> 通用", 22, Hex("6B5B4E"),
-                new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(96, 0), new Vector2(300, 34),
+                new Vector2(0, .5f), new Vector2(0, .5f), new Vector2(200, 0), new Vector2(400, 34),
                 TextAnchor.MiddleLeft, FontStyle.Bold);
             return refs;
+        }
+
+        /// <summary>
+        /// 2.0 行模板的两处缺陷（2026-08-18 反馈）：①分节标题文本框左缘为负被视口裁掉，整行看不见；
+        /// ②滑块 sizeDelta.y 非 0，被 Slider 的垂直拉伸撑成椭圆。只判这两项，别的一律不管。
+        /// </summary>
+        private static bool Settings2RowsNeedFix(OutGameSettingsPageView view)
+        {
+            var header = view.headerTemplate;
+            if (header != null && header.title != null)
+            {
+                var rect = header.title.rectTransform;
+                if (rect.anchoredPosition.x - rect.sizeDelta.x * rect.pivot.x < -1f) return true;
+            }
+            var slider = view.sliderTemplate != null ? view.sliderTemplate.slider : null;
+            if (slider != null && slider.handleRect != null &&
+                Mathf.Abs(slider.handleRect.sizeDelta.y) > .01f) return true;
+            return false;
+        }
+
+        /// <summary>把上面两处缺陷就地改掉（只动这两个 RectTransform）。</summary>
+        private static void MigrateSettings2Rows(OutGameSettingsPageView view)
+        {
+            var header = view.headerTemplate;
+            if (header != null && header.title != null)
+            {
+                var rect = header.title.rectTransform;
+                if (rect.anchoredPosition.x - rect.sizeDelta.x * rect.pivot.x < -1f)
+                {
+                    rect.sizeDelta = new Vector2(400, rect.sizeDelta.y);
+                    rect.anchoredPosition = new Vector2(400 * rect.pivot.x, rect.anchoredPosition.y);
+                }
+            }
+            var slider = view.sliderTemplate != null ? view.sliderTemplate.slider : null;
+            if (slider == null || slider.handleRect == null) return;
+            var handle = slider.handleRect;
+            if (Mathf.Abs(handle.sizeDelta.y) <= .01f) return;
+            var diameter = Mathf.Max(handle.sizeDelta.x, handle.sizeDelta.y);
+            var area = handle.parent as RectTransform;
+            if (area != null)
+            {
+                // 滑道高度即直径：把手高度由父级给，自身只留宽度
+                var trackHeight = ((RectTransform)area.parent).rect.height;
+                var pad = (diameter - trackHeight) * .5f;
+                area.offsetMin = new Vector2(area.offsetMin.x, -pad);
+                area.offsetMax = new Vector2(area.offsetMax.x, pad);
+            }
+            handle.sizeDelta = new Vector2(diameter, 0f);
         }
 
         private static OutGameSettingsSliderRow BuildSettingsSliderTemplate(RectTransform parent)
@@ -1046,8 +1106,12 @@ namespace MasterHouse
             var fillArea = Rect(sliderRect, "FillArea", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             var fill = ImageOn(Rect(fillArea, "Fill", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero), Color.white);
             fill.sprite = Settings2("进度条-进度");
+            // 滑块保正圆：Slider 会把把手的垂直锚点撑成 0~1 拉伸，高度 = 父高 + sizeDelta.y，
+            // 所以直径只能靠「滑道高 = 27」给出，把手自身 sizeDelta.y 必须留 0（写 27 会变成 51 高的椭圆）
             var handleArea = Rect(sliderRect, "HandleArea", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            var handle = ImageOn(Rect(handleArea, "Handle", new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(27, 27)), Color.white);
+            handleArea.offsetMin = new Vector2(0, -1.5f);
+            handleArea.offsetMax = new Vector2(0, 1.5f);
+            var handle = ImageOn(Rect(handleArea, "Handle", new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(27, 0)), Color.white);
             handle.sprite = Settings2("进度条-滑块-默认");
             var slider = sliderRect.gameObject.AddComponent<Slider>();
             slider.fillRect = (RectTransform)fill.transform;
@@ -2556,8 +2620,9 @@ namespace MasterHouse
             view.colorKeycap = Image(root.transform, "ColorKeycap", new Vector2(1, 0), new Vector2(1, 0),
                 new Vector2(-470, 66), new Vector2(186, 76), Color.white);
             view.colorKeycap.sprite = Store2("X-默认");
+            view.colorKeycapHover = Store2("X-悬停");
             view.colorKeycap.preserveAspect = true;
-            view.colorKeycap.raycastTarget = false;
+            view.colorKeycap.raycastTarget = true; // 绑定层会补 Button：可点、可悬停
             view.colorKeycapLabel = Label(root.transform, "ColorKeycapHint", string.Empty, 16, Hex("6B5B4E"),
                 new Vector2(1, 0), new Vector2(1, 0), new Vector2(-470, 24), new Vector2(186, 24),
                 TextAnchor.MiddleCenter, FontStyle.Normal);
