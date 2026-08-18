@@ -322,11 +322,13 @@ namespace MasterHouse
                         ? view.cardSlots[view.cardSlots.Length / 2]
                         : null;
                     if (slot == null) return;
-                    var rect = slot.rectTransform;
-                    view.focusNumberRoot = BuildCodexFocusNumber((RectTransform)rect.parent, ref view.focusNumber,
-                        rect.anchoredPosition, rect.sizeDelta);
+                    // 早期版本把编号建成了卡片的兄弟节点（卡片缩放时不跟手），拆掉重挂到卡片身下
+                    if (view.focusNumberRoot != null) Object.DestroyImmediate(view.focusNumberRoot.gameObject);
+                    view.focusNumberRoot = BuildCodexFocusNumber(slot.rectTransform, ref view.focusNumber);
                 },
-                view => view.focusNumberRoot == null && view.cardSlots != null && view.cardSlots.Length > 0);
+                view => view.cardSlots != null && view.cardSlots.Length > 0 &&
+                        (view.focusNumberRoot == null ||
+                         view.focusNumberRoot.parent != view.cardSlots[view.cardSlots.Length / 2].transform));
             // 档案面板：补「访客图鉴」入口按钮（2026-08-18）
             repaired |= RepairPrefab<OutGameArchivePanelView>(ArchivePanelPath,
                 (root, view) => view.codexButton = AppendArchiveCodexButton(root.transform),
@@ -2558,8 +2560,7 @@ namespace MasterHouse
                 view.cardButtons[i] = button;
             }
 
-            view.focusNumberRoot = BuildCodexFocusNumber(cards, ref view.focusNumber,
-                new Vector2(slotX[2], slotY[2]), slotSize[2]);
+            view.focusNumberRoot = BuildCodexFocusNumber(view.cardSlots[2].rectTransform, ref view.focusNumber);
 
             // 图鉴条目：种族资产 + 两张卡面（彩色/剪影）一并烘进 Prefab
             var races = new System.Collections.Generic.List<VisitorRaceDef>();
@@ -2603,23 +2604,25 @@ namespace MasterHouse
         private static readonly Vector2 CodexNumberSourceCenter = new Vector2(519f, 561f);
         private static readonly Vector2 CodexNumberSourceSize = new Vector2(246f, 72f);
         private const float CodexCardSourceWidth = 1984f;
+        private const float CodexCardSourceHeight = 2378f;
         private const float CodexNumberTiltDegrees = 4.1f;
 
         /// <summary>
         /// 焦点卡编号：卡面把 NO.001 画死在图里（七张全是 001），这里在原位盖一块纸色补丁，
         /// 再按当前条目写真实编号。位置由素材实测坐标换算，随卡面倾角一起转。
+        /// **挂在焦点卡自己身下**——卡片点击缩放/位移时，编号跟着一起动（2026-08-18 反馈）。
         /// </summary>
-        private static RectTransform BuildCodexFocusNumber(RectTransform parent, ref Text label,
-            Vector2 slotPosition, Vector2 slotSize)
+        private static RectTransform BuildCodexFocusNumber(RectTransform card, ref Text label)
         {
+            var slotSize = card.sizeDelta;
             var scale = slotSize.x / CodexCardSourceWidth;
-            // 卡片 pivot 居中、锚在左上：先算卡面左上角，再把素材坐标换算过去
-            var cardTopLeft = new Vector2(slotPosition.x - slotSize.x * .5f, slotPosition.y + slotSize.y * .5f);
-            var center = new Vector2(cardTopLeft.x + CodexNumberSourceCenter.x * scale,
-                cardTopLeft.y - CodexNumberSourceCenter.y * scale);
+            // 素材坐标以卡面左上角为原点；卡片 pivot 居中，故换算成「相对卡心」的偏移
+            var offset = new Vector2(
+                (CodexNumberSourceCenter.x - CodexCardSourceWidth * .5f) * scale,
+                -(CodexNumberSourceCenter.y - CodexCardSourceHeight * .5f) * scale);
             var size = CodexNumberSourceSize * scale;
 
-            var root = Rect(parent, "FocusNumber", new Vector2(0, 1), new Vector2(0, 1), center, size);
+            var root = Rect(card, "FocusNumber", new Vector2(.5f, .5f), new Vector2(.5f, .5f), offset, size);
             root.localEulerAngles = new Vector3(0, 0, CodexNumberTiltDegrees);
             var patch = ImageOn(root, Hex("E3D7CC")); // 盖掉画死的 NO.001
             patch.raycastTarget = false;
