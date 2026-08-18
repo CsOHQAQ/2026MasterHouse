@@ -82,5 +82,11 @@ namespace MasterHouse
 
         public Color paletteCountDigitColor = Color.white;
         public Color paletteCountDigitDisabledColor = new Color(0.75f, 0.42f, 0.42f, 1f);
+
+        [Header("按钮")]
+        [Tooltip("所有固定按钮（完成、放弃、上一关、重试、小结继续、小结留下等）共用的九宫格底图。" +
+                 "留空时沿用 Prefab 上的原图。运行时会覆盖到各 Button 的 TargetGraphic 上，" +
+                 "保留 ColorTint 的悬停/按下反馈。有 Sprite 时按 Sliced 渲染。")]
+        public Sprite buttonBackgroundSprite;
     }
 }
