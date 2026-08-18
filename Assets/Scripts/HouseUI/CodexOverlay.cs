@@ -27,9 +27,13 @@ namespace MasterHouse
         private CanvasGroup cardsGroup;
         private Tween slideTween;
 
-        /// <summary>翻一张的横移距离：取相邻卡位的平均间距，滑动幅度才跟排布对得上。</summary>
+        /// <summary>相邻卡位的平均间距（滑动幅度的基准）。</summary>
         private float slideDistance = 370f;
-        private const float SlideSeconds = .28f;
+        /// <summary>实际只挪这么一小段：整格位移读起来是「甩」，半格才是「推了一下」。</summary>
+        private const float SlideRatio = .34f;
+        /// <summary>连着翻时位移可以叠加，但不超过这个上限，免得越滚越远变成大幅横扫。</summary>
+        private const float SlideMaxRatio = .55f;
+        private const float SlideSeconds = .34f;
 
         private CodexOverlay(RectTransform root, OutGameCodexPageView view, HouseUIManager ui)
         {
@@ -139,21 +143,28 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 翻页滑动（2026-08-18 反馈「一格一格的有些僵硬」）：换图是瞬时的，
-        /// 但把整条卡片层先摆回上一张的位置再缓动回原位，眼睛读到的就是滑过去而不是跳过去。
-        /// 连着滚时重启同一个补间，速度自然叠上去。
+        /// 翻页滑动（2026-08-18 反馈）：换图是瞬时的，把整条卡片层往回推一小段再缓动归位，
+        /// 眼睛读到的就是滑过去而不是跳过去。
+        ///
+        /// 两处克制（第一版整格位移 + 深淡入，用户反馈「有点晕」）：
+        /// ①只推 1/3 格——整格位移视觉上是「甩」，一小段才是「推了一下」；
+        /// ②连着翻时从**当前位移**继续叠加（不是每次重置到满偏移），并设上限，
+        ///   所以快速滚是一条连续的缓动，不会一顿一顿地来回抽。
         /// </summary>
         private void PlaySlide(int direction)
         {
             if (cardsRoot == null) return;
             slideTween?.Kill();
-            cardsRoot.anchoredPosition = new Vector2(direction * slideDistance, 0f);
+            var max = slideDistance * SlideMaxRatio;
+            var offset = Mathf.Clamp(cardsRoot.anchoredPosition.x + direction * slideDistance * SlideRatio,
+                -max, max);
+            cardsRoot.anchoredPosition = new Vector2(offset, 0f);
             slideTween = cardsRoot.DOAnchorPos(Vector2.zero, SlideSeconds)
                 .SetEase(Ease.OutCubic).SetUpdate(true).SetLink(cardsRoot.gameObject);
             if (cardsGroup == null) return;
-            // 焦点卡的尺寸是瞬间变的，配一点淡入盖住那一下突变
+            // 焦点卡的尺寸是瞬间变的，配一点很淡的淡入柔化那一下突变（深了会闪，反而更晕）
             cardsGroup.DOKill();
-            cardsGroup.alpha = .55f;
+            cardsGroup.alpha = .82f;
             cardsGroup.DOFade(1f, SlideSeconds).SetUpdate(true).SetLink(cardsRoot.gameObject);
         }
 
