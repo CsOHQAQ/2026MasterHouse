@@ -295,8 +295,8 @@ namespace MasterHouse
         {
             if (stage == null || !stage.TryGetActorWorld(instanceId, out var world01)) return;
             var room = HubWorldGrid.RoomAt(world01);
-            var targetZoom = Mathf.Clamp(
-                (room != HubWorldGrid.None ? HubWorldGrid.FocusZoom(room) : 3f) * 1.25f, 2.5f, MaxZoom);
+            var targetZoom = SnapFocusZoom(Mathf.Clamp(
+                (room != HubWorldGrid.None ? HubWorldGrid.FocusZoom(room) : 3f) * 1.25f, 2.5f, MaxZoom));
             FocusWorldPoint(world01, targetZoom);
         }
 
@@ -351,6 +351,24 @@ namespace MasterHouse
         {
             if (zoom <= low || zoom >= high) return zoom;
             return scroll < 0f ? low : high; // 往外滚落到低侧，往里滚落到高侧
+        }
+
+        /// <summary>
+        /// 推镜（点房间 / 点访客 / 直达）的落点同样不许停在重影带里（2026-08-18 反馈）。
+        /// 接待室按区域宽算出来的聚焦倍率恰好是 1.80，正落在高清层淡入区间的正中央，
+        /// 于是一点接待室就停在半混合的双影上。这里推到**较近**的一侧边界——
+        /// 不像滚轮那样有方向可依，就近才不会把取景推得面目全非。
+        /// </summary>
+        private static float SnapFocusZoom(float zoom)
+        {
+            zoom = SnapFocusOutOfBand(zoom, GhostBandLow, OverviewZoom);
+            return SnapFocusOutOfBand(zoom, LodBandLow, LodBandHigh);
+        }
+
+        private static float SnapFocusOutOfBand(float zoom, float low, float high)
+        {
+            if (zoom <= low || zoom >= high) return zoom;
+            return zoom - low < high - zoom ? low : high;
         }
 
         /// <summary>每帧把 camZoom 指数逼近 targetZoom，并保持光标下的世界点不动。</summary>
@@ -709,7 +727,7 @@ namespace MasterHouse
             var viewport = sceneRoot.rect.size;
             if (viewport.x < 1f) { SnapToRoom(roomIndex); return; }
             SyncWorldSize(viewport);
-            var endZoom = HubWorldGrid.FocusZoom(roomIndex);
+            var endZoom = SnapFocusZoom(HubWorldGrid.FocusZoom(roomIndex));
             var targetPan = PanCenteredOn(roomIndex, endZoom, viewport);
             KillFocusTween();
             var fromPan = camPan;
@@ -738,7 +756,7 @@ namespace MasterHouse
             var viewport = sceneRoot.rect.size;
             if (viewport.x < 1f) viewport = new Vector2(1920f, 1080f); // 首帧布局未算完，用设计分辨率近似
             SyncWorldSize(viewport);
-            camZoom = HubWorldGrid.FocusZoom(roomIndex);
+            camZoom = SnapFocusZoom(HubWorldGrid.FocusZoom(roomIndex));
             camPan = PanCenteredOn(roomIndex, camZoom, viewport);
             SyncZoomTarget();
             ClampCamera(viewport);
