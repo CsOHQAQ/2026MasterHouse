@@ -314,6 +314,19 @@ namespace MasterHouse
                 (root, view) => AppendConfirmKeycaps(view),
                 view => (view.cancelButton != null && view.cancelButton.transform.Find("EscCap") == null) ||
                         (view.confirmButton != null && view.confirmButton.transform.Find("SpaceCap") == null));
+            // 图鉴页：补焦点卡编号（卡面把 NO.001 画死了，2026-08-18）；按 Prefab 里焦点卡位的现值换算
+            repaired |= RepairPrefab<OutGameCodexPageView>(CodexPagePath,
+                (root, view) =>
+                {
+                    var slot = view.cardSlots != null && view.cardSlots.Length > 0
+                        ? view.cardSlots[view.cardSlots.Length / 2]
+                        : null;
+                    if (slot == null) return;
+                    var rect = slot.rectTransform;
+                    view.focusNumberRoot = BuildCodexFocusNumber((RectTransform)rect.parent, ref view.focusNumber,
+                        rect.anchoredPosition, rect.sizeDelta);
+                },
+                view => view.focusNumberRoot == null && view.cardSlots != null && view.cardSlots.Length > 0);
             // 档案面板：补「访客图鉴」入口按钮（2026-08-18）
             repaired |= RepairPrefab<OutGameArchivePanelView>(ArchivePanelPath,
                 (root, view) => view.codexButton = AppendArchiveCodexButton(root.transform),
@@ -2545,6 +2558,9 @@ namespace MasterHouse
                 view.cardButtons[i] = button;
             }
 
+            view.focusNumberRoot = BuildCodexFocusNumber(cards, ref view.focusNumber,
+                new Vector2(slotX[2], slotY[2]), slotSize[2]);
+
             // 图鉴条目：种族资产 + 两张卡面（彩色/剪影）一并烘进 Prefab
             var races = new System.Collections.Generic.List<VisitorRaceDef>();
             var revealed = new System.Collections.Generic.List<Sprite>();
@@ -2580,6 +2596,38 @@ namespace MasterHouse
                 Conversation("space-默认"), Conversation("space-悬停"),
                 new Vector2(1, 0), new Vector2(-163, 57), new Vector2(186, 76));
             Save(root, path);
+        }
+
+        // 卡面素材（1984×2378）里 NO.001 那行的实测位置：字形盒 x 410~628、y 538~585，
+        // 基线随卡面倾斜约 4.1° 上扬；周围纸色恒为 #E3D7CC、墨色 #5B79A8（七张卡一致）。
+        private static readonly Vector2 CodexNumberSourceCenter = new Vector2(519f, 561f);
+        private static readonly Vector2 CodexNumberSourceSize = new Vector2(246f, 72f);
+        private const float CodexCardSourceWidth = 1984f;
+        private const float CodexNumberTiltDegrees = 4.1f;
+
+        /// <summary>
+        /// 焦点卡编号：卡面把 NO.001 画死在图里（七张全是 001），这里在原位盖一块纸色补丁，
+        /// 再按当前条目写真实编号。位置由素材实测坐标换算，随卡面倾角一起转。
+        /// </summary>
+        private static RectTransform BuildCodexFocusNumber(RectTransform parent, ref Text label,
+            Vector2 slotPosition, Vector2 slotSize)
+        {
+            var scale = slotSize.x / CodexCardSourceWidth;
+            // 卡片 pivot 居中、锚在左上：先算卡面左上角，再把素材坐标换算过去
+            var cardTopLeft = new Vector2(slotPosition.x - slotSize.x * .5f, slotPosition.y + slotSize.y * .5f);
+            var center = new Vector2(cardTopLeft.x + CodexNumberSourceCenter.x * scale,
+                cardTopLeft.y - CodexNumberSourceCenter.y * scale);
+            var size = CodexNumberSourceSize * scale;
+
+            var root = Rect(parent, "FocusNumber", new Vector2(0, 1), new Vector2(0, 1), center, size);
+            root.localEulerAngles = new Vector3(0, 0, CodexNumberTiltDegrees);
+            var patch = ImageOn(root, Hex("E3D7CC")); // 盖掉画死的 NO.001
+            patch.raycastTarget = false;
+            label = Label(root, "Value", "NO.001", 20, Hex("5B79A8"),
+                Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+            label.raycastTarget = false;
+            return root;
         }
 
         [MenuItem("Tools/MasterHouse/OutGame UI/重建图鉴页（2.0 设计图）")]

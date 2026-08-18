@@ -137,6 +137,11 @@ namespace MasterHouse
                 slot.sprite = Sprite(showColor ? view.revealedCards : view.hiddenCards, raceIndex);
                 slot.enabled = slot.sprite != null;
             }
+            // 焦点卡编号：只有翻开的彩色卡才有 GUEST FILE 抬头，剪影上不该出现编号
+            if (view.focusNumberRoot != null)
+                view.focusNumberRoot.gameObject.SetActive(IsUnlocked(focusIndex));
+            if (view.focusNumber != null)
+                view.focusNumber.text = "NO." + (focusIndex + 1).ToString("000");
             if (view.focusName != null)
                 view.focusName.text = IsUnlocked(focusIndex) ? RaceName(focusIndex) : "？？？";
             if (view.focusNote != null)

@@ -34,6 +34,11 @@ namespace MasterHouse
         [Tooltip("空格：查看（把焦点卡翻成彩色）")]
         public Button viewButton;
 
+        [Header("焦点卡编号（卡面素材把 NO.001 画死了，用一块纸色补丁盖掉再写真实编号）")]
+        [Tooltip("补丁与编号的共同父节点：位置压在焦点卡的 NO. 那一行上，整体带卡面的倾角")]
+        public RectTransform focusNumberRoot;
+        public Text focusNumber;
+
         [Header("焦点卡说明（可空：设计图上没有，留作后续扩展的接缝）")]
         public Text focusName;
         public Text focusNote;
