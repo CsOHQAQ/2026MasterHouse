@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: Race_leopard
   m_EditorClassIdentifier: 
   raceId: leopard
-  displayName: "\u8C79\u9177\u9177"
-  waitTalkTimeoutTicks: 2400
-  waitDeliverTimeoutTicks: 4800
-  wanderMaxTicks: 3000
+  displayName: "\u8C79\u51B2\u51B2"
+  waitTalkTimeoutTicks: 2100
+  waitDeliverTimeoutTicks: 4200
+  wanderMaxTicks: 2700
   defaultPortraitId: "leopard_\u5E73\u9759"
-  sheetPath: OutGameUI/Visitors/leopard
+  sheetPath: OutGameUI/Visitors/cheetah
