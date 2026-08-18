@@ -21,7 +21,9 @@ namespace MasterHouse
     internal sealed class OutGameVisitorStage : MonoBehaviour
     {
         /// <summary>入口区兜底（房间表缺配时）：旧版起居室大门附近。</summary>
-        private static readonly Rect DefaultEntryArea = Rect.MinMaxRect(.08f, .15f, .18f, .33f);
+        // 兜底入口区（2026-08-18 压低）：原来的 .15~.33 在活动区上沿之外，
+        // 缺配的房间里等待中的访客会悬在半空
+        private static readonly Rect DefaultEntryArea = Rect.MinMaxRect(.08f, .03f, .18f, .13f);
         // 等待/排队点在入口区内的相对位置（分数坐标）：业务访客与邻居都在门口等，
         // 请进来（接待/请进屋）才走进屋内；错开站位避免叠在一起
         private static readonly Vector2[] EntrySlots =
@@ -31,12 +33,22 @@ namespace MasterHouse
             new Vector2(.20f, .15f),
             new Vector2(.80f, .55f),
         };
-        /// <summary>活动区兜底（房间表缺配时）：与旧的手摆游走带大致等价。</summary>
-        private static readonly Rect DefaultWalkArea = Rect.MinMaxRect(.04f, .03f, .96f, .35f);
-        /// <summary>接待室的活动/入口区（2026-08-16 主楼场景）：房间表只配业务四间，接待室先走代码常量；
-        /// 入口区取左侧大门一带，游走带铺满底层地面。</summary>
-        private static readonly Rect ReceptionWalkArea = Rect.MinMaxRect(.06f, .03f, .94f, .22f);
-        private static readonly Rect ReceptionEntryArea = Rect.MinMaxRect(.06f, .04f, .4f, .2f);
+        /// <summary>活动区兜底（房间表缺配时）：贴着地面的一条窄带。</summary>
+        private static readonly Rect DefaultWalkArea = Rect.MinMaxRect(.04f, .02f, .96f, .15f);
+        /// <summary>接待室的活动/入口区（2026-08-16 主楼场景）：房间表只配业务四间，接待室先走代码常量。
+        /// 2026-08-18 按美术红框压低：原来上沿到 .22，访客会站到左侧柜台上去。</summary>
+        private static readonly Rect ReceptionWalkArea = Rect.MinMaxRect(.06f, .025f, .94f, .15f);
+        private static readonly Rect ReceptionEntryArea = Rect.MinMaxRect(.06f, .03f, .4f, .13f);
+        /// <summary>活动区没有单独配透视收缩比时的默认远端宽度比。</summary>
+        private const float DefaultFarWidthScale = .8f;
+
+        /// <summary>
+        /// 可走区的「椭圆度」：2 = 正椭圆，越大越接近圆角矩形。
+        /// 红框是又宽又浅的一条带（约 0.9 × 0.12），内接正椭圆会把中段压到只剩七成宽、
+        /// 前后沿收成一个点，房间左右两头就走不到了。取 3 只削掉四角，
+        /// 既有椭圆的圆润轮廓与前后收口，又保住整条带的可用宽度。
+        /// </summary>
+        private const float WalkOvalPower = 3f;
         private const int MaxAmbient = 3;
         /// <summary>
         /// 演员的统一世界缩放：全场访客共用 VisitorTuningConfig 的基准大小，
@@ -224,9 +236,13 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 访客可走体积（2026-08-16 用户定案）：与家具**地面网格**同一块梯形透视区——
-        /// 近沿全宽、越远越向中心收（读网格的远端宽度比），随机落点/松手钳制共用。
-        /// 接待室没有地面网格，用代码常量矩形按轻微透视处理。
+        /// 访客可走体积（2026-08-18 按美术红框重做）：一块**贴地的透视椭圆**。
+        ///
+        /// 范围取房间表的「访客区」列（策划按房间美术的红框标定，§16.6 内容进资产）——
+        /// 之前这里读的是家具**地面网格**，那块区域比红框高一大截，访客会走到柜台、窗台上去。
+        /// 形状从矩形/梯形改成椭圆：前后两端收口、中段最宽，既贴合地毯/地面的实际形状，
+        /// 又让访客自然分布在纵深上——有人站在家具前面、有人在后面，前景后景的层次就出来了。
+        /// 透视仍然保留：远端半宽按地面网格的远端宽度比向中心收。
         /// </summary>
         private struct WalkVolume
         {
@@ -240,28 +256,35 @@ namespace MasterHouse
                 table != null && roomIndex < table.rooms.Count && table.rooms[roomIndex] != null)
             {
                 var room = table.rooms[roomIndex];
-                foreach (var grid in room.grids)
+                var area = room.visitorWalkArea;
+                if (area.width > .01f && area.height > .001f)
                 {
-                    if (grid == null || grid.surface != FurnitureSurfaceType.Floor) continue;
-                    var width = grid.cols * grid.cellWidth;
+                    // 透视收缩比仍取地面网格的（同一块地面，远端该收多少是一致的）
+                    var farScale = DefaultFarWidthScale;
+                    foreach (var grid in room.grids)
+                    {
+                        if (grid == null || grid.surface != FurnitureSurfaceType.Floor) continue;
+                        farScale = Mathf.Clamp(grid.farWidthScale, .2f, 1f);
+                        break;
+                    }
                     return new WalkVolume
                     {
-                        centerX = (grid.x + width * .5f) / room.sceneWidth,
-                        nearHalf = Mathf.Max(.05f, width * .5f / room.sceneWidth - .01f),
-                        farScale = Mathf.Clamp(grid.farWidthScale, .2f, 1f),
-                        yNear = Mathf.Max(0f, 1f - (grid.y + grid.rows * grid.cellHeight) / room.sceneHeight) + .015f,
-                        yFar = 1f - grid.y / room.sceneHeight - .015f,
+                        centerX = area.center.x,
+                        nearHalf = area.width * .5f,
+                        farScale = farScale,
+                        yNear = area.yMin,
+                        yFar = area.yMax,
                     };
                 }
             }
-            var area = roomIndex == HubWorldGrid.Reception ? ReceptionWalkArea : DefaultWalkArea;
+            var fallback = roomIndex == HubWorldGrid.Reception ? ReceptionWalkArea : DefaultWalkArea;
             return new WalkVolume
             {
-                centerX = area.center.x,
-                nearHalf = area.width * .5f,
-                farScale = .8f,
-                yNear = area.yMin,
-                yFar = area.yMax,
+                centerX = fallback.center.x,
+                nearHalf = fallback.width * .5f,
+                farScale = DefaultFarWidthScale,
+                yNear = fallback.yMin,
+                yFar = fallback.yMax,
             };
         }
 
@@ -269,30 +292,59 @@ namespace MasterHouse
         private static float DepthScaleAt(float y) =>
             Mathf.Clamp(1f - y * ActorDepthShrink, ActorMinDepthScale, 1f);
 
-        /// <summary>给定深度 y 处的半宽（梯形：近沿 → 远沿按远端宽度比向中心收）。</summary>
-        private static float HalfWidthAt(in WalkVolume volume, float y)
+        /// <summary>给定深度 t（0 = 近沿、1 = 远沿）处的半宽：近沿最宽、按远端宽度比向中心收。</summary>
+        private static float HalfWidthAt(in WalkVolume volume, float t) =>
+            volume.nearHalf * Mathf.Lerp(1f, volume.farScale, Mathf.Clamp01(t));
+
+        /// <summary>
+        /// 活动区 → 单位圆：横向按该深度的半宽归一、纵向把 [yNear, yFar] 映到 [-1, 1]。
+        /// 于是「椭圆内」就等价于「单位圆内」，钳制与随机取点都在圆上做，简单且没有死角。
+        /// </summary>
+        private static Vector2 ToWalkDisc(in WalkVolume volume, Vector2 point)
         {
-            var t = Mathf.InverseLerp(volume.yNear, volume.yFar, y);
-            return volume.nearHalf * Mathf.Lerp(1f, volume.farScale, t);
+            var t = Mathf.InverseLerp(volume.yNear, volume.yFar, point.y);
+            var half = HalfWidthAt(volume, t);
+            return new Vector2(half > 1e-5f ? (point.x - volume.centerX) / half : 0f, t * 2f - 1f);
         }
 
-        /// <summary>把点钳进可走梯形（拖拽落位用）。</summary>
+        private static Vector2 FromWalkDisc(in WalkVolume volume, Vector2 disc)
+        {
+            var t = Mathf.Clamp01((disc.y + 1f) * .5f);
+            return new Vector2(volume.centerX + disc.x * HalfWidthAt(volume, t),
+                Mathf.Lerp(volume.yNear, volume.yFar, t));
+        }
+
+        /// <summary>单位方形坐标下的「到边界的比例」：&lt;=1 在区内，&gt;1 在区外。</summary>
+        private static float OvalNorm(Vector2 disc) =>
+            Mathf.Pow(Mathf.Pow(Mathf.Abs(disc.x), WalkOvalPower) +
+                      Mathf.Pow(Mathf.Abs(disc.y), WalkOvalPower), 1f / WalkOvalPower);
+
+        /// <summary>把点钳进可走椭圆（拖拽松手落位用）：越界的沿着中心方向收回边界上。</summary>
         internal static Vector2 ClampWalk(int roomIndex, Vector2 point)
         {
             var volume = WalkVolumeOf(roomIndex);
-            point.y = Mathf.Clamp(point.y, volume.yNear, volume.yFar);
-            var half = HalfWidthAt(volume, point.y);
-            point.x = Mathf.Clamp(point.x, volume.centerX - half, volume.centerX + half);
-            return point;
+            var disc = ToWalkDisc(volume, point);
+            var norm = OvalNorm(disc);
+            if (norm > 1f) disc /= norm;
+            return FromWalkDisc(volume, disc);
         }
 
-        /// <summary>可走梯形内随机取一个落点（先取深度、按该深度的宽度取横向）。</summary>
+        /// <summary>
+        /// 可走椭圆内随机取一个落点。方形内取样后丢弃落在椭圆外的（命中率约八成），
+        /// 这样落点在整块区域里是均匀的——不会像极坐标那样往中心堆。
+        /// </summary>
         internal static Vector2 RandomWalkPoint(int roomIndex)
         {
             var volume = WalkVolumeOf(roomIndex);
-            var y = UnityEngine.Random.Range(volume.yNear, volume.yFar);
-            var half = HalfWidthAt(volume, y);
-            return new Vector2(volume.centerX + UnityEngine.Random.Range(-half, half), y);
+            var disc = Vector2.zero;
+            for (var attempt = 0; attempt < 8; attempt++)
+            {
+                disc = new Vector2(UnityEngine.Random.Range(-1f, 1f), UnityEngine.Random.Range(-1f, 1f));
+                var norm = OvalNorm(disc);
+                if (norm <= 1f) break;
+                if (attempt == 7) disc /= norm; // 兜底：连着没命中就收到边界上，不留死循环
+            }
+            return FromWalkDisc(volume, disc);
         }
 
         /// <summary>房间的访客入口区（归一化矩形，房间表可配、按房间美术门位标定；缺配回落默认门位）。</summary>
@@ -348,7 +400,7 @@ namespace MasterHouse
         /// <summary>拖拽跟随：指针世界坐标 + 抓取偏移 → (房间, 房内坐标)。
         /// 拖拽事件与 RTS 边缘推屏的每帧重投影共用。
         /// 拖拽中**不**钳活动区（演员是被拎在手里的，自由跟手；硬钳的话跨房瞬间会在两个红框区之间瞬移），
-        /// 活动区约束推迟到松手落位（见 DropActor）。</summary>
+        /// 活动区约束推迟到松手落位（见 DropActor 的 ClampWalk，会收进那个房间的可走椭圆里）。</summary>
         private void ProjectDrag(OutGameVisitorActor actor, Vector2 screenPosition)
         {
             if (actor == null || !actor.Dragging) return;
@@ -381,7 +433,7 @@ namespace MasterHouse
                 actor.CancelPlayerDrag();
                 return;
             }
-            // 落位钳回可走梯形（拖拽中自由跟手，约束在这里补上）
+            // 落位钳回可走椭圆（拖拽中自由跟手，约束在这里补上）
             actor.UpdatePlayerDrag(room, ClampWalk(room, actor.ScenePosition));
             var accepted = onGuestDropped != null && onGuestDropped(instanceId, room);
             if (accepted) actor.EndPlayerDrag();
