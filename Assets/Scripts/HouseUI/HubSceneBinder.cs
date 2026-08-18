@@ -862,7 +862,23 @@ namespace MasterHouse
         private static bool IsPointerOverBlockingUI()
         {
             if (EventSystem.current == null || !EventSystem.current.IsPointerOverGameObject()) return false;
-            return HotspotUnderPointer() == null;
+            if (HotspotUnderPointer() != null) return false;
+            // 拖不动的访客（服务中锁房的、邻居、过场中的）同样不算「挡住」（2026-08-18 反馈）：
+            // 它们会吃掉 uGUI 的拖拽事件但自己又不动，压在它们身上按下就变成既拖不动人、
+            // 也拖不动画面。让这一下落回相机平移。
+            var actor = ActorUnderPointer();
+            return actor == null || actor.IsDraggable;
+        }
+
+        /// <summary>指针下的访客演员（没有则 null）。</summary>
+        private static OutGameVisitorActor ActorUnderPointer()
+        {
+            if (EventSystem.current == null) return null;
+            var data = new PointerEventData(EventSystem.current) { position = Input.mousePosition };
+            raycastCache.Clear();
+            EventSystem.current.RaycastAll(data, raycastCache);
+            if (raycastCache.Count == 0) return null;
+            return raycastCache[0].gameObject.GetComponentInParent<OutGameVisitorActor>();
         }
 
         private void KillFocusTween()

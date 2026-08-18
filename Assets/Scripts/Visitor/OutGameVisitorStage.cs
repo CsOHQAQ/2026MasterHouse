@@ -246,7 +246,8 @@ namespace MasterHouse
                     DragActor(actor, pointer);
             });
             AddTrigger(trigger, UnityEngine.EventSystems.EventTriggerType.EndDrag,
-                _ => { if (actor != null) DropActor(actor, instanceId); });
+                data => { if (actor != null) DropActor(actor, instanceId,
+                    data as UnityEngine.EventSystems.PointerEventData); });
         }
 
         private static void AddTrigger(UnityEngine.EventSystems.EventTrigger trigger,
@@ -442,7 +443,8 @@ namespace MasterHouse
         /// 业务拒绝时立刻弹回起手位置——跨房间的情况实例同步下一帧也会纠正，
         /// 但同房间内被拒（前台访客在起居室里被拖动）只能靠这条路。
         /// </summary>
-        private void DropActor(OutGameVisitorActor actor, int instanceId)
+        private void DropActor(OutGameVisitorActor actor, int instanceId,
+            UnityEngine.EventSystems.PointerEventData pointer = null)
         {
             if (draggingActor == actor)
             {
@@ -450,15 +452,28 @@ namespace MasterHouse
                 dragLockedLocalScale = Vector3.one;
             }
             if (!actor.Dragging) return;
+            // 归属以**指针松手的位置**为准（2026-08-18 反馈）：原来看的是演员脚底落点，
+            // 等于要求整只访客都挪进房间才算数，贴着房间边缘松手会被判成没进去。
             var room = actor.RoomIndex;
+            var pointerWorld = Vector2.zero;
+            var hasPointerWorld = pointer != null && TryScreenToWorld(pointer.position, out pointerWorld);
+            if (hasPointerWorld)
+            {
+                var pointerRoom = HubWorldGrid.RoomAt(pointerWorld);
+                if (pointerRoom != HubWorldGrid.None) room = pointerRoom;
+            }
             // 丢在接待室或无效区 = 不换房，弹回起手位置（接待室不是业务房间，分不了房）
             if (room < 0 || room >= HubWorldGrid.RoomCount)
             {
                 actor.CancelPlayerDrag();
                 return;
             }
-            // 落位钳回可走椭圆（拖拽中自由跟手，约束在这里补上）
-            actor.UpdatePlayerDrag(room, ClampWalk(room, actor.ScenePosition));
+            // 落位钳回可走椭圆（拖拽中自由跟手，约束在这里补上）；
+            // 换了房就按指针位置换算到新房间的坐标系，不要拿旧房间的坐标直接套
+            var localPoint = hasPointerWorld
+                ? HubWorldGrid.WorldToLocal(room, pointerWorld)
+                : actor.ScenePosition;
+            actor.UpdatePlayerDrag(room, ClampWalk(room, localPoint));
             var accepted = onGuestDropped != null && onGuestDropped(instanceId, room);
             if (accepted) actor.EndPlayerDrag();
             else actor.CancelPlayerDrag();
