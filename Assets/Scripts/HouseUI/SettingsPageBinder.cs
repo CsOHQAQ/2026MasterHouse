@@ -168,7 +168,7 @@ namespace MasterHouse
             switch (tabIndex)
             {
                 case 0: // 基础：音量三条 + 通用开关（2.0 设计图把音频并进了这一页）
-                    AddHeader("通用");
+                    AddHeader("音效");
                     AddSlider("游戏主音量", () => data.masterVolume, value => data.masterVolume = value);
                     AddSlider("音效", () => data.sfxVolume, value => data.sfxVolume = value);
                     AddSlider("背景音乐", () => data.bgmVolume, value => data.bgmVolume = value);

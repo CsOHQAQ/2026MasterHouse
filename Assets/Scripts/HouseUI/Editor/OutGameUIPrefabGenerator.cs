@@ -281,7 +281,9 @@ namespace MasterHouse
                         // 购买键改空格：旧回车键帽图触发换图迁移
                         (view.buyKeycap != null && view.buyKeycap.sprite != null && view.buyKeycap.sprite.name == "enter") ||
                         // 「X 改变颜色」缺悬停图引用（绑定层靠它做 SpriteSwap，2026-08-18 反馈）
-                        view.colorKeycapHover == null);
+                        view.colorKeycapHover == null ||
+                        // 卡片网格还是旧的一行五张（太松，2026-08-18 反馈）
+                        StoreGridNeedsTighten(view));
             // 商店卡片：Thumb 包进 ThumbArea 容器（图在手调框内保比例自适应；容器承接原 Thumb 的手调 Rect）
             repaired |= RepairPrefab<OutGameStoreCardView>(StoreCardPath,
                 (root, view) => WrapStoreCardThumb(root, view),
@@ -354,10 +356,29 @@ namespace MasterHouse
         /// 商店页设计稿增量（2026-08-14）：预览下方选色块行、底部「X 改变颜色 / ⏎ 购买」键位提示、
         /// 获得弹窗左缘配色列。全部只补缺失节点；分类圆标槽位为空时顺手填上 store/1~5.png。
         /// </summary>
+        /// <summary>卡片网格还停在旧的「一行五张」排布（2026-08-18 反馈太松）。</summary>
+        private static bool StoreGridNeedsTighten(OutGameStorePageView view)
+        {
+            var grid = view.gridContent != null ? view.gridContent.GetComponent<GridLayoutGroup>() : null;
+            return grid != null && grid.constraintCount != StoreGridColumns &&
+                   Mathf.Abs(grid.cellSize.x - 176f) < 1f;
+        }
+
+        /// <summary>只改 GridLayoutGroup 的格子/间距/列数，网格视口与其他手调布局一概不动。</summary>
+        private static void TightenStoreGrid(OutGameStorePageView view)
+        {
+            if (!StoreGridNeedsTighten(view)) return;
+            var grid = view.gridContent.GetComponent<GridLayoutGroup>();
+            grid.cellSize = StoreGridCell;
+            grid.spacing = StoreGridSpacing;
+            grid.constraintCount = StoreGridColumns;
+        }
+
         private static void AppendStoreRedesignNodes(GameObject root, OutGameStorePageView view)
         {
             // 「X 改变颜色」的悬停图：只补引用，位置尺寸一概不动
             if (view.colorKeycapHover == null) view.colorKeycapHover = Store2("X-悬停");
+            TightenStoreGrid(view);
             if (view.swatchRoot == null)
             {
                 // 选色块行：右侧信息区、描述文本下方（色块运行时实例化，容器只做定位）
@@ -2436,6 +2457,13 @@ namespace MasterHouse
             Debug.Log("[OutGameUI] 商店页与卡片已按 2.0 设计图重建。");
         }
 
+        // 商店网格（2026-08-18 反馈「一行五张太开了」）：收到一行六张、格子与间距同步收紧。
+        // 视口宽 950：6 × 148 + 5 × 8 + 8 padding = 936，仍在框内。
+        // 高度只收 10（150→140）：卡片内部的缩略框 112×96 是定尺的，压太狠会顶出卡面。
+        private static readonly Vector2 StoreGridCell = new Vector2(148, 140);
+        private static readonly Vector2 StoreGridSpacing = new Vector2(8, 8);
+        private const int StoreGridColumns = 6;
+
         private const string CodexDir = "Assets/PC ui 2.0/图鉴/";
         private const string ConversationDir = "Assets/PC ui 2.0/conversation/";
 
@@ -2688,11 +2716,11 @@ namespace MasterHouse
             var content = Rect(viewport, "Content", new Vector2(0, 1), new Vector2(1, 1), Vector2.zero, new Vector2(0, 0));
             content.pivot = new Vector2(.5f, 1);
             var gridLayout = content.gameObject.AddComponent<GridLayoutGroup>();
-            gridLayout.cellSize = new Vector2(176, 150);
-            gridLayout.spacing = new Vector2(12, 10);
+            gridLayout.cellSize = StoreGridCell;
+            gridLayout.spacing = StoreGridSpacing;
             gridLayout.padding = new RectOffset(4, 4, 4, 4);
             gridLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            gridLayout.constraintCount = 5; // 设计图：一行五张
+            gridLayout.constraintCount = StoreGridColumns;
             gridLayout.childAlignment = TextAnchor.UpperLeft;
             var fitter = content.gameObject.AddComponent<ContentSizeFitter>();
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
