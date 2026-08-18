@@ -80,8 +80,10 @@ namespace MasterHouse
         public void Rescan() => CollectDynamic();
 
         /// <summary>
-        /// 排除若干子树，让它们不吃夜间调色（2026-08-18 反馈：商店卡片与价格面板保持原色）。
-        /// 已经被点亮过的先还原回原色再摘出去；描边不受影响，边框照旧要咬得出来。
+        /// 排除若干子树的**底板/边框调色**（2026-08-18 反馈：商店卡片与价格面板保持原色；
+        /// 色块条更是绝对不能染——那些格子显示的就是家具本身的配色）。
+        /// **文字不在排除范围内**：卡片上的价格照样点亮成暖橘黄，否则夜里一片黑糊糊看不清。
+        /// 描边同样不受影响，边框该咬出来还是要咬。
         /// </summary>
         public void Exclude(params Transform[] roots)
         {
@@ -90,15 +92,10 @@ namespace MasterHouse
             {
                 if (root == null) continue;
                 excluded.Add(root);
-                foreach (var text in root.GetComponentsInChildren<Text>(true))
-                {
-                    if (text == null || !textBase.TryGetValue(text, out var basis)) continue;
-                    text.color = basis;
-                    textBase.Remove(text);
-                }
                 foreach (var graphic in root.GetComponentsInChildren<Graphic>(true))
                 {
-                    if (graphic == null || !lineBase.TryGetValue(graphic, out var basis)) continue;
+                    if (graphic == null || graphic is Text) continue;
+                    if (!lineBase.TryGetValue(graphic, out var basis)) continue;
                     graphic.color = basis;
                     lineBase.Remove(graphic);
                 }
@@ -147,7 +144,8 @@ namespace MasterHouse
             {
                 if (text == null) continue;
                 Stroke(text);
-                if (textBase.ContainsKey(text) || IsExcluded(text.transform)) continue;
+                // 文字一律点亮：排除名单只挡底板/边框的调色，不挡文字（2026-08-18 反馈）
+                if (textBase.ContainsKey(text)) continue;
                 textBase[text] = text.color;
             }
             foreach (var graphic in GetComponentsInChildren<Graphic>(true))
