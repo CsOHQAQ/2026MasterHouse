@@ -211,6 +211,12 @@ namespace MasterHouse
                 : HubWorldGrid.RegionOf(HubWorldGrid.Reception);
             crops[HubWorldGrid.Reception] = Rect.MinMaxRect(0, 0, 1, 1);
             HubWorldGrid.Configure(regions, crops);
+            // 接待室的贴地可走带：Prefab 里那个矩形是唯一真相（拖到地板上即可，2026-08-18 反馈访客不贴地）。
+            // 换算成接待室区域内的分数坐标交给访客舞台；没配就让它用代码兜底带。
+            OutGameVisitorStage.ConfigureReceptionWalkArea(worldView.receptionWalkArea != null
+                ? (Rect?)ToRegionLocal(regions[HubWorldGrid.Reception],
+                    NormalizedRegion(worldView.receptionWalkArea, designSize))
+                : null);
 
             // 洗色层盖在房间图之上、热点与演员之下（与旧版层序一致）；随世界一起缩放（纯色无所谓拉伸）。
             // 2026-08-17 起主楼剖面播延时分帧、自带昼夜，洗色只保留很淡的一层压对比度用；
@@ -247,6 +253,15 @@ namespace MasterHouse
             var min = rect.anchorMin + new Vector2(rect.offsetMin.x / designSize.x, rect.offsetMin.y / designSize.y);
             var max = rect.anchorMax + new Vector2(rect.offsetMax.x / designSize.x, rect.offsetMax.y / designSize.y);
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+        }
+
+        /// <summary>世界归一化矩形 → 某个区域内的分数坐标（可以为负 / 超过 1，调用方自己判断合理性）。</summary>
+        private static Rect ToRegionLocal(Rect region, Rect world)
+        {
+            if (region.width < 1e-4f || region.height < 1e-4f) return world;
+            return Rect.MinMaxRect(
+                (world.xMin - region.xMin) / region.width, (world.yMin - region.yMin) / region.height,
+                (world.xMax - region.xMin) / region.width, (world.yMax - region.yMin) / region.height);
         }
 
         /// <summary>

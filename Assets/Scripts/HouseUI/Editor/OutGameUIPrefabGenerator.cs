@@ -302,11 +302,14 @@ namespace MasterHouse
                 (root, view) =>
                 {
                     ((RectTransform)root.transform).sizeDelta = new Vector2(1920, 1080);
+                    // 接待室贴地可走带（2026-08-18）：只补缺失，已有的不动
+                    view.receptionWalkArea = AppendReceptionWalkArea(root.transform, view.receptionArea);
                     if (view.roomArts == null) return;
                     foreach (var art in view.roomArts)
                         if (art != null) art.uvRect = new Rect(0, 0, 1, 1);
                 },
                 view => ((RectTransform)view.transform).sizeDelta.x < 1f ||
+                        view.receptionWalkArea == null ||
                         (view.roomArts != null && System.Array.Exists(view.roomArts,
                             art => art != null && (art.uvRect.width < .999f || art.uvRect.height < .999f))));
             // 确认弹窗：按钮补 ESC/空格键帽（2026-08-17 键位可视化）
@@ -1904,7 +1907,29 @@ namespace MasterHouse
             }
             var reception = HubWorldGrid.RegionOf(HubWorldGrid.Reception);
             view.receptionArea = Rect(root.transform, "ReceptionArea", reception.min, reception.max, Vector2.zero, Vector2.zero);
+            view.receptionWalkArea = AppendReceptionWalkArea(root.transform, view.receptionArea);
             Save(root, path);
+        }
+
+        /// <summary>
+        /// 接待室的贴地可走带（2026-08-18 反馈「底层需要贴着地走」）：
+        /// 接待室区域矩形的下沿并不是地板线，访客照区域比例站会浮在半空。这里补一个独立矩形，
+        /// **拖到地板上就是可走范围**。默认值按主楼剖面里底层地板的位置估的，仍以 Prefab 手调为准。
+        /// 已存在则复用（不动手调）。
+        /// </summary>
+        private static RectTransform AppendReceptionWalkArea(Transform root, RectTransform receptionArea)
+        {
+            var existing = root.Find("ReceptionWalkArea") as RectTransform;
+            if (existing != null) return existing;
+            var area = receptionArea != null
+                ? UnityEngine.Rect.MinMaxRect(receptionArea.anchorMin.x, receptionArea.anchorMin.y,
+                    receptionArea.anchorMax.x, receptionArea.anchorMax.y)
+                : HubWorldGrid.RegionOf(HubWorldGrid.Reception);
+            // 横向从区域两侧各收 2%，纵向落在区域下沿附近的地板一带
+            var inset = area.width * .02f;
+            var min = new Vector2(area.xMin + inset, area.yMin - area.height * .11f);
+            var max = new Vector2(area.xMax - inset, area.yMin + area.height * .05f);
+            return Rect(root, "ReceptionWalkArea", min, max, Vector2.zero, Vector2.zero);
         }
 
         /// <summary>通用确认弹窗（首用例：结束今天，2026-08-14）。文本由 ConfirmOverlay 运行时绑定。</summary>

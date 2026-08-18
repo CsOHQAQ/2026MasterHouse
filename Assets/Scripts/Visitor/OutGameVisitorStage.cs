@@ -37,7 +37,18 @@ namespace MasterHouse
         private static readonly Rect DefaultWalkArea = Rect.MinMaxRect(.04f, .02f, .96f, .15f);
         /// <summary>接待室的活动/入口区（2026-08-16 主楼场景）：房间表只配业务四间，接待室先走代码常量。
         /// 2026-08-18 按美术红框压低：原来上沿到 .22，访客会站到左侧柜台上去。</summary>
-        private static readonly Rect ReceptionWalkArea = Rect.MinMaxRect(.06f, .025f, .94f, .15f);
+        private static Rect ReceptionWalkArea = Rect.MinMaxRect(.06f, .025f, .94f, .15f);
+
+        /// <summary>
+        /// 用 HubSceneWorld Prefab 里的「接待室可走带」矩形覆盖代码兜底值（HubSceneBinder 建层时调）。
+        /// 接待室区域矩形的下沿并不等于地板线，光靠代码常量贴不准——拖 Prefab 里那个矩形才是正解。
+        /// 传 null = Prefab 没配，沿用兜底带。
+        /// </summary>
+        internal static void ConfigureReceptionWalkArea(Rect? area)
+        {
+            if (area.HasValue && area.Value.width > .01f && area.Value.height > .001f)
+                ReceptionWalkArea = area.Value;
+        }
         private static readonly Rect ReceptionEntryArea = Rect.MinMaxRect(.06f, .03f, .4f, .13f);
         /// <summary>活动区没有单独配透视收缩比时的默认远端宽度比。</summary>
         private const float DefaultFarWidthScale = .8f;
