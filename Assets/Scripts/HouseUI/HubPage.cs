@@ -188,6 +188,9 @@ namespace MasterHouse
 
         public void Toast(string message) => UI.ShowToast(message);
 
+        /// <summary>打开访客图鉴（档案面板的入口按钮走这里）。</summary>
+        public void OpenCodex() => CodexOverlay.Open(UI);
+
         /// <summary>回标题（顶栏品牌按钮 / ESC 共用）：存档未实现、离开即丢进度，先弹确认（2026-08-16 退出保护）。</summary>
         public void BackToTitle() =>
             ConfirmOverlay.Open(UI, "退出到主菜单",

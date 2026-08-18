@@ -101,5 +101,11 @@ namespace MasterHouse
 
         /// <summary>当日结算累计（日结面板展示源）。</summary>
         public readonly VisitorDaySummary Today = new VisitorDaySummary();
+
+        /// <summary>
+        /// 已到店过的种族 id（访客图鉴的解锁判据）。现阶段随进程存活、不入档——
+        /// 存档接入后（待定 #9）它应当跟着一起序列化，否则图鉴会每次开局清零。
+        /// </summary>
+        public readonly HashSet<string> MetRaces = new HashSet<string>();
     }
 }

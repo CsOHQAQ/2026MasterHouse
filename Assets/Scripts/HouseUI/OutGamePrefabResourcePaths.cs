@@ -48,5 +48,7 @@ namespace MasterHouse
         public const string DevicePage = "OutGameUI/Prefabs/DevicePage";
         public const string JournalPage = "OutGameUI/Prefabs/JournalPage";
         public const string ArchivePage = "OutGameUI/Prefabs/ArchivePage";
+        /// <summary>访客图鉴（Illustrated Guide）：从档案页进入的整屏页。</summary>
+        public const string CodexPage = "OutGameUI/Prefabs/CodexPage";
     }
 }

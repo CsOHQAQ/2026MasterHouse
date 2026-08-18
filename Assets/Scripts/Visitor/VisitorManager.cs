@@ -207,6 +207,7 @@ namespace MasterHouse
             var rollSeed = DeterministicRng.Hash(Data.RunSeed, scheduleDay, scheduleIndex);
             instance.Rng = new DeterministicRng(rollSeed);
             // 待确认（§4.4）：具名覆写 namedOverride 结构已建、运行时暂不消费（现阶段无剧情内容），entry.namedOverride 留待接通
+            MarkRaceMet(instance);
             Data.Instances.Add(instance);
             InstanceSpawned?.Invoke(instance);
         }
@@ -349,6 +350,17 @@ namespace MasterHouse
             state == EVisitorState.FrontDesk || state == EVisitorState.Serving;
 
         // ── 房间占用（需求重做说明 §5.2）──
+
+        /// <summary>记下「这个种族来过」（访客图鉴的解锁判据；生成与读档恢复都要走这里）。</summary>
+        private void MarkRaceMet(VisitorInstance instance)
+        {
+            if (instance?.Race == null || string.IsNullOrEmpty(instance.Race.raceId)) return;
+            Data.MetRaces.Add(instance.Race.raceId);
+        }
+
+        /// <summary>该种族是否已到过店（访客图鉴用：未到过的只给剪影）。</summary>
+        public bool HasMetRace(string raceId) =>
+            !string.IsNullOrEmpty(raceId) && Data.MetRaces.Contains(raceId);
 
         /// <summary>
         /// 房间是否已被占用：在场实例中有 Serving 或 Wandering 且 RoomIndex == 该房。
@@ -712,6 +724,7 @@ namespace MasterHouse
                 StateEnterTick = Data.BusinessTick,
             };
             instance.Rng = new DeterministicRng(DeterministicRng.Hash(Data.RunSeed, clock.Data.Day, seedIndex));
+            MarkRaceMet(instance);
             Data.Instances.Add(instance);
             InstanceSpawned?.Invoke(instance);
             return instance;
@@ -835,6 +848,7 @@ namespace MasterHouse
                 };
                 // 随机流按存档状态恢复（需求已不入档也不 roll，直接取自日程条目，§4.2）
                 instance.Rng = new DeterministicRng(0) { State = saved.rngState };
+                MarkRaceMet(instance);
                 Data.Instances.Add(instance);
             }
         }

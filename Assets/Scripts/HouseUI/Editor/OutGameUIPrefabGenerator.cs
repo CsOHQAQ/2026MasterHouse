@@ -45,6 +45,8 @@ namespace MasterHouse
         private const string DevicePagePath = Folder + "/DevicePage.prefab";
         private const string JournalPagePath = Folder + "/JournalPage.prefab";
         private const string ArchivePagePath = Folder + "/ArchivePage.prefab";
+        // 访客图鉴（2026-08-18 按 2.0 设计图）：整屏 Illustrated Guide 页，从档案页进入
+        private const string CodexPagePath = Folder + "/CodexPage.prefab";
         // 3.5c：动态列表项模板（§16.2 列表项 = Prefab 模板 + 运行时实例化），供重写版 HouseUI 面板使用
         private const string DeviceCardPath = Folder + "/DeviceCard.prefab";
         private const string ArchiveCardPath = Folder + "/ArchiveCard.prefab";
@@ -177,6 +179,7 @@ namespace MasterHouse
                     changed = true;
                 }
             }
+            if (!File.Exists(CodexPagePath)) { BuildCodexPage(CodexPagePath); changed = true; }
             if (!File.Exists(ExitPagePath)) { BuildExitPage(ExitPagePath); changed = true; }
             if (!File.Exists(HubGuestCardPath)) { BuildHubGuestCard(HubGuestCardPath); changed = true; }
             if (!File.Exists(HubDockButtonPath)) { BuildHubDockButton(HubDockButtonPath); changed = true; }
@@ -309,6 +312,10 @@ namespace MasterHouse
                 (root, view) => AppendConfirmKeycaps(view),
                 view => (view.cancelButton != null && view.cancelButton.transform.Find("EscCap") == null) ||
                         (view.confirmButton != null && view.confirmButton.transform.Find("SpaceCap") == null));
+            // 档案面板：补「访客图鉴」入口按钮（2026-08-18）
+            repaired |= RepairPrefab<OutGameArchivePanelView>(ArchivePanelPath,
+                (root, view) => view.codexButton = AppendArchiveCodexButton(root.transform),
+                view => view.codexButton == null);
             // 图鉴详情区：补「前往修理」按钮（2026-08-14）
             repaired |= RepairPrefab<OutGameDevicePanelView>(DevicePanelPath,
                 (root, view) => AppendDeviceRepairButton(view),
@@ -2070,7 +2077,18 @@ namespace MasterHouse
                 new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -120), new Vector2(560, 230),
                 TextAnchor.UpperLeft, FontStyle.Normal);
             view.actionRoot = Rect(detail.transform, "Actions", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            view.codexButton = AppendArchiveCodexButton(root.transform);
             Save(root, path);
+        }
+
+        /// <summary>档案页的「访客图鉴」入口：排在两个页签右侧；已存在则复用（不动手调）。</summary>
+        private static Button AppendArchiveCodexButton(Transform root)
+        {
+            var existing = root.Find("CodexEntry");
+            if (existing != null) return existing.GetComponent<Button>();
+            return PageButton(root, "CodexEntry", "访客图鉴",
+                new Vector2(610, -45), new Vector2(220, 58),
+                new Color(1, 1, 1, .04f), Hex("F3E8DD"), 19, TextAnchor.MiddleCenter, new Vector2(0, 1));
         }
 
         /// <summary>整页系统面板：公共外壳（遮罩/面板/头部）+ 嵌套内容 Prefab。</summary>
@@ -2416,6 +2434,123 @@ namespace MasterHouse
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("[OutGameUI] 商店页与卡片已按 2.0 设计图重建。");
+        }
+
+        private const string CodexDir = "Assets/PC ui 2.0/图鉴/";
+        private const string ConversationDir = "Assets/PC ui 2.0/conversation/";
+
+        private static Sprite Codex(string name) =>
+            AssetDatabase.LoadAssetAtPath<Sprite>(CodexDir + name + ".png");
+
+        private static Sprite Conversation(string name) =>
+            AssetDatabase.LoadAssetAtPath<Sprite>(ConversationDir + name + ".png");
+
+        /// <summary>
+        /// 图鉴条目：种族资产 ↔ 卡面素材名。顺序即翻页顺序（跟访客种族表行序）。
+        /// 牦牛（yak）暂无卡面素材，故不收录——素材补齐后在这里加一行即可。
+        /// </summary>
+        private static readonly (string Race, string Art)[] CodexEntries =
+        {
+            ("rabbit", "兔子"), ("goat", "羊"), ("wolf", "狼"), ("leopard", "豹1"),
+            ("cheetah", "豹2"), ("ox", "牛1"), ("cat", "猫"),
+        };
+
+        /// <summary>
+        /// 访客图鉴页（2026-08-18 按 2.0 设计图新建）：整屏底图 + 左上 Illustrated Guide 标题 +
+        /// 一排 5 个卡位（正中为焦点位，两侧越外越靠边、带轻微倾斜）+ 底部 ESC/中键/空格键位条。
+        /// 卡面由绑定层按焦点与解锁态填，这里只摆位置并把素材烘进 Prefab。坐标按 1920×1080 口径。
+        /// </summary>
+        private static void BuildCodexPage(string path)
+        {
+            var root = Root("CodexPage");
+            var view = root.AddComponent<OutGameCodexPageView>();
+            view.background = Raw(root.transform, "Background", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            view.background.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(CodexDir + "image 333.png");
+            view.background.raycastTarget = true; // 整页承接点击，空白处不穿透到下层
+
+            view.title = Label(root.transform, "Title", "Illustrated Guide", 62, Hex("3E6FA8"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(424, -128), new Vector2(700, 84),
+                TextAnchor.MiddleLeft, FontStyle.BoldAndItalic);
+            var rule = Image(root.transform, "TitleRule", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(338, -184), new Vector2(529, 44), Color.white);
+            rule.sprite = Codex("Mask group");
+            rule.preserveAspect = true;
+            rule.raycastTarget = false;
+
+            // 卡位：左→右 5 个，正中放大。建节点的顺序 = 层序，故从外向内建，焦点卡最后建（画在最上）
+            var cards = Rect(root.transform, "Cards", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            var slotX = new[] { 120f, 530f, 960f, 1390f, 1800f };
+            var slotY = new[] { -505f, -505f, -560f, -505f, -505f };
+            var slotSize = new[]
+            {
+                new Vector2(470, 572), new Vector2(470, 572), new Vector2(670, 803),
+                new Vector2(470, 572), new Vector2(470, 572),
+            };
+            var slotTilt = new[] { -7f, -3f, 0f, 4f, 8f };
+            var buildOrder = new[] { 0, 4, 1, 3, 2 }; // 越靠外越先建（被里面的压住），焦点卡压最上
+            view.cardSlots = new Image[slotX.Length];
+            view.cardButtons = new Button[slotX.Length];
+            foreach (var i in buildOrder)
+            {
+                var slot = Image(cards, "Card" + i, new Vector2(0, 1), new Vector2(0, 1),
+                    new Vector2(slotX[i], slotY[i]), slotSize[i], Color.white);
+                slot.preserveAspect = true;
+                slot.rectTransform.localEulerAngles = new Vector3(0, 0, slotTilt[i]);
+                var button = slot.gameObject.AddComponent<Button>();
+                button.targetGraphic = slot;
+                button.transition = Selectable.Transition.None; // 卡面三态由绑定层换图，别叠一层染色
+                view.cardSlots[i] = slot;
+                view.cardButtons[i] = button;
+            }
+
+            // 图鉴条目：种族资产 + 两张卡面（彩色/剪影）一并烘进 Prefab
+            var races = new System.Collections.Generic.List<VisitorRaceDef>();
+            var revealed = new System.Collections.Generic.List<Sprite>();
+            var hidden = new System.Collections.Generic.List<Sprite>();
+            foreach (var entry in CodexEntries)
+            {
+                var race = AssetDatabase.LoadAssetAtPath<VisitorRaceDef>(
+                    "Assets/Resources/OutGameUI/VisitorRaces/Race_" + entry.Race + ".asset");
+                var on = Codex(entry.Art + "-显示");
+                var off = Codex(entry.Art + "-不显示");
+                if (race == null || on == null || off == null)
+                {
+                    Debug.LogWarning($"[OutGameUI] 图鉴条目素材不全，已跳过：{entry.Race}/{entry.Art}");
+                    continue;
+                }
+                races.Add(race);
+                revealed.Add(on);
+                hidden.Add(off);
+            }
+            view.races = races.ToArray();
+            view.revealedCards = revealed.ToArray();
+            view.hiddenCards = hidden.ToArray();
+
+            // 底部键位条（整图素材自带键名与文案）
+            view.backButton = SpriteButton(root.transform, "BackButton",
+                Settings2("ESC-默认"), Settings2("ESC-悬停"),
+                new Vector2(0, 0), new Vector2(152, 57), new Vector2(186, 76));
+            view.switchButton = SpriteButton(root.transform, "SwitchButton",
+                Conversation("中键-默认"), Conversation("中键-悬停"),
+                new Vector2(1, 0), new Vector2(-359, 57), new Vector2(186, 76));
+            // 设计图上这颗写的是「查看」，2.0 目前只有「确认」那张空格图，先用它顶上
+            view.viewButton = SpriteButton(root.transform, "ViewButton",
+                Conversation("space-默认"), Conversation("space-悬停"),
+                new Vector2(1, 0), new Vector2(-163, 57), new Vector2(186, 76));
+            Save(root, path);
+        }
+
+        [MenuItem("Tools/MasterHouse/OutGame UI/重建图鉴页（2.0 设计图）")]
+        private static void RebuildCodex2()
+        {
+            if (!EditorUtility.DisplayDialog("按 2.0 设计图重建图鉴页",
+                    "会覆盖 CodexPage 的现有布局（包括手动调整）。确定继续吗？",
+                    "覆盖重建", "取消")) return;
+            EnsureFolder();
+            BuildCodexPage(CodexPagePath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[OutGameUI] 图鉴页已按 2.0 设计图重建。");
         }
 
         [MenuItem("Tools/MasterHouse/OutGame UI/重建设置页（2.0 设计图）")]
