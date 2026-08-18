@@ -21,8 +21,8 @@ namespace MasterHouse
 
         private const float BaseHeight = 205f;     // 最近处（画面下缘）的显示高度，越远按深度缩小
         private const float FarScale = .6f;
-        /// <summary>名牌相对**头顶**的间距（不是相对演员矩形上边缘——那上面还压着一段立绘留白）。</summary>
-        private const float CardOffsetY = 14f;
+        /// <summary>名牌底边与**头顶**的间距（名牌 pivot 在底边，所以这个数就是肉眼看到的空隙）。</summary>
+        private const float CardOffsetY = 22f;
         private const float NearY = .04f;          // 深度带：y 越小离镜头越近
         private const float FarY = .34f;
 
@@ -153,6 +153,9 @@ namespace MasterHouse
             var card = F.Panel(transform, "Card", new Vector2(.5f, 1), new Vector2(.5f, 1),
                 new Vector2(0, CardOffsetY), new Vector2(240, 68), new Color(.32f, .06f, .18f, .92f));
             cardRect = card.rectTransform;
+            // 以底边做挂点：anchoredPosition.y 就是名牌与头顶的真实空隙，
+            // 不会再因名牌自身高度而多压半个身位（口径与气泡一致）
+            cardRect.pivot = new Vector2(.5f, 0f);
             F.Outline(card.gameObject, new Color(.85f, .15f, .45f, .5f), new Vector2(1, -1));
             cardLabel = F.Label(card.transform, "Text", "", 17, F.White, TextAnchor.MiddleCenter, FontStyle.Bold);
             cardGroup = F.Group(card.gameObject, 0f);
