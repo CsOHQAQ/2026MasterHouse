@@ -97,8 +97,10 @@ namespace MasterHouse
             var scaler = root.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = .5f;
+            // Expand（2026-08-18 跨平台修复）：画布尺寸永远 >= 1920×1080，宽高各自「只放大不缩小」。
+            // 原来的 MatchWidthOrHeight .5 会在非 16:9 屏（Mac 常见的 16:10）上把画布缩成
+            // 1822×1139 这类中间尺寸，于是所有按 1920×1080 写死的坐标横竖都对不上位。
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
             var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.FurnitureHud);
             slotTemplate = Resources.Load<GameObject>(OutGamePrefabResourcePaths.FurnitureSlot);

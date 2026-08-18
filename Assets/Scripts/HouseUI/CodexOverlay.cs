@@ -54,6 +54,7 @@ namespace MasterHouse
             var hotkeys = instance.AddComponent<CodexHotkeys>();
             hotkeys.Bind(() => overlay.Step(-1), () => overlay.Step(1), overlay.ShowFocusInfo);
             HouseUIUtil.ApplyFallbackFont(instance.transform);
+            HouseUIBackgroundFit.Apply(view.background); // 非 16:9 屏上底图铺满不变形
             HouseDayLightTint.Attach(instance.transform, view.background); // 底图随时钟慢慢变天色
             var group = HouseUIUtil.Group(rect.gameObject, 0);
             group.DOFade(1, .25f).SetUpdate(true);

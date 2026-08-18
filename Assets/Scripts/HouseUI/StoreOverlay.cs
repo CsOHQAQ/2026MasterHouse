@@ -112,6 +112,7 @@ namespace MasterHouse
                 overlay.CycleColor, overlay.BuySelected,
                 overlay.ConfirmPurchase, () => overlay.IsObtainedOpen); // 弹窗态空格 = 确认购买（此刻才扣钱）
             HouseUIUtil.ApplyFallbackFont(instance.transform);
+            HouseUIBackgroundFit.Apply(view.background); // 非 16:9 屏上底图铺满不变形
             // 底图随时钟慢慢变天色；卡片与价格面板保持原色（2026-08-18 反馈），
             // 色块条也必须排除——那些格子显示的就是家具本身的配色，被灯光染了就不是那个颜色了
             HouseDayLightTint.Attach(instance.transform, view.background)
