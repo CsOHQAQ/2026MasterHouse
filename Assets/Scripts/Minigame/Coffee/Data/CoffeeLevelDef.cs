@@ -18,10 +18,17 @@ namespace MasterHouse
     public sealed class CoffeeLevelDef : MinigameLevelDef
     {
         [Header("① 磨豆子（起始满分，撞障碍扣分扣进度，进度满进下一环节）")]
-        [Tooltip("正常旋转下进度 0→满 所需秒数（撞障碍的硬直期间不积累，不计入）")]
+        [Tooltip("研磨的操作方式（2026-08-19 临时测试新增）：\n" +
+                 "· AutoSpin＝原玩法，指针自己匀速转、左键点击切环；\n" +
+                 "· MouseCrank＝试玩，按住左键用鼠标绕圆心顺时针画圈摇磨柄，指针跟着鼠标走、" +
+                 "靠近/远离圆心切换内外环。\n" +
+                 "改回 AutoSpin 即完整切回原玩法。下面的参数按模式分别生效，已在各自说明里标注")]
+        public EGrindMode GrindMode = EGrindMode.AutoSpin;
+
+        [Tooltip("【仅 AutoSpin】正常旋转下进度 0→满 所需秒数（撞障碍的硬直期间不积累，不计入）")]
         [Min(0.5f)] public float GrindFillSeconds = 8f;
 
-        [Tooltip("指针转速（度/秒）")]
+        [Tooltip("【仅 AutoSpin】指针转速（度/秒）")]
         [Min(1f)] public float PointerDegreesPerSecond = 120f;
 
         [Tooltip("障碍总数（两环合计，随机落环、随机角度；每次开局重新随机）")]
@@ -48,8 +55,22 @@ namespace MasterHouse
         [Tooltip("撞一次障碍扣的进度（0~1）")]
         [Range(0f, 1f)] public float HitProgressPenalty = 0.15f;
 
-        [Tooltip("撞障碍后的硬直秒数：指针停转、进度不积累、点击无效，结束后从障碍内继续转出（不重复判定）")]
+        [Tooltip("撞障碍后的硬直秒数：指针停转、进度不积累、点击无效，结束后从障碍内继续转出（不重复判定）。\n" +
+                 "MouseCrank 下硬直期间指针不跟随鼠标，硬直结束后直接吸回鼠标当前位置（同样不补判）")]
         [Min(0f)] public float HitStunSeconds = 1f;
+
+        [Header("①·摇柄模式专用（GrindMode = MouseCrank 时才生效）")]
+        [Tooltip("磨满所需的**净**顺时针转角（度）：720 = 转满两圈。\n" +
+                 "只认净转角——来回抖动正负相抵，刷不出进度")]
+        [Min(30f)] public float CrankTotalDegrees = 720f;
+
+        [Tooltip("逆时针的倒扣系数：1＝倒转多少扣多少（真·摇柄），0＝倒转不扣也不涨。\n" +
+                 "调小会让「贴着障碍来回蹭」变得没有代价，慎调")]
+        [Range(0f, 1f)] public float CrankBackwardFactor = 1f;
+
+        [Tooltip("轴心死区半径（占圆盘短边的比例）：鼠标离圆心太近时角度会被微小移动放大，\n" +
+                 "进死区就停止跟随、不积累进度，出死区重新对基准（防在轴心抖动刷进度）")]
+        [Range(0f, 0.25f)] public float CrankDeadZoneFraction = 0.08f;
 
         [Header("② 冲咖啡（按住左键在杯内匀速移动，按速度方差定档）")]
         [Tooltip("按住且在杯内时进度 0→满 所需秒数（出杯/松手只暂停进度，无额外惩罚）")]

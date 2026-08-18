@@ -87,10 +87,12 @@ namespace MasterHouse
             // Prefab 刚 Instantiate 出来，区域 rect 还没经过一次布局解算，先逼一次（与修理电路同例）
             Canvas.ForceUpdateCanvases();
 
-            grind = new GrindGame(view, level);
+            // 磨豆的摇柄模式要把鼠标换算到圆盘局部坐标，与冲泡环节共用同一个 UI 相机
+            var uiCamera = ResolveUiCamera();
+            grind = new GrindGame(view, level, uiCamera);
             grind.Hit += OnGrindHit;
             grind.Init();
-            pour = new PourGame(view, level, ResolveUiCamera());
+            pour = new PourGame(view, level, uiCamera);
             SetupWater();
 
             if (view.abortButton != null) view.abortButton.onClick.AddListener(OnAbortClicked);
@@ -224,9 +226,16 @@ namespace MasterHouse
         {
             if (view.messageLabel == null) return;
             view.messageLabel.color = view.messageNormalColor;
-            view.messageLabel.text = phase == EPhase.Grind
-                ? "点击左键切换圆环，避开红色障碍，磨满进度条"
-                : "按住左键，在杯内匀速移动——越匀速档位越高";
+            if (phase != EPhase.Grind)
+            {
+                view.messageLabel.text = "按住左键，在杯内匀速移动——越匀速档位越高";
+                return;
+            }
+
+            // 磨豆两套操作的说明各一份（关卡的 GrindMode 决定，2026-08-19 试玩）
+            view.messageLabel.text = level.GrindMode == EGrindMode.MouseCrank
+                ? "按住左键绕圆心顺时针画圈研磨；靠近/远离圆心换内外环，避开红色障碍"
+                : "点击左键切换圆环，避开红色障碍，磨满进度条";
         }
 
         private void RefreshHud()
@@ -249,6 +258,12 @@ namespace MasterHouse
                     var (mean, variance, count) = pour.Stats();
                     view.tuningLabel.text =
                         $"均速 {mean:0.00} ｜ 方差 {variance:0.0000} ｜ 样本 {count}（调参用，杯径/秒）";
+                }
+                else if (phase == EPhase.Grind && level.GrindMode == EGrindMode.MouseCrank)
+                {
+                    view.tuningLabel.text =
+                        $"磨柄 {(grind.CrankEngaged ? "已握住" : "未握住（按下左键开始摇）")} ｜ " +
+                        $"进度 {grind.Progress:P0}（磨满 = 净顺时针 {level.CrankTotalDegrees:0}°）";
                 }
                 else
                 {
