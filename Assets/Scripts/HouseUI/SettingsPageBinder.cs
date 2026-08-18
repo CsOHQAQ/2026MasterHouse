@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace MasterHouse
@@ -13,7 +14,8 @@ namespace MasterHouse
     /// </summary>
     public sealed class SettingsPageBinder
     {
-        private static readonly string[] TabNames = { "基础", "画面", "音频", "控制", "玩法", "账户", "制作组" };
+        // 2026-08-18 按 2.0 设计图：音频并入基础、账户下线，分页收敛为 5 个（与 Prefab 的 tab 数量一致）
+        private static readonly string[] TabNames = { "基础", "画面", "控制", "玩法", "制作组" };
 
         private OutGameSettingsPageView view;
         private HouseUIManager ui;
@@ -45,7 +47,11 @@ namespace MasterHouse
                 if (i < TabNames.Length && view.tabLabels[i] != null) view.tabLabels[i].text = TabNames[i];
                 var index = i;
                 HouseUIUtil.BindButton(view.tabButtons[i], () => ShowTab(index));
+                BindTabHover(index);
             }
+            // 顶部 Q/E 翻页按钮（Prefab 节点，view 里没留字段，按名字取）
+            BindStepButton("PrevTab", -1);
+            BindStepButton("NextTab", 1);
             if (view.backButton != null && onBack != null) HouseUIUtil.BindButton(view.backButton, () => onBack(), ESfx.None);
             if (view.resetButton != null) HouseUIUtil.BindButton(view.resetButton, RequestReset);
             if (view.applyButton != null) HouseUIUtil.BindButton(view.applyButton, RequestApply);
@@ -53,12 +59,50 @@ namespace MasterHouse
             HouseUIUtil.ApplyFallbackFont(view.transform);
         }
 
-        /// <summary>R 重置 / 空格应用（页面 HandleInput 或叠加层 SettingsHotkeys 每帧转发；都先过确认弹窗）。</summary>
+        /// <summary>Q/E 翻页 + R 重置 / 空格应用（页面 HandleInput 或叠加层 SettingsHotkeys 每帧转发；都先过确认弹窗）。</summary>
         public void HandleHotkeys()
         {
             if (HotkeyGate != null && !HotkeyGate()) return;
+            if (Input.GetKeyDown(KeyCode.Q)) StepTab(-1);
+            if (Input.GetKeyDown(KeyCode.E)) StepTab(1);
             if (Input.GetKeyDown(KeyCode.R)) RequestReset();
             if (Input.GetKeyDown(KeyCode.Space)) RequestApply();
+        }
+
+        /// <summary>相邻分页切换（Q/E 与顶部箭头按钮共用），首尾循环。</summary>
+        private void StepTab(int direction)
+        {
+            var count = view != null && view.tabButtons != null ? view.tabButtons.Length : 0;
+            if (count <= 0) return;
+            ShowTab((tabIndex + direction + count) % count);
+        }
+
+        private void BindStepButton(string nodeName, int direction)
+        {
+            var node = view.transform.Find(nodeName);
+            var button = node != null ? node.GetComponent<Button>() : null;
+            if (button != null) HouseUIUtil.BindButton(button, () => StepTab(direction));
+        }
+
+        /// <summary>分页悬停换图（Button 的 transition 关着，选中态由本类统一管，悬停也一并在这里做）。</summary>
+        private void BindTabHover(int index)
+        {
+            if (view.tabHover == null || view.tabBackgrounds[index] == null) return;
+            var trigger = view.tabButtons[index].GetComponent<EventTrigger>();
+            if (trigger == null) trigger = view.tabButtons[index].gameObject.AddComponent<EventTrigger>();
+            trigger.triggers.Clear(); // 重复 Bind（再次进页）不叠加监听
+            var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+            enter.callback.AddListener(_ =>
+            {
+                if (index != tabIndex) view.tabBackgrounds[index].sprite = view.tabHover;
+            });
+            trigger.triggers.Add(enter);
+            var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+            exit.callback.AddListener(_ =>
+            {
+                if (index != tabIndex && view.tabNormal != null) view.tabBackgrounds[index].sprite = view.tabNormal;
+            });
+            trigger.triggers.Add(exit);
         }
 
         /// <summary>「应用」入口（空格/点击）：确认后落盘（2026-08-16 反馈：先弹确认）。</summary>
@@ -101,21 +145,14 @@ namespace MasterHouse
                 var selected = i == index;
                 if (view.tabSelected != null && view.tabNormal != null)
                     view.tabBackgrounds[i].sprite = selected ? view.tabSelected : view.tabNormal;
+                // 2.0 底板是暖米色纸面：选中用主题蓝，未选中压成灰蓝
                 if (i < view.tabLabels.Length && view.tabLabels[i] != null)
-                    view.tabLabels[i].color = selected ? new Color(.08f, .04f, .06f) : new Color(.93f, .9f, .9f);
-                // 选中态按切图比例放大并向右凸出（选中切图 808×202 vs 默认 639×163，2026-08-16 反馈）
+                    view.tabLabels[i].color = selected ? new Color32(0x4A, 0x6F, 0xA5, 0xFF)
+                        : new Color32(0x8F, 0x9A, 0xA8, 0xFF);
+                // 2.0 三态切图同尺寸（420×141），不再做选中放大；位置尺寸一律以 Prefab 为准
                 var rect = (RectTransform)view.tabBackgrounds[i].transform;
-                if (selected)
-                {
-                    var grown = Vector2.Scale(tabBaseSizes[i], new Vector2(808f / 639f, 202f / 163f));
-                    rect.sizeDelta = grown;
-                    rect.anchoredPosition = tabBasePositions[i] + new Vector2((grown.x - tabBaseSizes[i].x) * .5f, 0);
-                }
-                else
-                {
-                    rect.sizeDelta = tabBaseSizes[i];
-                    rect.anchoredPosition = tabBasePositions[i];
-                }
+                rect.sizeDelta = tabBaseSizes[i];
+                rect.anchoredPosition = tabBasePositions[i];
             }
             RebuildRows();
         }
@@ -130,7 +167,11 @@ namespace MasterHouse
             var data = HouseSettings.Data;
             switch (tabIndex)
             {
-                case 0: // 基础
+                case 0: // 基础：音量三条 + 通用开关（2.0 设计图把音频并进了这一页）
+                    AddHeader("通用");
+                    AddSlider("游戏主音量", () => data.masterVolume, value => data.masterVolume = value);
+                    AddSlider("音效", () => data.sfxVolume, value => data.sfxVolume = value);
+                    AddSlider("背景音乐", () => data.bgmVolume, value => data.bgmVolume = value);
                     AddHeader("通用");
                     AddOption("昼夜交替", new[] { "关", "开" }, data.dayNightEnabled ? 1 : 0,
                         picked => data.dayNightEnabled = picked == 1);
@@ -142,12 +183,7 @@ namespace MasterHouse
                         Mathf.Max(0, Array.IndexOf(new[] { "无边框", "全屏", "窗口" }, data.windowMode)),
                         picked => data.windowMode = new[] { "无边框", "全屏", "窗口" }[picked]);
                     break;
-                case 2: // 音频
-                    AddSlider("游戏主音量", () => data.masterVolume, value => data.masterVolume = value);
-                    AddSlider("音效", () => data.sfxVolume, value => data.sfxVolume = value);
-                    AddSlider("背景音乐", () => data.bgmVolume, value => data.bgmVolume = value);
-                    break;
-                case 6: // 制作组
+                case 4: // 制作组
                     AddHeader("制作组");
                     AddCredit("缑悦然", "研发-策划", "Project F1", "策划");
                     AddCredit("许铭杰", "研发-客户端", "Project F1", "客户端");
@@ -160,6 +196,9 @@ namespace MasterHouse
                     AddHeader("该分页开发中，敬请期待");
                     break;
             }
+            // Rows 是滚动内容层（顶部对齐、宽度拉伸），高度必须跟着行数走，否则内容超出视口时滚不动
+            if (view.rowsRoot != null)
+                view.rowsRoot.sizeDelta = new Vector2(view.rowsRoot.sizeDelta.x, rowCursor);
         }
 
         // ── 行构建（模板实例化，硬约定：动态列表项不走代码布局）──
@@ -178,15 +217,15 @@ namespace MasterHouse
         private void AddHeader(string title)
         {
             if (view.headerTemplate == null) return;
-            var row = SpawnRow(view.headerTemplate, 56f);
-            if (row.title != null) row.title.text = $"<color=#F5437B>|</color> {title}";
+            var row = SpawnRow(view.headerTemplate, 58f);
+            if (row.title != null) row.title.text = $"<color=#4A6FA5>|</color> {title}";
         }
 
         /// <summary>制作组名单行：复用分节标题模板（藏掉分隔线），一行 = 成员 + 分工 + 通道/部门。</summary>
         private void AddCredit(string name, string channel, string department, string role)
         {
             if (view.headerTemplate == null) return;
-            var row = SpawnRow(view.headerTemplate, 52f);
+            var row = SpawnRow(view.headerTemplate, 54f);
             if (row.rule != null) row.rule.gameObject.SetActive(false);
             if (row.title == null) return;
             // 放宽到整行：锚住原左边缘、只向右生长（pivot 居中直接改宽会向左伸出去压到页签列）
@@ -195,14 +234,14 @@ namespace MasterHouse
             rect.pivot = new Vector2(0, rect.pivot.y);
             rect.sizeDelta = new Vector2(900, 36);
             rect.anchoredPosition = new Vector2(leftEdge, rect.anchoredPosition.y);
-            row.title.text = $"{name}　<color=#F5437B>{role}</color>　" +
-                             $"<size=17><color=#B9AEB2>{channel} · {department}</color></size>";
+            row.title.text = $"{name}　<color=#4A6FA5>{role}</color>　" +
+                             $"<size=17><color=#9A8C7E>{channel} · {department}</color></size>";
         }
 
         private void AddSlider(string label, Func<int> getter, Action<int> setter)
         {
             if (view.sliderTemplate == null) return;
-            var row = SpawnRow(view.sliderTemplate, 90f);
+            var row = SpawnRow(view.sliderTemplate, 78f);
             if (row.label != null) row.label.text = label;
             if (row.slider == null) return;
             // 圆点保正圆（2026-08-16 反馈）：取短边压成正方形——尊重 Prefab 手调的大小，只修比例
@@ -226,7 +265,7 @@ namespace MasterHouse
         private void AddOption(string label, string[] options, int selected, Action<int> setter)
         {
             if (view.optionTemplate == null) return;
-            var row = SpawnRow(view.optionTemplate, 90f);
+            var row = SpawnRow(view.optionTemplate, 78f);
             if (row.label != null) row.label.text = label;
             var current = Mathf.Clamp(selected, 0, options.Length - 1);
             if (row.value != null) row.value.text = options[current];
