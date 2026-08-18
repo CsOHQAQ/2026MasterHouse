@@ -95,6 +95,7 @@ MonoBehaviour:
   closeButton: {fileID: 5224828018724168501}
   swatchRoot: {fileID: 1547221788486428599}
   colorKeycap: {fileID: 2021193586726207953}
+  colorKeycapHover: {fileID: 21300000, guid: 44b21141b32ec114995bf2244d678ce5, type: 3}
   colorKeycapLabel: {fileID: 7132014530955331592}
   buyKeycap: {fileID: 8650449850662793929}
   buyKeycapLabel: {fileID: 4855195462866459765}

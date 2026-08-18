@@ -147,10 +147,9 @@ namespace MasterHouse
             if (view.closeButton != null) HouseUIUtil.BindButton(view.closeButton, ui.PopOverlay);
             if (view.prevCategory != null) HouseUIUtil.BindButton(view.prevCategory, () => SwitchCategory(-1));
             if (view.nextCategory != null) HouseUIUtil.BindButton(view.nextCategory, () => SwitchCategory(1));
-            // 键帽换肤（运行时，只动这三个按钮，不碰 Prefab 其他布局）：Q/E 切分类、ESC 返回
-            ApplyKeycap(view.prevCategory, "Q");
-            ApplyKeycap(view.nextCategory, "E");
-            ApplyKeycap(view.closeButton, "ESC");
+            // 2.0 的 Q/E/ESC 都是整图素材（键名画在图里），键帽换肤会把 1.0 的灰键帽盖上去，
+            // 反而把 2.0 的图顶掉（2026-08-18 反馈），故不再换肤——三态由 Prefab 的 SpriteState 给
+            BindColorKeycap();
             if (view.buyButton != null) HouseUIUtil.BindButton(view.buyButton, BuySelected);
             if (view.obtainedClose != null) HouseUIUtil.BindButton(view.obtainedClose, ConfirmPurchase);
             // 获得弹窗面板统一走全局底图（9 宫格切片，避免不同宽高比拉伸变形）
@@ -570,29 +569,28 @@ namespace MasterHouse
         /// 键帽换肤（PC ui/button 三态素材，Resources 副本）：贴 default/hover/Disable 三态，
         /// 键帽画面自带文字，按钮原有的 Text 子物体隐藏。素材缺失时保持原样。
         /// </summary>
-        private static void ApplyKeycap(Button button, string key)
+        /// <summary>
+        /// 「X 改变颜色」原本只是一张提示图（没有 Button，所以既不能点也没有悬停，2026-08-18 反馈）：
+        /// 运行时补一个 Button 并按 Prefab 烘的两态图做 SpriteSwap，点击等同按 X。只动运行时实例。
+        /// </summary>
+        private void BindColorKeycap()
         {
-            if (button == null) return;
-            var normal = Resources.Load<Sprite>("OutGameUI/button/default/" + key);
-            if (normal == null) return;
-            var hover = Resources.Load<Sprite>("OutGameUI/button/hover/" + key);
-            var disabled = Resources.Load<Sprite>("OutGameUI/button/Disable/" + key);
-            if (button.targetGraphic is Image image)
+            if (view.colorKeycap == null) return;
+            view.colorKeycap.raycastTarget = true;
+            var button = view.colorKeycap.GetComponent<Button>();
+            if (button == null) button = view.colorKeycap.gameObject.AddComponent<Button>();
+            button.targetGraphic = view.colorKeycap;
+            if (view.colorKeycapHover != null)
             {
-                image.sprite = normal;
-                image.color = Color.white;
-                image.preserveAspect = true;
+                button.transition = Selectable.Transition.SpriteSwap;
+                button.spriteState = new SpriteState
+                {
+                    highlightedSprite = view.colorKeycapHover,
+                    pressedSprite = view.colorKeycapHover,
+                    selectedSprite = view.colorKeycap.sprite,
+                };
             }
-            button.transition = Selectable.Transition.SpriteSwap;
-            button.spriteState = new SpriteState
-            {
-                highlightedSprite = hover != null ? hover : normal,
-                pressedSprite = hover != null ? hover : normal,
-                selectedSprite = normal,
-                disabledSprite = disabled != null ? disabled : normal,
-            };
-            var label = button.GetComponentInChildren<Text>();
-            if (label != null) label.gameObject.SetActive(false); // 键帽自带文字
+            HouseUIUtil.BindButton(button, CycleColor);
         }
 
         /// <summary>把精灵填进缩略 RawImage 并按素材真实宽高比更新 AspectRatioFitter 的比例

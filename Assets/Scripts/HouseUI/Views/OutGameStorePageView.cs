@@ -45,6 +45,8 @@ namespace MasterHouse
 
         [Header("键位提示（设计稿 §7：无商品时隐藏）")]
         public Image colorKeycap;
+        [Tooltip("「X 改变颜色」的悬停图（绑定层运行时补 Button 并做 SpriteSwap）")]
+        public Sprite colorKeycapHover;
         public Text colorKeycapLabel;
         public Image buyKeycap;
         public Text buyKeycapLabel;
