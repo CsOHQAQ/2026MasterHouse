@@ -99,7 +99,9 @@ namespace MasterHouse
                 return null;
             }
             var rect = F.Rect(parent, "Visitor_" + actorId, Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
-            rect.pivot = new Vector2(.5f, 0f); // 底边中心落在地面坐标上
+            // 立绘底部有一段透明留白，帧底 ≠ 脚底：pivot 抬到脚底那一行，
+            // 可见的脚才落在地面坐标上（2026-08-18 反馈「访客还是有些高」）
+            rect.pivot = new Vector2(.5f, Mathf.Clamp(awaitMeta.footPadding, 0f, .4f));
             var actor = rect.gameObject.AddComponent<OutGameVisitorActor>();
             actor.displayName = actorName;
             actor.ambient = isAmbient;
