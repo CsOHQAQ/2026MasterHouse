@@ -20,8 +20,6 @@ namespace MasterHouse
 
         /// <summary>当前焦点的种族下标（对 raceIds 取模）。</summary>
         private int focusIndex;
-        /// <summary>焦点卡是否已翻开（切换卡片会重新盖上，空格/点「查看」翻开）。</summary>
-        private bool revealed;
         private bool closing;
 
         private CodexOverlay(RectTransform root, OutGameCodexPageView view, HouseUIManager ui)
@@ -54,8 +52,9 @@ namespace MasterHouse
             var overlay = new CodexOverlay(rect, view, ui);
             overlay.Bind();
             var hotkeys = instance.AddComponent<CodexHotkeys>();
-            hotkeys.Bind(() => overlay.Step(-1), () => overlay.Step(1), overlay.ToggleReveal);
+            hotkeys.Bind(() => overlay.Step(-1), () => overlay.Step(1), overlay.ShowFocusInfo);
             HouseUIUtil.ApplyFallbackFont(instance.transform);
+            HouseDayLightTint.Attach(instance.transform, view.background); // 底图随时钟慢慢变天色
             var group = HouseUIUtil.Group(rect.gameObject, 0);
             group.DOFade(1, .25f).SetUpdate(true);
             ui.PushOverlay(overlay);
@@ -82,7 +81,7 @@ namespace MasterHouse
             if (view.title != null) view.title.text = "Illustrated Guide";
             if (view.backButton != null) HouseUIUtil.BindButton(view.backButton, ui.PopOverlay, ESfx.None);
             if (view.switchButton != null) HouseUIUtil.BindButton(view.switchButton, () => Step(1));
-            if (view.viewButton != null) HouseUIUtil.BindButton(view.viewButton, ToggleReveal);
+            if (view.viewButton != null) HouseUIUtil.BindButton(view.viewButton, ShowFocusInfo);
             // 卡位点击：点侧卡把它转到焦点位，点焦点卡等同「查看」
             if (view.cardButtons != null)
             {
@@ -91,33 +90,26 @@ namespace MasterHouse
                 {
                     if (view.cardButtons[i] == null) continue;
                     var offset = i - focus;
-                    if (offset == 0) HouseUIUtil.BindButton(view.cardButtons[i], ToggleReveal);
+                    if (offset == 0) HouseUIUtil.BindButton(view.cardButtons[i], ShowFocusInfo);
                     else HouseUIUtil.BindButton(view.cardButtons[i], () => Step(offset));
                 }
             }
             Refresh();
         }
 
-        /// <summary>切换焦点（循环）；换了人就重新盖上，得再按一次「查看」。</summary>
+        /// <summary>切换焦点（循环）：转到正中就直接翻开，不用再点一下（2026-08-18 反馈）。</summary>
         private void Step(int direction)
         {
             if (RaceCount == 0 || direction == 0) return;
             focusIndex = ((focusIndex + direction) % RaceCount + RaceCount) % RaceCount;
-            revealed = false;
             Refresh();
         }
 
-        /// <summary>「查看」：翻开/盖上焦点卡；没接待过的种族翻不开。</summary>
-        private void ToggleReveal()
+        /// <summary>「查看」：焦点卡已经自动翻开了，这里只报一下是谁 / 还没接待过。</summary>
+        private void ShowFocusInfo()
         {
             if (RaceCount == 0) return;
-            if (!revealed && !IsUnlocked(focusIndex))
-            {
-                ui.ShowToast("还没有接待过这位客人");
-                return;
-            }
-            revealed = !revealed;
-            Refresh();
+            ui.ShowToast(IsUnlocked(focusIndex) ? RaceName(focusIndex) : "还没有接待过这位客人");
         }
 
         private bool IsUnlocked(int index)
@@ -129,7 +121,7 @@ namespace MasterHouse
 
         /// <summary>
         /// 按当前焦点铺卡：正中放焦点种族，两侧依次向外取相邻种族（循环）。
-        /// 侧卡一律剪影（设计图观感），只有焦点卡在「查看」后翻成彩色。
+        /// 侧卡一律剪影（设计图观感）；**焦点卡只要解锁了就直接是彩色**，不需要再点一下。
         /// </summary>
         private void Refresh()
         {
@@ -141,17 +133,14 @@ namespace MasterHouse
                 if (slot == null) continue;
                 var offset = i - focus;
                 var raceIndex = ((focusIndex + offset) % RaceCount + RaceCount) % RaceCount;
-                var showColor = offset == 0 && revealed && IsUnlocked(raceIndex);
+                var showColor = offset == 0 && IsUnlocked(raceIndex);
                 slot.sprite = Sprite(showColor ? view.revealedCards : view.hiddenCards, raceIndex);
                 slot.enabled = slot.sprite != null;
             }
-            var name = RaceName(focusIndex);
             if (view.focusName != null)
-                view.focusName.text = revealed || IsUnlocked(focusIndex) ? name : "？？？";
+                view.focusName.text = IsUnlocked(focusIndex) ? RaceName(focusIndex) : "？？？";
             if (view.focusNote != null)
-                view.focusNote.text = IsUnlocked(focusIndex)
-                    ? (revealed ? "已归档" : "空格查看")
-                    : "尚未接待";
+                view.focusNote.text = IsUnlocked(focusIndex) ? "已归档" : "尚未接待";
         }
 
         private static Sprite Sprite(Sprite[] set, int index) =>
