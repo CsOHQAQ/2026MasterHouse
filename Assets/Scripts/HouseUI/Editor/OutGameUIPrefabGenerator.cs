@@ -322,12 +322,13 @@ namespace MasterHouse
                         ? view.cardSlots[view.cardSlots.Length / 2]
                         : null;
                     if (slot == null) return;
+                    MigrateCodexSlots(view);
                     // 早期版本把编号建成了卡片的兄弟节点（卡片缩放时不跟手），拆掉重挂到卡片身下
                     if (view.focusNumberRoot != null) Object.DestroyImmediate(view.focusNumberRoot.gameObject);
                     view.focusNumberRoot = BuildCodexFocusNumber(slot.rectTransform, ref view.focusNumber);
                 },
                 view => view.cardSlots != null && view.cardSlots.Length > 0 &&
-                        (view.focusNumberRoot == null ||
+                        (view.focusNumberRoot == null || CodexSlotsAreStale(view) ||
                          view.focusNumberRoot.parent != view.cardSlots[view.cardSlots.Length / 2].transform));
             // 档案面板：补「访客图鉴」入口按钮（2026-08-18）
             repaired |= RepairPrefab<OutGameArchivePanelView>(ArchivePanelPath,
@@ -2493,6 +2494,23 @@ namespace MasterHouse
         private static readonly Vector2 StoreGridSpacing = new Vector2(8, 8);
         private const int StoreGridColumns = 5;
 
+        /// <summary>
+        /// 图鉴卡位（2026-08-18 对齐设计图）：卡片放大到接近满高、横向拉近到彼此压边，
+        /// 高度与倾角逐张错开——设计图那种「随手摊在墙上」的杂乱感靠的就是这个，不是均匀排布。
+        /// 坐标按 1920×1080、锚左上、pivot 居中。
+        /// </summary>
+        private static readonly (Vector2 Position, Vector2 Size, float Tilt)[] CodexSlots =
+        {
+            (new Vector2(150, -612), new Vector2(620, 754), -8.5f),
+            (new Vector2(525, -524), new Vector2(620, 754), 4.5f),
+            (new Vector2(960, -575), new Vector2(700, 839), -1.5f),
+            (new Vector2(1400, -556), new Vector2(620, 754), -6f),
+            (new Vector2(1785, -498), new Vector2(620, 754), 7.5f),
+        };
+
+        /// <summary>初版卡位（偏小、均匀、太规整）：只有完全等于它才做迁移，手调过就不再命中。</summary>
+        private static readonly Vector2 CodexStaleSideSize = new Vector2(470, 572);
+
         private const string CodexDir = "Assets/PC ui 2.0/图鉴/";
         private const string ConversationDir = "Assets/PC ui 2.0/conversation/";
 
@@ -2536,23 +2554,16 @@ namespace MasterHouse
 
             // 卡位：左→右 5 个，正中放大。建节点的顺序 = 层序，故从外向内建，焦点卡最后建（画在最上）
             var cards = Rect(root.transform, "Cards", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            var slotX = new[] { 120f, 530f, 960f, 1390f, 1800f };
-            var slotY = new[] { -505f, -505f, -560f, -505f, -505f };
-            var slotSize = new[]
-            {
-                new Vector2(470, 572), new Vector2(470, 572), new Vector2(670, 803),
-                new Vector2(470, 572), new Vector2(470, 572),
-            };
-            var slotTilt = new[] { -7f, -3f, 0f, 4f, 8f };
             var buildOrder = new[] { 0, 4, 1, 3, 2 }; // 越靠外越先建（被里面的压住），焦点卡压最上
-            view.cardSlots = new Image[slotX.Length];
-            view.cardButtons = new Button[slotX.Length];
+            view.cardSlots = new Image[CodexSlots.Length];
+            view.cardButtons = new Button[CodexSlots.Length];
             foreach (var i in buildOrder)
             {
+                var layout = CodexSlots[i];
                 var slot = Image(cards, "Card" + i, new Vector2(0, 1), new Vector2(0, 1),
-                    new Vector2(slotX[i], slotY[i]), slotSize[i], Color.white);
+                    layout.Position, layout.Size, Color.white);
                 slot.preserveAspect = true;
-                slot.rectTransform.localEulerAngles = new Vector3(0, 0, slotTilt[i]);
+                slot.rectTransform.localEulerAngles = new Vector3(0, 0, layout.Tilt);
                 var button = slot.gameObject.AddComponent<Button>();
                 button.targetGraphic = slot;
                 button.transition = Selectable.Transition.None; // 卡面三态由绑定层换图，别叠一层染色
@@ -2612,6 +2623,32 @@ namespace MasterHouse
         /// 再按当前条目写真实编号。位置由素材实测坐标换算，随卡面倾角一起转。
         /// **挂在焦点卡自己身下**——卡片点击缩放/位移时，编号跟着一起动（2026-08-18 反馈）。
         /// </summary>
+        /// <summary>卡位还停在初版那套「偏小、均匀」的排布上（判据是侧卡尺寸恰为初版值）。</summary>
+        private static bool CodexSlotsAreStale(OutGameCodexPageView view)
+        {
+            if (view.cardSlots == null || view.cardSlots.Length != CodexSlots.Length) return false;
+            var side = view.cardSlots[0];
+            if (side == null) return false;
+            var size = side.rectTransform.sizeDelta;
+            return Mathf.Abs(size.x - CodexStaleSideSize.x) < 1f && Mathf.Abs(size.y - CodexStaleSideSize.y) < 1f;
+        }
+
+        /// <summary>把卡位换成新排布（放大 + 压边 + 错落）。只在命中初版值时调用，不覆盖手调。</summary>
+        private static void MigrateCodexSlots(OutGameCodexPageView view)
+        {
+            if (!CodexSlotsAreStale(view)) return;
+            for (var i = 0; i < view.cardSlots.Length; i++)
+            {
+                var slot = view.cardSlots[i];
+                if (slot == null) continue;
+                var layout = CodexSlots[i];
+                var rect = slot.rectTransform;
+                rect.anchoredPosition = layout.Position;
+                rect.sizeDelta = layout.Size;
+                rect.localEulerAngles = new Vector3(0, 0, layout.Tilt);
+            }
+        }
+
         private static RectTransform BuildCodexFocusNumber(RectTransform card, ref Text label)
         {
             var slotSize = card.sizeDelta;
