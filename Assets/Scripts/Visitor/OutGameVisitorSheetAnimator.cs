@@ -25,6 +25,12 @@ namespace MasterHouse
         /// 所以按图存，值由菜单「测量访客立绘脚底留白」量出来写进同名 JSON。
         /// </summary>
         public float footPadding;
+        /// <summary>
+        /// 每帧顶部透明留白占帧高的比例（2026-08-18 反馈「名牌离得太远」）：
+        /// 立绘头顶上方也有一大段留白（猫那张占 32%），名牌与气泡挂在演员矩形的上边缘，
+        /// 于是它们离真正的头顶隔着这一整段空气。挂点按它下压，名牌才贴着头。
+        /// </summary>
+        public float headPadding;
 
         public float Aspect => frameHeight > 0 ? (float)frameWidth / frameHeight : 1f;
 

@@ -23,6 +23,19 @@ namespace MasterHouse
         private Text label;
         private RectTransform rect;
         private Vector2 basePosition;
+        /// <summary>立绘头顶留白造成的下压量（演员按深度每帧喂）：气泡挂点跟着头走，不浮在半空。</summary>
+        private float headDrop;
+
+        /// <summary>实际挂点：作者给的基准位置减去立绘头顶留白。</summary>
+        private Vector2 AnchorPosition => basePosition - new Vector2(0f, headDrop);
+
+        /// <summary>演员按当前显示高度算出的头顶留白像素数（每帧喂；变了才重摆位置）。</summary>
+        public void SetHeadDrop(float value)
+        {
+            if (Mathf.Abs(value - headDrop) < .5f) return;
+            headDrop = value;
+            if (rect != null && !DOTween.IsTweening(rect)) rect.anchoredPosition = AnchorPosition;
+        }
         private bool showing;
         private float timer;      // 隐藏时=距下次浮现；显示时=剩余展示时长
 
@@ -95,9 +108,9 @@ namespace MasterHouse
         {
             group.DOKill();
             rect.DOKill();
-            rect.anchoredPosition = basePosition;
+            rect.anchoredPosition = AnchorPosition;
             group.DOFade(1f, .22f).SetTarget(this).SetUpdate(true);
-            rect.DOAnchorPos(basePosition + new Vector2(0, FloatDistance), hold + .3f)
+            rect.DOAnchorPos(AnchorPosition + new Vector2(0, FloatDistance), hold + .3f)
                 .SetEase(Ease.OutSine).SetTarget(this).SetUpdate(true);
         }
 

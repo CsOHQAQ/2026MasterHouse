@@ -6,9 +6,10 @@ using UnityEngine;
 namespace MasterHouse
 {
     /// <summary>
-    /// 测量访客立绘的脚底留白（2026-08-18）：立绘四周带透明留白，帧底并不是脚底，
-    /// 直接把帧底压在地面坐标上访客就会浮起来。这里逐张量出「每帧底部留白占帧高的比例」，
-    /// 写进同名 JSON 的 footPadding，运行时 <see cref="OutGameVisitorActor"/> 拿它当 pivot.y。
+    /// 测量访客立绘的四周留白（2026-08-18）：立绘上下都带透明留白，
+    /// 帧底不是脚底、帧顶不是头顶。逐张量出两个比例写进同名 JSON：
+    /// footPadding（底部留白）运行时当演员的 pivot.y，脚才落在地面点上；
+    /// headPadding（顶部留白）用来下压名牌与气泡的挂点，它们才贴着头而不是浮在半空。
     ///
     /// 各张图差别很大（实测 0 ~ 0.14），所以必须按图存、不能用一个常量。
     /// 直接读 PNG 字节自己解码，不依赖贴图的 Read/Write 开关（那个开关会让运行时多占一份内存）。
@@ -20,7 +21,7 @@ namespace MasterHouse
         /// <summary>低于这个 alpha 视为透明（抗锯齿边缘不算脚）。</summary>
         private const byte AlphaThreshold = 24;
 
-        [MenuItem("Tools/MasterHouse/访客/测量访客立绘脚底留白")]
+        [MenuItem("Tools/MasterHouse/访客/测量访客立绘留白")]
         public static void Measure()
         {
             var written = 0;
@@ -35,14 +36,15 @@ namespace MasterHouse
                 }
                 var jsonPath = Path.ChangeExtension(path, ".json");
                 var sheet = ReadSheet(jsonPath, texture);
-                sheet.footPadding = MeasureFootPadding(texture, sheet);
+                sheet.footPadding = MeasurePadding(texture, sheet, fromBottom: true);
+                sheet.headPadding = MeasurePadding(texture, sheet, fromBottom: false);
                 File.WriteAllText(jsonPath, JsonUtility.ToJson(sheet));
                 Object.DestroyImmediate(texture);
                 written++;
-                Debug.Log($"[访客立绘] {Path.GetFileName(path)} 脚底留白 {sheet.footPadding:F3}");
+                Debug.Log($"[访客立绘] {Path.GetFileName(path)} 脚底 {sheet.footPadding:F3} 头顶 {sheet.headPadding:F3}");
             }
             AssetDatabase.Refresh();
-            Debug.Log($"[访客立绘] 已测量并写回 {written} 张的 footPadding。");
+            Debug.Log($"[访客立绘] 已测量并写回 {written} 张的留白比例。");
         }
 
         private static OutGameVisitorSheet ReadSheet(string jsonPath, Texture2D texture)
@@ -65,10 +67,10 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 取各帧底部留白的**最小值**：只要有一帧的脚探得更低，就按那一帧算，
-        /// 否则动画里最低的那一帧会陷进地面。
+        /// 取各帧留白的**最小值**：只要有一帧探得更远，就按那一帧算，
+        /// 否则动画里最极端的那一帧会陷进地面（脚）或被名牌压住（头）。
         /// </summary>
-        private static float MeasureFootPadding(Texture2D texture, OutGameVisitorSheet sheet)
+        private static float MeasurePadding(Texture2D texture, OutGameVisitorSheet sheet, bool fromBottom)
         {
             var pixels = texture.GetPixels32();
             var width = texture.width;
@@ -87,16 +89,25 @@ namespace MasterHouse
                 var yTop = Mathf.RoundToInt(height - row * frameHeight);
                 var yBottom = Mathf.RoundToInt(height - (row + 1) * frameHeight);
                 var found = -1;
-                for (var y = yBottom; y < yTop && found < 0; y++)
-                    for (var x = x0; x < x1; x++)
-                        if (pixels[y * width + x].a > AlphaThreshold) { found = y; break; }
+                if (fromBottom)
+                {
+                    for (var y = yBottom; y < yTop && found < 0; y++)
+                        for (var x = x0; x < x1; x++)
+                            if (pixels[y * width + x].a > AlphaThreshold) { found = y; break; }
+                }
+                else
+                {
+                    for (var y = yTop - 1; y >= yBottom && found < 0; y--)
+                        for (var x = x0; x < x1; x++)
+                            if (pixels[y * width + x].a > AlphaThreshold) { found = y; break; }
+                }
                 if (found < 0) continue; // 空帧不参与
-                paddings.Add((found - yBottom) / frameHeight);
+                paddings.Add((fromBottom ? found - yBottom : yTop - 1 - found) / frameHeight);
             }
             if (paddings.Count == 0) return 0f;
             var min = paddings[0];
             foreach (var padding in paddings) min = Mathf.Min(min, padding);
-            return Mathf.Clamp(min, 0f, .4f);
+            return Mathf.Clamp(min, 0f, .5f);
         }
     }
 }
