@@ -28,6 +28,7 @@ namespace MasterHouse.EditorTools
     {
         private const string Folder = "Assets/GameData/Minigames";
         private const string PrefabPath = Folder + "/CircuitMinigame.prefab";
+        private const string TopStatusBarPrefabPath = Folder + "/CircuitTopStatusBar.prefab";
         private const string VisualStylePath = Folder + "/CircuitVisualStyle_Default.asset";
         private const string UIStylePath = Folder + "/CircuitUIStyle_Default.asset";
         private const string MinigameDefPath = Folder + "/Minigame_修理电路.asset";
@@ -87,10 +88,17 @@ namespace MasterHouse.EditorTools
                 created.Add(UIStylePath);
             }
 
+            var topStatusBarPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(TopStatusBarPrefabPath);
+            if (topStatusBarPrefab == null)
+            {
+                topStatusBarPrefab = BuildTopStatusBarPrefab();
+                created.Add(TopStatusBarPrefabPath);
+            }
+
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
             if (prefab == null || overwritePrefab)
             {
-                prefab = BuildPrefab(visualStyle, uiStyle);
+                prefab = BuildPrefab(visualStyle, uiStyle, topStatusBarPrefab);
                 created.Add(PrefabPath + (overwritePrefab ? "（重建）" : string.Empty));
             }
             else if (prefab.GetComponent<CircuitMinigameView>() is { } prefabView &&
@@ -328,7 +336,8 @@ namespace MasterHouse.EditorTools
 
         // ══════════ Prefab 布局（1920×1080 参考分辨率）══════════
 
-        private static GameObject BuildPrefab(CircuitVisualStyleConfig visualStyle, CircuitUIStyleConfig uiStyle)
+        private static GameObject BuildPrefab(CircuitVisualStyleConfig visualStyle, CircuitUIStyleConfig uiStyle,
+            GameObject topStatusBarPrefab)
         {
             var root = new GameObject("CircuitMinigamePage", typeof(RectTransform), typeof(Image),
                 typeof(CircuitMinigameView), typeof(CircuitMinigame));
@@ -342,8 +351,9 @@ namespace MasterHouse.EditorTools
             var view = root.GetComponent<CircuitMinigameView>();
             view.visualStyle = visualStyle;
             view.uiStyle = uiStyle;
+            view.levelBackground = backdrop;
 
-            BuildTopBar(rootRect, view);
+            BuildTopBar(rootRect, view, topStatusBarPrefab);
             BuildPalette(rootRect, view, uiStyle);
             BuildBoard(rootRect, view);
             BuildLessonPanel(rootRect, view);
@@ -357,11 +367,48 @@ namespace MasterHouse.EditorTools
             return asset;
         }
 
-        private static void BuildTopBar(RectTransform parent, CircuitMinigameView view)
+        private static GameObject BuildTopStatusBarPrefab()
         {
-            var bar = Rect(parent, "TopBar", new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -52), new Vector2(-160, 72));
-            ImageOn(bar, PanelTint);
+            var root = new GameObject("CircuitTopStatusBar", typeof(RectTransform), typeof(Image),
+                typeof(CircuitTopStatusBarView));
+            root.layer = 5;
+            var rect = (RectTransform)root.transform;
+            rect.anchorMin = new Vector2(0, 1);
+            rect.anchorMax = new Vector2(1, 1);
+            rect.pivot = new Vector2(.5f, .5f);
+            rect.anchoredPosition = new Vector2(0, -52);
+            rect.sizeDelta = new Vector2(-160, 72);
 
+            var bar = root.GetComponent<CircuitTopStatusBarView>();
+            bar.background = root.GetComponent<Image>();
+            bar.background.color = PanelTint;
+            PopulateTopStatusBar(rect, bar);
+
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root, TopStatusBarPrefabPath);
+            Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        private static void BuildTopBar(RectTransform parent, CircuitMinigameView view, GameObject topStatusBarPrefab)
+        {
+            var instance = PrefabUtility.InstantiatePrefab(topStatusBarPrefab, parent) as GameObject;
+            if (instance == null)
+            {
+                Debug.LogError("[修理电路] 顶部状态条 Prefab 实例化失败：" + TopStatusBarPrefabPath);
+                return;
+            }
+            instance.name = "TopBar";
+            var bar = (RectTransform)instance.transform;
+            bar.anchorMin = new Vector2(0, 1);
+            bar.anchorMax = new Vector2(1, 1);
+            bar.pivot = new Vector2(.5f, .5f);
+            bar.anchoredPosition = new Vector2(0, -52);
+            bar.sizeDelta = new Vector2(-160, 72);
+            view.topStatusBar = instance.GetComponent<CircuitTopStatusBarView>();
+        }
+
+        private static void PopulateTopStatusBar(RectTransform bar, CircuitTopStatusBarView view)
+        {
             // 四等分：进度（课程包专用，单关时隐藏）/ 导线 / 中转件 / 已点亮
             view.progressLabel = Label(bar, "Progress", "第 1/1 关", 28, Muted,
                 new Vector2(0, 0), new Vector2(.25f, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter);
@@ -382,7 +429,9 @@ namespace MasterHouse.EditorTools
             Label(panel, "Title", "件库", 26, Muted,
                 new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -30), new Vector2(0, 48), TextAnchor.MiddleCenter);
 
-            var list = Rect(panel, "PaletteRoot", new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -70), new Vector2(-24, 0));
+            float contentTopPadding = uiStyle != null ? uiStyle.paletteContentTopPadding : 78f;
+            var list = Rect(panel, "PaletteRoot", new Vector2(0, 1), new Vector2(1, 1),
+                new Vector2(0, -contentTopPadding), new Vector2(-24, 0));
             list.pivot = new Vector2(.5f, 1f);
             var layout = list.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.spacing = 10;
@@ -563,7 +612,8 @@ namespace MasterHouse.EditorTools
             Vector2 min, Vector2 max, Vector2 position, Vector2 dimensions, TextAnchor alignment)
         {
             var text = Rect(parent, name, min, max, position, dimensions).gameObject.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.font = Resources.Load<Font>("Fonts/SourceHanSansOLD-Normal-2") ??
+                        Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize = size;
             text.color = color;
             text.alignment = alignment;

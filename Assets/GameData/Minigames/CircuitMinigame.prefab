@@ -90,6 +90,7 @@ GameObject:
   - component: {fileID: 2821876377398924753}
   - component: {fileID: 3576281225672902968}
   - component: {fileID: 4965711414804530729}
+  - component: {fileID: 900200000000000001}
   m_Layer: 5
   m_Name: TopBar
   m_TagString: Untagged
@@ -2827,9 +2828,8 @@ MonoBehaviour:
   previewRoot: {fileID: 946509791403511855}
   visualStyle: {fileID: 11400000, guid: 74f6ce438e4e44e69cf45a6c729414f5, type: 2}
   uiStyle: {fileID: 11400000, guid: 0d4bf0afd0ac4cce8df812e91cf4be59, type: 2}
-  linkBudgetLabel: {fileID: 943977609561955829}
-  pieceBudgetLabel: {fileID: 4077329718323647123}
-  litLabel: {fileID: 4230051203028110131}
+  levelBackground: {fileID: 7940388277650718628}
+  topStatusBar: {fileID: 900200000000000001}
   palettePanelBackground: {fileID: 3923686164167428470}
   paletteRoot: {fileID: 2519599528035185738}
   paletteItemTemplate: {fileID: 7732058461019349060}
@@ -2840,7 +2840,6 @@ MonoBehaviour:
   lessonPanel: {fileID: 4903049387310209517}
   lessonTitleLabel: {fileID: 4427334993533488861}
   lessonBriefLabel: {fileID: 3583703450681991560}
-  progressLabel: {fileID: 6891959825444634835}
   prevLessonButton: {fileID: 8656514764553908518}
   retryLessonButton: {fileID: 980323896977768575}
   summaryPanel: {fileID: 1541690251316924959}
@@ -3108,6 +3107,23 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: "\u4E2D\u8F6C\u4EF6"
+--- !u!114 &900200000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 535517403399067528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1396f8651ac4eac83147f3e6f4cb2d9, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  background: {fileID: 4965711414804530729}
+  progressLabel: {fileID: 6891959825444634835}
+  linkBudgetLabel: {fileID: 943977609561955829}
+  pieceBudgetLabel: {fileID: 4077329718323647123}
+  litLabel: {fileID: 4230051203028110131}
 --- !u!1 &900100000000000000
 GameObject:
   m_ObjectHideFlags: 0

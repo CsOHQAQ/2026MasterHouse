@@ -59,6 +59,8 @@ namespace MasterHouse
         private readonly List<NodeDef> paletteDefs = new List<NodeDef>();
 
         private Vector2 lastBoardAreaSize;
+        private Sprite defaultLevelBackgroundSprite;
+        private Color defaultLevelBackgroundColor;
 
         private bool IsLastLesson => currentIndex >= levels.Count - 1;
 
@@ -83,6 +85,7 @@ namespace MasterHouse
                 return;
             }
 
+            CacheDefaultLevelBackground();
             ApplyUiStyle();
 
             if (!ResolveLessons(levelDef))
@@ -178,6 +181,8 @@ namespace MasterHouse
             currentIndex = Mathf.Clamp(index, 0, levels.Count - 1);
             level = levels[currentIndex];
 
+            RefreshLevelBackground();
+
             board.SetLevel(level);
             board.LayoutRoots();
             board.RebuildAll();
@@ -196,7 +201,8 @@ namespace MasterHouse
             // 这里逐个判空是给「课程包字段没配的旧 Prefab + 单关关卡」留的路：
             // 课程包模式下 ValidateLessonView 已经保证它们都非空
             if (view.lessonPanel != null) view.lessonPanel.SetActive(isLessonPack);
-            if (view.progressLabel != null) view.progressLabel.gameObject.SetActive(isLessonPack);
+            if (view.topStatusBar != null && view.topStatusBar.progressLabel != null)
+                view.topStatusBar.progressLabel.gameObject.SetActive(isLessonPack);
             if (view.prevLessonButton != null) view.prevLessonButton.gameObject.SetActive(isLessonPack);
             if (view.retryLessonButton != null) view.retryLessonButton.gameObject.SetActive(isLessonPack);
             if (view.summaryPanel != null) view.summaryPanel.SetActive(false);
@@ -209,7 +215,7 @@ namespace MasterHouse
             if (!isLessonPack) return;
 
             var entry = lessons[currentIndex];
-            view.progressLabel.text = $"第 {currentIndex + 1}/{lessons.Count} 关";
+            view.topStatusBar.progressLabel.text = $"第 {currentIndex + 1}/{lessons.Count} 关";
             view.lessonTitleLabel.text = string.IsNullOrEmpty(entry.Title) ? entry.Level.name : entry.Title;
             view.lessonBriefLabel.text = entry.Brief;
 
@@ -385,17 +391,17 @@ namespace MasterHouse
                 placed += levelManager.CountNodesOf(level, entry.Node);
                 cap += entry.MaxCount;
             }
-            if (view.pieceBudgetLabel != null)
+            if (view.topStatusBar.pieceBudgetLabel != null)
             {
-                view.pieceBudgetLabel.text = $"中转件 {placed}/{cap}";
+                view.topStatusBar.pieceBudgetLabel.text = $"中转件 {placed}/{cap}";
                 // 摆满 = 提示色而非报红：CanBuild 硬拦着，摆满是常态不是错误（与导线栏同一套语义）
-                view.pieceBudgetLabel.color = cap > 0 && placed >= cap
+                view.topStatusBar.pieceBudgetLabel.color = cap > 0 && placed >= cap
                     ? view.budgetFullColor
                     : view.budgetNormalColor;
             }
 
-            if (view.litLabel != null)
-                view.litLabel.text = $"已点亮 {CircuitSolver.CountLit(level)}/{CircuitSolver.CountBatteries(level)}";
+            if (view.topStatusBar.litLabel != null)
+                view.topStatusBar.litLabel.text = $"已点亮 {CircuitSolver.CountLit(level)}/{CircuitSolver.CountBatteries(level)}";
 
             RefreshPalette();
         }
@@ -410,7 +416,7 @@ namespace MasterHouse
         /// </summary>
         private void RefreshLinkBudget()
         {
-            if (view.linkBudgetLabel == null) return;
+            if (view.topStatusBar.linkBudgetLabel == null) return;
 
             int committed = level.UsedLinkCells;
             int pending = board != null ? board.PendingLinkCells : 0;
@@ -418,11 +424,11 @@ namespace MasterHouse
             int budget = level.LinkCellBudget;
 
             var used = pending > 0 ? $"{committed}(+{pending})" : committed.ToString();
-            view.linkBudgetLabel.text = budget > 0 ? $"导线 {used}/{budget}" : $"导线 {used}";
+            view.topStatusBar.linkBudgetLabel.text = budget > 0 ? $"导线 {used}/{budget}" : $"导线 {used}";
 
-            if (budget <= 0 || total < budget) view.linkBudgetLabel.color = view.budgetNormalColor;
-            else if (total == budget) view.linkBudgetLabel.color = view.budgetFullColor;
-            else view.linkBudgetLabel.color = view.budgetWarnColor;
+            if (budget <= 0 || total < budget) view.topStatusBar.linkBudgetLabel.color = view.budgetNormalColor;
+            else if (total == budget) view.topStatusBar.linkBudgetLabel.color = view.budgetFullColor;
+            else view.topStatusBar.linkBudgetLabel.color = view.budgetWarnColor;
         }
 
         // ══════════ 件库 ══════════
@@ -525,7 +531,10 @@ namespace MasterHouse
                 item.background.type = item.background.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
                 item.background.preserveAspect = false;
                 item.background.rectTransform.sizeDelta = previewSize;
-                item.background.rectTransform.anchoredPosition = new Vector2(0f, -8f);
+                // PieceBackground 的 pivot 是中心：要让它的上沿距条目顶部 TopPadding，
+                // 位置必须再减去半个自身高度，否则卡面会向上溢出并压住「件库」标题。
+                item.background.rectTransform.anchoredPosition = new Vector2(0f,
+                    -style.palettePieceTopPadding - previewSize.y * .5f);
             }
 
             if (item.functionIcon != null)
@@ -542,7 +551,7 @@ namespace MasterHouse
 
             if (item.layoutElement != null)
             {
-                float height = 8f + previewSize.y + style.palettePieceTextHeight;
+                float height = style.palettePieceTopPadding + previewSize.y + style.palettePieceTextHeight;
                 item.layoutElement.minHeight = height;
                 item.layoutElement.preferredHeight = height;
             }
@@ -642,6 +651,35 @@ namespace MasterHouse
         private void ApplyUiStyle()
         {
             var style = view.uiStyle;
+            if (style.uiFont != null)
+            {
+                // 静态 Prefab（含嵌套顶部状态条）和已有模板统一在这里换字；
+                // 棋盘后续动态创建的 Text 则在 CircuitBoard.NewLabel 中读取同一份样式。
+                foreach (var text in GetComponentsInChildren<Text>(true))
+                    text.font = style.uiFont;
+            }
+            if (view.topStatusBar != null)
+            {
+                var bar = view.topStatusBar;
+                if (bar.background != null)
+                {
+                    bar.background.sprite = style.topBarBackgroundSprite;
+                    bar.background.type = style.topBarBackgroundSprite != null ? Image.Type.Sliced : Image.Type.Simple;
+                    bar.background.preserveAspect = false;
+                    bar.background.color = style.topBarBackgroundColor;
+                }
+                var barRect = bar.transform as RectTransform;
+                if (barRect != null)
+                {
+                    var size = barRect.sizeDelta;
+                    size.y = style.topBarHeight;
+                    barRect.sizeDelta = size;
+                }
+                if (bar.progressLabel != null) bar.progressLabel.color = style.topBarProgressTextColor;
+                if (bar.linkBudgetLabel != null) bar.linkBudgetLabel.color = style.topBarTextColor;
+                if (bar.pieceBudgetLabel != null) bar.pieceBudgetLabel.color = style.topBarTextColor;
+                if (bar.litLabel != null) bar.litLabel.color = style.topBarTextColor;
+            }
             if (view.palettePanelBackground == null) return;
 
             view.palettePanelBackground.sprite = style.palettePanelBackgroundSprite;
@@ -650,6 +688,25 @@ namespace MasterHouse
                 : Image.Type.Simple;
             view.palettePanelBackground.preserveAspect = false;
             view.palettePanelBackground.color = style.palettePanelColor;
+
+            var palettePosition = view.paletteRoot.anchoredPosition;
+            palettePosition.y = -style.paletteContentTopPadding;
+            view.paletteRoot.anchoredPosition = palettePosition;
+        }
+
+        private void CacheDefaultLevelBackground()
+        {
+            defaultLevelBackgroundSprite = view.levelBackground.sprite;
+            defaultLevelBackgroundColor = view.levelBackground.color;
+        }
+
+        private void RefreshLevelBackground()
+        {
+            var backgroundSprite = level?.Def?.BackgroundSprite;
+            view.levelBackground.sprite = backgroundSprite != null ? backgroundSprite : defaultLevelBackgroundSprite;
+            view.levelBackground.type = Image.Type.Simple;
+            view.levelBackground.preserveAspect = false;
+            view.levelBackground.color = backgroundSprite != null ? Color.white : defaultLevelBackgroundColor;
         }
 
         private int MaxCountOf(NodeDef def)
@@ -693,6 +750,15 @@ namespace MasterHouse
             if (view.previewRoot == null) missing.Add(nameof(view.previewRoot));
             if (view.visualStyle == null) missing.Add(nameof(view.visualStyle));
             if (view.uiStyle == null) missing.Add(nameof(view.uiStyle));
+            if (view.levelBackground == null) missing.Add(nameof(view.levelBackground));
+            if (view.topStatusBar == null) missing.Add(nameof(view.topStatusBar));
+            else
+            {
+                if (view.topStatusBar.background == null) missing.Add("topStatusBar.background");
+                if (view.topStatusBar.linkBudgetLabel == null) missing.Add("topStatusBar.linkBudgetLabel");
+                if (view.topStatusBar.pieceBudgetLabel == null) missing.Add("topStatusBar.pieceBudgetLabel");
+                if (view.topStatusBar.litLabel == null) missing.Add("topStatusBar.litLabel");
+            }
             if (view.palettePanelBackground == null) missing.Add(nameof(view.palettePanelBackground));
             if (view.paletteRoot == null) missing.Add(nameof(view.paletteRoot));
             if (view.paletteItemTemplate == null) missing.Add(nameof(view.paletteItemTemplate));
@@ -717,7 +783,8 @@ namespace MasterHouse
             if (view.lessonPanel == null) missing.Add(nameof(view.lessonPanel));
             if (view.lessonTitleLabel == null) missing.Add(nameof(view.lessonTitleLabel));
             if (view.lessonBriefLabel == null) missing.Add(nameof(view.lessonBriefLabel));
-            if (view.progressLabel == null) missing.Add(nameof(view.progressLabel));
+            if (view.topStatusBar == null) missing.Add(nameof(view.topStatusBar));
+            else if (view.topStatusBar.progressLabel == null) missing.Add("topStatusBar.progressLabel");
             if (view.prevLessonButton == null) missing.Add(nameof(view.prevLessonButton));
             if (view.retryLessonButton == null) missing.Add(nameof(view.retryLessonButton));
             if (view.summaryPanel == null) missing.Add(nameof(view.summaryPanel));

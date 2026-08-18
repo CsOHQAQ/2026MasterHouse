@@ -23,6 +23,10 @@ namespace MasterHouse
         [Tooltip("画布形状——内联 GridGroup，可以是非矩形")]
         public GridGroup Canvas = new GridGroup();
 
+        [Header("关卡视觉")]
+        [Tooltip("本关全屏背景底图。留空时使用 CircuitMinigame Prefab 的默认背景。")]
+        public Sprite BackgroundSprite;
+
         [Tooltip("预置节点：电源与电池靠它预置，是不可移动不可删除的题面")]
         public List<PresetNodeEntry> PresetNodes = new List<PresetNodeEntry>();
 
