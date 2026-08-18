@@ -46,10 +46,19 @@ namespace MasterHouse
         /// </summary>
         internal static void ConfigureReceptionWalkArea(Rect? area)
         {
-            if (area.HasValue && area.Value.width > .01f && area.Value.height > .001f)
-                ReceptionWalkArea = area.Value;
+            if (!area.HasValue || area.Value.width <= .01f) return;
+            var walk = area.Value;
+            // 矩形被拖成一条线时给它补一点纵深：否则近沿=远沿，所有人会被算到同一个点上
+            if (walk.height < MinWalkDepth) walk.height = MinWalkDepth;
+            ReceptionWalkArea = walk;
+            // 入口区跟着可走带走（2026-08-18 反馈「范围调好了人还在上面」）：
+            // 门口排队用的是入口区，它要是还留在代码常量上，调可走带对排队的人一点用没有。
+            // 取可走带靠门那一侧的前半段：横向左 38%，纵向压在偏前的位置，队伍就贴着地。
+            ReceptionEntryArea = Rect.MinMaxRect(
+                walk.xMin, walk.yMin,
+                Mathf.Lerp(walk.xMin, walk.xMax, .38f), Mathf.Lerp(walk.yMin, walk.yMax, .75f));
         }
-        private static readonly Rect ReceptionEntryArea = Rect.MinMaxRect(.06f, .03f, .4f, .13f);
+        private static Rect ReceptionEntryArea = Rect.MinMaxRect(.06f, .03f, .4f, .13f);
         /// <summary>活动区没有单独配透视收缩比时的默认远端宽度比。</summary>
         private const float DefaultFarWidthScale = .8f;
 
@@ -60,6 +69,9 @@ namespace MasterHouse
         /// 既有椭圆的圆润轮廓与前后收口，又保住整条带的可用宽度。
         /// </summary>
         private const float WalkOvalPower = 3f;
+
+        /// <summary>可走带的最小纵深（区域内分数）：矩形被拖成一条线时兜住，免得所有人塌到同一个点。</summary>
+        private const float MinWalkDepth = .03f;
         private const int MaxAmbient = 3;
         /// <summary>
         /// 演员的统一世界缩放：全场访客共用 VisitorTuningConfig 的基准大小，
@@ -268,8 +280,9 @@ namespace MasterHouse
             {
                 var room = table.rooms[roomIndex];
                 var area = room.visitorWalkArea;
-                if (area.width > .01f && area.height > .001f)
+                if (area.width > .01f)
                 {
+                    if (area.height < MinWalkDepth) area.height = MinWalkDepth;
                     // 透视收缩比仍取地面网格的（同一块地面，远端该收多少是一致的）
                     var farScale = DefaultFarWidthScale;
                     foreach (var grid in room.grids)
