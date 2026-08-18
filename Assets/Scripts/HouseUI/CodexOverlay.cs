@@ -22,6 +22,15 @@ namespace MasterHouse
         private int focusIndex;
         private bool closing;
 
+        /// <summary>卡片层（翻页时整条横移做出滑动感；卡位本身仍按 Prefab 摆）。</summary>
+        private RectTransform cardsRoot;
+        private CanvasGroup cardsGroup;
+        private Tween slideTween;
+
+        /// <summary>翻一张的横移距离：取相邻卡位的平均间距，滑动幅度才跟排布对得上。</summary>
+        private float slideDistance = 370f;
+        private const float SlideSeconds = .28f;
+
         private CodexOverlay(RectTransform root, OutGameCodexPageView view, HouseUIManager ui)
         {
             this.root = root;
@@ -65,6 +74,7 @@ namespace MasterHouse
         {
             if (closing || root == null) return;
             closing = true;
+            slideTween?.Kill();
             var group = HouseUIUtil.Group(root.gameObject);
             group.blocksRaycasts = false;
             group.DOFade(0, .2f).SetUpdate(true).OnComplete(() =>
@@ -95,7 +105,28 @@ namespace MasterHouse
                     else HouseUIUtil.BindButton(view.cardButtons[i], () => Step(offset));
                 }
             }
+            CacheCardsRoot();
             Refresh();
+        }
+
+        /// <summary>取卡片层与相邻卡位的平均间距（滑动动画用；卡位本身仍以 Prefab 为准）。</summary>
+        private void CacheCardsRoot()
+        {
+            if (view.cardSlots == null || view.cardSlots.Length < 2 || view.cardSlots[0] == null) return;
+            cardsRoot = view.cardSlots[0].rectTransform.parent as RectTransform;
+            if (cardsRoot == null) return;
+            cardsGroup = cardsRoot.GetComponent<CanvasGroup>();
+            if (cardsGroup == null) cardsGroup = cardsRoot.gameObject.AddComponent<CanvasGroup>();
+            var span = 0f;
+            var pairs = 0;
+            for (var i = 1; i < view.cardSlots.Length; i++)
+            {
+                if (view.cardSlots[i] == null || view.cardSlots[i - 1] == null) continue;
+                span += Mathf.Abs(view.cardSlots[i].rectTransform.anchoredPosition.x -
+                                  view.cardSlots[i - 1].rectTransform.anchoredPosition.x);
+                pairs++;
+            }
+            if (pairs > 0) slideDistance = span / pairs;
         }
 
         /// <summary>切换焦点（循环）：转到正中就直接翻开，不用再点一下（2026-08-18 反馈）。</summary>
@@ -104,6 +135,26 @@ namespace MasterHouse
             if (RaceCount == 0 || direction == 0) return;
             focusIndex = ((focusIndex + direction) % RaceCount + RaceCount) % RaceCount;
             Refresh();
+            PlaySlide(direction);
+        }
+
+        /// <summary>
+        /// 翻页滑动（2026-08-18 反馈「一格一格的有些僵硬」）：换图是瞬时的，
+        /// 但把整条卡片层先摆回上一张的位置再缓动回原位，眼睛读到的就是滑过去而不是跳过去。
+        /// 连着滚时重启同一个补间，速度自然叠上去。
+        /// </summary>
+        private void PlaySlide(int direction)
+        {
+            if (cardsRoot == null) return;
+            slideTween?.Kill();
+            cardsRoot.anchoredPosition = new Vector2(direction * slideDistance, 0f);
+            slideTween = cardsRoot.DOAnchorPos(Vector2.zero, SlideSeconds)
+                .SetEase(Ease.OutCubic).SetUpdate(true).SetLink(cardsRoot.gameObject);
+            if (cardsGroup == null) return;
+            // 焦点卡的尺寸是瞬间变的，配一点淡入盖住那一下突变
+            cardsGroup.DOKill();
+            cardsGroup.alpha = .55f;
+            cardsGroup.DOFade(1f, SlideSeconds).SetUpdate(true).SetLink(cardsRoot.gameObject);
         }
 
         /// <summary>「查看」：焦点卡已经自动翻开了，这里只报一下是谁 / 还没接待过。</summary>
