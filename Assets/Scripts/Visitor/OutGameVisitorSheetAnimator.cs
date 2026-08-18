@@ -9,7 +9,9 @@ namespace MasterHouse
     /// PNG 入库时可能被缩放，因此帧定位只依赖 columns/rows/frameCount，宽高只用于长宽比。
     /// </summary>
     [Serializable]
-    internal sealed class OutGameVisitorSheet
+    // public 而非 internal：编辑器工具（测量脚底留白）在 Assembly-CSharp-Editor 里，
+    // internal 跨不过程序集边界（2026-08-18 编译报错 CS0122）
+    public sealed class OutGameVisitorSheet
     {
         public int frameWidth;
         public int frameHeight;
