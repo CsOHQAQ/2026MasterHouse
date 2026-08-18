@@ -412,6 +412,24 @@ namespace MasterHouse
             }
         }
 
+        /// <summary>高清层是否已接管（硬切换的当前态）。</summary>
+        private bool sharpLodOn;
+
+        /// <summary>切入高清层的缩放阈值；退回延时帧的阈值更低，中间那段是迟滞区，避免边界抖动来回闪。</summary>
+        private const float SharpLodEnterZoom = FocusedZoomThreshold * .92f;
+        private const float SharpLodExitZoom = FocusedZoomThreshold * .72f;
+
+        /// <summary>
+        /// 硬切换 + 迟滞：推近越过 Enter 就整层换成高清，退回跌破 Exit 才换回延时帧。
+        /// 返回 0/1 给各层当 alpha——**不给中间值**，中间值就是重影。
+        /// </summary>
+        private float UpdateSharpLod()
+        {
+            if (!sharpLodOn && camZoom >= SharpLodEnterZoom) sharpLodOn = true;
+            else if (sharpLodOn && camZoom < SharpLodExitZoom) sharpLodOn = false;
+            return sharpLodOn ? 1f : 0f;
+        }
+
         /// <summary>每帧按局内时钟推环境光（HubPage.OnUpdate 调；叠加层开着也走，面板后面的天色照常流动）。
         /// 色带定义在 HouseDayLight（与标题页封面共用）。</summary>
         public void UpdateDayLight()
@@ -420,11 +438,18 @@ namespace MasterHouse
             var (tint, _) = HouseDayLight.Now();
             // 外景层与主楼剖面放的都是延时分帧，天色/夜色在帧里，不再叠调色与夜罩（叠了会双重变暗）
             if (exteriorBackdrop != null) exteriorBackdrop.color = Color.white;
-            if (houseBackdrop != null) houseBackdrop.color = Color.white;
             // 清晰度分级（2026-08-17）：总览时延时帧当家（有室内光影动画）；
-            // 往单间推近时，高清静态主楼图与高清房间烘焙图一起淡入接管（延时帧只有 1280 宽，推近了糊）
-            var lod = Mathf.InverseLerp(OverviewZoom * 1.35f, FocusedZoomThreshold, camZoom);
+            // 往单间推近时换成高清静态主楼图与高清房间烘焙图（延时帧只有 1280 宽，推近了糊）。
+            // 2026-08-18：这里原来是按缩放交叉淡入，但两层是**不同来源的同一栋楼**
+            // （延时视频的帧 vs 美术原图），几何对不齐，混合期必然看到两套重叠的房间。
+            // 改成带迟滞的硬切换：任一时刻只有一层在画，缩放全程都不会出现重影帧。
+            var lod = UpdateSharpLod();
             if (houseStatic != null) houseStatic.color = new Color(tint.r, tint.g, tint.b, lod);
+            // 高清层接管时把延时帧那层整个关掉：两层同时在画才有重影，关掉就从根上没有。
+            // 高清图没就位时不关，否则整栋楼会没了。
+            var sharpReady = houseStatic != null && houseStatic.texture != null;
+            if (houseBackdrop != null)
+                houseBackdrop.color = sharpReady && lod >= 1f ? Color.clear : Color.white;
             var roomColor = Color.Lerp(Color.white, tint, .5f); // 家具/房间只上半强度，好跟延时帧衔接
             roomColor.a = lod;
             var nightAlpha = HouseDayLight.NightRoomAlphaNow() * lod;
