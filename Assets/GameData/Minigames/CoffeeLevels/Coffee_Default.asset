@@ -26,7 +26,7 @@ MonoBehaviour:
   SpeedSampleSeconds: 0.05
   MinAverageSpeed: 0.1
   ExcellentVarianceMax: 0.02
-  GoodVarianceMax: 0.06
+  GoodVarianceMax: 0.05
   PourExcellentScore: 50
   PourGoodScore: 30
   PourPlainScore: 20
