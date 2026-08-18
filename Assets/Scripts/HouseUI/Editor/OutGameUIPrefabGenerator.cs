@@ -2495,19 +2495,20 @@ namespace MasterHouse
         private const int StoreGridColumns = 5;
 
         /// <summary>
-        /// 图鉴卡位（2026-08-18 按设计图的相对大小重排）：
-        /// 尺寸取设计图量出来的比例——侧卡约占屏高 53%（473×576）、焦点卡约 73%（656×786）；
-        /// 横向中心距 330~430 全都小于卡宽，**相邻卡必定压着彼此**（要的就是这层叠感）；
-        /// 纵向高度与倾角逐张错开，最外两张溢出屏幕边缘被切掉——「随手摊在墙上」靠的是错落不是间距。
+        /// 图鉴卡位（2026-08-18）：**卡位算的是「可见卡面」的重叠，不是矩形的重叠**——
+        /// 卡面素材四周有大片透明边距（侧卡可见部分只占矩形的 76.7%×76.0%、
+        /// 焦点卡占 81.0%×85.9%），按矩形排出来的「重叠」全被边距吃掉，看着还是各摆各的。
+        /// 现在按可见宽反推：五张卡的可见部分首尾相接铺满 0~1920，相邻两张各压 120px，
+        /// 纵向高度与倾角逐张错开——「随手摊在墙上」靠的是错落不是间距。
         /// 层序由外向内叠（见 buildOrder），焦点卡压最上。坐标按 1920×1080、锚左上、pivot 居中。
         /// </summary>
         private static readonly (Vector2 Position, Vector2 Size, float Tilt)[] CodexSlots =
         {
-            (new Vector2(200, -644), new Vector2(473, 576), -9f),
-            (new Vector2(530, -518), new Vector2(473, 576), 3f),
-            (new Vector2(960, -575), new Vector2(656, 786), -1.5f),
-            (new Vector2(1390, -618), new Vector2(473, 576), -5f),
-            (new Vector2(1720, -518), new Vector2(473, 576), 6f),
+            (new Vector2(215, -600), new Vector2(574, 698), -9f),
+            (new Vector2(535, -505), new Vector2(574, 698), 3f),
+            (new Vector2(937, -575), new Vector2(789, 946), -1.5f),
+            (new Vector2(1374, -585), new Vector2(574, 698), -5f),
+            (new Vector2(1694, -495), new Vector2(574, 698), 6f),
         };
 
         /// <summary>
@@ -2517,6 +2518,7 @@ namespace MasterHouse
         {
             new Vector2(470, 572), // 初版：偏小、均匀
             new Vector2(620, 754), // 第二版：放大过头，侧卡比设计图大了快一半
+            new Vector2(473, 576), // 第三版：尺寸对了，但按矩形算重叠，被透明边距吃光
         };
 
         private const string CodexDir = "Assets/PC ui 2.0/图鉴/";
