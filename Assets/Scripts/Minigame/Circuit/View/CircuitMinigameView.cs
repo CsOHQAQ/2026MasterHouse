@@ -32,12 +32,18 @@ namespace MasterHouse
         [Tooltip("所有节点共用的状态图标等表现资产")]
         public CircuitVisualStyleConfig visualStyle;
 
+        [Tooltip("Prefab 固定 UI 的主题资产（件库、按钮等；不含节点功能图标）")]
+        public CircuitUIStyleConfig uiStyle;
+
         [Header("顶部预算条")]
         public Text linkBudgetLabel;
         public Text pieceBudgetLabel;
         public Text litLabel;
 
         [Header("左侧件库")]
+        [Tooltip("件库整体背景。Sprite 与染色由 uiStyle 驱动。")]
+        public Image palettePanelBackground;
+
         public RectTransform paletteRoot;
 
         [Tooltip("件库条目模板（§16.2 动态列表项 = 模板 Prefab + 运行时实例化）。运行时会被隐藏并克隆")]
