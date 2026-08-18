@@ -2495,21 +2495,29 @@ namespace MasterHouse
         private const int StoreGridColumns = 5;
 
         /// <summary>
-        /// 图鉴卡位（2026-08-18 对齐设计图）：卡片放大到接近满高、横向拉近到彼此压边，
-        /// 高度与倾角逐张错开——设计图那种「随手摊在墙上」的杂乱感靠的就是这个，不是均匀排布。
-        /// 坐标按 1920×1080、锚左上、pivot 居中。
+        /// 图鉴卡位（2026-08-18 按设计图的相对大小重排）：
+        /// 尺寸取设计图量出来的比例——侧卡约占屏高 53%（473×576）、焦点卡约 73%（656×786）；
+        /// 横向中心距 330~430 全都小于卡宽，**相邻卡必定压着彼此**（要的就是这层叠感）；
+        /// 纵向高度与倾角逐张错开，最外两张溢出屏幕边缘被切掉——「随手摊在墙上」靠的是错落不是间距。
+        /// 层序由外向内叠（见 buildOrder），焦点卡压最上。坐标按 1920×1080、锚左上、pivot 居中。
         /// </summary>
         private static readonly (Vector2 Position, Vector2 Size, float Tilt)[] CodexSlots =
         {
-            (new Vector2(150, -612), new Vector2(620, 754), -8.5f),
-            (new Vector2(525, -524), new Vector2(620, 754), 4.5f),
-            (new Vector2(960, -575), new Vector2(700, 839), -1.5f),
-            (new Vector2(1400, -556), new Vector2(620, 754), -6f),
-            (new Vector2(1785, -498), new Vector2(620, 754), 7.5f),
+            (new Vector2(200, -644), new Vector2(473, 576), -9f),
+            (new Vector2(530, -518), new Vector2(473, 576), 3f),
+            (new Vector2(960, -575), new Vector2(656, 786), -1.5f),
+            (new Vector2(1390, -618), new Vector2(473, 576), -5f),
+            (new Vector2(1720, -518), new Vector2(473, 576), 6f),
         };
 
-        /// <summary>初版卡位（偏小、均匀、太规整）：只有完全等于它才做迁移，手调过就不再命中。</summary>
-        private static readonly Vector2 CodexStaleSideSize = new Vector2(470, 572);
+        /// <summary>
+        /// 本生成器历史上产出过的侧卡尺寸：命中其中之一才迁移卡位，手调过就不再命中。
+        /// </summary>
+        private static readonly Vector2[] CodexStaleSideSizes =
+        {
+            new Vector2(470, 572), // 初版：偏小、均匀
+            new Vector2(620, 754), // 第二版：放大过头，侧卡比设计图大了快一半
+        };
 
         private const string CodexDir = "Assets/PC ui 2.0/图鉴/";
         private const string ConversationDir = "Assets/PC ui 2.0/conversation/";
@@ -2630,7 +2638,9 @@ namespace MasterHouse
             var side = view.cardSlots[0];
             if (side == null) return false;
             var size = side.rectTransform.sizeDelta;
-            return Mathf.Abs(size.x - CodexStaleSideSize.x) < 1f && Mathf.Abs(size.y - CodexStaleSideSize.y) < 1f;
+            foreach (var stale in CodexStaleSideSizes)
+                if (Mathf.Abs(size.x - stale.x) < 1f && Mathf.Abs(size.y - stale.y) < 1f) return true;
+            return false;
         }
 
         /// <summary>把卡位换成新排布（放大 + 压边 + 错落）。只在命中初版值时调用，不覆盖手调。</summary>
