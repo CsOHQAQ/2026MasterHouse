@@ -339,7 +339,7 @@ MonoBehaviour:
         - kind: 0
           line:
             speaker: 0
-            text: "\u90A3\uFF0C\u90A3\u597D\u5427\uFF0C\u90A3\u6211\u53EA\u80FD\u53BB\u5176\u4ED6\u5730\u65B9\u770B\u770B\u4E86\uFF0C55555\u2026...."
+            text: "\u90A3\uFF0C\u90A3\u597D\u5427\uFF0C\u90A3\u6211\u53EA\u80FD\u53BB\u5176\u4ED6\u5730\u65B9\u770B\u770B\u4E86\uFF0C55555\u2026\u2026"
             portraitId: "leopard_\u4F24\u5FC3"
           actions: []
           sourceRow: 158
@@ -690,7 +690,7 @@ MonoBehaviour:
         - kind: 0
           line:
             speaker: 0
-            text: "\u90A3\uFF0C\u90A3\u597D\u5427\uFF0C\u90A3\u6211\u53EA\u80FD\u53BB\u5176\u4ED6\u5730\u65B9\u770B\u770B\u4E86\uFF0C55555\u2026...."
+            text: "\u90A3\uFF0C\u90A3\u597D\u5427\uFF0C\u90A3\u6211\u53EA\u80FD\u53BB\u5176\u4ED6\u5730\u65B9\u770B\u770B\u4E86\uFF0C55555\u2026\u2026"
             portraitId: "wolf_\u4F24\u5FC3"
           actions: []
           sourceRow: 408

@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   openMinute: 480
   closeMinute: 1320
+  actorWorldScale: 0.6
   needPromptMinTicks: 60
   needPromptMaxTicks: 180
   bubbleIntervalTicks: 120
   bubbleJitterTicks: 40
   bubbleHoldTicks: 40
-  actorWorldScale: 0.52
   ambientVisitors:
   - id: laoda
     displayName: "\u8001\u5927"
