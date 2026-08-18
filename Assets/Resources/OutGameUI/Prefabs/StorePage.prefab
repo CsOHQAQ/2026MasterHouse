@@ -1244,7 +1244,7 @@ MonoBehaviour:
   m_CellSize: {x: 148, y: 140}
   m_Spacing: {x: 8, y: 8}
   m_Constraint: 1
-  m_ConstraintCount: 6
+  m_ConstraintCount: 5
 --- !u!114 &1150030568813102419
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1450,8 +1450,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 639.5, y: -638.44}
-  m_SizeDelta: {x: 853, y: 637.1104}
+  m_AnchoredPosition: {x: 638.5, y: -634.94}
+  m_SizeDelta: {x: 851, y: 630.12}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5892445198572699390
 CanvasRenderer:
@@ -2727,7 +2727,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_AspectMode: 0
-  m_AspectRatio: 2.5410178
+  m_AspectRatio: 0.911517
 --- !u!1 &8528878578629006284
 GameObject:
   m_ObjectHideFlags: 0
