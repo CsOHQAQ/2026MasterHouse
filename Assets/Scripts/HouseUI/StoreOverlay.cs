@@ -25,6 +25,12 @@ namespace MasterHouse
     {
         private static readonly string[] Categories = { "盆栽", "摆件", "桌椅", "壁挂", "灯具" };
 
+        /// <summary>
+        /// 不做换色的类目（2026-08-18 反馈）：这些类目里「一族多变体」不是配色关系，
+        /// 而是不同的东西（悬挂绿植 01~31 是 22 株不同的植物），所以逐件出卡、不出色块行与 X 键。
+        /// </summary>
+        private static readonly string[] NoColorCategories = { "盆栽" };
+
         /// <summary>卡片角标（「已有 n」/「？」）的文字色：2.0 商店主题蓝。</summary>
         private static readonly Color MarkTint = new Color32(0x4A, 0x6F, 0xA5, 0xFF);
 
@@ -248,14 +254,17 @@ namespace MasterHouse
                 if (entry == null) continue;
                 var category = string.IsNullOrEmpty(entry.category) ? "摆件" : entry.category;
                 if (category != Categories[index]) continue;
-                // 族 id 为空是配置事故（导表会 LogError 拦下），这里让它自成一族以免整类家具挤成一张卡
-                var key = string.IsNullOrEmpty(entry.familyId) ? entry.id : entry.familyId;
+                // 族 id 为空是配置事故（导表会 LogError 拦下），这里让它自成一族以免整类家具挤成一张卡；
+                // 不换色的类目（盆栽）逐件成族——每株植物是不同的植物，不是同一件的配色
+                var flat = System.Array.IndexOf(NoColorCategories, category) >= 0;
+                var key = flat || string.IsNullOrEmpty(entry.familyId) ? entry.id : entry.familyId;
                 if (!byKey.TryGetValue(key, out var family))
                 {
                     family = new Family
                     {
                         Key = key,
-                        DisplayName = families != null ? families.DisplayNameOf(key) : key,
+                        DisplayName = flat ? entry.displayName
+                            : families != null ? families.DisplayNameOf(key) : key,
                     };
                     byKey[key] = family;
                     listed.Add(family);
