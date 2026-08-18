@@ -15,6 +15,8 @@ namespace MasterHouse
         public Text priceLabel;
         [Tooltip("状态角标：已有 n（库存数量）/ ？（声望未解禁）")]
         public Text mark;
+        [Tooltip("已售罄标签（2026-08-18 新设计图）：绑定层按库存显隐")]
+        public Image soldOutTag;
 
         [Header("三态框（Prefab 烘焙引用，绑定层切换）")]
         public Sprite normalSprite;
