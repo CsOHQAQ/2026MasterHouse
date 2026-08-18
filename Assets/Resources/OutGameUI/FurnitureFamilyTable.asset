@@ -145,8 +145,8 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
+    cols: 3
+    rows: 4
     decorationScore: 18
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}

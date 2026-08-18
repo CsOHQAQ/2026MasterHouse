@@ -1053,10 +1053,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 97
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 71
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: f9b8a08ac83faa148bf79ee83381dd76, type: 3}
     swatchColor: {r: 0.49411765, g: 0.5019608, b: 0.33333334, a: 1}
@@ -1077,10 +1077,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 90
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 66
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: ce4e4164739109e4e866ec6b70b1a40d, type: 3}
     swatchColor: {r: 0.43137255, g: 0.43529412, b: 0.33333334, a: 1}
@@ -1101,10 +1101,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 93
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 68
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 999d7308d3f1ceb41824b7b63370a021, type: 3}
     swatchColor: {r: 0.42352942, g: 0.3882353, b: 0.33333334, a: 1}
@@ -1125,10 +1125,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 95
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 69
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 76ba131bbe45d584e9f4eda44a517a4c, type: 3}
     swatchColor: {r: 0.43529412, g: 0.44705883, b: 0.28627452, a: 1}
@@ -1149,10 +1149,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 93
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 68
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: f8e192e1b1b20d24bb491928281a6edd, type: 3}
     swatchColor: {r: 0.5372549, g: 0.5372549, b: 0.38431373, a: 1}
@@ -1173,10 +1173,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 83
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 61
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 285bcb05ea9446847ba796f9f0dfec3a, type: 3}
     swatchColor: {r: 0.49411765, g: 0.5176471, b: 0.27450982, a: 1}
@@ -1197,10 +1197,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 101
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 74
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 2aa00e6704dfd0943955630b65027e8e, type: 3}
     swatchColor: {r: 0.53333336, g: 0.47058824, b: 0.43529412, a: 1}
@@ -1221,10 +1221,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 55
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 40
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 99232e243e0829d4293d36774cff56e6, type: 3}
     swatchColor: {r: 0.43529412, g: 0.4745098, b: 0.30588236, a: 1}
@@ -1245,10 +1245,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 76
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 56
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: afd9de7a28d385246b02b01d3d223af8, type: 3}
     swatchColor: {r: 0.5176471, g: 0.5529412, b: 0.28627452, a: 1}
@@ -1269,10 +1269,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 92
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 67
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 3f9e90388efd3434cbe67cccfaa2b242, type: 3}
     swatchColor: {r: 0.43137255, g: 0.4509804, b: 0.3019608, a: 1}
@@ -1293,10 +1293,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 74
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 54
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: c233b03ddbdc65c4fb8c15753528fe60, type: 3}
     swatchColor: {r: 0.5294118, g: 0.45490196, b: 0.39215687, a: 1}
@@ -1317,10 +1317,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 80
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 58
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 3fee7326d0881c24ba1061ef1c53ef3c, type: 3}
     swatchColor: {r: 0.4392157, g: 0.5176471, b: 0.30980393, a: 1}
@@ -1341,10 +1341,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 90
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 66
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 0d7aaac971ee3dd4fae346bf423633e2, type: 3}
     swatchColor: {r: 0.62352943, g: 0.63529414, b: 0.44705883, a: 1}
@@ -1365,10 +1365,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 72
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 53
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 099196bd447340b48b248e4438d15d3f, type: 3}
     swatchColor: {r: 0.5882353, g: 0.47843137, b: 0.42352942, a: 1}
@@ -1389,10 +1389,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 64
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 47
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 5f420032778614c448aee332334b3a04, type: 3}
     swatchColor: {r: 0.49803922, g: 0.5176471, b: 0.40392157, a: 1}
@@ -1413,10 +1413,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 66
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 48
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: b109f0ef7499c5148b0632a5d0f26ae5, type: 3}
     swatchColor: {r: 0.53333336, g: 0.54901963, b: 0.47058824, a: 1}
@@ -1437,10 +1437,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 86
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 63
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 05d318398456b6641b139a0621103b64, type: 3}
     swatchColor: {r: 0.64705884, g: 0.6666667, b: 0.42745098, a: 1}
@@ -1461,10 +1461,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 65
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 48
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 59066a2594c3d3641af651d4604713a7, type: 3}
     swatchColor: {r: 0.5176471, g: 0.54509807, b: 0.49019608, a: 1}
@@ -1485,10 +1485,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 83
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 61
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 2230aa850c983e84d9f560618f84321b, type: 3}
     swatchColor: {r: 0.62352943, g: 0.5764706, b: 0.5882353, a: 1}
@@ -1509,10 +1509,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 84
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 61
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 8dc8815f17f6fec4d84771069c8662a5, type: 3}
     swatchColor: {r: 0.54509807, g: 0.58431375, b: 0.23137255, a: 1}
@@ -1533,10 +1533,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 102
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 75
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 639a491197f31b444aa3b813cbccef04, type: 3}
     swatchColor: {r: 0.4117647, g: 0.5019608, b: 0.45882353, a: 1}
@@ -1557,10 +1557,10 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
-    rows: 6
-    displayWidth: 86
-    displayHeight: 160
+    cols: 3
+    rows: 4
+    displayWidth: 63
+    displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: eb8fa9e001cb0a74d9a91747f952f7f4, type: 3}
     swatchColor: {r: 0.5294118, g: 0.59607846, b: 0.4862745, a: 1}
