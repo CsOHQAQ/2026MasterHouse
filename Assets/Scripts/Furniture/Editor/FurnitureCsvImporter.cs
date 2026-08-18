@@ -102,6 +102,7 @@ namespace MasterHouse.EditorTools
         {
             "记录类型", "房间id", "显示名", "场景宽", "场景高", "背景图", "景深模糊图", "失焦模糊图", "初始货币",
             "访客区左", "访客区下", "访客区右", "访客区上", "入口区左", "入口区下", "入口区右", "入口区上",
+            "白天墙脚线", "夜间墙脚线", "夜间横向缩放", "夜间横向偏移",
             "网格id", "表面类型", "列数", "行数", "格宽", "格高", "X", "Y", "远端宽度比",
             "家具id", "宿主家具id", "列", "行", "翻转",
         };
@@ -376,6 +377,12 @@ namespace MasterHouse.EditorTools
                         visitorEntryArea = Rect.MinMaxRect(
                             Float(row, col, "入口区左", .08f), Float(row, col, "入口区下", .15f),
                             Float(row, col, "入口区右", .18f), Float(row, col, "入口区上", .33f)),
+                        // 昼夜几何校正（2026-08-18）：两张房间图的墙脚线高度不同，
+                        // 网格按白天图标定，夜里按这两条线做分段线性映射，免得地面格爬到墙上
+                        dayFloorLine = Float(row, col, "白天墙脚线", .8f),
+                        nightFloorLine = Float(row, col, "夜间墙脚线", .8f),
+                        nightWidthScale = Float(row, col, "夜间横向缩放", 1f),
+                        nightShiftX = Float(row, col, "夜间横向偏移", 0f),
                     });
                     continue;
                 }

@@ -82,6 +82,14 @@ namespace MasterHouse
         public Rect visitorWalkArea = Rect.MinMaxRect(.04f, .03f, .96f, .35f);
         [Tooltip("访客入口区（归一化坐标，左下原点）：访客进场出现/离场走向的门口范围，按房间美术的门位标定")]
         public Rect visitorEntryArea = Rect.MinMaxRect(.08f, .15f, .18f, .33f);
+        [Header("夜间几何（2026-08-18）：昼夜两张房间图是分别绘制的，墙脚线高度不一样。" +
+                "网格按白天图标定，夜里若不校正就会穿到墙上/浮在地板外。" +
+                "两条线都是**从图顶算起的归一化 y**，可在房间表里量了填，量法见 Docs")]
+        [Tooltip("白天图的墙脚线（后墙与地板的交界）")] [Range(0f, 1f)] public float dayFloorLine = .8f;
+        [Tooltip("夜间图的墙脚线；与白天相同 = 不做纵向校正")] [Range(0f, 1f)] public float nightFloorLine = .8f;
+        [Tooltip("夜间图相对白天图的横向缩放（以房间中线为轴）：1 = 不变")] public float nightWidthScale = 1f;
+        [Tooltip("夜间图相对白天图的横向偏移（场景像素）")] public float nightShiftX;
+
         public List<FurnitureGridConfig> grids = new List<FurnitureGridConfig>();
         public List<FurnitureBlockedCellConfig> blockedCells = new List<FurnitureBlockedCellConfig>();
         public List<FurniturePlacementConfig> initialPlacements = new List<FurniturePlacementConfig>();

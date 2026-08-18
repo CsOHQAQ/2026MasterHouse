@@ -189,11 +189,26 @@ namespace MasterHouse
             ApplyDayLight();
         }
 
+        /// <summary>网格当前是按哪个夜色权重建的（夜色推移超过一档就重建）。</summary>
+        private float gridNightAlpha = -1f;
+        private const float GridRebuildStep = .02f;
+
+        /// <summary>按当前夜色权重重建网格并重摆已有家具（格子的行列语义不变，只是画到了新位置）。</summary>
+        private void RebuildGridsForNight()
+        {
+            foreach (var grid in grids.Values) grid?.Destroy();
+            grids.Clear();
+            BuildGrids();
+            foreach (var item in items.Values) LayoutItem(item);
+        }
+
         /// <summary>每帧按局内时钟推昼夜光照（乘法调色保对比度；只改 rgb、保留各层自己的透明度动画）。</summary>
         private void ApplyDayLight()
         {
             var (tint, veil) = HouseDayLight.Now();
             var nightAlpha = HouseDayLight.NightRoomAlphaNow();
+            // 夜色推移到一定程度就按新几何重建网格并重摆家具（每帧重建太浪费，0.02 一档肉眼看不出跳）
+            if (Mathf.Abs(nightAlpha - gridNightAlpha) > GridRebuildStep) RebuildGridsForNight();
             TintPreserveAlpha(backgroundRenderer, tint);
             if (nightBackgroundRenderer != null)
                 nightBackgroundRenderer.color = new Color(1f, 1f, 1f, nightAlpha);
@@ -239,12 +254,15 @@ namespace MasterHouse
 
         private void BuildGrids()
         {
+            gridNightAlpha = FurnitureNightLayout.NightAlphaNow();
             foreach (var config in room.grids)
             {
                 if (config == null || string.IsNullOrEmpty(config.id)) continue;
                 var order = config.surface == FurnitureSurfaceType.Floor ? OrderFloorGrid : OrderWallGrid;
                 var z = config.surface == FurnitureSurfaceType.Floor ? 0f : ZWall - .01f;
-                var grid = new FurnitureRuntimeGrid(config, PxToWorld, z);
+                // 夜里两张房间图的墙脚线不一样，网格按夜色权重校正过再建（否则地面格会爬到墙上）
+                var grid = new FurnitureRuntimeGrid(
+                    FurnitureNightLayout.Adjust(room, config, gridNightAlpha), PxToWorld, z);
                 grid.BuildVisual(stageRoot, F.WhiteSprite, order);
                 grids[grid.Id] = grid;
             }
