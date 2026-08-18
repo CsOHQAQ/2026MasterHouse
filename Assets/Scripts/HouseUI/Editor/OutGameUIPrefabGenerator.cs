@@ -356,12 +356,26 @@ namespace MasterHouse
         /// 商店页设计稿增量（2026-08-14）：预览下方选色块行、底部「X 改变颜色 / ⏎ 购买」键位提示、
         /// 获得弹窗左缘配色列。全部只补缺失节点；分类圆标槽位为空时顺手填上 store/1~5.png。
         /// </summary>
-        /// <summary>卡片网格还停在旧的「一行五张」排布（2026-08-18 反馈太松）。</summary>
+        /// <summary>本生成器历史上产出过的网格排布（列数, 格子）：命中其中之一才迁移。</summary>
+        private static readonly (int Columns, Vector2 Cell)[] StaleStoreGrids =
+        {
+            (5, new Vector2(176, 150)), // 初版：一行五张、格子偏大
+            (6, new Vector2(148, 126)), // 2026-08-18 误改：收成六张且高压过头
+        };
+
+        /// <summary>
+        /// 卡片网格还停在旧排布（2026-08-18 反馈太松）。判据是「精确等于某个历史生成值」，
+        /// 手调过任何一项就不再命中，不会覆盖你自己调的网格。
+        /// </summary>
         private static bool StoreGridNeedsTighten(OutGameStorePageView view)
         {
             var grid = view.gridContent != null ? view.gridContent.GetComponent<GridLayoutGroup>() : null;
-            return grid != null && grid.constraintCount != StoreGridColumns &&
-                   Mathf.Abs(grid.cellSize.x - 176f) < 1f;
+            if (grid == null) return false;
+            foreach (var stale in StaleStoreGrids)
+                if (grid.constraintCount == stale.Columns &&
+                    Mathf.Abs(grid.cellSize.x - stale.Cell.x) < 1f &&
+                    Mathf.Abs(grid.cellSize.y - stale.Cell.y) < 1f) return true;
+            return false;
         }
 
         /// <summary>只改 GridLayoutGroup 的格子/间距/列数，网格视口与其他手调布局一概不动。</summary>
@@ -2457,12 +2471,12 @@ namespace MasterHouse
             Debug.Log("[OutGameUI] 商店页与卡片已按 2.0 设计图重建。");
         }
 
-        // 商店网格（2026-08-18 反馈「一行五张太开了」）：收到一行六张、格子与间距同步收紧。
-        // 视口宽 950：6 × 148 + 5 × 8 + 8 padding = 936，仍在框内。
-        // 高度只收 10（150→140）：卡片内部的缩略框 112×96 是定尺的，压太狠会顶出卡面。
+        // 商店网格（2026-08-18 反馈「一行五张太开了」）：**仍是一行五张**，把格子与间距收紧，
+        // 卡片彼此靠得更近（176×150/间距 12 → 148×140/间距 8）。
+        // 高度只收 10：卡片内部的缩略框 112×96 是定尺的，压太狠会顶出卡面。
         private static readonly Vector2 StoreGridCell = new Vector2(148, 140);
         private static readonly Vector2 StoreGridSpacing = new Vector2(8, 8);
-        private const int StoreGridColumns = 6;
+        private const int StoreGridColumns = 5;
 
         private const string CodexDir = "Assets/PC ui 2.0/图鉴/";
         private const string ConversationDir = "Assets/PC ui 2.0/conversation/";
