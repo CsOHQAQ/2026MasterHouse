@@ -23,9 +23,17 @@ namespace MasterHouse
         /// <summary>当前打开的对话层；null = 没开。用于避免连播时重复实例化。</summary>
         private static DialogueOverlay current;
 
-        /// <summary>说话人名配色（§4.1 三种样式的区分之一）。访客沿用 Prefab 原色。</summary>
-        private static readonly Color VisitorNameColor = HouseUIUtil.Hex("E22D76");
-        private static readonly Color PlayerNameColor = HouseUIUtil.Hex("74D8D1");
+        /// <summary>
+        /// 2.0 配色（§4.1 三种说话人样式的区分之一）：访客名用设计图那支墨蓝（与底部键位条同色），
+        /// 玩家名换暖褐——纸底上跟蓝对比最清楚。旁白句名字留空、正文改居中，见 ApplySpeaker。
+        /// </summary>
+        private static readonly Color VisitorNameColor = HouseUIUtil.Hex("5676A6");
+        private static readonly Color PlayerNameColor = HouseUIUtil.Hex("9C6238");
+
+        /// <summary>选项文字三态：默认铅灰（压在米白纸条上）、选中白（压在蓝水彩条上）、条件不满足置灰。</summary>
+        private static readonly Color OptionNormalColor = HouseUIUtil.Hex("5C5C5A");
+        private static readonly Color OptionSelectedColor = Color.white;
+        private static readonly Color OptionDisabledColor = HouseUIUtil.Hex("5C5C5A", .35f);
 
         private readonly HouseUIManager ui;
         private readonly RectTransform root;
@@ -148,7 +156,9 @@ namespace MasterHouse
             if (view.closeButton != null) HouseUIUtil.BindButton(view.closeButton, ui.PopOverlay);
             // 推进按钮不响基础点击音：推进音（音效需求 #3）在 OnAdvanceClicked 里按「是否真的推进了」发声
             if (view.advanceButton != null) HouseUIUtil.BindButton(view.advanceButton, OnAdvanceClicked, ESfx.None);
-            if (view.guestTitle != null) view.guestTitle.text = "GUEST";
+            // 2.0 底部键位条是**真按钮**不是纯提示：点它们等价于滚轮/空格，鼠标党不必去够键盘
+            if (view.cycleButton != null) HouseUIUtil.BindButton(view.cycleButton, () => CycleSelection(1));
+            if (view.confirmButton != null) HouseUIUtil.BindButton(view.confirmButton, ConfirmSelection, ESfx.None);
 
             // 选项槽位在 Prefab 里预摆（§16.2 布局真相源），这里只收集引用
             optionSlots.Clear();
@@ -170,31 +180,39 @@ namespace MasterHouse
             // 玩家需要一边看着刚说完的话一边选。
             if (line != null) ApplySpeaker(line, dialogue);
 
-            if (view.continueArrow != null)
-                view.continueArrow.gameObject.SetActive(!dialogue.IsAtBranch);
-
             RebuildOptions(dialogue);
         }
 
-        /// <summary>三种说话人样式：访客=立绘+名字条；玩家=无立绘、名字条换色；旁白=居中无框。</summary>
+        /// <summary>
+        /// 三种说话人样式：访客/玩家 = 立绘（按立绘ID）+ 名字；旁白 = 无立绘、名字留空 + 正文居中。
+        ///
+        /// 2026-08-19（2.0 设计图）：旁白从「整条对白板隐藏、另起一段居中无框文本」改成**复用同一块板**。
+        /// 原因有二——2.0 的名字凸台是烘在 `对白底板` 素材里的，切不出「只藏名字」的版本；
+        /// 而新底图是明亮水彩外景，无框墨字直接压在天空/建筑上根本读不清。
+        /// 靠「没有名字 + 正文居中」照样和访客句、玩家句区分得开。
+        ///
+        /// 2026-08-19（羊族定为玩家）：**立绘只看当前立绘ID、名字与配色只看「谁在说」**，
+        /// 两者都不再由 speaker 枚举直接决定，见下面两段与 DialogueManager.IsCurrentLineFromPlayer。
+        /// </summary>
         private void ApplySpeaker(DialogueLine line, DialogueManager dialogue)
         {
-            var visitor = dialogue.CurrentVisitor;
             var isNarration = line.speaker == EDialogueSpeaker.Narration;
-            var isVisitor = line.speaker == EDialogueSpeaker.Visitor;
             var text = dialogue.CurrentText;
 
-            if (view.dialogueBar != null) view.dialogueBar.gameObject.SetActive(!isNarration);
-            if (view.portrait != null) view.portrait.gameObject.SetActive(isVisitor);
-            if (view.nameplate != null) view.nameplate.gameObject.SetActive(!isNarration);
-            if (view.narrationText != null) view.narrationText.gameObject.SetActive(isNarration);
-
-            if (isVisitor && view.portrait != null)
+            if (view.portrait != null)
             {
+                // 立绘显隐**不看说话人、只看对话表里配的立绘ID**（2026-08-19，羊族定为玩家）：
+                // 老板同样是有脸的角色，按 §4.1 原口径「玩家句不显示立绘」会把表里配好的 goat_* 差分全吃掉。
+                // 唯一的例外是旁白——它是环境描写、没有说话的人，让承接来的上一张脸留在屏幕上
+                // 只会读成「还是他在说」。
                 // 立绘ID 由 DialogueManager 承接过了（台词留空 = 沿用上一句，首句回落种族默认脸），
-                // 这里只负责查图。查不到就是空立绘位——导表期已硬校验过 ID 存在性，不在这里补日志。
+                // 这里只负责查图。查不到不补日志——导表期已硬校验过 ID 存在性。
                 var portraits = GameManager.Instance.PortraitTable;
-                var texture = portraits != null ? portraits.TextureOf(dialogue.CurrentPortraitId) : null;
+                var texture = isNarration || portraits == null
+                    ? null
+                    : portraits.TextureOf(dialogue.CurrentPortraitId);
+                // 没图就整个隐掉而不是留个空位：RawImage 不带贴图会画成一块白板
+                view.portrait.gameObject.SetActive(texture != null);
                 view.portrait.texture = texture;
                 if (texture != null)
                 {
@@ -207,19 +225,29 @@ namespace MasterHouse
 
             if (view.speakerName != null)
             {
-                view.speakerName.text = isVisitor ? (visitor != null ? visitor.DisplayName : "访客") : "我";
-                // 访客名沿用 Prefab 的粉；玩家换青，一眼分得清谁在说话
-                view.speakerName.color = isVisitor ? VisitorNameColor : PlayerNameColor;
+                // 名字与配色都按「这句是谁在说」走 DialogueManager 的判定，而不是按 speaker 枚举硬分：
+                // 老板的台词在对话表里大多写成 visitor（历史原因，那时玩家句会藏脸），
+                // 名字得认回玩家名「嘻洋羊」而不是访客名，见 DialogueManager.IsCurrentLineFromPlayer。
+                view.speakerName.text = dialogue.CurrentSpeakerName;
+                // 访客名墨蓝、玩家名暖褐，一眼分得清谁在说话
+                view.speakerName.color = dialogue.IsCurrentLineFromPlayer ? PlayerNameColor : VisitorNameColor;
             }
 
             // 打字机接管正文：换句时重开，未显完点击立即全文（§5.1）
-            var target = isNarration ? view.narrationText : view.dialogueText;
-            if (target != null) typewriter.Play(target, text, dialogue.TypewriterCharsPerSecond);
+            if (view.dialogueText != null)
+            {
+                view.dialogueText.alignment = isNarration ? TextAnchor.MiddleCenter : TextAnchor.UpperLeft;
+                typewriter.Play(view.dialogueText, text, dialogue.TypewriterCharsPerSecond);
+            }
         }
 
         /// <summary>
-        /// 重建选项列：绑定 Prefab 里预摆的槽位（阶梯排布手调定稿），多余槽位隐藏；
-        /// 选项数超出槽位数时克隆最后一个槽位、按最后两个槽位的位置差向下延伸。
+        /// 重建选项列：绑定 Prefab 里预摆的槽位，多余槽位隐藏。
+        ///
+        /// 2026-08-19（2.0 设计图）改为**底对齐**：槽位在 Prefab 里自下而上摆，最下一个紧贴对白板顶沿；
+        /// N 个选项占用最下面 N 格，第一个选项落在最上。这样选项越多越往上长、永远压不到对白板上——
+        /// 1.0 那种「从上往下排、不够往下克隆」在新版式里会直接怼进对白板。
+        /// 选项数超出预摆槽位时，从最上一格继续按槽距向上克隆。
         /// </summary>
         private void RebuildOptions(DialogueManager dialogue)
         {
@@ -237,21 +265,24 @@ namespace MasterHouse
             var options = dialogue.CurrentOptions;
             if (options == null || options.Count == 0 || optionSlots.Count == 0) return;
 
+            // 底对齐要先知道总数：空洞的行不占格
+            var total = 0;
+            foreach (var candidate in options)
+                if (candidate != null)
+                    total++;
+            if (total == 0) return;
+
             for (var i = 0; i < options.Count; i++)
             {
                 var option = options[i];
                 if (option == null) continue;
-                var optionView = SlotFor(shownOptions.Count);
+                var optionView = SlotFor(shownOptions.Count, total);
                 if (optionView == null) continue;
                 optionView.gameObject.SetActive(true);
 
                 var enabled = dialogue.IsOptionEnabled(option);
-                if (optionView.label != null)
-                {
-                    optionView.label.text = dialogue.FormatOptionText(option);
-                    // 不满足条件的选项**置灰保留可见**，让玩家知道存在别的可能（§12 待确认默认值）
-                    optionView.label.color = enabled ? HouseUIUtil.White : new Color(1, 1, 1, .35f);
-                }
+                // 文字配色统一在 ApplySelectionVisual 里按「选中 / 可选 / 置灰」三态刷
+                if (optionView.label != null) optionView.label.text = dialogue.FormatOptionText(option);
                 if (optionView.button != null)
                 {
                     optionView.button.interactable = enabled;
@@ -274,21 +305,27 @@ namespace MasterHouse
             HouseUIUtil.ApplyFallbackFont(view.optionsRoot);
         }
 
-        /// <summary>取第 index 个槽位；超出预摆数量时克隆最后一个槽位向下延伸。</summary>
-        private DialogueOptionView SlotFor(int index)
+        /// <summary>
+        /// 取第 index 个选项（自上而下数）该用的槽位。槽位数组的下标 0 是**最下面**那一格
+        /// （Prefab 里自下而上创建，GetComponentsInChildren 按层序返回），所以底对齐的映射是
+        /// slot = total - 1 - index：共 3 个选项时依次落在 slot2 / slot1 / slot0。
+        /// 选项数超出预摆格数时，从最上一格继续按槽距向上克隆。
+        /// </summary>
+        private DialogueOptionView SlotFor(int index, int total)
         {
-            if (index < optionSlots.Count) return optionSlots[index];
+            var slot = total - 1 - index;
+            if (slot >= 0 && slot < optionSlots.Count) return optionSlots[slot];
 
-            var last = optionSlots[optionSlots.Count - 1];
+            var top = optionSlots[optionSlots.Count - 1];
             var step = optionSlots.Count >= 2
-                ? last.GetComponent<RectTransform>().anchoredPosition -
+                ? top.GetComponent<RectTransform>().anchoredPosition -
                   optionSlots[optionSlots.Count - 2].GetComponent<RectTransform>().anchoredPosition
-                : new Vector2(0, -110);
-            var clone = Object.Instantiate(last.gameObject, last.transform.parent, false);
+                : new Vector2(0, 94);
+            var clone = Object.Instantiate(top.gameObject, top.transform.parent, false);
             clone.name = "OptionClone" + index;
             var rect = (RectTransform)clone.transform;
-            rect.anchoredPosition = ((RectTransform)last.transform).anchoredPosition +
-                                    step * (index - optionSlots.Count + 1);
+            rect.anchoredPosition = ((RectTransform)top.transform).anchoredPosition +
+                                    step * (slot - optionSlots.Count + 1);
             var optionView = clone.GetComponent<DialogueOptionView>();
             optionClones.Add(optionView);
             return optionView;
@@ -312,16 +349,23 @@ namespace MasterHouse
             trigger.triggers.Add(entry);
         }
 
-        /// <summary>选中项亮悬停皮肤（笔刷粉），其余回默认黑。</summary>
+        /// <summary>
+        /// 刷选中态：选中项亮蓝水彩条 + 白字，其余回米白纸条 + 铅灰字，条件不满足的置灰。
+        /// 底图切换交给 DialogueOptionView.SetSelected（两张素材主体不等大，靠显隐叠放而不是 SpriteSwap）。
+        /// </summary>
         private void ApplySelectionVisual()
         {
             for (var i = 0; i < shownOptions.Count; i++)
             {
                 var optionView = shownOptions[i];
-                if (optionView == null || optionView.background == null || optionView.button == null) continue;
-                var state = optionView.button.spriteState;
-                var sprite = i == selectedOption ? state.highlightedSprite : state.selectedSprite;
-                if (sprite != null) optionView.background.sprite = sprite;
+                if (optionView == null) continue;
+                var selected = i == selectedOption;
+                optionView.SetSelected(selected);
+                if (optionView.label == null) continue;
+                // 不满足条件的选项**置灰保留可见**，让玩家知道存在别的可能（§12 待确认默认值）
+                var interactable = optionView.button == null || optionView.button.interactable;
+                optionView.label.color = !interactable ? OptionDisabledColor
+                    : selected ? OptionSelectedColor : OptionNormalColor;
             }
         }
 

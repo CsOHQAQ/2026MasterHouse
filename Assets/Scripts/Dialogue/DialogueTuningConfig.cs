@@ -9,6 +9,15 @@ namespace MasterHouse
     [CreateAssetMenu(menuName = "MasterHouse/对话调参配置", fileName = "DialogueTuningConfig")]
     public sealed class DialogueTuningConfig : ScriptableObject
     {
+        [Header("玩家身份（§4.1）")]
+
+        [Tooltip("玩家（旅馆老板）所属的种族资产，现为 Race_goat「嘻洋羊」。\n" +
+                 "名字凸台上「玩家在说话」时显示的就是它的显示名——**名字不在这里再抄一遍**，\n" +
+                 "要改名去 Excel/访客种族表.xlsx 改 goat 那一行（一个数值只有一个家）。\n" +
+                 "它的种族id 还兼作「这张立绘是不是老板的脸」的判据，见 DialogueManager.IsPlayerPortrait。\n" +
+                 "留空 = 没有玩家角色，名字凸台回落旧口径「我」")]
+        public VisitorRaceDef playerRace;
+
         [Header("打字机（§5.1）")]
 
         [Tooltip("每秒显现字数。打字机是**表现层计时**、允许用 deltaTime——\n" +

@@ -199,6 +199,23 @@ namespace MasterHouse
             if (!File.Exists(JournalPanelPath)) { BuildJournalPanelContent(JournalPanelPath); changed = true; }
             if (!File.Exists(ArchivePanelPath)) { BuildArchivePanelContent(ArchivePanelPath); changed = true; }
             if (!File.Exists(DialogueViewPath)) { BuildDialogueView(DialogueViewPath); changed = true; }
+            else
+            {
+                // 对话页 2.0 重做（2026-08-19 用户定案：按新设计图全部替换）：
+                // 检测到 1.0 结构（缺 2.0 才有的键位按钮 / 选项槽还没有悬停底图）时整层重建覆盖。
+                // 1.0 的 Prefab 引用的是已删掉的字段（GUEST 标题、撕边压暗层等），留着也是坏的
+                var dialogueRoot = AssetDatabase.LoadAssetAtPath<GameObject>(DialogueViewPath);
+                var dialogueView = dialogueRoot != null ? dialogueRoot.GetComponent<OutGameDialogueView>() : null;
+                var firstSlot = dialogueView != null && dialogueView.optionsRoot != null
+                    ? dialogueView.optionsRoot.GetComponentInChildren<DialogueOptionView>(true)
+                    : null;
+                if (dialogueView == null || dialogueView.cycleButton == null ||
+                    dialogueView.confirmButton == null || firstSlot == null || firstSlot.hoverBackground == null)
+                {
+                    BuildDialogueView(DialogueViewPath);
+                    changed = true;
+                }
+            }
             if (!File.Exists(DaySettlePanelPath)) { BuildDaySettlePanel(DaySettlePanelPath); changed = true; }
             if (!File.Exists(ConfirmPopupPath)) { BuildConfirmPopup(ConfirmPopupPath); changed = true; }
             if (!File.Exists(DayTransitionPath)) { BuildDayTransition(DayTransitionPath); changed = true; }
@@ -1663,31 +1680,48 @@ namespace MasterHouse
             Save(root, path);
         }
 
-        /// <summary>访客对话界面（整层）。</summary>
-        /// <summary>
-        /// 访客对话界面（GVN/视觉小说式，2026-08-11 按美术示意图重做）：
-        /// 全屏对话场景 + 右侧撕边压暗 + 左上 GUEST 标题 + 左下立绘 + 底部对话条（名字/分隔线/正文/箭头）+
-        /// 右侧 Options 笔刷选项列（默认黑/悬停粉，SpriteSwap）。美术引用直接烘进 Prefab（Assets/PC ui/dialogue）。
-        /// </summary>
-        /// <summary>对话界面手调定稿的统一缩放：立绘/选项/键帽等按大画布尺寸摆、整体 ×0.45 缩到位。</summary>
-        private static readonly Vector3 TunedScale = new Vector3(.45f, .45f, 1f);
+        // ══════════ 访客对话界面（2.0 设计图） ══════════
 
+        /// <summary>2.0 对白板：整张素材（含透明边）落到 1920×1080 画布的尺寸与中心（锚左下）。</summary>
+        private static readonly Vector2 DialoguePlateSize = new Vector2(1417, 304);
+        private static readonly Vector2 DialoguePlateCenter = new Vector2(1106, 207);
+
+        /// <summary>选项槽位：最下一格中心 y、相邻中心间距、预摆格数、右锚横向偏移。</summary>
+        private const float DialogueOptionBottomY = 357f;
+        private const float DialogueOptionPitch = 94f;
+        private const int DialogueOptionSlotCount = 5;
+        private const float DialogueOptionRightInset = -399.5f;
+        private static readonly Vector2 DialogueOptionSlotSize = new Vector2(589, 80);
+        private static readonly Vector2 DialogueOptionHoverSize = new Vector2(717, 107);
+        private static readonly Vector2 DialogueOptionHoverOffset = new Vector2(28, -14);
+
+        /// <summary>2.0 对话配色，取自设计图的笔画芯色（名字与键位是同一支蓝，正文是铅灰）。</summary>
+        private static Color DialogueNameInk => Hex("5676A6");
+        private static Color DialogueBodyInk => Hex("585856");
+        private static Color DialogueOptionInk => Hex("5C5C5A");
+
+        /// <summary>
+        /// 访客对话界面（GVN/视觉小说式整层）。2026-08-19 按 2.0 设计图重做
+        /// （素材 Assets/PC ui 2.0/conversation，版式见 Docs/待办工作流/新版对话UI样例.png）：
+        /// 明亮水彩外景全屏底图 + 左下立绘 + 底部纸质对白板（名字凸台与分隔线都烘在素材里）+
+        /// 右侧「贴着对白板往上长」的选项列 + 底部 ESC/中键/space 三颗整图键位条。
+        ///
+        /// 同批退役的 1.0 元素：左上 GUEST 标题、正文尾部继续箭头、右侧撕边压暗层、独立分隔线——
+        /// 2.0 设计图里都不存在。1.0 那套「大画布 ×0.45」的统一缩放也一并撤掉：
+        /// 2.0 的坐标全部按 1920×1080 直接写，不再靠缩放凑。
+        ///
+        /// 【坐标口径】设计图是 2175×1225 手工拼版，按 1920/2175 ≈ 0.882 换算到画布；三类素材各自
+        /// 反推出的缩放比（选项 0.369 / 对白板 0.365 / 键位 0.350）互相吻合，说明出自同一比例。
+        /// 键位条直接沿用图鉴页 2.0 已落地的那组坐标，跨页保持同一条底边。
+        /// </summary>
         private static void BuildDialogueView(string path)
         {
-            const string artDir = "Assets/PC ui/dialogue/";
-            var bgTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(artDir + "bg.png");
-            var rightSprite = AssetDatabase.LoadAssetAtPath<Sprite>(artDir + "rignt-bg.png");
-            var lineSprite = AssetDatabase.LoadAssetAtPath<Sprite>(artDir + "line.png");
-            var arrowSprite = AssetDatabase.LoadAssetAtPath<Sprite>(artDir + "arrow.png");
-            var portraitTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(artDir + "character/1.png");
-            // 选项的笔刷皮肤（Options-default / Options-hover）已移到 BuildDialogueOption 的模板里
-
             var root = Root("DialogueView");
             var view = root.AddComponent<OutGameDialogueView>();
 
-            // 全屏场景底图（对话专用美术）
+            // 全屏场景底图（5120×2880，正好 16:9，直接铺满）
             view.sceneArt = Raw(root.transform, "Scene", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            view.sceneArt.texture = bgTexture;
+            view.sceneArt.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(ConversationDir + "对话-底板.png");
 
             // 整屏推进热区（点击推进台词 / 立即全文，§5.1）。
             // 紧跟场景之后创建 = 兄弟序最靠前 = 被其余控件盖住，
@@ -1699,147 +1733,100 @@ namespace MasterHouse
             view.advanceButton.targetGraphic = advance;
             view.advanceButton.transition = Selectable.Transition.None; // 整屏热区不该有任何视觉反馈
 
-            // 右侧撕边压暗层
-            view.rightShade = Image(root.transform, "RightShade", new Vector2(1, 0), new Vector2(1, 1),
-                new Vector2(-210, 0), new Vector2(420, 0), Color.white);
-            view.rightShade.sprite = rightSprite;
-            view.rightShade.raycastTarget = false;
-
-            // 左上 GUEST 标题
-            view.guestTitle = Label(root.transform, "GuestTitle", "GUEST", 52, Hex("E22D76"),
-                new Vector2(0, 1), new Vector2(0, 1), new Vector2(210, -74), new Vector2(360, 80),
-                TextAnchor.MiddleLeft, FontStyle.BoldAndItalic);
-
-            // 底部对话条：暗色渐层容器
-            view.dialogueBar = Rect(root.transform, "DialogueBar", new Vector2(0, 0), new Vector2(1, 0),
-                new Vector2(0, 122), new Vector2(0, 244));
-            var barBackground = ImageOn(view.dialogueBar, new Color(.012f, .01f, .022f, .86f));
-            // 对话条不吃射线：否则它会挡住底下的整屏推进热区，玩家点正文推不动对话——
+            // ── 底部对白板 ──
+            // 素材 3846×824、可见区 x 29..3734 / y 101..801，按 ×0.3685 落到画布：整张 1417×304，
+            // 可见右缘落在 1815（与选项列右缘同一条线）、可见底沿在 y≈63。
+            // 不开 preserveAspect：rect 已按素材比例给足，让贴图严丝合缝填满，子节点坐标才对得上
+            view.dialogueBar = Rect(root.transform, "DialogueBar", new Vector2(0, 0), new Vector2(0, 0),
+                DialoguePlateCenter, DialoguePlateSize);
+            var plate = ImageOn(view.dialogueBar, Color.white);
+            plate.sprite = Conversation("对白底板");
+            // 对白板不吃射线：否则它会挡住底下的整屏推进热区，玩家点正文推不动对话——
             // 而点正文恰恰是最自然的推进动作
-            barBackground.raycastTarget = false;
+            plate.raycastTarget = false;
 
-            // 左下立绘（压在对话条之上；尺寸/位置为手调定稿 2026-08-12，立绘原图透明边大所以画布远大于可见区）
+            // 说话人名：写进素材自带的左上凸台（凸台在素材内约 x 265..1950 / y 101..290）。
+            // 以下子节点都锚在对白板左下角，局部坐标 = 屏幕坐标 −(397.5, 55)
+            view.speakerName = Label(view.dialogueBar, "SpeakerName", string.Empty, 44, DialogueNameInk,
+                new Vector2(0, 0), new Vector2(0, 0), new Vector2(457.5f, 231), new Vector2(500, 60),
+                TextAnchor.MiddleLeft, FontStyle.Bold);
+
+            // 正文：屏幕坐标左 647 / 右 1713、上沿 240、高 170，按 30 号 1.5 行距够排 3 行
+            view.dialogueText = Label(view.dialogueBar, "DialogueText", string.Empty, 30, DialogueBodyInk,
+                new Vector2(0, 0), new Vector2(0, 0), new Vector2(782.5f, 100), new Vector2(1066, 170),
+                TextAnchor.UpperLeft, FontStyle.Normal);
+            view.dialogueText.lineSpacing = 1.5f;
+
+            // ── 左下立绘 ──（压在对白板之上：设计图里访客的袖子/腰带盖着板的左端）
+            // 素材 1600×1800，整张画布落到 600×675、底边贴屏幕底。
+            // 运行时 DialogueOverlay 会按贴图真实比例回算宽度，八张立绘同尺寸故结果不变
             view.portrait = Raw(root.transform, "Portrait", new Vector2(0, 0), new Vector2(0, 0),
-                new Vector2(385, 321), new Vector2(1600, 1600));
-            view.portrait.rectTransform.localScale = TunedScale; // 画布尺寸 ×0.45 缩放（手调定稿的组合）
-            view.portrait.texture = portraitTexture;
+                new Vector2(381, 337.5f), new Vector2(600, 675));
+            view.portrait.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                "Assets/Resources/OutGameUI/Portraits/cat.png"); // 仅供 Prefab 里预览，运行时按立绘ID 换
             view.portrait.raycastTarget = false;
 
-            // 名字条（说话人名 + 笔刷分隔线）：旁白句整条隐藏，故收在一个容器里统一开关（§4.1）
-            view.nameplate = Rect(view.dialogueBar, "Nameplate", new Vector2(0, 1), new Vector2(0, 1),
-                new Vector2(760, -60), new Vector2(600, 70));
-            view.speakerName = Label(view.nameplate, "SpeakerName", string.Empty, 30, Hex("E22D76"),
-                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -20), new Vector2(600, 40),
-                TextAnchor.MiddleLeft, FontStyle.BoldAndItalic);
-            view.nameLine = Image(view.nameplate.transform, "NameLine", new Vector2(.5f, 1), new Vector2(.5f, 1),
-                new Vector2(0, -50), new Vector2(600, 10), Color.white);
-            view.nameLine.sprite = lineSprite;
-            view.nameLine.raycastTarget = false;
-            view.dialogueText = Label(view.dialogueBar, "DialogueText", string.Empty, 24, Hex("F3E8DD"),
-                new Vector2(0, 1), new Vector2(0, 1), new Vector2(1010, -150), new Vector2(1100, 130),
-                TextAnchor.UpperLeft, FontStyle.Normal);
-            view.continueArrow = Image(view.dialogueBar.transform, "ContinueArrow", new Vector2(1, 0), new Vector2(1, 0),
-                new Vector2(-400, 36), new Vector2(28, 24), Color.white);
-            view.continueArrow.sprite = arrowSprite;
-            view.continueArrow.raycastTarget = false;
-
-            // 旁白：居中无框整屏文本（§4.1），默认隐藏，只有旁白句才亮
-            view.narrationText = Label(root.transform, "NarrationText", string.Empty, 26, Hex("F3E8DD"),
-                new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(1100, 300),
-                TextAnchor.MiddleCenter, FontStyle.Normal);
-            view.narrationText.gameObject.SetActive(false);
-
-            // 左下 ESC 键帽 + 返回提示（键帽三态贴图；尺寸为手调定稿 2026-08-12）
-            view.closeButton = KeycapButton(root.transform, "Close", "ESC",
-                new Vector2(0, 0), new Vector2(100, 42), new Vector2(203, 92));
-            view.closeButton.transform.localScale = TunedScale;
-            view.escHint = Label(root.transform, "CloseHint", "返回", 24, new Color(1, 1, 1, .75f),
-                new Vector2(0, 0), new Vector2(0, 0), new Vector2(198, 42), new Vector2(80, 30),
-                TextAnchor.MiddleLeft, FontStyle.Normal);
-
-            // 右下操作提示（静态示意）：滚轮切换选项 / 回车确认，输入本体在 DialogueHotkeys
-            var wheelIcon = Image(root.transform, "WheelIcon", new Vector2(0, 0), new Vector2(0, 0),
-                new Vector2(1415, 42), new Vector2(67, 86), Color.white);
-            wheelIcon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/PC ui/button/default/MIDDLE.png");
-            wheelIcon.rectTransform.localScale = TunedScale;
-            wheelIcon.preserveAspect = true;
-            wheelIcon.raycastTarget = false;
-            Label(root.transform, "WheelHint", "切换选项", 24, new Color(1, 1, 1, .75f),
-                new Vector2(0, 0), new Vector2(0, 0), new Vector2(1505, 42), new Vector2(120, 30),
-                TextAnchor.MiddleLeft, FontStyle.Normal);
-            // 确认键是空格（DialogueHotkeys 同步：Space 推进/确认）
-            var spaceIcon = Image(root.transform, "SpaceIcon", new Vector2(0, 0), new Vector2(0, 0),
-                new Vector2(1660, 42), new Vector2(203, 91), Color.white);
-            spaceIcon.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/PC ui/button/default/space.png");
-            spaceIcon.rectTransform.localScale = TunedScale;
-            spaceIcon.preserveAspect = true;
-            spaceIcon.raycastTarget = false;
-            Label(root.transform, "SpaceHint", "确认", 24, new Color(1, 1, 1, .75f),
-                new Vector2(0, 0), new Vector2(0, 0), new Vector2(1764, 42), new Vector2(80, 30),
-                TextAnchor.MiddleLeft, FontStyle.Normal);
-
-            // 右侧选项列：**Prefab 里预摆的阶梯槽位**（手调定稿 2026-08-12：右缘逐项右移、中心间距 110，
-            // 笔刷图透明边大所以画布 1566×356 视觉不重叠）。运行时按选项数绑定/隐藏，
-            // 超出槽位数由 DialogueOverlay 克隆最后一个槽位向下延伸——布局真相源保持在 Prefab（§16.2）。
+            // ── 右侧选项列 ──
+            // 自下而上预摆 5 个槽位（最下一个紧贴对白板顶沿），运行时**底对齐**填充：
+            // 选项越多越往上堆，永远压不到对白板上（2.0 设计图口径）
             view.optionsRoot = Rect(root.transform, "OptionsRoot", Vector2.zero, Vector2.one,
                 Vector2.zero, Vector2.zero);
-            var slotPositions = new[]
-            {
-                new Vector2(-151, 60), new Vector2(-116, -50), new Vector2(-79, -160), new Vector2(-69, -268),
-            };
-            for (var i = 0; i < slotPositions.Length; i++)
-                BuildDialogueOptionSlot(view.optionsRoot, "Option" + i, slotPositions[i]);
+            for (var i = 0; i < DialogueOptionSlotCount; i++)
+                BuildDialogueOptionSlot(view.optionsRoot, "Option" + i,
+                    DialogueOptionBottomY + DialogueOptionPitch * i);
+
+            // ── 底部键位条 ──（整图素材自带键名与文案；坐标沿用图鉴页 2.0）
+            view.closeButton = SpriteButton(root.transform, "CloseButton",
+                Conversation("ESC-默认"), Conversation("ESC-hover"),
+                new Vector2(0, 0), new Vector2(152, 57), new Vector2(186, 76));
+            view.cycleButton = SpriteButton(root.transform, "CycleButton",
+                Conversation("中键-默认"), Conversation("中键-悬停"),
+                new Vector2(1, 0), new Vector2(-359, 57), new Vector2(186, 76));
+            view.confirmButton = SpriteButton(root.transform, "ConfirmButton",
+                Conversation("space-默认"), Conversation("space-悬停"),
+                new Vector2(1, 0), new Vector2(-163, 57), new Vector2(186, 76));
 
             Save(root, path);
         }
 
         /// <summary>
-        /// 对话选项槽位（Options 笔刷皮肤，默认黑 / 悬停粉 SpriteSwap）。
-        /// 在 DialogueView 里预摆、可逐个手调位置；DialogueOverlay 运行时按分支选项数绑定或隐藏。
+        /// 对话选项槽位（2.0 二图叠放）。两张底图各按自己的原始比例摆：
+        ///   选项-默认 1598×218 ×0.3685 = 589×80（即槽位根尺寸）
+        ///   选项-悬停 1946×290 ×0.3685 = 717×107，相对根偏 (+28, −14)，让两张的**主体中心**重合
+        /// 之所以不做 SpriteSwap：两张的主体几乎一样大（1536×176 vs 1622×180），悬停大出来的
+        /// 那一大块全是右侧那条尖尾；塞进同一个 rect 会把蓝条主体缩掉 13%、尾巴还压扁。
+        /// 选中态只切两张的显隐，统一由 DialogueOptionView.SetSelected 管。
         /// </summary>
-        private static void BuildDialogueOptionSlot(RectTransform parent, string name, Vector2 position)
+        private static void BuildDialogueOptionSlot(RectTransform parent, string name, float centerY)
         {
-            const string artDir = "Assets/PC ui/dialogue/";
-            var optionNormal = AssetDatabase.LoadAssetAtPath<Sprite>(artDir + "Options-default.png");
-            var optionHover = AssetDatabase.LoadAssetAtPath<Sprite>(artDir + "Options-hover.png");
+            var rect = Rect(parent, name, new Vector2(1, 0), new Vector2(1, 0),
+                new Vector2(DialogueOptionRightInset, centerY), DialogueOptionSlotSize);
+            var view = rect.gameObject.AddComponent<DialogueOptionView>();
 
-            var root = new GameObject(name, typeof(RectTransform));
-            root.layer = 5;
-            var rect = (RectTransform)root.transform;
-            rect.SetParent(parent, false);
-            rect.anchorMin = rect.anchorMax = new Vector2(1, .5f);
-            rect.pivot = new Vector2(1, .5f); // 右缘定位，阶梯排布的手调基准
-            rect.anchoredPosition = position;
-            rect.sizeDelta = new Vector2(1566, 356);
-            rect.localScale = TunedScale; // 画布尺寸 ×0.45 缩放（手调定稿的组合），文字 40 号随缩视觉约 18
-
-            var view = root.AddComponent<DialogueOptionView>();
-            view.background = root.AddComponent<Image>();
-            view.background.color = Color.white;
-            view.background.sprite = optionNormal;
-            // 用全名：本类里有个同名的静态方法 Image(...)，简写会撞上
-            view.background.type = UnityEngine.UI.Image.Type.Simple;
-
-            view.button = root.AddComponent<Button>();
-            view.button.targetGraphic = view.background;
+            // 根节点：透明但吃射线，专职当 Button 的 targetGraphic——
+            // 底图要随选中态切显隐，不能兼任射线目标（一关就点不动了）
+            var hit = ImageOn(rect, new Color(0, 0, 0, 0));
+            hit.raycastTarget = true;
+            view.button = rect.gameObject.AddComponent<Button>();
+            view.button.targetGraphic = hit;
+            view.button.transition = Selectable.Transition.None; // 两态由 SetSelected 换图，不叠一层染色
             AddTweenFeedback(view.button);
-            if (optionHover != null)
-            {
-                view.button.transition = Selectable.Transition.SpriteSwap;
-                view.button.spriteState = new SpriteState
-                {
-                    highlightedSprite = optionHover,
-                    pressedSprite = optionHover,
-                    selectedSprite = optionNormal,
-                    disabledSprite = optionNormal,
-                };
-            }
 
-            // 文字区内边距按手调定稿：笔刷左右透明边不对称，左收 490、右收 330
-            view.label = Label(root.transform, "Label", string.Empty, 40, Hex("F3E8DD"),
-                TextAnchor.MiddleCenter, FontStyle.Normal);
-            view.label.rectTransform.anchoredPosition = new Vector2(79.6f, -17.4f);
-            view.label.rectTransform.sizeDelta = new Vector2(-819.6f, -200.1f);
+            view.background = Image(rect, "BgDefault", Vector2.zero, Vector2.one,
+                Vector2.zero, Vector2.zero, Color.white);
+            view.background.sprite = Conversation("选项-默认");
+            view.background.raycastTarget = false;
+
+            view.hoverBackground = Image(rect, "BgHover", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                DialogueOptionHoverOffset, DialogueOptionHoverSize, Color.white);
+            view.hoverBackground.sprite = Conversation("选项-悬停");
+            view.hoverBackground.raycastTarget = false;
+            view.hoverBackground.enabled = false; // 默认未选中
+
+            // 文字：贴纸条左内边距 56、右留 59（素材左右透明边不对称）
+            view.label = Label(rect, "Label", string.Empty, 28, DialogueOptionInk,
+                Vector2.zero, Vector2.one, new Vector2(-1.5f, 0), new Vector2(-115, 0),
+                TextAnchor.MiddleLeft, FontStyle.Normal);
         }
 
 
@@ -2718,6 +2705,19 @@ namespace MasterHouse
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("[OutGameUI] 图鉴页已按 2.0 设计图重建。");
+        }
+
+        [MenuItem("Tools/MasterHouse/OutGame UI/重建对话页（2.0 设计图）")]
+        private static void RebuildDialogue2()
+        {
+            if (!EditorUtility.DisplayDialog("按 2.0 设计图重建对话页",
+                    "会覆盖 DialogueView 的现有布局（包括手动调整）。确定继续吗？",
+                    "覆盖重建", "取消")) return;
+            EnsureFolder();
+            BuildDialogueView(DialogueViewPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[OutGameUI] 对话页已按 2.0 设计图重建。");
         }
 
         [MenuItem("Tools/MasterHouse/OutGame UI/重建设置页（2.0 设计图）")]

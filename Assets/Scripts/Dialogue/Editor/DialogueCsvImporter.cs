@@ -228,10 +228,12 @@ namespace MasterHouse.EditorTools
                     if (kind != EDialogueStepKind.Line)
                         report.Warn("对话内容", excelRow,
                             $"这一行是 {kindRaw} 却填了「立绘ID」{portraitId}——只有台词行会换立绘，本格会被忽略");
-                    else if (speaker != EDialogueSpeaker.Visitor)
+                    // 玩家句照样显示立绘（2026-08-19 羊族定为玩家）：老板是有脸的角色，
+                    // 这一条从「只有访客句显示立绘」放宽成「只有旁白不显示」。
+                    else if (speaker == EDialogueSpeaker.Narration)
                         report.Warn("对话内容", excelRow,
-                            $"说话人是 {DialogueSpeakerText.KeyOf(speaker)} 却填了「立绘ID」{portraitId}——" +
-                            "只有访客句显示立绘，本格会被忽略");
+                            $"说话人是旁白却填了「立绘ID」{portraitId}——" +
+                            "旁白是环境描写、没有说话的人，不显示立绘，本格会被忽略");
                 }
                 line.portraitId = portraitId;
 

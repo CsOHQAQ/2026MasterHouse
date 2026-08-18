@@ -123,6 +123,79 @@ namespace MasterHouse
         /// </summary>
         public string CurrentPortraitId => runtime != null ? runtime.CarriedPortraitId ?? string.Empty : string.Empty;
 
+        // ── 玩家身份（2026-08-19）──
+        // 「玩家」以前只是名字凸台上一个写死的「我」，谁在说话不关内容的事。现在羊族（Race_goat
+        // 「嘻洋羊」）被定为玩家角色，老板的台词要挂她自己的名字与脸，这里才需要认人。
+        //
+        // 认人的判据有两条，**第二条是临时桥接**：
+        //   ① 说话人 = player（对话表第二页「说话人」列写 player）——正规写法；
+        //   ② 说话人 = visitor 但立绘ID 是玩家种族的（`goat_*`）——对话表现状就是这么写的：
+        //      老板的台词全部挂在 visitor 上（她要露脸，而 §4.1 定的「玩家句不显示立绘」会把脸吃掉），
+        //      于是名字凸台去取"当前访客"的名字，画面上就成了「猫的名字 + 羊的脸」。
+        //      表还在策划手里编辑，这轮不动它，先在表现层把名字认回来。
+        //      等表改成「说话人=player + 保留立绘」之后，②可以连同这段注释一起删掉。
+
+        /// <summary>玩家所属种族（配在 DialogueTuningConfig.playerRace）；没配则为 null。</summary>
+        private VisitorRaceDef PlayerRace => tuning != null ? tuning.playerRace : null;
+
+        /// <summary>
+        /// 玩家（旅馆老板）的显示名。取自玩家种族资产的显示名，**不在对话侧另存一份**。
+        /// 没配玩家种族时回落旧口径「我」——那是 2026-08-19 之前名字凸台写死的那个字。
+        /// </summary>
+        public string PlayerDisplayName
+        {
+            get
+            {
+                var race = PlayerRace;
+                return race != null && !string.IsNullOrEmpty(race.displayName) ? race.displayName : "我";
+            }
+        }
+
+        /// <summary>
+        /// 这张立绘是不是玩家的脸。按「种族id 或 种族id_差分」匹配立绘ID——
+        /// 立绘表不带种族列（那张表刻意不区分角色），前缀是现有数据唯一的可用线索。
+        /// 玩家种族没配时恒为 false，行为与本改动之前一致。
+        /// </summary>
+        private bool IsPlayerPortrait(string portraitId)
+        {
+            var race = PlayerRace;
+            var raceId = race != null ? race.raceId : null;
+            if (string.IsNullOrEmpty(raceId) || string.IsNullOrEmpty(portraitId)) return false;
+            if (string.Equals(portraitId, raceId, StringComparison.OrdinalIgnoreCase)) return true;
+            return portraitId.Length > raceId.Length &&
+                   portraitId[raceId.Length] == '_' &&
+                   portraitId.StartsWith(raceId, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>当前这句是不是玩家在说（两条判据见上方注释）。停在分支上或没在播时为 false。</summary>
+        public bool IsCurrentLineFromPlayer
+        {
+            get
+            {
+                var line = CurrentLine;
+                if (line == null) return false;
+                if (line.speaker == EDialogueSpeaker.Player) return true;
+                return line.speaker == EDialogueSpeaker.Visitor && IsPlayerPortrait(CurrentPortraitId);
+            }
+        }
+
+        /// <summary>
+        /// 名字凸台该显示的名字：旁白留空，玩家句显示玩家名，其余显示当前访客名。
+        /// 访客缺失时回落「访客」——对话是访客说的却没有访客实例只可能是调用方组装上下文时漏了，
+        /// 名字凸台不该因此空一格。
+        /// </summary>
+        public string CurrentSpeakerName
+        {
+            get
+            {
+                var line = CurrentLine;
+                if (line == null || line.speaker == EDialogueSpeaker.Narration) return string.Empty;
+                if (IsCurrentLineFromPlayer) return PlayerDisplayName;
+                var visitor = CurrentVisitor;
+                return visitor != null ? visitor.DisplayName : "访客";
+            }
+        }
+
         /// <summary>台词填了立绘ID 就换脸；留空则保持不变——承接只发生在这一处。</summary>
         private void CarryPortrait(DialogueLine line)
         {

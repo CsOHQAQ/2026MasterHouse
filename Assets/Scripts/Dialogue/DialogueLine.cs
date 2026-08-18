@@ -5,13 +5,17 @@ namespace MasterHouse
 {
     /// <summary>
     /// 说话人（设计说明 §4.1）。三者的表现区分由 DialogueOverlay 负责：
-    /// 访客句 = 立绘 + 名字条；玩家句 = 无立绘、另一种框；旁白句 = 居中无框。
+    /// 访客句与玩家句都是 立绘（按 portraitId 查表）+ 名字凸台，只有名字与名字配色不同；
+    /// 旁白句无立绘、名字留空、正文居中。
     /// </summary>
     public enum EDialogueSpeaker
     {
-        /// <summary>访客说话：显示立绘（按 portraitId 查立绘表）与名字条。</summary>
+        /// <summary>访客说话：显示立绘（按 portraitId 查立绘表），名字凸台写访客名。</summary>
         Visitor = 0,
-        /// <summary>玩家说话：不显示立绘，用另一种对话框样式。</summary>
+        /// <summary>
+        /// 玩家（旅馆老板）说话：同样显示立绘，名字凸台写玩家名（取自 DialogueTuningConfig.playerRace）。
+        /// 2026-08-19 羊族定为玩家之前这里是「不显示立绘」——老板那时还不是个有脸的角色。
+        /// </summary>
         Player = 1,
         /// <summary>旁白：居中无框，用于环境描写与提示。</summary>
         Narration = 2,
@@ -81,7 +85,7 @@ namespace MasterHouse
                  "{访客名} 访客显示名")]
         public string text;
 
-        [Tooltip("立绘ID（Excel/立绘表.xlsx 的主键），仅访客句生效。\n" +
+        [Tooltip("立绘ID（Excel/立绘表.xlsx 的主键）。访客句与玩家句都生效，旁白句不显示立绘。\n" +
                  "**留空 = 沿用上一句的立绘**（GVN 惯例：只在需要换表情时才填）；\n" +
                  "组内首句留空则用该访客种族的「默认立绘ID」。承接逻辑见 DialogueManager.CurrentPortraitId。\n" +
                  "填了的 ID 必须存在于立绘表——导表期硬校验，不留到运行时")]

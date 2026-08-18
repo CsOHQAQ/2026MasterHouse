@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2796b58a73b76f249b54f8de06dfd726, type: 3}
   m_Name: DialogueTuningConfig
   m_EditorClassIdentifier: 
+  playerRace: {fileID: 11400000, guid: 4a0a9ea2a74b71742b4aaff26e32166a, type: 2}
   typewriterCharsPerSecond: 30
   skipTypewriter: 0
   recentRingLength: 3
