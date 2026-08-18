@@ -57,6 +57,7 @@ namespace MasterHouse
             if (view.applyButton != null) HouseUIUtil.BindButton(view.applyButton, RequestApply);
             ShowTab(0);
             HouseUIUtil.ApplyFallbackFont(view.transform);
+            HouseDayLightTint.Attach(view.transform, view.background); // 底图随时钟慢慢变天色
         }
 
         /// <summary>Q/E 翻页 + R 重置 / 空格应用（页面 HandleInput 或叠加层 SettingsHotkeys 每帧转发；都先过确认弹窗）。</summary>

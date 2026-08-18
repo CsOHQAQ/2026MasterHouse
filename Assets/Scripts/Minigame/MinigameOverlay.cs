@@ -155,6 +155,7 @@ namespace MasterHouse
             SetGate(true);
 
             HouseUIUtil.ApplyFallbackFont(instance.transform);
+            HouseDayLightTint.Attach(instance.transform); // 底图随时钟慢慢变天色
             ui.PushOverlay(overlay);
 
             // 放在压栈之后：小游戏可能在 Launch 里就同步结束（空关卡等极端情况），

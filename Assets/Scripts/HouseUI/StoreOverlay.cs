@@ -112,6 +112,7 @@ namespace MasterHouse
                 overlay.CycleColor, overlay.BuySelected,
                 overlay.ConfirmPurchase, () => overlay.IsObtainedOpen); // 弹窗态空格 = 确认购买（此刻才扣钱）
             HouseUIUtil.ApplyFallbackFont(instance.transform);
+            HouseDayLightTint.Attach(instance.transform, view.background); // 底图随时钟慢慢变天色
             var group = HouseUIUtil.Group(rect.gameObject, 0);
             group.DOFade(1, .25f).SetUpdate(true);
             ui.PushOverlay(overlay);
