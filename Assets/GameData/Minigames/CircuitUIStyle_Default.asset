@@ -48,3 +48,4 @@ MonoBehaviour:
   paletteCountDigitSpacing: 0
   paletteCountDigitColor: {r: 1, g: 1, b: 1, a: 1}
   paletteCountDigitDisabledColor: {r: 0.75, g: 0.42, b: 0.42, a: 1}
+  buttonBackgroundSprite: {fileID: 21300000, guid: 2076370049aadd24f89642e83fd986ca, type: 3}

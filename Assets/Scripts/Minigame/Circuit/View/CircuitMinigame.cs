@@ -692,6 +692,26 @@ namespace MasterHouse
             var palettePosition = view.paletteRoot.anchoredPosition;
             palettePosition.y = -style.paletteContentTopPadding;
             view.paletteRoot.anchoredPosition = palettePosition;
+
+            ApplyButtonStyle(view.finishButton, style);
+            ApplyButtonStyle(view.abortButton, style);
+            ApplyButtonStyle(view.prevLessonButton, style);
+            ApplyButtonStyle(view.retryLessonButton, style);
+            ApplyButtonStyle(view.summaryContinueButton, style);
+            ApplyButtonStyle(view.summaryStayButton, style);
+        }
+
+        /// <summary>把主题中的按钮底图覆盖到 Button 的 TargetGraphic 上；缺图则保持 Prefab 原样。</summary>
+        private static void ApplyButtonStyle(Button button, CircuitUIStyleConfig style)
+        {
+            if (button == null) return;
+            var image = button.targetGraphic as Image;
+            if (image == null) return;
+            if (style.buttonBackgroundSprite == null) return;
+
+            image.sprite = style.buttonBackgroundSprite;
+            image.type = Image.Type.Sliced;
+            image.preserveAspect = false;
         }
 
         private void CacheDefaultLevelBackground()
