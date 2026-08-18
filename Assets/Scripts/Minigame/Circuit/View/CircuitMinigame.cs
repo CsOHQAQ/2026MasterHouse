@@ -531,6 +531,7 @@ namespace MasterHouse
             if (view.nodeRoot == null) missing.Add(nameof(view.nodeRoot));
             if (view.linkRoot == null) missing.Add(nameof(view.linkRoot));
             if (view.previewRoot == null) missing.Add(nameof(view.previewRoot));
+            if (view.visualStyle == null) missing.Add(nameof(view.visualStyle));
             if (view.paletteRoot == null) missing.Add(nameof(view.paletteRoot));
             if (view.paletteItemTemplate == null) missing.Add(nameof(view.paletteItemTemplate));
             return ReportMissing(missing);

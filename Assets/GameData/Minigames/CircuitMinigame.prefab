@@ -2820,6 +2820,7 @@ MonoBehaviour:
   nodeRoot: {fileID: 5358326986058844119}
   linkRoot: {fileID: 397065252727995680}
   previewRoot: {fileID: 946509791403511855}
+  visualStyle: {fileID: 11400000, guid: 74f6ce438e4e44e69cf45a6c729414f5, type: 2}
   linkBudgetLabel: {fileID: 943977609561955829}
   pieceBudgetLabel: {fileID: 4077329718323647123}
   litLabel: {fileID: 4230051203028110131}
@@ -2846,9 +2847,6 @@ MonoBehaviour:
   batteryColor: {r: 0.34, g: 0.52, b: 0.85, a: 0.95}
   batteryLitColor: {r: 0.98, g: 0.83, b: 0.3, a: 1}
   transitColor: {r: 0.62, g: 0.45, b: 0.8, a: 0.95}
-  wireColor: {r: 0.85, g: 0.88, b: 0.92, a: 0.95}
-  wireDeadColor: {r: 0.45, g: 0.47, b: 0.52, a: 0.85}
-  previewColor: {r: 0.95, g: 0.9, b: 0.45, a: 0.75}
   legalColor: {r: 0.4, g: 0.9, b: 0.45, a: 0.55}
   illegalColor: {r: 0.92, g: 0.35, b: 0.32, a: 0.55}
   budgetWarnColor: {r: 0.95, g: 0.36, b: 0.33, a: 1}

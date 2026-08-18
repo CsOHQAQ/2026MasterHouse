@@ -28,6 +28,7 @@ namespace MasterHouse.EditorTools
     {
         private const string Folder = "Assets/GameData/Minigames";
         private const string PrefabPath = Folder + "/CircuitMinigame.prefab";
+        private const string VisualStylePath = Folder + "/CircuitVisualStyle_Default.asset";
         private const string MinigameDefPath = Folder + "/Minigame_修理电路.asset";
         private const string NeedDefPath = "Assets/GameData/Needs/Need_修理电路.asset";
         private const string LevelFolder = "Assets/GameData/Levels";
@@ -69,11 +70,34 @@ namespace MasterHouse.EditorTools
             EnsureFolder("Assets/GameData", "Minigames");
             var created = new List<string>();
 
+            var visualStyle = AssetDatabase.LoadAssetAtPath<CircuitVisualStyleConfig>(VisualStylePath);
+            if (visualStyle == null)
+            {
+                visualStyle = ScriptableObject.CreateInstance<CircuitVisualStyleConfig>();
+                AssetDatabase.CreateAsset(visualStyle, VisualStylePath);
+                created.Add(VisualStylePath);
+            }
+
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
             if (prefab == null || overwritePrefab)
             {
-                prefab = BuildPrefab();
+                prefab = BuildPrefab(visualStyle);
                 created.Add(PrefabPath + (overwritePrefab ? "（重建）" : string.Empty));
+            }
+            else if (prefab.GetComponent<CircuitMinigameView>() is { visualStyle: null })
+            {
+                // 「补齐缺失」不能为了补一个引用覆盖整份手调 Prefab；只改字段袋里的这一格。
+                var contents = PrefabUtility.LoadPrefabContents(PrefabPath);
+                try
+                {
+                    contents.GetComponent<CircuitMinigameView>().visualStyle = visualStyle;
+                    prefab = PrefabUtility.SaveAsPrefabAsset(contents, PrefabPath);
+                    created.Add(PrefabPath + "（补视觉样式引用）");
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(contents);
+                }
             }
 
             var def = AssetDatabase.LoadAssetAtPath<MinigameDef>(MinigameDefPath);
@@ -292,7 +316,7 @@ namespace MasterHouse.EditorTools
 
         // ══════════ Prefab 布局（1920×1080 参考分辨率）══════════
 
-        private static GameObject BuildPrefab()
+        private static GameObject BuildPrefab(CircuitVisualStyleConfig visualStyle)
         {
             var root = new GameObject("CircuitMinigamePage", typeof(RectTransform), typeof(Image),
                 typeof(CircuitMinigameView), typeof(CircuitMinigame));
@@ -304,6 +328,7 @@ namespace MasterHouse.EditorTools
             backdrop.raycastTarget = true; // 挡住底下 Hub 页的点击；全屏页没有暴露在外的遮罩可点
 
             var view = root.GetComponent<CircuitMinigameView>();
+            view.visualStyle = visualStyle;
 
             BuildTopBar(rootRect, view);
             BuildPalette(rootRect, view);
