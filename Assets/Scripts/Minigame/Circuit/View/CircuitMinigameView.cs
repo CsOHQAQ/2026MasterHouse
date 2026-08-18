@@ -32,12 +32,20 @@ namespace MasterHouse
         [Tooltip("所有节点共用的状态图标等表现资产")]
         public CircuitVisualStyleConfig visualStyle;
 
+        [Tooltip("Prefab 固定 UI 的主题资产（件库、按钮等；不含节点功能图标）")]
+        public CircuitUIStyleConfig uiStyle;
+
+        [Header("关卡背景")]
+        [Tooltip("全屏背景图。Sprite 由当前 LevelDef.BackgroundSprite 驱动。")]
+        public Image levelBackground;
+
         [Header("顶部预算条")]
-        public Text linkBudgetLabel;
-        public Text pieceBudgetLabel;
-        public Text litLabel;
+        public CircuitTopStatusBarView topStatusBar;
 
         [Header("左侧件库")]
+        [Tooltip("件库整体背景。Sprite 与染色由 uiStyle 驱动。")]
+        public Image palettePanelBackground;
+
         public RectTransform paletteRoot;
 
         [Tooltip("件库条目模板（§16.2 动态列表项 = 模板 Prefab + 运行时实例化）。运行时会被隐藏并克隆")]
@@ -66,9 +74,6 @@ namespace MasterHouse
 
         [Tooltip("教学说明（多行）")]
         public Text lessonBriefLabel;
-
-        [Tooltip("进度：第 3/7 关")]
-        public Text progressLabel;
 
         [Header("课程包·关卡导航")]
         public Button prevLessonButton;

@@ -94,3 +94,7 @@ crashlytics-build.properties
 /Tools/BiRefNet/__pycache__/
 
 ~$*
+
+# 编辑器工作区配置（各人环境不同，不入库）
+.vscode/
+.idea/

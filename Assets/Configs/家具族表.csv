@@ -6,7 +6,7 @@ cat_sofa,猫耳懒人沙发,桌椅,,地面,否,4,2,25,SoundEffect/2_Pickup_26081
 single_sofa,单人沙发,桌椅,,地面,否,6,2,32,SoundEffect/2_Pickup_260813_1,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
 armchair,扶手椅,桌椅,,地面,否,6,2,30,SoundEffect/2_Pickup_260813_1,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
 cactus_lamp,仙人掌灯,灯具,,桌面,否,2,2,15,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
-hanging_plant,悬挂绿植,盆栽,,壁挂,否,4,6,18,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+hanging_plant,悬挂绿植,盆栽,,壁挂,否,3,4,18,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
 landscape_poster,风景海报,壁挂,,壁挂,否,2,4,15,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
 lava_lamp,熔岩灯,灯具,,桌面,否,2,2,15,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
 monstera,龟背竹,盆栽,,地面,否,4,2,20,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146

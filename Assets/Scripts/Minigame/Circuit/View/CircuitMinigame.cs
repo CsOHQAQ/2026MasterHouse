@@ -59,6 +59,8 @@ namespace MasterHouse
         private readonly List<NodeDef> paletteDefs = new List<NodeDef>();
 
         private Vector2 lastBoardAreaSize;
+        private Sprite defaultLevelBackgroundSprite;
+        private Color defaultLevelBackgroundColor;
 
         private bool IsLastLesson => currentIndex >= levels.Count - 1;
 
@@ -82,6 +84,9 @@ namespace MasterHouse
                 abort?.Invoke();
                 return;
             }
+
+            CacheDefaultLevelBackground();
+            ApplyUiStyle();
 
             if (!ResolveLessons(levelDef))
             {
@@ -176,6 +181,8 @@ namespace MasterHouse
             currentIndex = Mathf.Clamp(index, 0, levels.Count - 1);
             level = levels[currentIndex];
 
+            RefreshLevelBackground();
+
             board.SetLevel(level);
             board.LayoutRoots();
             board.RebuildAll();
@@ -194,7 +201,8 @@ namespace MasterHouse
             // 这里逐个判空是给「课程包字段没配的旧 Prefab + 单关关卡」留的路：
             // 课程包模式下 ValidateLessonView 已经保证它们都非空
             if (view.lessonPanel != null) view.lessonPanel.SetActive(isLessonPack);
-            if (view.progressLabel != null) view.progressLabel.gameObject.SetActive(isLessonPack);
+            if (view.topStatusBar != null && view.topStatusBar.progressLabel != null)
+                view.topStatusBar.progressLabel.gameObject.SetActive(isLessonPack);
             if (view.prevLessonButton != null) view.prevLessonButton.gameObject.SetActive(isLessonPack);
             if (view.retryLessonButton != null) view.retryLessonButton.gameObject.SetActive(isLessonPack);
             if (view.summaryPanel != null) view.summaryPanel.SetActive(false);
@@ -207,7 +215,7 @@ namespace MasterHouse
             if (!isLessonPack) return;
 
             var entry = lessons[currentIndex];
-            view.progressLabel.text = $"第 {currentIndex + 1}/{lessons.Count} 关";
+            view.topStatusBar.progressLabel.text = $"第 {currentIndex + 1}/{lessons.Count} 关";
             view.lessonTitleLabel.text = string.IsNullOrEmpty(entry.Title) ? entry.Level.name : entry.Title;
             view.lessonBriefLabel.text = entry.Brief;
 
@@ -383,17 +391,17 @@ namespace MasterHouse
                 placed += levelManager.CountNodesOf(level, entry.Node);
                 cap += entry.MaxCount;
             }
-            if (view.pieceBudgetLabel != null)
+            if (view.topStatusBar.pieceBudgetLabel != null)
             {
-                view.pieceBudgetLabel.text = $"中转件 {placed}/{cap}";
+                view.topStatusBar.pieceBudgetLabel.text = $"中转件 {placed}/{cap}";
                 // 摆满 = 提示色而非报红：CanBuild 硬拦着，摆满是常态不是错误（与导线栏同一套语义）
-                view.pieceBudgetLabel.color = cap > 0 && placed >= cap
+                view.topStatusBar.pieceBudgetLabel.color = cap > 0 && placed >= cap
                     ? view.budgetFullColor
                     : view.budgetNormalColor;
             }
 
-            if (view.litLabel != null)
-                view.litLabel.text = $"已点亮 {CircuitSolver.CountLit(level)}/{CircuitSolver.CountBatteries(level)}";
+            if (view.topStatusBar.litLabel != null)
+                view.topStatusBar.litLabel.text = $"已点亮 {CircuitSolver.CountLit(level)}/{CircuitSolver.CountBatteries(level)}";
 
             RefreshPalette();
         }
@@ -408,7 +416,7 @@ namespace MasterHouse
         /// </summary>
         private void RefreshLinkBudget()
         {
-            if (view.linkBudgetLabel == null) return;
+            if (view.topStatusBar.linkBudgetLabel == null) return;
 
             int committed = level.UsedLinkCells;
             int pending = board != null ? board.PendingLinkCells : 0;
@@ -416,11 +424,11 @@ namespace MasterHouse
             int budget = level.LinkCellBudget;
 
             var used = pending > 0 ? $"{committed}(+{pending})" : committed.ToString();
-            view.linkBudgetLabel.text = budget > 0 ? $"导线 {used}/{budget}" : $"导线 {used}";
+            view.topStatusBar.linkBudgetLabel.text = budget > 0 ? $"导线 {used}/{budget}" : $"导线 {used}";
 
-            if (budget <= 0 || total < budget) view.linkBudgetLabel.color = view.budgetNormalColor;
-            else if (total == budget) view.linkBudgetLabel.color = view.budgetFullColor;
-            else view.linkBudgetLabel.color = view.budgetWarnColor;
+            if (budget <= 0 || total < budget) view.topStatusBar.linkBudgetLabel.color = view.budgetNormalColor;
+            else if (total == budget) view.topStatusBar.linkBudgetLabel.color = view.budgetFullColor;
+            else view.topStatusBar.linkBudgetLabel.color = view.budgetWarnColor;
         }
 
         // ══════════ 件库 ══════════
@@ -457,6 +465,8 @@ namespace MasterHouse
                 if (item.label != null)
                     item.label.text = string.IsNullOrEmpty(def.DisplayName) ? def.name : def.DisplayName;
 
+                ConfigurePaletteItem(item, def);
+
                 paletteItems.Add(item);
                 paletteDefs.Add(def);
             }
@@ -471,6 +481,7 @@ namespace MasterHouse
 
         private void RefreshPalette()
         {
+            var style = view.uiStyle;
             for (int i = 0; i < paletteItems.Count; i++)
             {
                 var item = paletteItems[i];
@@ -481,15 +492,221 @@ namespace MasterHouse
                 if (item.count != null)
                 {
                     item.count.text = $"{max - remaining}/{max}";
-                    item.count.color = remaining <= 0 ? view.budgetWarnColor : view.budgetNormalColor;
+                    item.count.color = remaining <= 0
+                        ? style.paletteCountDisabledColor
+                        : style.paletteCountColor;
                 }
+                RefreshPaletteCountDigits(item, remaining, style);
+                if (item.label != null) item.label.color = style.paletteNameColor;
                 if (item.button != null)
                     item.button.interactable = remaining > 0;
                 if (item.background != null)
-                    item.background.color = board.PendingPlacement == def
-                        ? view.legalColor
-                        : new Color(1f, 1f, 1f, 0.10f);
+                    item.background.color = remaining <= 0
+                        ? style.palettePieceDisabledColor
+                        : board.PendingPlacement == def
+                            ? style.palettePieceSelectedColor
+                            : style.palettePieceNormalColor;
+                if (item.functionIcon != null)
+                {
+                    var iconColor = def.IconColor;
+                    item.functionIcon.color = remaining <= 0
+                        ? new Color(iconColor.r, iconColor.g, iconColor.b, iconColor.a * .55f)
+                        : iconColor;
+                }
             }
+        }
+
+        /// <summary>
+        /// 件库卡的轮廓跟随节点 Shape 的外接长宽；卡面和图标分别来自 UI 主题与节点定义。
+        /// 预览在主题定义的最大盒子内等比缩放，因此纵向件不会把列表无限撑高，横向件也不会被压扁。
+        /// </summary>
+        private void ConfigurePaletteItem(CircuitPaletteItemView item, NodeDef def)
+        {
+            var style = view.uiStyle;
+            var previewSize = PalettePreviewSize(def, style);
+
+            if (item.background != null)
+            {
+                item.background.sprite = style.palettePieceBackgroundSprite;
+                item.background.type = item.background.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+                item.background.preserveAspect = false;
+                item.background.rectTransform.sizeDelta = previewSize;
+                // PieceBackground 的 pivot 是中心：要让它的上沿距条目顶部 TopPadding，
+                // 位置必须再减去半个自身高度，否则卡面会向上溢出并压住「件库」标题。
+                item.background.rectTransform.anchoredPosition = new Vector2(0f,
+                    -style.palettePieceTopPadding - previewSize.y * .5f);
+            }
+
+            if (item.functionIcon != null)
+            {
+                item.functionIcon.sprite = def.FunctionIconSprite;
+                item.functionIcon.type = Image.Type.Simple;
+                item.functionIcon.preserveAspect = true;
+                item.functionIcon.rectTransform.sizeDelta = Vector2.one * (-style.palettePieceIconPadding * 2f);
+                item.functionIcon.rectTransform.anchoredPosition = Vector2.zero;
+            }
+
+            if (item.countDigitTemplate != null)
+                item.countDigitTemplate.gameObject.SetActive(false);
+
+            if (item.layoutElement != null)
+            {
+                float height = style.palettePieceTopPadding + previewSize.y + style.palettePieceTextHeight;
+                item.layoutElement.minHeight = height;
+                item.layoutElement.preferredHeight = height;
+            }
+
+            if (item.button != null)
+            {
+                // 选中/耗尽状态由 RefreshPalette 的主题色唯一决定，Button 不再叠加一层默认 Tint。
+                var colors = item.button.colors;
+                colors.normalColor = Color.white;
+                colors.highlightedColor = Color.white;
+                colors.pressedColor = Color.white;
+                colors.selectedColor = Color.white;
+                colors.disabledColor = Color.white;
+                colors.colorMultiplier = 1f;
+                item.button.colors = colors;
+            }
+        }
+
+        private static Vector2 PalettePreviewSize(NodeDef def, CircuitUIStyleConfig style)
+        {
+            int width = 1;
+            int height = 1;
+            var shape = def != null ? def.Shape : null;
+            if (shape?.Grids != null && shape.Grids.Count > 0)
+            {
+                int minX = shape.Grids[0].DeltaPosition.x;
+                int maxX = minX;
+                int minY = shape.Grids[0].DeltaPosition.y;
+                int maxY = minY;
+                foreach (var grid in shape.Grids)
+                {
+                    minX = Mathf.Min(minX, grid.DeltaPosition.x);
+                    maxX = Mathf.Max(maxX, grid.DeltaPosition.x);
+                    minY = Mathf.Min(minY, grid.DeltaPosition.y);
+                    maxY = Mathf.Max(maxY, grid.DeltaPosition.y);
+                }
+                width = maxX - minX + 1;
+                height = maxY - minY + 1;
+            }
+
+            float scale = Mathf.Min(style.palettePiecePreviewMaxWidth / width,
+                                    style.palettePiecePreviewMaxHeight / height);
+            return new Vector2(width * scale, height * scale);
+        }
+
+        /// <summary>用主题中的数字 SpriteSheet 显示当前剩余可摆数量；缺图时才退回旧文本。</summary>
+        private static void RefreshPaletteCountDigits(CircuitPaletteItemView item, int remaining,
+            CircuitUIStyleConfig style)
+        {
+            bool canDraw = item.countDigitRoot != null && item.countDigitTemplate != null &&
+                           style.paletteCountDigits != null && style.paletteCountDigits.Length >= 10;
+            if (!canDraw)
+            {
+                if (item.count != null) item.count.gameObject.SetActive(true);
+                return;
+            }
+
+            if (item.count != null) item.count.gameObject.SetActive(false);
+            item.countDigitTemplate.gameObject.SetActive(false);
+
+            var digits = Mathf.Max(0, remaining).ToString();
+            float size = style.paletteCountDigitSize;
+            float spacing = style.paletteCountDigitSpacing;
+            float totalWidth = digits.Length * size + Mathf.Max(0, digits.Length - 1) * spacing;
+            item.countDigitRoot.sizeDelta = new Vector2(totalWidth, size);
+            item.countDigitRoot.anchoredPosition = new Vector2(-8f, -8f);
+
+            for (int i = 0; i < digits.Length; i++)
+            {
+                Image digit;
+                if (i < item.countDigitInstances.Count)
+                    digit = item.countDigitInstances[i];
+                else
+                {
+                    digit = Instantiate(item.countDigitTemplate, item.countDigitRoot, false);
+                    digit.raycastTarget = false;
+                    item.countDigitInstances.Add(digit);
+                }
+
+                digit.gameObject.SetActive(true);
+                digit.sprite = style.paletteCountDigits[digits[i] - '0'];
+                digit.type = Image.Type.Simple;
+                digit.preserveAspect = true;
+                digit.color = remaining <= 0 ? style.paletteCountDigitDisabledColor : style.paletteCountDigitColor;
+                var rect = digit.rectTransform;
+                rect.anchorMin = new Vector2(0f, .5f);
+                rect.anchorMax = new Vector2(0f, .5f);
+                rect.pivot = new Vector2(.5f, .5f);
+                rect.sizeDelta = new Vector2(size, size);
+                rect.anchoredPosition = new Vector2(size * (.5f + i) + spacing * i, 0f);
+            }
+
+            for (int i = digits.Length; i < item.countDigitInstances.Count; i++)
+                item.countDigitInstances[i].gameObject.SetActive(false);
+        }
+
+        private void ApplyUiStyle()
+        {
+            var style = view.uiStyle;
+            if (style.uiFont != null)
+            {
+                // 静态 Prefab（含嵌套顶部状态条）和已有模板统一在这里换字；
+                // 棋盘后续动态创建的 Text 则在 CircuitBoard.NewLabel 中读取同一份样式。
+                foreach (var text in GetComponentsInChildren<Text>(true))
+                    text.font = style.uiFont;
+            }
+            if (view.topStatusBar != null)
+            {
+                var bar = view.topStatusBar;
+                if (bar.background != null)
+                {
+                    bar.background.sprite = style.topBarBackgroundSprite;
+                    bar.background.type = style.topBarBackgroundSprite != null ? Image.Type.Sliced : Image.Type.Simple;
+                    bar.background.preserveAspect = false;
+                    bar.background.color = style.topBarBackgroundColor;
+                }
+                var barRect = bar.transform as RectTransform;
+                if (barRect != null)
+                {
+                    var size = barRect.sizeDelta;
+                    size.y = style.topBarHeight;
+                    barRect.sizeDelta = size;
+                }
+                if (bar.progressLabel != null) bar.progressLabel.color = style.topBarProgressTextColor;
+                if (bar.linkBudgetLabel != null) bar.linkBudgetLabel.color = style.topBarTextColor;
+                if (bar.pieceBudgetLabel != null) bar.pieceBudgetLabel.color = style.topBarTextColor;
+                if (bar.litLabel != null) bar.litLabel.color = style.topBarTextColor;
+            }
+            if (view.palettePanelBackground == null) return;
+
+            view.palettePanelBackground.sprite = style.palettePanelBackgroundSprite;
+            view.palettePanelBackground.type = style.palettePanelBackgroundSprite != null
+                ? Image.Type.Sliced
+                : Image.Type.Simple;
+            view.palettePanelBackground.preserveAspect = false;
+            view.palettePanelBackground.color = style.palettePanelColor;
+
+            var palettePosition = view.paletteRoot.anchoredPosition;
+            palettePosition.y = -style.paletteContentTopPadding;
+            view.paletteRoot.anchoredPosition = palettePosition;
+        }
+
+        private void CacheDefaultLevelBackground()
+        {
+            defaultLevelBackgroundSprite = view.levelBackground.sprite;
+            defaultLevelBackgroundColor = view.levelBackground.color;
+        }
+
+        private void RefreshLevelBackground()
+        {
+            var backgroundSprite = level?.Def?.BackgroundSprite;
+            view.levelBackground.sprite = backgroundSprite != null ? backgroundSprite : defaultLevelBackgroundSprite;
+            view.levelBackground.type = Image.Type.Simple;
+            view.levelBackground.preserveAspect = false;
+            view.levelBackground.color = backgroundSprite != null ? Color.white : defaultLevelBackgroundColor;
         }
 
         private int MaxCountOf(NodeDef def)
@@ -532,8 +749,27 @@ namespace MasterHouse
             if (view.linkRoot == null) missing.Add(nameof(view.linkRoot));
             if (view.previewRoot == null) missing.Add(nameof(view.previewRoot));
             if (view.visualStyle == null) missing.Add(nameof(view.visualStyle));
+            if (view.uiStyle == null) missing.Add(nameof(view.uiStyle));
+            if (view.levelBackground == null) missing.Add(nameof(view.levelBackground));
+            if (view.topStatusBar == null) missing.Add(nameof(view.topStatusBar));
+            else
+            {
+                if (view.topStatusBar.background == null) missing.Add("topStatusBar.background");
+                if (view.topStatusBar.linkBudgetLabel == null) missing.Add("topStatusBar.linkBudgetLabel");
+                if (view.topStatusBar.pieceBudgetLabel == null) missing.Add("topStatusBar.pieceBudgetLabel");
+                if (view.topStatusBar.litLabel == null) missing.Add("topStatusBar.litLabel");
+            }
+            if (view.palettePanelBackground == null) missing.Add(nameof(view.palettePanelBackground));
             if (view.paletteRoot == null) missing.Add(nameof(view.paletteRoot));
             if (view.paletteItemTemplate == null) missing.Add(nameof(view.paletteItemTemplate));
+            else
+            {
+                if (view.paletteItemTemplate.background == null) missing.Add("paletteItemTemplate.background");
+                if (view.paletteItemTemplate.functionIcon == null) missing.Add("paletteItemTemplate.functionIcon");
+                if (view.paletteItemTemplate.layoutElement == null) missing.Add("paletteItemTemplate.layoutElement");
+                if (view.paletteItemTemplate.countDigitRoot == null) missing.Add("paletteItemTemplate.countDigitRoot");
+                if (view.paletteItemTemplate.countDigitTemplate == null) missing.Add("paletteItemTemplate.countDigitTemplate");
+            }
             return ReportMissing(missing);
         }
 
@@ -547,7 +783,8 @@ namespace MasterHouse
             if (view.lessonPanel == null) missing.Add(nameof(view.lessonPanel));
             if (view.lessonTitleLabel == null) missing.Add(nameof(view.lessonTitleLabel));
             if (view.lessonBriefLabel == null) missing.Add(nameof(view.lessonBriefLabel));
-            if (view.progressLabel == null) missing.Add(nameof(view.progressLabel));
+            if (view.topStatusBar == null) missing.Add(nameof(view.topStatusBar));
+            else if (view.topStatusBar.progressLabel == null) missing.Add("topStatusBar.progressLabel");
             if (view.prevLessonButton == null) missing.Add(nameof(view.prevLessonButton));
             if (view.retryLessonButton == null) missing.Add(nameof(view.retryLessonButton));
             if (view.summaryPanel == null) missing.Add(nameof(view.summaryPanel));

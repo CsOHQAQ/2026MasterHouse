@@ -13,5 +13,7 @@ namespace MasterHouse
         public RawImage detailPreview;
         public Text detailText;
         public RectTransform actionRoot;
+        [Tooltip("访客图鉴入口（2026-08-18）：打开整屏 Illustrated Guide 页")]
+        public Button codexButton;
     }
 }

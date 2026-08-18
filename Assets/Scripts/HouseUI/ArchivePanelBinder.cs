@@ -27,6 +27,8 @@ namespace MasterHouse
                         Refresh(view, page);
                     });
             }
+            // 访客图鉴入口（2026-08-18）：整屏 Illustrated Guide 页，从档案这里进
+            if (view.codexButton != null) HouseUIUtil.BindButton(view.codexButton, page.OpenCodex);
             Refresh(view, page);
         }
 

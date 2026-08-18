@@ -28,7 +28,13 @@ namespace MasterHouse
                 if (font == null)
                 {
                     Debug.LogWarning("[HouseUI] 项目字体缺失（Resources/Fonts/SourceHanSansOLD-Normal-2），回退系统字体");
-                    string[] preferred = { "Georgia", "Times New Roman", "STKaiti", "KaiTi", "Microsoft YaHei", "SimHei" };
+                    // 兼顾 Windows 与 macOS（2026-08-18）：后半段是 mac 上的中文字体，
+                    // 否则 mac 端只能落到 Arial，中文全成方框
+                    string[] preferred =
+                    {
+                        "Georgia", "Times New Roman", "STKaiti", "KaiTi", "Microsoft YaHei", "SimHei",
+                        "PingFang SC", "Hiragino Sans GB", "Heiti SC", "STHeiti", "Songti SC",
+                    };
                     font = Font.CreateDynamicFontFromOSFont(preferred, 32);
                 }
                 if (font == null) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");

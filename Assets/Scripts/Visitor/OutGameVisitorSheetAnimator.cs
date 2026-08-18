@@ -9,13 +9,28 @@ namespace MasterHouse
     /// PNG 入库时可能被缩放，因此帧定位只依赖 columns/rows/frameCount，宽高只用于长宽比。
     /// </summary>
     [Serializable]
-    internal sealed class OutGameVisitorSheet
+    // public 而非 internal：编辑器工具（测量脚底留白）在 Assembly-CSharp-Editor 里，
+    // internal 跨不过程序集边界（2026-08-18 编译报错 CS0122）
+    public sealed class OutGameVisitorSheet
     {
         public int frameWidth;
         public int frameHeight;
         public int columns;
         public int rows;
         public int frameCount;
+        /// <summary>
+        /// 每帧底部透明留白占帧高的比例（2026-08-18 反馈「访客还是有些高」）：
+        /// 立绘四周带留白，脚底并不在帧的下边缘——直接把帧底压在地面坐标上，人就浮起来了。
+        /// 演员用它当 pivot.y，可见的脚底才落在地面点上。各张图差别很大（0 ~ 0.14），
+        /// 所以按图存，值由菜单「测量访客立绘脚底留白」量出来写进同名 JSON。
+        /// </summary>
+        public float footPadding;
+        /// <summary>
+        /// 每帧顶部透明留白占帧高的比例（2026-08-18 反馈「名牌离得太远」）：
+        /// 立绘头顶上方也有一大段留白（猫那张占 32%），名牌与气泡挂在演员矩形的上边缘，
+        /// 于是它们离真正的头顶隔着这一整段空气。挂点按它下压，名牌才贴着头。
+        /// </summary>
+        public float headPadding;
 
         public float Aspect => frameHeight > 0 ? (float)frameWidth / frameHeight : 1f;
 

@@ -1037,7 +1037,7 @@ namespace MasterHouse
             return image;
         }
 
-        private static Text NewLabel(RectTransform parent)
+        private Text NewLabel(RectTransform parent)
         {
             var go = new GameObject("label", typeof(RectTransform), typeof(Text));
             go.layer = 5;
@@ -1046,7 +1046,9 @@ namespace MasterHouse
             rect.anchorMin = rect.anchorMax = Vector2.zero;
             rect.pivot = new Vector2(.5f, .5f);
             var text = go.GetComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.font = view.uiStyle != null && view.uiStyle.uiFont != null
+                ? view.uiStyle.uiFont
+                : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.raycastTarget = false;

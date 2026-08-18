@@ -26,12 +26,11 @@ namespace MasterHouse.EditorTools
                 go.layer = 5;
                 var canvas = go.GetComponent<Canvas>();
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                // 与 HouseUIManager 的运行时画布一致：1920×1080、宽高各半匹配
+                // 与 HouseUIManager 的运行时画布一致：1920×1080 + Expand
                 var scaler = go.GetComponent<CanvasScaler>();
                 scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
                 scaler.referenceResolution = new Vector2(1920, 1080);
-                scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-                scaler.matchWidthOrHeight = .5f;
+                scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
                 EditorSceneManager.MoveGameObjectToScene(go, scene);
                 EditorSceneManager.SaveScene(scene, ScenePath);
                 EditorSceneManager.CloseScene(scene, true);

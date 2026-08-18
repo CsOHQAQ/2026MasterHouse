@@ -211,6 +211,12 @@ namespace MasterHouse
                 : HubWorldGrid.RegionOf(HubWorldGrid.Reception);
             crops[HubWorldGrid.Reception] = Rect.MinMaxRect(0, 0, 1, 1);
             HubWorldGrid.Configure(regions, crops);
+            // 接待室的贴地可走带：Prefab 里那个矩形是唯一真相（拖到地板上即可，2026-08-18 反馈访客不贴地）。
+            // 换算成接待室区域内的分数坐标交给访客舞台；没配就让它用代码兜底带。
+            OutGameVisitorStage.ConfigureReceptionWalkArea(worldView.receptionWalkArea != null
+                ? (Rect?)ToRegionLocal(regions[HubWorldGrid.Reception],
+                    NormalizedRegion(worldView.receptionWalkArea, designSize))
+                : null);
 
             // 洗色层盖在房间图之上、热点与演员之下（与旧版层序一致）；随世界一起缩放（纯色无所谓拉伸）。
             // 2026-08-17 起主楼剖面播延时分帧、自带昼夜，洗色只保留很淡的一层压对比度用；
@@ -249,6 +255,15 @@ namespace MasterHouse
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 
+        /// <summary>世界归一化矩形 → 某个区域内的分数坐标（可以为负 / 超过 1，调用方自己判断合理性）。</summary>
+        private static Rect ToRegionLocal(Rect region, Rect world)
+        {
+            if (region.width < 1e-4f || region.height < 1e-4f) return world;
+            return Rect.MinMaxRect(
+                (world.xMin - region.xMin) / region.width, (world.yMin - region.yMin) / region.height,
+                (world.xMax - region.xMin) / region.width, (world.yMax - region.yMin) / region.height);
+        }
+
         /// <summary>
         /// 在手调矩形内按贴图真实宽高比取最大内嵌矩形（贴底、水平居中）：
         /// 世界归一化坐标不是等比的，比较时都换算到设计像素。贴图缺失时原样返回。
@@ -280,8 +295,8 @@ namespace MasterHouse
         {
             if (stage == null || !stage.TryGetActorWorld(instanceId, out var world01)) return;
             var room = HubWorldGrid.RoomAt(world01);
-            var targetZoom = Mathf.Clamp(
-                (room != HubWorldGrid.None ? HubWorldGrid.FocusZoom(room) : 3f) * 1.25f, 2.5f, MaxZoom);
+            var targetZoom = SnapFocusZoom(Mathf.Clamp(
+                (room != HubWorldGrid.None ? HubWorldGrid.FocusZoom(room) : 3f) * 1.25f, 2.5f, MaxZoom));
             FocusWorldPoint(world01, targetZoom);
         }
 
@@ -317,19 +332,52 @@ namespace MasterHouse
         /// </summary>
         private static float GhostBandLow => Mathf.Lerp(ExteriorMinZoom, OverviewZoom, .4f);
 
+        /// <summary>
+        /// 第二段重影带（2026-08-18）：高清层淡入的那段缩放。延时帧与美术原图几何对不齐，
+        /// 半混合状态就是重叠的双份房间。淡入效果保留，但目标缩放同样不许停在带内。
+        /// </summary>
+        private const float LodBandLow = OverviewZoom * 1.35f;
+        private const float LodBandHigh = FocusedZoomThreshold;
+
         /// <summary>把目标缩放推出重影带：按滚动方向送到最近的一侧边界，玩家因此停不在重影档位上。</summary>
         private static float SnapOutOfGhostBand(float zoom, float scroll)
         {
-            if (zoom <= GhostBandLow || zoom >= OverviewZoom) return zoom;
-            return scroll < 0f ? GhostBandLow : OverviewZoom; // 往外滚就落到外景侧，往里滚就落到总览侧
+            zoom = SnapOutOfBand(zoom, scroll, GhostBandLow, OverviewZoom);   // 总览 ⇄ 外景
+            zoom = SnapOutOfBand(zoom, scroll, LodBandLow, LodBandHigh);      // 延时帧 ⇄ 高清层
+            return zoom;
+        }
+
+        private static float SnapOutOfBand(float zoom, float scroll, float low, float high)
+        {
+            if (zoom <= low || zoom >= high) return zoom;
+            return scroll < 0f ? low : high; // 往外滚落到低侧，往里滚落到高侧
+        }
+
+        /// <summary>
+        /// 推镜（点房间 / 点访客 / 直达）的落点同样不许停在重影带里（2026-08-18 反馈）。
+        /// 接待室按区域宽算出来的聚焦倍率恰好是 1.80，正落在高清层淡入区间的正中央，
+        /// 于是一点接待室就停在半混合的双影上。这里推到**较近**的一侧边界——
+        /// 不像滚轮那样有方向可依，就近才不会把取景推得面目全非。
+        /// </summary>
+        private static float SnapFocusZoom(float zoom)
+        {
+            zoom = SnapFocusOutOfBand(zoom, GhostBandLow, OverviewZoom);
+            return SnapFocusOutOfBand(zoom, LodBandLow, LodBandHigh);
+        }
+
+        private static float SnapFocusOutOfBand(float zoom, float low, float high)
+        {
+            if (zoom <= low || zoom >= high) return zoom;
+            return zoom - low < high - zoom ? low : high;
         }
 
         /// <summary>每帧把 camZoom 指数逼近 targetZoom，并保持光标下的世界点不动。</summary>
         private void ApplyZoomEasing()
         {
             if (Mathf.Approximately(camZoom, targetZoom)) return;
-            // 穿过重影带时加速通过（那几帧的半透明叠影不该被看清）
-            var inBand = camZoom > GhostBandLow && camZoom < OverviewZoom;
+            // 穿过重影带时加速通过（那几帧的半透明叠影不该被看清）——两段带都算
+            var inBand = (camZoom > GhostBandLow && camZoom < OverviewZoom) ||
+                         (camZoom > LodBandLow && camZoom < LodBandHigh);
             var speed = inBand ? 26f : 13f;
             camZoom = Mathf.Lerp(camZoom, targetZoom, 1f - Mathf.Exp(-speed * Time.unscaledDeltaTime));
             if (Mathf.Abs(camZoom - targetZoom) < 5e-4f) camZoom = targetZoom;
@@ -405,11 +453,19 @@ namespace MasterHouse
             var (tint, _) = HouseDayLight.Now();
             // 外景层与主楼剖面放的都是延时分帧，天色/夜色在帧里，不再叠调色与夜罩（叠了会双重变暗）
             if (exteriorBackdrop != null) exteriorBackdrop.color = Color.white;
-            if (houseBackdrop != null) houseBackdrop.color = Color.white;
             // 清晰度分级（2026-08-17）：总览时延时帧当家（有室内光影动画）；
-            // 往单间推近时，高清静态主楼图与高清房间烘焙图一起淡入接管（延时帧只有 1280 宽，推近了糊）
-            var lod = Mathf.InverseLerp(OverviewZoom * 1.35f, FocusedZoomThreshold, camZoom);
+            // 往单间推近时，高清静态主楼图与高清房间烘焙图一起淡入接管（延时帧只有 1280 宽，推近了糊）。
+            // 淡入过程保留（那是想要的过渡效果），但**停不进去**：两层是不同来源的同一栋楼，
+            // 几何对不齐，半混合状态就是重叠的双份房间。目标缩放会被推出这段带（见 SnapOutOfGhostBand），
+            // 玩家只会快速穿过、不会停在中间。
+            var lod = Mathf.InverseLerp(LodBandLow, LodBandHigh, camZoom);
             if (houseStatic != null) houseStatic.color = new Color(tint.r, tint.g, tint.b, lod);
+            // 高清层完全接管后把延时帧那层关掉：省一层绘制，也杜绝遮罩羽化处的边缘重影。
+            // 只在 lod 满格时关（淡入过程中两层都要在，否则过渡会闪）；高清图没就位时不关，
+            // 否则整栋楼会没了。
+            var sharpReady = houseStatic != null && houseStatic.texture != null;
+            if (houseBackdrop != null)
+                houseBackdrop.color = sharpReady && lod >= 1f ? Color.clear : Color.white;
             var roomColor = Color.Lerp(Color.white, tint, .5f); // 家具/房间只上半强度，好跟延时帧衔接
             roomColor.a = lod;
             var nightAlpha = HouseDayLight.NightRoomAlphaNow() * lod;
@@ -671,7 +727,7 @@ namespace MasterHouse
             var viewport = sceneRoot.rect.size;
             if (viewport.x < 1f) { SnapToRoom(roomIndex); return; }
             SyncWorldSize(viewport);
-            var endZoom = HubWorldGrid.FocusZoom(roomIndex);
+            var endZoom = SnapFocusZoom(HubWorldGrid.FocusZoom(roomIndex));
             var targetPan = PanCenteredOn(roomIndex, endZoom, viewport);
             KillFocusTween();
             var fromPan = camPan;
@@ -700,7 +756,7 @@ namespace MasterHouse
             var viewport = sceneRoot.rect.size;
             if (viewport.x < 1f) viewport = new Vector2(1920f, 1080f); // 首帧布局未算完，用设计分辨率近似
             SyncWorldSize(viewport);
-            camZoom = HubWorldGrid.FocusZoom(roomIndex);
+            camZoom = SnapFocusZoom(HubWorldGrid.FocusZoom(roomIndex));
             camPan = PanCenteredOn(roomIndex, camZoom, viewport);
             SyncZoomTarget();
             ClampCamera(viewport);
@@ -847,7 +903,23 @@ namespace MasterHouse
         private static bool IsPointerOverBlockingUI()
         {
             if (EventSystem.current == null || !EventSystem.current.IsPointerOverGameObject()) return false;
-            return HotspotUnderPointer() == null;
+            if (HotspotUnderPointer() != null) return false;
+            // 拖不动的访客（服务中锁房的、邻居、过场中的）同样不算「挡住」（2026-08-18 反馈）：
+            // 它们会吃掉 uGUI 的拖拽事件但自己又不动，压在它们身上按下就变成既拖不动人、
+            // 也拖不动画面。让这一下落回相机平移。
+            var actor = ActorUnderPointer();
+            return actor == null || actor.IsDraggable;
+        }
+
+        /// <summary>指针下的访客演员（没有则 null）。</summary>
+        private static OutGameVisitorActor ActorUnderPointer()
+        {
+            if (EventSystem.current == null) return null;
+            var data = new PointerEventData(EventSystem.current) { position = Input.mousePosition };
+            raycastCache.Clear();
+            EventSystem.current.RaycastAll(data, raycastCache);
+            if (raycastCache.Count == 0) return null;
+            return raycastCache[0].gameObject.GetComponentInParent<OutGameVisitorActor>();
         }
 
         private void KillFocusTween()

@@ -21,6 +21,8 @@ namespace MasterHouse
 
         private const float BaseHeight = 205f;     // 最近处（画面下缘）的显示高度，越远按深度缩小
         private const float FarScale = .6f;
+        /// <summary>名牌底边与**头顶**的间距（名牌 pivot 在底边，所以这个数就是肉眼看到的空隙）。</summary>
+        private const float CardOffsetY = 22f;
         private const float NearY = .04f;          // 深度带：y 越小离镜头越近
         private const float FarY = .34f;
 
@@ -34,6 +36,7 @@ namespace MasterHouse
         private RectTransform spriteRect;
         private CanvasGroup group;
         private CanvasGroup cardGroup;
+        private RectTransform cardRect;
         private Text cardLabel;
         private CanvasGroup choiceGroup;
         private OutGameVisitorBubble bubble;
@@ -99,7 +102,9 @@ namespace MasterHouse
                 return null;
             }
             var rect = F.Rect(parent, "Visitor_" + actorId, Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
-            rect.pivot = new Vector2(.5f, 0f); // 底边中心落在地面坐标上
+            // 立绘底部有一段透明留白，帧底 ≠ 脚底：pivot 抬到脚底那一行，
+            // 可见的脚才落在地面坐标上（2026-08-18 反馈「访客还是有些高」）
+            rect.pivot = new Vector2(.5f, Mathf.Clamp(awaitMeta.footPadding, 0f, .4f));
             var actor = rect.gameObject.AddComponent<OutGameVisitorActor>();
             actor.displayName = actorName;
             actor.ambient = isAmbient;
@@ -146,7 +151,11 @@ namespace MasterHouse
 
             // 头顶悬停卡：访客名 + 当前状态
             var card = F.Panel(transform, "Card", new Vector2(.5f, 1), new Vector2(.5f, 1),
-                new Vector2(0, 52), new Vector2(240, 68), new Color(.32f, .06f, .18f, .92f));
+                new Vector2(0, CardOffsetY), new Vector2(240, 68), new Color(.32f, .06f, .18f, .92f));
+            cardRect = card.rectTransform;
+            // 以底边做挂点：anchoredPosition.y 就是名牌与头顶的真实空隙，
+            // 不会再因名牌自身高度而多压半个身位（口径与气泡一致）
+            cardRect.pivot = new Vector2(.5f, 0f);
             F.Outline(card.gameObject, new Color(.85f, .15f, .45f, .5f), new Vector2(1, -1));
             cardLabel = F.Label(card.transform, "Text", "", 17, F.White, TextAnchor.MiddleCenter, FontStyle.Bold);
             cardGroup = F.Group(card.gameObject, 0f);
@@ -592,6 +601,11 @@ namespace MasterHouse
             rect.sizeDelta = new Vector2(height * animator.CurrentAspect, height);
             if (spriteRect != null)
                 spriteRect.localScale = new Vector3(facingRight ? -1f : 1f, 1f, 1f);
+            // 名牌/气泡挂在矩形上边缘，但立绘头顶上方还有一段透明留白，
+            // 按它下压挂点，名牌才是贴着头而不是浮在半空（2026-08-18 反馈）
+            var headDrop = Mathf.Clamp01(awaitSheet != null ? awaitSheet.headPadding : 0f) * height;
+            if (cardRect != null) cardRect.anchoredPosition = new Vector2(0f, CardOffsetY - headDrop);
+            if (bubble != null) bubble.SetHeadDrop(headDrop);
         }
 
         /// <summary>行走时的小幅跳动（素材没有走路动画，用节奏跳动代替步态）；被逗时原地跳一下。</summary>

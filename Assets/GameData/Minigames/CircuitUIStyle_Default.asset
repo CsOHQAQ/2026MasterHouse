@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d8e7a9734594f08afb1703a3a1fee91, type: 3}
+  m_Name: CircuitUIStyle_Default
+  m_EditorClassIdentifier: 
+  uiFont: {fileID: 12800000, guid: 3f23fe9f9ee12434999d4d9adc573a53, type: 3}
+  topBarBackgroundSprite: {fileID: 21300000, guid: 2076370049aadd24f89642e83fd986ca, type: 3}
+  topBarBackgroundColor: {r: 1, g: 1, b: 1, a: 0.9}
+  topBarHeight: 72
+  topBarTextColor: {r: 0.94, g: 0.94, b: 0.96, a: 1}
+  topBarProgressTextColor: {r: 0.72, g: 0.72, b: 0.78, a: 1}
+  palettePanelBackgroundSprite: {fileID: 21300000, guid: 2076370049aadd24f89642e83fd986ca, type: 3}
+  palettePanelColor: {r: 1, g: 1, b: 1, a: 0.9}
+  paletteContentTopPadding: 78
+  palettePieceBackgroundSprite: {fileID: 21300000, guid: 22f384bd905bb7343b94af2a76e3d038, type: 3}
+  palettePieceNormalColor: {r: 1, g: 1, b: 1, a: 1}
+  palettePieceSelectedColor: {r: 0.55, g: 1, b: 0.62, a: 1}
+  palettePieceDisabledColor: {r: 0.42, g: 0.42, b: 0.46, a: 0.8}
+  palettePiecePreviewMaxWidth: 196
+  palettePiecePreviewMaxHeight: 132
+  palettePieceIconPadding: 14
+  palettePieceTextHeight: 42
+  palettePieceTopPadding: 8
+  paletteNameColor: {r: 0.94, g: 0.94, b: 0.96, a: 1}
+  paletteCountColor: {r: 0.72, g: 0.72, b: 0.78, a: 1}
+  paletteCountDisabledColor: {r: 0.95, g: 0.36, b: 0.33, a: 1}
+  paletteCountDigits:
+  - {fileID: -2073465740, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
+  - {fileID: 679907020, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
+  - {fileID: -2068044335, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
+  - {fileID: -390066230, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
+  - {fileID: 783362787, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
+  - {fileID: 1204592346, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
+  - {fileID: 1296532743, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
+  - {fileID: 744806113, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
+  - {fileID: 2048424610, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
+  - {fileID: 2123486159, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
+  paletteCountDigitSize: 34
+  paletteCountDigitSpacing: 0
+  paletteCountDigitColor: {r: 1, g: 1, b: 1, a: 1}
+  paletteCountDigitDisabledColor: {r: 0.75, g: 0.42, b: 0.42, a: 1}

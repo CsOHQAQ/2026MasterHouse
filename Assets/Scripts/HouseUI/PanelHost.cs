@@ -86,6 +86,7 @@ namespace MasterHouse
                 // Inventory/Profile/Contacts：统一占位页，内容烘焙在 Prefab 内，仅外壳头部按 PanelMeta 区分
             }
             HouseUIUtil.ApplyFallbackFont(instance.transform);
+            HouseDayLightTint.Attach(instance.transform); // 面板底色随时钟慢慢变天色
             ui.PushOverlay(host);
         }
 

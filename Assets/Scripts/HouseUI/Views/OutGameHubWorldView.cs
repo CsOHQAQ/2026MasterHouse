@@ -17,5 +17,8 @@ namespace MasterHouse
         public RawImage[] roomArts = new RawImage[4];
         [Tooltip("接待室区域标记（只取锚点，不渲染）：访客排队/等分房的站位范围")]
         public RectTransform receptionArea;
+        [Tooltip("接待室的贴地可走带（只取锚点，不渲染）：访客脚底只能落在这条带里。\n" +
+                 "缺省时按接待室区域底部推算，但那条推算带贴不准地面——把这个矩形拖到地板上就准了")]
+        public RectTransform receptionWalkArea;
     }
 }

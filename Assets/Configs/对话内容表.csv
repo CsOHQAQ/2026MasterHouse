@@ -102,7 +102,7 @@
 10201,player,goat_平静,4,2,,Branch,暂不接待,,155
 10201,visitor,leopard_平静,4,2,1,Action,Reject,,156
 10201,visitor,goat_伤心,4,2,2,Line,非常抱歉，目前没有能够满足您要求的房间。,,157
-10201,visitor,leopard_伤心,4,2,3,Line,那，那好吧，那我只能去其他地方看看了，55555…....,,158
+10201,visitor,leopard_伤心,4,2,3,Line,那，那好吧，那我只能去其他地方看看了，55555……,,158
 10201,player,leopard_平静,4,3,,Branch,（先想一下）,,160
 10201,visitor,leopard_平静,4,3,1,Line,您稍等下，我帮您找找合适的房间。,,161
 10201,visitor,leopard_平静,4,3,2,Line,嗯呢！我等你！,,162
@@ -261,7 +261,7 @@
 10501,player,goat_平静,4,2,,Branch,暂不接待,,405
 10501,visitor,wolf_平静,4,2,1,Action,Reject,,406
 10501,visitor,goat_伤心,4,2,2,Line,非常抱歉，目前没有能够满足您要求的房间。,,407
-10501,visitor,wolf_伤心,4,2,3,Line,那，那好吧，那我只能去其他地方看看了，55555…....,,408
+10501,visitor,wolf_伤心,4,2,3,Line,那，那好吧，那我只能去其他地方看看了，55555……,,408
 10501,player,wolf_平静,4,3,,Branch,（先想一下）,,410
 10501,visitor,wolf_平静,4,3,1,Line,您稍等下，我帮您找找合适的房间。,,411
 10501,visitor,wolf_平静,4,3,2,Line,嗯呢！我等你！,,412
