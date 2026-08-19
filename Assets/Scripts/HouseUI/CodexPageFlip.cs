@@ -29,6 +29,14 @@ namespace MasterHouse
         private const float CurlTilt = 1.6f;
         /// <summary>纸前缘投影的宽度（占半页宽的比例）。</summary>
         private const float EdgeShadowWidth = .16f;
+        /// <summary>
+        /// 书页在底图里的上下边（锚点口径，左下原点）：沿左页中线量底图的蓝色外框得到
+        /// —— 上沿 y 0.1625、下沿 0.8889（从上算）。纸只在这条带里翻，
+        /// 铺满整屏高度会从书的上下边探出去（2026-08-19 反馈）。
+        /// </summary>
+        /// 再各让进 0.8%：纸掀起时会纵向鼓 2%，不留这点余量鼓的时候又会探出书页。
+        private const float PageBottom = .119f;
+        private const float PageTop = .8295f;
 
         private RectTransform leftPage;
         private RectTransform rightPage;
@@ -73,7 +81,8 @@ namespace MasterHouse
             }
 
             // 翻动的纸：盖在右半页上，pivot 落在书脊（左边缘）
-            sheet = CreateHalf(root, "TurningSheet", new Vector2(.5f, 0f), new Vector2(1f, 1f), new Vector2(0f, .5f));
+            sheet = CreateHalf(root, "TurningSheet",
+                new Vector2(.5f, PageBottom), new Vector2(1f, PageTop), new Vector2(0f, .5f));
             var paper = sheet.gameObject.AddComponent<RawImage>();
             paper.texture = paperBack;
             paper.raycastTarget = false;
