@@ -10,8 +10,9 @@ namespace MasterHouse
     /// 图鉴详情页的翻书动效（2026-08-19）：翻页时整幅底图**播美术那圈翻书分帧**——
     /// 纸的卷曲、投影、落页全是手绘的，比代码模拟的缩放像得多。往后翻正放、往前翻倒放。
     ///
-    /// 内容在纸盖住目标页的时刻（进度 55%）替换，纸扫开的过程就是新页露出来。
-    /// 分帧那圈画的是空白书页，所以翻页期间把内容整体藏起来，否则两层打架。
+    /// 内容**不整体藏起来**（2026-08-19 反馈）：从分帧里量出每帧「纸的前缘」在画面的横向位置，
+    /// 拿它当一道裁切边——纸扫过哪儿，内容就被切到哪儿，切掉的地方露出底下的空白书页。
+    /// 纸落定后再把新内容按同一道边抹回来。
     /// 素材缺失时退回代码模拟的纸片（见 PlayFallback），不至于完全没有动效。
     ///
     /// 非布局件，运行时挂：容器与纸都是运行时建的，内容节点按 worldPositionStays 移进去，
@@ -37,13 +38,20 @@ namespace MasterHouse
         private const float PageBottom = .119f;
         private const float PageTop = .8295f;
 
-        /// <summary>翻页期间内容替换的时机（进度 0~1）：此刻纸已经盖住目标页。</summary>
-        private const float ContentSwapAt = .55f;
+        /// <summary>纸落定之后，新内容顺着同一道边抹回来的时长。</summary>
+        private const float RevealSeconds = .2f;
+        /// <summary>裁切边的横向羽化：硬边太像"擦除"，糊两个像素就贴着纸的前缘了。</summary>
+        private const int ClipSoftness = 12;
 
+        /// <summary>裁切窗：翻页时它的左右边跟着纸的前缘收，内容被切掉的地方就露出空白书页。</summary>
+        private RectTransform clipWindow;
+        /// <summary>装内容的那层：钉在裁切窗的角上、尺寸恒等于整页，裁切窗怎么收它都不动。</summary>
+        private RectTransform pageHolder;
+        private RectTransform book;
+        private float bookWidth;
         private RectTransform leftPage;
         private RectTransform rightPage;
         private CanvasGroup leftGroup;
-        private CanvasGroup rightGroup;
         /// <summary>整幅底图：翻页时它来播分帧。</summary>
         private RawImage background;
         /// <summary>翻动的那张纸；pivot 在书脊上，横向缩放 1 → 0 就是被掀过去。</summary>
@@ -65,15 +73,23 @@ namespace MasterHouse
             background = backdrop;
             var backdropTransform = backdrop != null ? backdrop.transform : null;
             var excluded = new List<Transform>(topmost) { backdropTransform };
-            leftPage = CreateHalf(root, "PageLeft", new Vector2(0f, 0f), new Vector2(.5f, 1f), new Vector2(.5f, .5f));
-            rightPage = CreateHalf(root, "PageRight", new Vector2(.5f, 0f), new Vector2(1f, 1f), new Vector2(.5f, .5f));
+            book = root;
+            bookWidth = root.rect.width;
+            clipWindow = CreateHalf(root, "PageClip", Vector2.zero, Vector2.one, new Vector2(.5f, .5f));
+            clipWindow.gameObject.AddComponent<RectMask2D>().softness = new Vector2Int(ClipSoftness, 0);
+            // 内容层钉在裁切窗的左下角、尺寸写死成整页：裁切窗收边时它岿然不动，
+            // 只是被裁掉一截（若跟着锚点拉伸，内容会跟着挤变形）
+            pageHolder = CreateHalf(clipWindow, "PageHolder", Vector2.zero, Vector2.zero, Vector2.zero);
+            pageHolder.sizeDelta = root.rect.size;
+            pageHolder.anchoredPosition = Vector2.zero;
+            leftPage = CreateHalf(pageHolder, "PageLeft", new Vector2(0f, 0f), new Vector2(.5f, 1f), new Vector2(.5f, .5f));
+            rightPage = CreateHalf(pageHolder, "PageRight", new Vector2(.5f, 0f), new Vector2(1f, 1f), new Vector2(.5f, .5f));
             leftGroup = leftPage.gameObject.AddComponent<CanvasGroup>();
-            rightGroup = rightPage.gameObject.AddComponent<CanvasGroup>();
 
             var moving = new List<Transform>();
             foreach (Transform child in root)
             {
-                if (child == leftPage || child == rightPage) continue;
+                if (child == clipWindow) continue;
                 var skip = false;
                 foreach (var keep in excluded)
                     if (keep != null && (child == keep || keep.IsChildOf(child))) { skip = true; break; }
@@ -148,43 +164,67 @@ namespace MasterHouse
 
         /// <summary>
         /// 翻一页。素材就位时**整幅底图播美术那圈翻书分帧**——纸的卷曲、投影、落页都是手绘的；
-        /// 往后翻正放、往前翻倒放。内容在纸盖住目标页的时刻替换，纸扫开就是新页露出来。
+        /// 往后翻正放、往前翻倒放。
+        ///
+        /// 当前页不消失：裁切窗跟着纸的前缘收，纸扫到哪儿内容就被切到哪儿，
+        /// 切掉的那块露出底下的空白书页。纸落定后换内容，再按同一道边把新页抹回来。
         /// 分帧缺失时退回代码模拟的纸片（不至于没有动效）。
         /// </summary>
-        /// <param name="reversed">true = 往前翻一页（倒放）。</param>
+        /// <param name="reversed">true = 往前翻一页（倒放，纸从左往右扫）。</param>
         public void Play(Action swap, bool reversed = false)
         {
             if (background == null || CodexPageTurnFrames.Count == 0) { PlayFallback(swap); return; }
             sequence?.Kill();
+            SyncSize();
             var restore = background.texture;
-            // 翻页期间内容整体藏起来：那圈帧本身画的就是空白书页，露着内容会两层打架
-            SetContentVisible(false);
             var swapped = false;
+            SetClip(1f, reversed);
             sequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
             sequence.Append(DOTween.To(() => 0f, t =>
             {
                 var frame = CodexPageTurnFrames.Sample(t, reversed);
                 if (frame != null) background.texture = frame;
-                // 纸盖住目标页之后再换内容，玩家看不到替换的那一下
-                if (!swapped && t >= ContentSwapAt) { swapped = true; swap?.Invoke(); }
+                SetClip(CodexPageTurnFrames.FrontAt(t, reversed), reversed);
             }, 1f, TurnSeconds).SetEase(Ease.Linear));
-            sequence.OnComplete(() =>
+            sequence.AppendCallback(() =>
             {
-                if (!swapped) swap?.Invoke();
+                // 此刻内容已被纸切干净，换页看不见；底图也换回常规那张（纸已经落定）
+                swapped = true;
+                swap?.Invoke();
                 background.texture = restore;
-                SetContentVisible(true);
             });
+            sequence.Append(DOTween.To(() => CodexPageTurnFrames.FrontAt(1f, reversed),
+                f => SetClip(f, reversed), 1f, RevealSeconds).SetEase(Ease.OutSine));
+            // 正常播完也会走 OnKill（autoKill），收尾与被打断时一致
             sequence.OnKill(() =>
             {
                 if (background != null) background.texture = restore;
-                SetContentVisible(true);
+                if (!swapped) swap?.Invoke();
+                SetClip(1f, reversed);
             });
         }
 
-        private void SetContentVisible(bool on)
+        /// <summary>整页尺寸对齐一次：Bind 那会儿画布未必已经排过版，宽度可能还是 0。</summary>
+        private void SyncSize()
         {
-            if (leftGroup != null) leftGroup.alpha = on ? 1f : 0f;
-            if (rightGroup != null) rightGroup.alpha = on ? 1f : 0f;
+            if (book == null || pageHolder == null) return;
+            var size = book.rect.size;
+            if (size.x <= 0f) return;
+            bookWidth = size.x;
+            pageHolder.sizeDelta = size;
+        }
+
+        /// <summary>
+        /// 把内容裁到「还没被纸扫过」的那一段。<paramref name="visible"/> 是这段占整页宽的比例，
+        /// 正放留左边一段、倒放留右边一段（纸的来向不同）。
+        /// </summary>
+        private void SetClip(float visible, bool reversed)
+        {
+            if (clipWindow == null || pageHolder == null) return;
+            var cut = Mathf.Clamp01(1f - visible) * bookWidth;
+            clipWindow.offsetMin = new Vector2(reversed ? cut : 0f, 0f);
+            clipWindow.offsetMax = new Vector2(reversed ? 0f : -cut, 0f);
+            pageHolder.anchoredPosition = new Vector2(-clipWindow.offsetMin.x, 0f);
         }
 
         /// <summary>分帧缺失时的兜底：还是那张代码模拟的纸扫过去。</summary>
