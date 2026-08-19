@@ -15,4 +15,4 @@ MonoBehaviour:
   needId: circuit_tutorial_01
   description: "\u623F\u95F4\u7684\u53F0\u706F\u603B\u662F\u5FFD\u660E\u5FFD\u6697\uFF0C\u53EF\u4EE5\u5E2E\u6211\u4FEE\u7406\u4E0B\u561B?\n"
   minigame: {fileID: 11400000, guid: a8d15cab587cbeb47b26c4fa097ddaf6, type: 2}
-  level: {fileID: 11400000, guid: 290d6d21a052b2e4493f9a04e7be2976, type: 2}
+  level: {fileID: 11400000, guid: ef0b3d7e5f368454ebbab418be43510e, type: 2}
