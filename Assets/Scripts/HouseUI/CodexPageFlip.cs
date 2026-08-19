@@ -10,9 +10,11 @@ namespace MasterHouse
     /// 图鉴详情页的翻书动效（2026-08-19）：翻页时整幅底图**播美术那圈翻书分帧**——
     /// 纸的卷曲、投影、落页全是手绘的，比代码模拟的缩放像得多。往后翻正放、往前翻倒放。
     ///
-    /// 内容**不整体藏起来**（2026-08-19 反馈）：从分帧里量出每帧「纸的前缘」在画面的横向位置，
-    /// 拿它当一道裁切边——纸扫过哪儿，内容就被切到哪儿，切掉的地方露出底下的空白书页。
-    /// 纸落定后再把新内容按同一道边抹回来。
+    /// 内容**跟着纸走**（2026-08-19 反馈：不能只是原地不动地被切掉）。从分帧里量出每帧
+    /// 「纸的前缘」在画面的横向位置，一条曲线同时驱动两件事：
+    /// · 被翻走的那半页**以书脊为轴横向收拢**（纸转过去，印在上面的内容跟着转，直到立成一条线）；
+    /// · 另半页被落下来的纸**从书脊往外盖住**（裁切边跟着纸的前缘走，盖到哪儿内容就没到哪儿）。
+    /// 两页都清干净了才换内容，再按同一道边把新页抹回来。
     /// 素材缺失时退回代码模拟的纸片（见 PlayFallback），不至于完全没有动效。
     ///
     /// 非布局件，运行时挂：容器与纸都是运行时建的，内容节点按 worldPositionStays 移进去，
@@ -82,8 +84,9 @@ namespace MasterHouse
             pageHolder = CreateHalf(clipWindow, "PageHolder", Vector2.zero, Vector2.zero, Vector2.zero);
             pageHolder.sizeDelta = root.rect.size;
             pageHolder.anchoredPosition = Vector2.zero;
-            leftPage = CreateHalf(pageHolder, "PageLeft", new Vector2(0f, 0f), new Vector2(.5f, 1f), new Vector2(.5f, .5f));
-            rightPage = CreateHalf(pageHolder, "PageRight", new Vector2(.5f, 0f), new Vector2(1f, 1f), new Vector2(.5f, .5f));
+            // 两半页的 pivot 都放在书脊上：横向缩放就是「以书脊为轴翻过去」
+            leftPage = CreateHalf(pageHolder, "PageLeft", new Vector2(0f, 0f), new Vector2(.5f, 1f), new Vector2(1f, .5f));
+            rightPage = CreateHalf(pageHolder, "PageRight", new Vector2(.5f, 0f), new Vector2(1f, 1f), new Vector2(0f, .5f));
             leftGroup = leftPage.gameObject.AddComponent<CanvasGroup>();
 
             var moving = new List<Transform>();
@@ -178,13 +181,13 @@ namespace MasterHouse
             SyncSize();
             var restore = background.texture;
             var swapped = false;
-            SetClip(1f, reversed);
+            ApplyTurn(1f, reversed);
             sequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
             sequence.Append(DOTween.To(() => 0f, t =>
             {
                 var frame = CodexPageTurnFrames.Sample(t, reversed);
                 if (frame != null) background.texture = frame;
-                SetClip(CodexPageTurnFrames.FrontAt(t, reversed), reversed);
+                ApplyTurn(CodexPageTurnFrames.FrontAt(t, reversed), reversed);
             }, 1f, TurnSeconds).SetEase(Ease.Linear));
             sequence.AppendCallback(() =>
             {
@@ -194,13 +197,13 @@ namespace MasterHouse
                 background.texture = restore;
             });
             sequence.Append(DOTween.To(() => CodexPageTurnFrames.FrontAt(1f, reversed),
-                f => SetClip(f, reversed), 1f, RevealSeconds).SetEase(Ease.OutSine));
+                f => ApplyTurn(f, reversed), 1f, RevealSeconds).SetEase(Ease.OutSine));
             // 正常播完也会走 OnKill（autoKill），收尾与被打断时一致
             sequence.OnKill(() =>
             {
                 if (background != null) background.texture = restore;
                 if (!swapped) swap?.Invoke();
-                SetClip(1f, reversed);
+                ApplyTurn(1f, reversed);
             });
         }
 
@@ -215,9 +218,21 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 把内容裁到「还没被纸扫过」的那一段。<paramref name="visible"/> 是这段占整页宽的比例，
-        /// 正放留左边一段、倒放留右边一段（纸的来向不同）。
+        /// 按纸的位置摆内容。<paramref name="visible"/> = 纸还没扫到的那一段占整页宽的比例。
+        /// 被翻走的那半页以书脊为轴收拢（内容跟着纸转过去），另半页按裁切边被盖掉。
+        /// 正放翻走的是右页、留左边一段；倒放翻走的是左页、留右边一段。
         /// </summary>
+        private void ApplyTurn(float visible, bool reversed)
+        {
+            // 被纸带走的那半页：书脊为轴横向压扁，压到 0 就是纸立成了一条线
+            var carried = reversed ? leftPage : rightPage;
+            var resting = reversed ? rightPage : leftPage;
+            var squash = Mathf.InverseLerp(CodexPageTurnFrames.SpineAt, 1f, visible);
+            if (carried != null) carried.localScale = new Vector3(squash, 1f, 1f);
+            if (resting != null) resting.localScale = Vector3.one;
+            SetClip(visible, reversed);
+        }
+
         private void SetClip(float visible, bool reversed)
         {
             if (clipWindow == null || pageHolder == null) return;
