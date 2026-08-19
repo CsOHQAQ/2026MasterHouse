@@ -48,18 +48,27 @@ namespace MasterHouse
             ((RectTransform)instance.transform).SetAsLastSibling();
             HouseUIUtil.ApplyFallbackFont(instance.transform);
 
-            // 结算信息板套用通用面板皮肤（2026-08-16：与 Hub 各卡片同一套 common 框，替掉纯黑底）
+            // 结算信息板套用通用面板皮肤（旧版式）；2.0 底板自带外观，别再盖
             var settleScrim = view.transform.Find("SettleScrim");
             if (settleScrim != null)
             {
                 var scrimImage = settleScrim.GetComponent<UnityEngine.UI.Image>();
-                if (scrimImage != null) HouseUIUtil.ApplyPanelSkin(scrimImage, .92f, 2.5f);
+                if (scrimImage != null && scrimImage.sprite == null) HouseUIUtil.ApplyPanelSkin(scrimImage, .92f, 2.5f);
             }
 
-            SetText(view.dayLabel, $"DAY {endedDay:00} 结算");
+            SetText(view.dayLabel, $"DAY {endedDay:00}　结算");
             SetText(view.subLabel, "新的一天，开门迎客");
             SetText(view.bodyLabel, summary != null ? BuildBody(summary) : string.Empty);
             SetText(view.hintLabel, "点击任意处 · 开始新的一天");
+            // 结算板 2.0 的三项（2026-08-20 设计图）：客人小费 / 声望值 / 装饰分。
+            // 前两项是当日累计；装饰分是全局展示值（当日增量没有单独口径，见 §6.1）
+            if (view.tipValue != null && summary != null)
+                view.tipValue.text = $"+{summary.TipEarned + summary.CurrencyEarned + summary.DialogueCurrencyEarned:N0}";
+            if (view.reputationValue != null && summary != null)
+                view.reputationValue.text = $"+{summary.ReputationEarned + summary.DialogueReputationEarned}";
+            if (view.decorationValue != null)
+                view.decorationValue.text = GameManager.Instance != null
+                    ? GameManager.Instance.EconomyManager.DecorationScore.ToString("N0") : "0";
 
             // 日夜交替分帧背景（2026-08-14）：有帧素材就循环播放绘本动画，纯色夜空/光晕退场；
             // 无素材（尚未导入）时回落到原来的纯色入夜表现
@@ -99,14 +108,16 @@ namespace MasterHouse
             clickButton.transition = UnityEngine.UI.Selectable.Transition.None;
             clickButton.targetGraphic = clickGraphic;
             var started = false;
-            clickButton.onClick.AddListener(() =>
+            void Advance()
             {
                 if (started || instance == null) return;
                 started = true;
                 SfxManager.Play(ESfx.UiClick);
                 nightIn.Kill(true); // 入场段若未播完，快进到位再接收尾
                 PlayDawn(instance, view, group, useFrames, onFinished);
-            });
+            }
+            clickButton.onClick.AddListener(Advance);
+            if (view.settleConfirm != null) view.settleConfirm.onClick.AddListener(Advance); // 2.0 确定按钮
         }
 
         /// <summary>分帧序列播放帧率（分帧脚本按 12fps 抽帧，同步改）。</summary>
@@ -131,6 +142,11 @@ namespace MasterHouse
         {
             var newDay = GameManager.Instance.HouseClockManager.Data.Day; // EndDay 之后时钟已在次日
             var seq = DOTween.Sequence().SetUpdate(true).SetLink(instance);
+            if (view.settleBoard != null)
+            {
+                var boardGroup = HouseUIUtil.Group(view.settleBoard.gameObject);
+                seq.Join(boardGroup.DOFade(0, .3f)); // 2.0 结算板整块退场（dayLabel 在板上，一起走）
+            }
             if (view.bodyLabel != null) seq.Join(view.bodyLabel.DOFade(0, .3f));
             if (view.hintLabel != null) seq.Join(view.hintLabel.DOFade(0, .25f));
             if (view.dayLabel != null)
