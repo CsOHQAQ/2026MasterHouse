@@ -36,16 +36,16 @@ MonoBehaviour:
   paletteCountColor: {r: 0.72, g: 0.72, b: 0.78, a: 1}
   paletteCountDisabledColor: {r: 0.95, g: 0.36, b: 0.33, a: 1}
   paletteCountDigits:
-  - {fileID: -2073465740, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
-  - {fileID: 679907020, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
-  - {fileID: -2068044335, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
-  - {fileID: -390066230, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
-  - {fileID: 783362787, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
-  - {fileID: 1204592346, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
-  - {fileID: 1296532743, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
-  - {fileID: 744806113, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
-  - {fileID: 2048424610, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
-  - {fileID: 2123486159, guid: 3d7086eb818c5da45bd5da443241fae5, type: 3}
+  - {fileID: 21300000, guid: d8593b2706c9a924aaab52b48ac2723a, type: 3}
+  - {fileID: 21300000, guid: 7b1669be3a192af4bada1ab9c29b9525, type: 3}
+  - {fileID: 21300000, guid: 142e384d03119444fb04f3afe3e4608e, type: 3}
+  - {fileID: 21300000, guid: 6c1edc59912ea1349aeec3f96f218c4f, type: 3}
+  - {fileID: 21300000, guid: 7ecea9822db13004883128a61b4172d5, type: 3}
+  - {fileID: 21300000, guid: bf772aed7bc9e20458984f83b91f0039, type: 3}
+  - {fileID: 21300000, guid: bcb11be5c5b2e0a408928e87679f241c, type: 3}
+  - {fileID: 21300000, guid: 58a9f0210ede0014789f1ada24e985ba, type: 3}
+  - {fileID: 21300000, guid: ea54897cdaee4744ea2d84ebd5700eb8, type: 3}
+  - {fileID: 21300000, guid: 63430095c720bba4ebf9577d0a2810b6, type: 3}
   paletteCountDigitSize: 34
   paletteCountDigitSpacing: 0
   paletteCountDigitColor: {r: 1, g: 1, b: 1, a: 1}
