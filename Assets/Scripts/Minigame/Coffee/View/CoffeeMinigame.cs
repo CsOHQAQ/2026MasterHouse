@@ -19,7 +19,11 @@ namespace MasterHouse
     /// （见 SfxManager 类注释），本类调它们只是"发声"，不读也不写任何业务状态，依赖方向没有掰弯。
     ///
     /// 流程：磨豆子（环上避障，上限 50 分）→ 冲咖啡（匀速移动，三档 50/30/20 分）
-    /// → 结算展示片刻 → onFinish(两环节相加)。没有失败条件；【放弃】/ESC 走 onAbort，重开全重置。
+    /// → 结算展示片刻 → onFinish(两环节相加)。没有失败条件。
+    ///
+    /// ESC / 左下角键位条是**暂停**（2026-08-20 按设计图改）：弹出局内暂停弹窗、整局冻结，
+    /// 【继续】回去接着玩，【放弃】才走 onAbort（不结算，访客保持「服务中」，重开全重置）。
+    /// 页面上不再单独摆一颗放弃按钮。ESC 由壳收键、经 ConsumeEscape 问下来，本类不读 KeyCode。
     /// </summary>
     [RequireComponent(typeof(CoffeeMinigameView))]
     public sealed class CoffeeMinigame : MonoBehaviour, IMinigame
@@ -28,6 +32,9 @@ namespace MasterHouse
 
         private CoffeeMinigameView view;
         private CoffeeLevelDef level;
+
+        /// <summary>本页的 UI 相机（Overlay 画布为 null）。命中测试与鼠标换算共用一份。</summary>
+        private Camera uiCamera;
         private GrindGame grind;
         private PourGame pour;
 
@@ -40,6 +47,10 @@ namespace MasterHouse
         private const int WaterRingSlots = 32;
 
         private EPhase phase;
+
+        /// <summary>暂停弹窗是否开着。开着 = 整局冻结（见 Update 的暂停闸）。</summary>
+        private bool paused;
+
         private int grindScore;
         private float settleRemaining;
         private float messageResetRemaining;
@@ -93,14 +104,17 @@ namespace MasterHouse
             Canvas.ForceUpdateCanvases();
 
             // 磨豆的摇柄模式要把鼠标换算到圆盘局部坐标，与冲泡环节共用同一个 UI 相机
-            var uiCamera = ResolveUiCamera();
+            uiCamera = ResolveUiCamera();
             grind = new GrindGame(view, level, uiCamera);
             grind.Hit += OnGrindHit;
             grind.Init();
             pour = new PourGame(view, level, uiCamera);
             SetupWater();
 
-            if (view.abortButton != null) view.abortButton.onClick.AddListener(OnAbortClicked);
+            view.abortButton.onClick.AddListener(OnAbortClicked);
+            view.escButton.onClick.AddListener(TogglePause);
+            view.resumeButton.onClick.AddListener(ClosePause);
+            view.pauseRoot.gameObject.SetActive(false);
 
             phase = EPhase.Grind;
             view.grindRoot.gameObject.SetActive(true);
@@ -118,6 +132,15 @@ namespace MasterHouse
         private void Update()
         {
             if (!running) return;
+
+            // 暂停闸（2026-08-20）：整局冻住——不推进任何计时、不喂水面（相位停在原地）、
+            // 不读输入。循环音要单独掐一次，因为下面那句 UpdateLoopSfx 被 return 跳过了
+            if (paused)
+            {
+                UpdateLoopSfx();
+                return;
+            }
+
             float dt = Time.deltaTime;
 
             // 撞击提示到时后恢复环节说明
@@ -131,7 +154,10 @@ namespace MasterHouse
             {
                 case EPhase.Grind:
                     grind.RelayoutIfResized();
-                    grind.HandleInput();
+                    // 左下角那颗 ESC 压在页面上，而磨豆读的是裸鼠标：点它的那一下不该顺带切一次环
+                    // （切进障碍是要扣分的）。UI 事件与本组件 Update 谁先跑没有保证，所以自己挡一道。
+                    // 不用 EventSystem.IsPointerOverGameObject——整页底图都是 raycastTarget，那样会全挡掉
+                    if (!IsPointerOver(view.escButton)) grind.HandleInput();
                     grind.Tick(dt);
                     RefreshHud();
                     if (grind.IsComplete) EnterPour();
@@ -162,6 +188,7 @@ namespace MasterHouse
         {
             grindScore = grind.Score;
             phase = EPhase.Pour;
+            SfxManager.PlayOnce(view.stageClearClip, view.stageClearVolume); // ① 磨豆通关
             view.grindRoot.gameObject.SetActive(false);
             view.pourRoot.gameObject.SetActive(true);
             messageResetRemaining = 0f;
@@ -173,6 +200,7 @@ namespace MasterHouse
         {
             phase = EPhase.Settle;
             settleRemaining = Mathf.Max(0f, view.settleShowSeconds);
+            SfxManager.PlayOnce(view.stageClearClip, view.stageClearVolume); // ② 冲泡通关（同时是全局结算）
 
             // 结算已定，别让玩家手滑把到手的分弃掉
             if (view.abortButton != null) view.abortButton.interactable = false;
@@ -213,6 +241,57 @@ namespace MasterHouse
             abort?.Invoke();
         }
 
+        // ══════════ 暂停（页面级：两个环节共用）══════════
+
+        /// <summary>
+        /// ESC 语义（2026-08-20 按设计图接入局内暂停）：
+        /// <list type="bullet">
+        /// <item>弹窗开着 → 关掉它，本次 ESC 被消费，页面不退；</item>
+        /// <item>局面进行中 → 打开弹窗，同样消费；</item>
+        /// <item>结算展示中 → 消费掉，但既不暂停也不放弃，而是**跳过展示**：把倒计时清零，
+        ///   下一帧照常走 Finish。分已经挣到手了，这一下不该把它弄丢
+        ///   （清零而不是当场调 Finish，是为了不在壳的收键调用栈里递归弹栈）。</item>
+        /// <item>已经结束 / 放弃过 → 不消费，交回给壳去弹栈关页面。</item>
+        /// </list>
+        /// 壳侧的转发见 <see cref="MinigameOverlay.ConsumeEscape"/>——ESC 是页面级语义，
+        /// 由壳统一收键、逐层问下来，小游戏自己不去读 KeyCode.Escape。
+        /// </summary>
+        public bool ConsumeEscape()
+        {
+            if (paused)
+            {
+                ClosePause();
+                return true;
+            }
+            if (!running) return false;
+
+            if (phase == EPhase.Settle)
+            {
+                settleRemaining = 0f;
+                return true;
+            }
+
+            OpenPause();
+            return true;
+        }
+
+        /// <summary>左下角那颗「ESC 暂停」：与按 ESC 键完全同义，所以直接走同一条路。</summary>
+        private void TogglePause() => ConsumeEscape();
+
+        private void OpenPause()
+        {
+            paused = true;
+            view.pauseRoot.gameObject.SetActive(true);
+            pour.DropTracking(); // 暂停期间挪的鼠标不该算进冲泡的速度采样（见 DropTracking 注释）
+            UpdateLoopSfx();     // 当帧就掐掉两路循环音，别让磨豆声在弹窗上继续响
+        }
+
+        private void ClosePause()
+        {
+            paused = false;
+            view.pauseRoot.gameObject.SetActive(false);
+        }
+
         private void OnDestroy()
         {
             if (grind != null) grind.Hit -= OnGrindHit;
@@ -231,6 +310,10 @@ namespace MasterHouse
 
         private void OnGrindHit()
         {
+            // 撞击音的剪辑默认留空（素材还没选定），留空时 PlayOnce 直接返回 = 不响，不报错。
+            // 指针本身的「压暗」由 GrindGame 在硬直期间做（pointerStunColor），这里只管声音与文字
+            SfxManager.PlayOnce(view.grindHitClip, view.grindHitVolume);
+
             if (view.messageLabel != null)
             {
                 view.messageLabel.color = view.messageWarnColor;
@@ -245,14 +328,14 @@ namespace MasterHouse
             view.messageLabel.color = view.messageNormalColor;
             if (phase != EPhase.Grind)
             {
-                view.messageLabel.text = "按住左键，在杯内匀速移动——越匀速档位越高";
+                view.messageLabel.text = "按住左键，在杯内匀速移动，速度越均匀得分越高！";
                 return;
             }
 
             // 磨豆两套操作的说明各一份（关卡的 GrindMode 决定，2026-08-19 试玩）
             view.messageLabel.text = level.GrindMode == EGrindMode.MouseCrank
-                ? "按住左键绕圆心顺时针画圈研磨；靠近/远离圆心换内外环，避开红色障碍"
-                : "点击左键切换圆环，避开红色障碍，磨满进度条";
+                ? "按住左键绕圆心顺时针画圈研磨，靠近/远离圆心换轨道，避开红色的珠子！"
+                : "点击左键切换轨道，避开红色的珠子！";
         }
 
         private void RefreshHud()
@@ -263,10 +346,11 @@ namespace MasterHouse
             if (view.phaseLabel != null)
                 view.phaseLabel.text = phase == EPhase.Grind ? "① 磨豆子" : "② 冲咖啡";
 
+            // 底卡只有 188 宽（素材原尺寸 ÷ 2.667），这两行都得短——长句放底部提示行
             if (view.scoreLabel != null)
                 view.scoreLabel.text = phase == EPhase.Grind
-                    ? $"研磨得分 {grind.Score}/{level.GrindMaxScore}"
-                    : $"研磨 {grindScore} ｜ 冲泡按匀速程度结算";
+                    ? $"得分 {grind.Score}/{level.GrindMaxScore}"
+                    : $"研磨 {grindScore} 分";
 
             if (view.tuningLabel != null)
             {
@@ -303,8 +387,8 @@ namespace MasterHouse
         /// </summary>
         private void UpdateLoopSfx()
         {
-            bool grinding = running && phase == EPhase.Grind && !grind.IsStunned;
-            bool pouring = running && phase == EPhase.Pour && pour.IsPouring;
+            bool grinding = running && !paused && phase == EPhase.Grind && !grind.IsStunned;
+            bool pouring = running && !paused && phase == EPhase.Pour && pour.IsPouring;
             SfxManager.SetLoop(view.grindLoopClip, grinding, view.grindLoopVolume);
             SfxManager.SetLoop(view.pourLoopClip, pouring, view.pourLoopVolume);
         }
@@ -339,7 +423,9 @@ namespace MasterHouse
             waterMaterial = new Material(shader);
             waterMaterial.SetColor("_WaterColor", view.waterColor);
             waterMaterial.SetColor("_RippleColor", view.waterRippleColor);
-            waterMaterial.SetFloat(WaterFillRadiusId, 0f);
+            // 满杯底图 + 液面常驻满（2026-08-20 拍板）：0.5 是 uv 半径的上限，设一次此后不再改。
+            // 进度改由 HUD 的进度条表达；这一层只剩波纹与边缘晃动
+            waterMaterial.SetFloat(WaterFillRadiusId, 0.5f);
             view.waterImage.gameObject.SetActive(true);
             view.waterImage.material = waterMaterial;
 
@@ -408,8 +494,7 @@ namespace MasterHouse
                     ringCenter[i].x, ringCenter[i].y, ringAge[i] * view.waterWakeWaveSpeed, fade);
             }
 
-            // 半径取进度的开方：液面面积 ∝ 半径²，开方后面积随进度线性长，观感上是匀速灌满
-            waterMaterial.SetFloat(WaterFillRadiusId, 0.5f * Mathf.Sqrt(Mathf.Clamp01(pour.Progress)));
+            // 液面半径不再喂：底图已是满杯，_FillRadius 在 SetupWater 里就设到上限了
             waterMaterial.SetFloat(WaterWobblePhaseId, wobblePhase);
             waterMaterial.SetFloat(WaterWobbleAmpId, wobbleAmp);
             waterMaterial.SetVectorArray(WaterRingsId, ringUpload);
@@ -426,6 +511,11 @@ namespace MasterHouse
 
         // ══════════ 杂项 ══════════
 
+        /// <summary>鼠标当前是否压在某个控件上（用来把裸鼠标输入从 UI 上让开）。</summary>
+        private bool IsPointerOver(Component target) =>
+            target != null && RectTransformUtility.RectangleContainsScreenPoint(
+                (RectTransform)target.transform, Input.mousePosition, uiCamera);
+
         /// <summary>Screen Space Overlay 的 Canvas 传 null 相机；其余模式取 Canvas 自己的。</summary>
         private Camera ResolveUiCamera()
         {
@@ -441,19 +531,33 @@ namespace MasterHouse
             var missing = new List<string>();
             if (view.grindRoot == null) missing.Add(nameof(view.grindRoot));
             if (view.pourRoot == null) missing.Add(nameof(view.pourRoot));
+            if (view.grindBackground == null) missing.Add(nameof(view.grindBackground));
             if (view.grindArea == null) missing.Add(nameof(view.grindArea));
             if (view.grindContentRoot == null) missing.Add(nameof(view.grindContentRoot));
-            if (view.grindDotTemplate == null) missing.Add(nameof(view.grindDotTemplate));
+            if (view.obstacleBeadTemplate == null) missing.Add(nameof(view.obstacleBeadTemplate));
             if (view.pointer == null) missing.Add(nameof(view.pointer));
+            if (view.pourBackground == null) missing.Add(nameof(view.pourBackground));
             if (view.cupArea == null) missing.Add(nameof(view.cupArea));
-            if (view.cupImage == null) missing.Add(nameof(view.cupImage));
             if (view.waterImage == null) missing.Add(nameof(view.waterImage));
             if (view.progressFill == null) missing.Add(nameof(view.progressFill));
+            if (view.escButton == null) missing.Add(nameof(view.escButton));
+            if (view.pauseRoot == null) missing.Add(nameof(view.pauseRoot));
+            if (view.resumeButton == null) missing.Add(nameof(view.resumeButton));
+            if (view.abortButton == null) missing.Add(nameof(view.abortButton));
             if (missing.Count == 0) return true;
 
+            // 2026-08-20 换 2.0 版式后，缺的多半是整页改版带来的新节点——那是「补齐缺失」补不出来的，
+            // 所以这里直接指路重建，别再让人先去点一遍没用的菜单
+            var is2point0 = view.pourBackground == null || view.grindBackground == null ||
+                            view.obstacleBeadTemplate == null || view.escButton == null ||
+                            view.pauseRoot == null || view.resumeButton == null;
             Debug.LogError($"[制作咖啡] Prefab 缺少必需的布局引用：{string.Join("、", missing)}。" +
-                           $"请先执行菜单 MasterHouse → 小游戏 → 创建制作咖啡资产（补齐缺失，会给老 Prefab 补新节点）；" +
-                           $"仍缺再重建（覆盖手调）", gameObject);
+                           (is2point0
+                               ? "这些是 2.0 版式（整屏底图 / ESC 暂停 / 暂停弹窗）的新节点，" +
+                                 "「补齐缺失」补不出来——请执行菜单 " +
+                                 "MasterHouse → 小游戏 → 重建制作咖啡 Prefab（覆盖手调）"
+                               : "请执行菜单 MasterHouse → 小游戏 → 创建制作咖啡资产（补齐缺失）；" +
+                                 "仍缺再重建（覆盖手调）"), gameObject);
             return false;
         }
     }

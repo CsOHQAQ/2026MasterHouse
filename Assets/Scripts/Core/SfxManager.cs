@@ -12,7 +12,7 @@ namespace MasterHouse
     ///
     /// 内容数据在 SfxTable 资产（§16.6）：换音/调音量/调节流间隔 = 改 Inspector，不碰代码。
     ///
-    /// 两条通道：**一次性音**走 Play(ESfx)（PlayOneShot，剪辑配在音效表）；
+    /// 两条通道：**一次性音**走 Play(ESfx)（剪辑配在音效表）或 PlayOnce(clip)（剪辑直传）；
     /// **循环音**走 SetLoop(clip, on)（一剪辑一路常驻 AudioSource，剪辑由调用方直传）——
     /// 研磨、冲泡这类「按住/进行中就一直响」的环境音属后者，见 SetLoop 注释。
     ///
@@ -71,8 +71,20 @@ namespace MasterHouse
                 Play(fallback);
                 return;
             }
+            PlayOnce(clip);
+        }
+
+        /// <summary>
+        /// 播放调用方直传的一次性剪辑（2026-08-20）：不进音效表的**专属**音走这里，
+        /// 剪辑配在自己的 Prefab / Def 上（同 SetLoop 的口径）。
+        /// clip 为空 = 该处不响，静默返回不报错——「留空即静音」是配置手段，不是缺件。
+        /// 音量 = 全局 SFX 音量 × volumeScale；不做节流，直传的都是单发事件，节奏由调用方保证。
+        /// </summary>
+        public static void PlayOnce(AudioClip clip, float volumeScale = 1f)
+        {
+            if (clip == null || !Application.isPlaying) return;
             var manager = Ensure();
-            var volume = Mathf.Clamp01(HouseSettings.Data.sfxVolume / 100f);
+            var volume = Mathf.Clamp01(HouseSettings.Data.sfxVolume / 100f) * Mathf.Max(0f, volumeScale);
             if (volume <= 0f || manager.source == null) return;
             manager.source.PlayOneShot(clip, volume);
         }

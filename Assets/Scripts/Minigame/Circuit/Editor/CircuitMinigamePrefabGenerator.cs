@@ -55,6 +55,14 @@ namespace MasterHouse.EditorTools
 
         private const string NodeFrameGreyPath = "Assets/Developers/taslopece/ArtTest/NodeFrameGrey.png";
 
+        // 音效剪辑（2026-08-20）：复用全局音效素材，但**是独立引用**——
+        // 将来给电路做专属素材时换 Prefab 上的引用即可，不会动到家具拿起音 / 基础点击音 / 声望增减音。
+        private const string DrawStepClipPath = "Assets/Resources/SoundEffect/2_Pickup_260813_1.mp3";
+        private const string NodePlaceClipPath = "Assets/Resources/SoundEffect/2_Putdown_260812.mp3";
+        private const string LinkConnectClipPath = "Assets/Resources/SoundEffect/1_Button_260812.mp3";
+        private const string BatteryLitClipPath = "Assets/Resources/SoundEffect/4_ScoreGain_260812.mp3";
+        private const string BatteryUnlitClipPath = "Assets/Resources/SoundEffect/4_ScoreLose_260813_1.mp3";
+
         [MenuItem("MasterHouse/小游戏/创建修理电路资产（补齐缺失）")]
         public static void CreateIfMissing() => Generate(false);
 
@@ -104,7 +112,7 @@ namespace MasterHouse.EditorTools
                 created.Add(PrefabPath + (overwritePrefab ? "（重建）" : string.Empty));
             }
             else if (prefab.GetComponent<CircuitMinigameView>() is { } prefabView &&
-                     (prefabView.visualStyle == null || prefabView.uiStyle == null))
+                     (prefabView.visualStyle == null || prefabView.uiStyle == null || NeedsAudioFill(prefabView)))
             {
                 // 「补齐缺失」不能为了补一个引用覆盖整份手调 Prefab；只改字段袋里的空引用。
                 var contents = PrefabUtility.LoadPrefabContents(PrefabPath);
@@ -113,8 +121,9 @@ namespace MasterHouse.EditorTools
                     var view = contents.GetComponent<CircuitMinigameView>();
                     if (view.visualStyle == null) view.visualStyle = visualStyle;
                     if (view.uiStyle == null) view.uiStyle = uiStyle;
+                    var audioFilled = AssignAudioClips(view);
                     prefab = PrefabUtility.SaveAsPrefabAsset(contents, PrefabPath);
-                    created.Add(PrefabPath + "（补样式引用）");
+                    created.Add(PrefabPath + (audioFilled ? "（补样式/音效引用）" : "（补样式引用）"));
                 }
                 finally
                 {
@@ -354,6 +363,7 @@ namespace MasterHouse.EditorTools
             view.visualStyle = visualStyle;
             view.uiStyle = uiStyle;
             view.levelBackground = backdrop;
+            AssignAudioClips(view);
 
             BuildTopBar(rootRect, view, topStatusBarPrefab);
             BuildPalette(rootRect, view, uiStyle);
@@ -367,6 +377,36 @@ namespace MasterHouse.EditorTools
             if (!ok) Debug.LogError("[修理电路] Prefab 保存失败：" + PrefabPath);
             Object.DestroyImmediate(root);
             return asset;
+        }
+
+        /// <summary>Prefab 上还有没有空着的音效槽——决定「补齐缺失」要不要为音效开一次 Prefab。</summary>
+        private static bool NeedsAudioFill(CircuitMinigameView view) =>
+            view.drawStepClip == null || view.nodePlaceClip == null || view.linkConnectClip == null ||
+            view.batteryLitClip == null || view.batteryUnlitClip == null;
+
+        /// <summary>
+        /// 补本小游戏的五个音效剪辑（2026-08-20）：**只补空的**，已手动换过的不动。
+        /// 剪辑不进音效表——这些是本小游戏的专属表现，配在自己的 Prefab 上更就近（换音 = 换这里的引用）。
+        /// </summary>
+        private static bool AssignAudioClips(CircuitMinigameView view)
+        {
+            var changed = false;
+            changed |= FillClip(ref view.drawStepClip, DrawStepClipPath, "描线音");
+            changed |= FillClip(ref view.nodePlaceClip, NodePlaceClipPath, "落件音");
+            changed |= FillClip(ref view.linkConnectClip, LinkConnectClipPath, "接线音");
+            changed |= FillClip(ref view.batteryLitClip, BatteryLitClipPath, "电池满足音");
+            changed |= FillClip(ref view.batteryUnlitClip, BatteryUnlitClipPath, "电池失去满足音");
+            return changed;
+        }
+
+        /// <summary>空引用才填，填不到只警告——留空的后果是「该处静音」，不该拦住整条补齐流程。</summary>
+        private static bool FillClip(ref AudioClip slot, string path, string label)
+        {
+            if (slot != null) return false;
+            slot = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            if (slot != null) return true;
+            Debug.LogWarning($"[修理电路] 未找到{label}：{path}（留空 = 该处静音）");
+            return false;
         }
 
         private static GameObject BuildTopStatusBarPrefab()
