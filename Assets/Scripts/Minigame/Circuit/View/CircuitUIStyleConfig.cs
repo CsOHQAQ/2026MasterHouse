@@ -33,6 +33,12 @@ namespace MasterHouse
 
         public Color palettePanelColor = Color.white;
 
+        [Header("课程包·教学栏")]
+        [Tooltip("教学栏整体的九宫格底图。留空时沿用纯色面板。")]
+        public Sprite lessonPanelBackgroundSprite;
+
+        public Color lessonPanelColor = Color.white;
+
         [Min(0f)]
         [Tooltip("件库面板顶部到首个节点条目的距离（Canvas 参考像素）；用于避开「件库」标题。")]
         public float paletteContentTopPadding = 78f;

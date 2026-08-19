@@ -372,7 +372,7 @@ namespace MasterHouse
             // 只重填数组引用，**不碰任何位置尺寸**；上一版生成时还叫旧名的那几张
             // 当时没找到、存成了 null，改名并不会把 null 变回来。
             repaired |= RepairPrefab<OutGameCodexDetailView>(CodexDetailPath, RebindCodexDetailArt,
-                view => view.lockedHint == null ||
+                view => view.lockedHint == null || view.pageBackPaper == null ||
                         CodexArtNeedsRebind(view.races, view.portraits, view.avatars));
             // 档案面板：补「访客图鉴」入口按钮（2026-08-18）
             repaired |= RepairPrefab<OutGameArchivePanelView>(ArchivePanelPath,
@@ -2460,11 +2460,11 @@ namespace MasterHouse
         /// </summary>
         private static readonly (Vector2 Position, Vector2 Size, float Tilt)[] CodexSlots =
         {
-            (new Vector2(215, -600), new Vector2(574, 698), -9f),
-            (new Vector2(535, -505), new Vector2(574, 698), 3f),
+            (new Vector2(81, -600), new Vector2(574, 698), -9f),
+            (new Vector2(458, -505), new Vector2(574, 698), 3f),
             (new Vector2(937, -575), new Vector2(789, 946), -1.5f),
-            (new Vector2(1374, -585), new Vector2(574, 698), -5f),
-            (new Vector2(1694, -495), new Vector2(574, 698), 6f),
+            (new Vector2(1448, -585), new Vector2(574, 698), -5f),
+            (new Vector2(1826, -495), new Vector2(574, 698), 6f),
         };
 
         /// <summary>
@@ -2475,6 +2475,7 @@ namespace MasterHouse
             new Vector2(470, 572), // 初版：偏小、均匀
             new Vector2(620, 754), // 第二版：放大过头，侧卡比设计图大了快一半
             new Vector2(473, 576), // 第三版：尺寸对了，但按矩形算重叠，被透明边距吃光
+            // 第四版尺寸没变（574×698），靠位置判定：见 CodexSlotsAreStale 里对 x 的比对
         };
 
         private const string CodexDir = "Assets/PC ui 2.0/图鉴/";
@@ -2492,13 +2493,14 @@ namespace MasterHouse
         /// </summary>
         private static readonly (string Race, string Art, string Portrait, string Avatar)[] CodexEntries =
         {
-            // 图片统一按访客种族表的 raceId 命名；顺序与表中行序一致。
+            // 先按访客种族表的 raceId 排序；豹酷酷/豹冲冲的美术文件名历史上是交叉的：
+            // cheetah 文件画的是冲冲，leopard 文件画的是酷酷。
             //  种族      图鉴卡面   详情页右页立绘  详情页证件照
             ("rabbit",  "rabbit",  "rabbit",  "rabbit"),
             ("goat",    "goat",    "goat",    "goat"),
             ("wolf",    "wolf",    "wolf",    "wolf"),
-            ("cheetah", "cheetah", "cheetah", "cheetah"),
-            ("leopard", "leopard", "leopard", "leopard"),
+            ("cheetah", "leopard", "leopard", "leopard"),
+            ("leopard", "cheetah", "cheetah", "cheetah"),
             ("ox",      "ox",      "ox",      "ox"),
             ("cat",     "cat",     "cat",     "cat"),
         };
@@ -2605,7 +2607,8 @@ namespace MasterHouse
             var size = side.rectTransform.sizeDelta;
             foreach (var stale in CodexStaleSideSizes)
                 if (Mathf.Abs(size.x - stale.x) < 1f && Mathf.Abs(size.y - stale.y) < 1f) return true;
-            return false;
+            // 尺寸没变但两端还没向外张开的（第四版之前 x=215），也要刷一次
+            return Mathf.Abs(side.rectTransform.anchoredPosition.x - 215f) < 1f;
         }
 
         /// <summary>把卡位换成新排布（放大 + 压边 + 错落）。只在命中初版值时调用，不覆盖手调。</summary>
@@ -2671,6 +2674,7 @@ namespace MasterHouse
             view.portrait = Raw(root.transform, "Portrait", new Vector2(0, 1), new Vector2(0, 1),
                 new Vector2(1435, -595), new Vector2(950, 885));
             view.lockedHint = AppendCodexLockedHint(root.transform);
+            view.pageBackPaper = AssetDatabase.LoadAssetAtPath<Texture2D>(CodexDetailDir + "页面.png");
             var ship = Image(root.transform, "ShipDecor", new Vector2(0, 1), new Vector2(0, 1),
                 new Vector2(1790, -941), new Vector2(240, 212), Color.white);
             ship.sprite = Detail("船");
@@ -2805,6 +2809,7 @@ namespace MasterHouse
         private static void RebindCodexDetailArt(GameObject root, OutGameCodexDetailView view)
         {
             view.lockedHint = AppendCodexLockedHint(root.transform);
+            view.pageBackPaper = AssetDatabase.LoadAssetAtPath<Texture2D>(CodexDetailDir + "页面.png");
             var races = new System.Collections.Generic.List<VisitorRaceDef>();
             var portraits = new System.Collections.Generic.List<Texture2D>();
             var avatars = new System.Collections.Generic.List<Texture2D>();

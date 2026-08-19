@@ -40,6 +40,7 @@ namespace MasterHouse
         [Tooltip("右页整幅立绘（每族一张）")] public RawImage portrait;
         [Tooltip("右下角帆船装饰")] public Image shipDecor;
         [Tooltip("未解锁提示：没接待过时立绘位置写「未解锁」")] public Text lockedHint;
+        [Tooltip("翻页时的纸背贴图（从书页底图裁出的干净纸面）")] public Texture2D pageBackPaper;
 
         [Header("条目（与图鉴页同一份种族顺序）")]
         public VisitorRaceDef[] races;

@@ -17,6 +17,7 @@ namespace MasterHouse
         private readonly HouseUIManager ui;
         private int index;
         private bool closing;
+        private CodexPageFlip flip;
 
         private CodexDetailOverlay(RectTransform root, OutGameCodexDetailView view, HouseUIManager ui, int index)
         {
@@ -52,6 +53,13 @@ namespace MasterHouse
             var rect = (RectTransform)instance.transform;
             rect.SetAsLastSibling();
             var overlay = new CodexDetailOverlay(rect, view, ui, IndexOf(view, race));
+            // 翻书动效（2026-08-19）：翻页期间整幅底图播美术那圈翻书分帧；
+            // 帆船与底部键位条不参与、且压在最上
+            overlay.flip = instance.AddComponent<CodexPageFlip>();
+            overlay.flip.Bind(rect, view.pageBackPaper, view.background,
+                view.shipDecor != null ? view.shipDecor.transform : null,
+                view.backButton != null ? view.backButton.transform : null,
+                view.switchButton != null ? view.switchButton.transform : null);
             overlay.Bind();
             var hotkeys = instance.AddComponent<CodexHotkeys>();
             hotkeys.Bind(() => overlay.Step(-1), () => overlay.Step(1), () => { });
@@ -109,11 +117,24 @@ namespace MasterHouse
             Refresh();
         }
 
+        /// <summary>连点排队时最后一次点击对应的目标页；-1 = 没有在排队的。</summary>
+        private int pendingIndex = -1;
+
         private void Step(int direction)
         {
             if (Count == 0 || direction == 0) return;
-            index = ((index + direction) % Count + Count) % Count;
-            Refresh();
+            // 连点时以「排队里最后那页」为基准算下一页，索引才不会被还没生效的翻页吃掉
+            var basis = pendingIndex >= 0 ? pendingIndex : index;
+            var next = ((basis + direction) % Count + Count) % Count;
+            pendingIndex = next;
+            // 往后翻正放、往前翻倒放（2026-08-19）；翻页中连点由 flip 排队加速，不重翻
+            if (flip != null) flip.Play(() =>
+            {
+                index = next;
+                if (pendingIndex == next) pendingIndex = -1;
+                Refresh();
+            }, reversed: direction < 0);
+            else { index = next; pendingIndex = -1; Refresh(); }
         }
 
         private void Refresh()
