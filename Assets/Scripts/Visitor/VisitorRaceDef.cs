@@ -22,6 +22,14 @@ namespace MasterHouse
         [Tooltip("稳定键（存档/日志用）")] public string raceId;
         public string displayName;
 
+        [Header("图鉴详情页内容（2026-08-19；策划在访客种族表里填，UI 只读）")]
+        [Tooltip("名字下方的西文别名，如 CATCAT")] public string aliasName;
+        [Tooltip("称号牌上的字，如「黑猫警官」")] public string title;
+        [Tooltip("星级 0~3，画在称号牌左边")] [Range(0, 3)] public int stars = 3;
+        [Tooltip("爱好一行，逗号分隔的自由文本")] public string hobbies;
+        [TextArea] [Tooltip("介绍正文")] public string intro;
+        [TextArea] [Tooltip("语录（QUOTE 纸上的话）")] public string quote;
+
         [Header("性格数值（tick，§11.3）")]
         [Tooltip("前台等搭话超时（tick）：等太久他自己走了。**不播对话、不扣声望**")]
         public int waitTalkTimeoutTicks = 1200;

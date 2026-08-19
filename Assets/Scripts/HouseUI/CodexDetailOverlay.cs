@@ -1,0 +1,132 @@
+using DG.Tweening;
+using UnityEngine;
+
+namespace MasterHouse
+{
+    /// <summary>
+    /// 图鉴详情页（2026-08-19 按 2.0 设计图新建）：从图鉴页按空格/点焦点卡进来的那一页。
+    /// 中键（或 ←→/QE/滚轮）在角色之间切换，ESC 退回图鉴页。
+    ///
+    /// 文案全部读 <see cref="VisitorRaceDef"/> 上的图鉴字段（策划在访客种族表里填）——
+    /// 没填的条目按占位文案兜底，不会空着一片白。
+    /// </summary>
+    public sealed class CodexDetailOverlay : IHouseOverlay
+    {
+        private readonly RectTransform root;
+        private readonly OutGameCodexDetailView view;
+        private readonly HouseUIManager ui;
+        private int index;
+        private bool closing;
+
+        private CodexDetailOverlay(RectTransform root, OutGameCodexDetailView view, HouseUIManager ui, int index)
+        {
+            this.root = root;
+            this.view = view;
+            this.ui = ui;
+            this.index = index;
+        }
+
+        /// <summary>打开详情页。startIndex = 图鉴页当前焦点的条目下标（两边共用同一份种族顺序）。</summary>
+        public static void Open(HouseUIManager ui, int startIndex)
+        {
+            var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.CodexDetail);
+            if (prefab == null)
+            {
+                Debug.LogError("[HouseUI] 图鉴详情页 Prefab 缺失（§16.2 不回退代码布局）：" +
+                               OutGamePrefabResourcePaths.CodexDetail);
+                return;
+            }
+            var instance = Object.Instantiate(prefab, ui.PageRoot, false);
+            instance.name = "CodexDetailLayer";
+            var view = instance.GetComponent<OutGameCodexDetailView>();
+            if (view == null)
+            {
+                Debug.LogError("[HouseUI] 图鉴详情页 Prefab 缺少视图组件：OutGameCodexDetailView");
+                Object.Destroy(instance);
+                return;
+            }
+            var rect = (RectTransform)instance.transform;
+            rect.SetAsLastSibling();
+            var overlay = new CodexDetailOverlay(rect, view, ui, startIndex);
+            overlay.Bind();
+            var hotkeys = instance.AddComponent<CodexHotkeys>();
+            hotkeys.Bind(() => overlay.Step(-1), () => overlay.Step(1), () => { });
+            HouseUIUtil.ApplyFallbackFont(instance.transform);
+            HouseUIBackgroundFit.Apply(view.background);
+            HouseDayLightTint.Attach(instance.transform, view.background);
+            var group = HouseUIUtil.Group(rect.gameObject, 0);
+            group.DOFade(1, .22f).SetUpdate(true);
+            ui.PushOverlay(overlay);
+        }
+
+        public void Close()
+        {
+            if (closing || root == null) return;
+            closing = true;
+            var group = HouseUIUtil.Group(root.gameObject);
+            group.blocksRaycasts = false;
+            group.DOFade(0, .18f).SetUpdate(true).OnComplete(() =>
+            {
+                if (root == null) return;
+                HouseUIUtil.KillTweensUnder(root);
+                Object.Destroy(root.gameObject);
+            });
+        }
+
+        private int Count => view.races != null ? view.races.Length : 0;
+
+        private void Bind()
+        {
+            if (view.title != null) view.title.text = "CHARACTER";
+            if (view.backButton != null) HouseUIUtil.BindButton(view.backButton, ui.PopOverlay, ESfx.None);
+            if (view.switchButton != null) HouseUIUtil.BindButton(view.switchButton, () => Step(1));
+            Refresh();
+        }
+
+        private void Step(int direction)
+        {
+            if (Count == 0 || direction == 0) return;
+            index = ((index + direction) % Count + Count) % Count;
+            Refresh();
+        }
+
+        private void Refresh()
+        {
+            if (Count == 0) return;
+            var race = view.races[Mathf.Clamp(index, 0, Count - 1)];
+            if (race == null) return;
+
+            SetText(view.nameLabel, race.displayName);
+            SetText(view.aliasLabel, race.aliasName);
+            SetText(view.titleLabel, string.IsNullOrEmpty(race.title) ? "——" : race.title);
+            SetText(view.idName, string.IsNullOrEmpty(race.aliasName) ? race.displayName : race.aliasName);
+            SetText(view.hobbiesLabel, "爱好：　" +
+                (string.IsNullOrEmpty(race.hobbies) ? "待补充" : race.hobbies));
+            SetText(view.introLabel, "介绍：\n\n" +
+                (string.IsNullOrEmpty(race.intro) ? "这位客人的档案还没有写完。" : race.intro));
+            SetText(view.quoteLabel, string.IsNullOrEmpty(race.quote) ? string.Empty : "“" + race.quote + "”");
+
+            // 星级：多出来的星藏掉（素材是一整块牌子，星是单独三颗压在上面）
+            if (view.stars != null)
+                for (var i = 0; i < view.stars.Length; i++)
+                    if (view.stars[i] != null) view.stars[i].enabled = i < race.stars;
+
+            // QUOTE 纸有四版，按条目下标轮换，翻角色时纸也跟着换一张
+            if (view.quotePaper != null && view.quotePapers != null && view.quotePapers.Length > 0)
+            {
+                var paper = view.quotePapers[index % view.quotePapers.Length];
+                if (paper != null) view.quotePaper.sprite = paper;
+            }
+            if (view.portrait != null) view.portrait.texture = Pick(view.portraits, index);
+            if (view.idAvatar != null) view.idAvatar.texture = Pick(view.avatars, index);
+        }
+
+        private static Texture2D Pick(Texture2D[] set, int i) =>
+            set != null && i >= 0 && i < set.Length ? set[i] : null;
+
+        private static void SetText(UnityEngine.UI.Text label, string value)
+        {
+            if (label != null) label.text = value ?? string.Empty;
+        }
+    }
+}

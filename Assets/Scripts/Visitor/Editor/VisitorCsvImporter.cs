@@ -137,6 +137,13 @@ namespace MasterHouse.EditorTools
                 race.wanderMaxTicks = Int(row, col, "闲逛上限tick", race.wanderMaxTicks);
                 // 立绘ID 的存在性由立绘表那边负责（PortraitCsvImporter），这里只存字符串：
                 // 导表顺序不保证，在这里查表会因为「立绘表还没导」报出假错误
+                // 图鉴详情页内容（2026-08-19）：缺列时保持资产上的现值，不覆盖成空串
+                race.aliasName = CellOr(row, col, "别名", race.aliasName);
+                race.title = CellOr(row, col, "称号", race.title);
+                race.stars = Int(row, col, "星级", race.stars);
+                race.hobbies = CellOr(row, col, "爱好", race.hobbies);
+                race.intro = CellOr(row, col, "介绍", race.intro);
+                race.quote = CellOr(row, col, "语录", race.quote);
                 race.defaultPortraitId = Cell(row, col, "默认立绘ID");
                 race.sheetPath = Cell(row, col, "序列帧");
                 // 「对话池」列已随 2026-08-14 对话资源重构退役：对话内容按 raceId 查 DialogueTable，
@@ -400,6 +407,13 @@ namespace MasterHouse.EditorTools
         {
             if (!col.TryGetValue(name, out var index) || index >= row.Length) return string.Empty;
             return row[index].Trim();
+        }
+
+        /// <summary>缺列/空值时保留资产上的现值（新增列还没进表时不至于把已有内容清掉）。</summary>
+        private static string CellOr(string[] row, Dictionary<string, int> col, string name, string fallback)
+        {
+            var text = Cell(row, col, name);
+            return string.IsNullOrEmpty(text) ? fallback : text;
         }
 
         private static int Int(string[] row, Dictionary<string, int> col, string name, int fallback)

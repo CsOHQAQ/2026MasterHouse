@@ -168,11 +168,16 @@ namespace MasterHouse
             cardsGroup.DOFade(1f, SlideSeconds).SetUpdate(true).SetLink(cardsRoot.gameObject);
         }
 
-        /// <summary>「查看」：焦点卡已经自动翻开了，这里只报一下是谁 / 还没接待过。</summary>
+        /// <summary>「查看」：翻开详情页（2026-08-19 详情页就位）；没接待过的看不了。</summary>
         private void ShowFocusInfo()
         {
             if (RaceCount == 0) return;
-            ui.ShowToast(IsUnlocked(focusIndex) ? RaceName(focusIndex) : "还没有接待过这位客人");
+            if (!IsUnlocked(focusIndex))
+            {
+                ui.ShowToast("还没有接待过这位客人");
+                return;
+            }
+            CodexDetailOverlay.Open(ui, focusIndex);
         }
 
         private bool IsUnlocked(int index)

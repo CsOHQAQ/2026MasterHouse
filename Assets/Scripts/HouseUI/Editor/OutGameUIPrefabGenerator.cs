@@ -49,6 +49,8 @@ namespace MasterHouse
         private const string CodexPagePath = Folder + "/CodexPage.prefab";
         // ESC 系统菜单（2026-08-19 按 2.0 设计图）
         private const string EscMenuPath = Folder + "/EscMenu.prefab";
+        // 图鉴详情页（2026-08-19 按 2.0 设计图）
+        private const string CodexDetailPath = Folder + "/CodexDetail.prefab";
         // 3.5c：动态列表项模板（§16.2 列表项 = Prefab 模板 + 运行时实例化），供重写版 HouseUI 面板使用
         private const string DeviceCardPath = Folder + "/DeviceCard.prefab";
         private const string ArchiveCardPath = Folder + "/ArchiveCard.prefab";
@@ -183,6 +185,7 @@ namespace MasterHouse
             }
             if (!File.Exists(CodexPagePath)) { BuildCodexPage(CodexPagePath); changed = true; }
             if (!File.Exists(EscMenuPath)) { BuildEscMenu(EscMenuPath); changed = true; }
+            if (!File.Exists(CodexDetailPath)) { BuildCodexDetail(CodexDetailPath); changed = true; }
             if (!File.Exists(ExitPagePath)) { BuildExitPage(ExitPagePath); changed = true; }
             if (!File.Exists(HubGuestCardPath)) { BuildHubGuestCard(HubGuestCardPath); changed = true; }
             if (!File.Exists(HubDockButtonPath)) { BuildHubDockButton(HubDockButtonPath); changed = true; }
@@ -2695,6 +2698,163 @@ namespace MasterHouse
                 TextAnchor.MiddleCenter, FontStyle.Normal);
             label.raycastTarget = false;
             return root;
+        }
+
+        private const string CodexDetailDir = "Assets/PC ui 2.0/图鉴-详情/";
+
+        private static Sprite Detail(string name) =>
+            AssetDatabase.LoadAssetAtPath<Sprite>(CodexDetailDir + name + ".png");
+
+        private static Texture2D DetailTex(string sub, string name) =>
+            AssetDatabase.LoadAssetAtPath<Texture2D>(CodexDetailDir + sub + "/" + name + ".png");
+
+        /// <summary>
+        /// 图鉴详情页（2026-08-19 按 2.0 设计图）：整屏书页底图，左页档案文字、右页立绘。
+        /// 各块都按素材原比例摆（证件卡 1384×812、徽记框 856×519、QUOTE 1090×676、
+        /// 称号牌 908×174、帆船 1182×1046、右页立绘 2802×2612）。坐标按 1920×1080 口径，
+        /// 由设计图（2959×1662）等比折算。文案空着，由绑定层按种族写。
+        /// </summary>
+        private static void BuildCodexDetail(string path)
+        {
+            var root = Root("CodexDetail");
+            var view = root.AddComponent<OutGameCodexDetailView>();
+            view.background = Raw(root.transform, "Background", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            view.background.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(CodexDetailDir + "底图.png");
+            view.background.raycastTarget = true;
+
+            // 右页立绘先建（压在左页文字之下，立绘边缘会越到中缝）
+            view.portrait = Raw(root.transform, "Portrait", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(1435, -595), new Vector2(950, 885));
+            var ship = Image(root.transform, "ShipDecor", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(1790, -941), new Vector2(240, 212), Color.white);
+            ship.sprite = Detail("船");
+            ship.preserveAspect = true;
+            ship.raycastTarget = false;
+            view.shipDecor = ship;
+
+            view.title = Label(root.transform, "Title", "CHARACTER", 58, Hex("3E6FA8"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(440, -224), new Vector2(360, 80),
+                TextAnchor.MiddleLeft, FontStyle.Bold);
+            var rule = Image(root.transform, "TitleRule", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(437, -262), new Vector2(346, 28), Color.white);
+            rule.sprite = Detail("Mask group");
+            rule.preserveAspect = true;
+            rule.raycastTarget = false;
+
+            view.nameLabel = Label(root.transform, "Name", string.Empty, 34, Hex("3E6FA8"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(388, -355), new Vector2(200, 46),
+                TextAnchor.MiddleLeft, FontStyle.Bold);
+            view.aliasLabel = Label(root.transform, "Alias", string.Empty, 24, Hex("6E8FBF"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(560, -358), new Vector2(180, 36),
+                TextAnchor.MiddleLeft, FontStyle.BoldAndItalic);
+
+            // 称号牌：整张图（左边星区 + 右边牌子），三颗星单独压上去按星级显隐
+            var plate = Image(root.transform, "RatingPlate", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(446, -403), new Vector2(317, 61), Color.white);
+            plate.sprite = Detail("等级");
+            plate.preserveAspect = true;
+            plate.raycastTarget = false;
+            view.ratingPlate = plate;
+            view.stars = new Image[3];
+            for (var i = 0; i < 3; i++)
+            {
+                var star = Image(plate.transform, "Star" + i, new Vector2(0, .5f), new Vector2(0, .5f),
+                    new Vector2(30 + i * 36, 0), new Vector2(30, 30), new Color(1f, 1f, 1f, 0f));
+                star.raycastTarget = false;
+                view.stars[i] = star; // 素材里星已画好，这里只做「多余的星藏掉」的开关位
+            }
+            view.titleLabel = Label(plate.transform, "TitleText", string.Empty, 22, Hex("6B5B4E"),
+                new Vector2(1, .5f), new Vector2(1, .5f), new Vector2(-88, 0), new Vector2(150, 34),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+
+            view.hobbiesLabel = Label(root.transform, "Hobbies", string.Empty, 22, Hex("4A4038"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(600, -472), new Vector2(560, 34),
+                TextAnchor.MiddleLeft, FontStyle.Normal);
+            view.introLabel = Label(root.transform, "Intro", string.Empty, 22, Hex("4A4038"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(600, -600), new Vector2(560, 190),
+                TextAnchor.UpperLeft, FontStyle.Normal);
+
+            var quote = Image(root.transform, "QuotePaper", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(410, -773), new Vector2(312, 194), Color.white);
+            quote.sprite = Detail("QUOTE1");
+            quote.preserveAspect = true;
+            quote.raycastTarget = false;
+            view.quotePaper = quote;
+            view.quotePapers = new[] { Detail("QUOTE1"), Detail("QUOTE2"), Detail("QUOTE3"), Detail("QUOTE4") };
+            view.quoteLabel = Label(quote.transform, "QuoteText", string.Empty, 20, Hex("4A6FA5"),
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(6, -18), new Vector2(240, 92),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+            var emblem = Image(root.transform, "EmblemBox", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(749, -749), new Vector2(240, 145), Color.white);
+            emblem.sprite = Detail("Group 111");
+            emblem.preserveAspect = true;
+            emblem.raycastTarget = false;
+            view.emblemBox = emblem;
+
+            var card = Image(root.transform, "IdCard", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(821, -243), new Vector2(298, 175), Color.white);
+            card.sprite = Detail("Group 110");
+            card.preserveAspect = true;
+            card.raycastTarget = false;
+            view.idCard = card;
+            view.idAvatar = Raw(card.transform, "Avatar", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(96, -46), new Vector2(58, 58));
+            view.idName = Label(card.transform, "IdName", string.Empty, 18, Hex("3E6FA8"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(206, -58), new Vector2(120, 30),
+                TextAnchor.MiddleLeft, FontStyle.Bold);
+
+            // 条目：与图鉴页同一份种族顺序，右页立绘与头像按族烘进来
+            var races = new System.Collections.Generic.List<VisitorRaceDef>();
+            var portraits = new System.Collections.Generic.List<Texture2D>();
+            var avatars = new System.Collections.Generic.List<Texture2D>();
+            foreach (var entry in CodexEntries)
+            {
+                var race = AssetDatabase.LoadAssetAtPath<VisitorRaceDef>(
+                    "Assets/Resources/OutGameUI/VisitorRaces/Race_" + entry.Race + ".asset");
+                if (race == null) continue;
+                races.Add(race);
+                portraits.Add(DetailTex("右侧立绘", entry.Art));
+                avatars.Add(FindAvatar(entry.Art));
+            }
+            view.races = races.ToArray();
+            view.portraits = portraits.ToArray();
+            view.avatars = avatars.ToArray();
+
+            view.backButton = SpriteButton(root.transform, "BackButton",
+                Detail("ESC-默认"), Detail("ESC-hover"),
+                new Vector2(0, 0), new Vector2(152, 57), new Vector2(186, 76));
+            view.switchButton = SpriteButton(root.transform, "SwitchButton",
+                Detail("中键-默认"), Detail("中键-悬停"),
+                new Vector2(1, 0), new Vector2(-163, 57), new Vector2(196, 80));
+            Save(root, path);
+        }
+
+        /// <summary>头像文件名带后缀（猫-1 / 牛2-1 / 羊-2 …），按前缀找一张。</summary>
+        private static Texture2D FindAvatar(string art)
+        {
+            var direct = DetailTex("头像", art);
+            if (direct != null) return direct;
+            var folder = CodexDetailDir + "头像";
+            foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { folder }))
+            {
+                var assetPath = AssetDatabase.GUIDToAssetPath(guid);
+                var file = System.IO.Path.GetFileNameWithoutExtension(assetPath);
+                if (file != null && file.StartsWith(art))
+                    return AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
+            }
+            return null;
+        }
+
+        [MenuItem("Tools/MasterHouse/OutGame UI/重建图鉴详情页（2.0 设计图）")]
+        private static void RebuildCodexDetail()
+        {
+            if (!EditorUtility.DisplayDialog("按 2.0 设计图重建图鉴详情页",
+                    "会覆盖 CodexDetail 的现有布局（包括手动调整）。确定继续吗？", "覆盖重建", "取消")) return;
+            EnsureFolder();
+            BuildCodexDetail(CodexDetailPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[OutGameUI] 图鉴详情页已按 2.0 设计图重建。");
         }
 
         private const string EscDir = "Assets/PC ui 2.0/ESC/";
