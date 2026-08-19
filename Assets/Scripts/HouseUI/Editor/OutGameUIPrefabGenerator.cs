@@ -2673,7 +2673,7 @@ namespace MasterHouse
             view.portrait = Raw(root.transform, "Portrait", new Vector2(0, 1), new Vector2(0, 1),
                 new Vector2(1435, -595), new Vector2(950, 885));
             view.lockedHint = AppendCodexLockedHint(root.transform);
-            view.pageBackPaper = AssetDatabase.LoadAssetAtPath<Texture2D>(CodexDetailDir + "纸背.png");
+            view.pageBackPaper = AssetDatabase.LoadAssetAtPath<Texture2D>(CodexDetailDir + "页面.png");
             var ship = Image(root.transform, "ShipDecor", new Vector2(0, 1), new Vector2(0, 1),
                 new Vector2(1790, -941), new Vector2(240, 212), Color.white);
             ship.sprite = Detail("船");
@@ -2808,7 +2808,7 @@ namespace MasterHouse
         private static void RebindCodexDetailArt(GameObject root, OutGameCodexDetailView view)
         {
             view.lockedHint = AppendCodexLockedHint(root.transform);
-            view.pageBackPaper = AssetDatabase.LoadAssetAtPath<Texture2D>(CodexDetailDir + "纸背.png");
+            view.pageBackPaper = AssetDatabase.LoadAssetAtPath<Texture2D>(CodexDetailDir + "页面.png");
             var races = new System.Collections.Generic.List<VisitorRaceDef>();
             var portraits = new System.Collections.Generic.List<Texture2D>();
             var avatars = new System.Collections.Generic.List<Texture2D>();
