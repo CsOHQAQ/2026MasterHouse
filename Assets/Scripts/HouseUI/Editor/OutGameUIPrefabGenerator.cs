@@ -2486,14 +2486,15 @@ namespace MasterHouse
         /// </summary>
         private static readonly (string Race, string Art, string Portrait, string Avatar)[] CodexEntries =
         {
+            // 图片统一按访客种族表的 raceId 命名；顺序与表中行序一致。
             //  种族      图鉴卡面   详情页右页立绘  详情页证件照
-            ("rabbit",  "兔子",  "兔",   "兔-2"),
-            ("goat",    "羊",    "羊",   "羊-1"),
-            ("wolf",    "狼",    "狼",   "狼-1"),
-            ("leopard", "豹1",   "豹",   "豹1"),
-            ("cheetah", "豹2",   "豹2",  "豹2-1"),
-            ("ox",      "牛1",   "牛1",  "牛"),
-            ("cat",     "猫",    "猫",   "猫-1"),
+            ("rabbit",  "rabbit",  "rabbit",  "rabbit"),
+            ("goat",    "goat",    "goat",    "goat"),
+            ("wolf",    "wolf",    "wolf",    "wolf"),
+            ("cheetah", "cheetah", "cheetah", "cheetah"),
+            ("leopard", "leopard", "leopard", "leopard"),
+            ("ox",      "ox",      "ox",      "ox"),
+            ("cat",     "cat",     "cat",     "cat"),
         };
 
         /// <summary>
