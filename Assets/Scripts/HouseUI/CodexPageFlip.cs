@@ -43,6 +43,10 @@ namespace MasterHouse
 
         /// <summary>纸落定之后，新内容顺着同一道边抹回来的时长。</summary>
         private const float RevealSeconds = .2f;
+        /// <summary>翻页层条带在纸前缘左侧留的余量（占帧宽比例），把前缘的投影也带上。</summary>
+        private const float StripLead = .06f;
+        /// <summary>前缘曲线是按书页内框归一的，换回帧坐标用：内框左缘 0.12、右缘 1.0。</summary>
+        private const float FrameLeft = .12f;
         /// <summary>裁切边的横向羽化：硬边太像"擦除"，糊两个像素就贴着纸的前缘了。</summary>
         private const int ClipSoftness = 12;
         /// <summary>
@@ -65,11 +69,26 @@ namespace MasterHouse
         private CanvasGroup rightGroup;
         /// <summary>整幅底图：静止不动，只用来拿 cover 裁切的 uvRect。</summary>
         private RawImage background;
-        /// <summary>翻页时盖在底图上的那本「抠出来的书」（分帧带透明通道，背景已去掉）。</summary>
-        private RawImage turnBook;
         /// <summary>翻动的那张纸；pivot 在书脊上，横向缩放 1 → 0 就是被掀过去。</summary>
         private RectTransform sheet;
         private Sequence sequence;
+        private Tween revealTween;
+        /// <summary>连点时最新一次翻页的令牌：内容的显隐只听最新那次的。</summary>
+        private int turnToken;
+
+        /// <summary>
+        /// 一层并发的翻页动画：每次点击独立开一层、各自放完整段分帧。
+        /// 条带窗只露出「纸的前缘右侧」——那里是飞页 + 已翻过的空白页，
+        /// 空白页和底下静止的书长得一样，几层叠着也看不出接缝，每层的纸都在飞。
+        /// </summary>
+        private sealed class TurnLayer
+        {
+            public RectTransform mask;   // 条带窗（RectMask2D），左边跟着纸的前缘走
+            public RectTransform holder; // 尺寸恒等于整页，抵消窗口位移，画面不跟着挤
+            public RawImage image;
+        }
+        private readonly List<TurnLayer> turnLayers = new List<TurnLayer>();
+        private RectTransform turnLayerRoot;
 
         /// <summary>一条横向渐变（外侧深、内侧透明）：给纸的前缘当投影，比硬边好看得多。</summary>
         private static Texture2D edgeShadow;
@@ -139,21 +158,13 @@ namespace MasterHouse
             edgeImage.raycastTarget = false;
             sheet.gameObject.SetActive(false);
 
-            // 播分帧的那本书：贴着底图的正上方、内容之下——分帧里的书页是空白的，
+            // 翻页动画的图层容器：贴着底图的正上方、内容之下——分帧里的书页是空白的，
             // 盖到内容上就回到「一翻页内容立刻全没」的老问题
-            var bookGo = new GameObject("TurnBook", typeof(RectTransform)) { layer = root.gameObject.layer };
-            var bookRect = (RectTransform)bookGo.transform;
-            bookRect.SetParent(root, false);
-            bookRect.anchorMin = Vector2.zero;
-            bookRect.anchorMax = Vector2.one;
-            bookRect.offsetMin = bookRect.offsetMax = Vector2.zero;
-            turnBook = bookGo.AddComponent<RawImage>();
-            turnBook.raycastTarget = false;
-            bookGo.SetActive(false);
+            turnLayerRoot = CreateHalf(root, "TurnLayers", Vector2.zero, Vector2.one, new Vector2(.5f, .5f));
 
-            // 底图压回最底（提上去整本书就盖住内容了），抠出来的书紧跟其后；帆船与键位条压到最上
+            // 底图压回最底（提上去整本书就盖住内容了），翻页容器紧跟其后；帆船与键位条压到最上
             if (backdropTransform != null && backdropTransform.parent == root) backdropTransform.SetAsFirstSibling();
-            bookRect.SetSiblingIndex(backdropTransform != null ? backdropTransform.GetSiblingIndex() + 1 : 0);
+            turnLayerRoot.SetSiblingIndex(backdropTransform != null ? backdropTransform.GetSiblingIndex() + 1 : 0);
             foreach (var keep in topmost)
                 if (keep != null && keep.parent == root) keep.SetAsLastSibling();
         }
@@ -193,47 +204,86 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 翻一页。素材就位时**整幅底图播美术那圈翻书分帧**——纸的卷曲、投影、落页都是手绘的；
-        /// 往后翻正放、往前翻倒放。
-        ///
-        /// 当前页不消失：裁切窗跟着纸的前缘收，纸扫到哪儿内容就被切到哪儿，
-        /// 切掉的那块露出底下的空白书页。纸落定后换内容，再按同一道边把新页抹回来。
+        /// 翻一页：每次调用都**新开一层**、把整段分帧从头放到尾，绝不打断上一次——
+        /// 连点时几层同时在放，几张纸一起在空中，就是快速哗哗翻的样子。
+        /// 内容的显隐只听最新一层的；每层翻完时落它自己的换页。
         /// 分帧缺失时退回代码模拟的纸片（不至于没有动效）。
         /// </summary>
         /// <param name="reversed">true = 往前翻一页（倒放，纸从左往右扫）。</param>
         public void Play(Action swap, bool reversed = false)
         {
-            if (turnBook == null || CodexPageTurnFrames.Count == 0) { PlayFallback(swap); return; }
-            sequence?.Kill();
+            if (turnLayerRoot == null || CodexPageTurnFrames.Count == 0) { PlayFallback(swap); return; }
+            revealTween?.Kill();
             SyncSize();
-            // 抠出来的书与底图同一套构图、同为 16:9：照抄底图的 cover 裁切就严丝合缝
-            if (background != null) turnBook.uvRect = background.uvRect;
-            turnBook.gameObject.SetActive(true);
+            var layer = TakeLayer();
+            var token = ++turnToken;
             var swapped = false;
-            ApplyTurn(1f, reversed);
-            sequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
-            sequence.Append(DOTween.To(() => 0f, t =>
+            Sequence seq = null;
+            seq = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
+            sequence = seq;
+            seq.Append(DOTween.To(() => 0f, t =>
             {
                 var frame = CodexPageTurnFrames.Sample(t, reversed);
-                if (frame != null) turnBook.texture = frame;
-                ApplyTurn(CodexPageTurnFrames.FrontAt(t, reversed), reversed);
+                if (frame != null) layer.image.texture = frame;
+                var front = CodexPageTurnFrames.FrontAt(t, reversed);
+                SetStrip(layer, front);
+                if (token == turnToken) ApplyTurn(front, reversed);
             }, 1f, TurnSeconds).SetEase(Ease.Linear));
-            sequence.AppendCallback(() =>
+            seq.OnComplete(() =>
             {
-                // 此刻内容已被纸清干净，换页看不见；书也落定了，撤掉分帧层
                 swapped = true;
                 swap?.Invoke();
-                turnBook.gameObject.SetActive(false);
+                layer.mask.gameObject.SetActive(false);
+                if (token != turnToken) return; // 后面还有在飞的，收尾归最新那层管
+                sequence = null;
+                // 纸落定后，新内容按同一道边抹回来
+                revealTween = DOTween.To(() => CodexPageTurnFrames.FrontAt(1f, reversed),
+                        f => ApplyTurn(f, reversed), 1f, RevealSeconds)
+                    .SetEase(Ease.OutSine).SetUpdate(true).SetLink(gameObject);
             });
-            sequence.Append(DOTween.To(() => CodexPageTurnFrames.FrontAt(1f, reversed),
-                f => ApplyTurn(f, reversed), 1f, RevealSeconds).SetEase(Ease.OutSine));
-            // 正常播完也会走 OnKill（autoKill），收尾与被打断时一致
-            sequence.OnKill(() =>
+            seq.OnKill(() =>
             {
-                if (turnBook != null) turnBook.gameObject.SetActive(false);
-                if (!swapped) swap?.Invoke();
-                ApplyTurn(1f, reversed);
+                layer.mask.gameObject.SetActive(false);
+                if (!swapped) swap?.Invoke(); // 中断（关页面等）也要把这页落上，索引不能丢
+                if (token == turnToken && !swapped) ApplyTurn(1f, reversed);
             });
+        }
+
+        /// <summary>取一层空闲的翻页层（都在忙就新建），并压到容器最上——新纸盖在旧纸上面。</summary>
+        private TurnLayer TakeLayer()
+        {
+            var layer = turnLayers.Find(x => !x.mask.gameObject.activeSelf);
+            if (layer == null)
+            {
+                layer = new TurnLayer();
+                layer.mask = CreateHalf(turnLayerRoot, "Turn", Vector2.zero, Vector2.one, new Vector2(.5f, .5f));
+                layer.mask.gameObject.AddComponent<RectMask2D>().softness = new Vector2Int(ClipSoftness, 0);
+                layer.holder = CreateHalf(layer.mask, "Frame", Vector2.zero, Vector2.zero, Vector2.zero);
+                layer.image = layer.holder.gameObject.AddComponent<RawImage>();
+                layer.image.raycastTarget = false;
+                turnLayers.Add(layer);
+            }
+            layer.holder.sizeDelta = book != null ? book.rect.size : layer.holder.sizeDelta;
+            // 抠出来的书与底图同一套构图、同为 16:9：照抄底图的 cover 裁切就严丝合缝
+            if (background != null) layer.image.uvRect = background.uvRect;
+            layer.mask.SetAsLastSibling();
+            layer.mask.gameObject.SetActive(true);
+            SetStrip(layer, 1f);
+            return layer;
+        }
+
+        /// <summary>
+        /// 把这一层裁成「纸的前缘右侧」的条带。飞页永远在前缘右边（前缘就是它的最左点），
+        /// 条带里其余部分是已翻过的空白页——和底下静止的书一模一样，所以叠不出接缝。
+        /// 正放倒放都一样：倒放只是分帧倒着走，纸还是在前缘右侧。
+        /// </summary>
+        private void SetStrip(TurnLayer layer, float front)
+        {
+            var frameX = FrameLeft + Mathf.Clamp01(front) * (1f - FrameLeft);
+            var cut = Mathf.Clamp01(frameX - StripLead) * bookWidth;
+            layer.mask.offsetMin = new Vector2(cut, 0f);
+            layer.mask.offsetMax = Vector2.zero;
+            layer.holder.anchoredPosition = new Vector2(-cut, 0f);
         }
 
         /// <summary>整页尺寸对齐一次：Bind 那会儿画布未必已经排过版，宽度可能还是 0。</summary>

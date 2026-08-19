@@ -117,14 +117,24 @@ namespace MasterHouse
             Refresh();
         }
 
+        /// <summary>连点排队时最后一次点击对应的目标页；-1 = 没有在排队的。</summary>
+        private int pendingIndex = -1;
+
         private void Step(int direction)
         {
             if (Count == 0 || direction == 0) return;
-            // 内容在书页完全合拢的那一帧才换，看到的就是翻了一页而不是原地换图
-            var next = ((index + direction) % Count + Count) % Count;
-            // 往后翻正放、往前翻倒放（2026-08-19）
-            if (flip != null) flip.Play(() => { index = next; Refresh(); }, reversed: direction < 0);
-            else { index = next; Refresh(); }
+            // 连点时以「排队里最后那页」为基准算下一页，索引才不会被还没生效的翻页吃掉
+            var basis = pendingIndex >= 0 ? pendingIndex : index;
+            var next = ((basis + direction) % Count + Count) % Count;
+            pendingIndex = next;
+            // 往后翻正放、往前翻倒放（2026-08-19）；翻页中连点由 flip 排队加速，不重翻
+            if (flip != null) flip.Play(() =>
+            {
+                index = next;
+                if (pendingIndex == next) pendingIndex = -1;
+                Refresh();
+            }, reversed: direction < 0);
+            else { index = next; pendingIndex = -1; Refresh(); }
         }
 
         private void Refresh()
