@@ -73,7 +73,17 @@ namespace MasterHouse
             });
         }
 
+        /// <summary>未解锁时统一的占位串。</summary>
+        private const string Unknown = "？？？";
+
         private int Count => view.races != null ? view.races.Length : 0;
+
+        /// <summary>这一族接待过没有——没接待过的，整页只给问号（2026-08-19）。</summary>
+        private static bool IsUnlocked(VisitorRaceDef race)
+        {
+            var manager = GameManager.Instance != null ? GameManager.Instance.VisitorManager : null;
+            return manager != null && race != null && manager.HasMetRace(race.raceId);
+        }
 
         private void Bind()
         {
@@ -95,21 +105,26 @@ namespace MasterHouse
             if (Count == 0) return;
             var race = view.races[Mathf.Clamp(index, 0, Count - 1)];
             if (race == null) return;
+            var known = IsUnlocked(race);
 
-            SetText(view.nameLabel, race.displayName);
-            SetText(view.aliasLabel, race.aliasName);
-            SetText(view.titleLabel, string.IsNullOrEmpty(race.title) ? "——" : race.title);
-            SetText(view.idName, string.IsNullOrEmpty(race.aliasName) ? race.displayName : race.aliasName);
-            SetText(view.hobbiesLabel, "爱好：　" +
-                (string.IsNullOrEmpty(race.hobbies) ? "待补充" : race.hobbies));
-            SetText(view.introLabel, "介绍：\n\n" +
-                (string.IsNullOrEmpty(race.intro) ? "这位客人的档案还没有写完。" : race.intro));
-            SetText(view.quoteLabel, string.IsNullOrEmpty(race.quote) ? string.Empty : "“" + race.quote + "”");
+            // 没接待过：名字、称号、爱好、介绍、语录一律问号，立绘与证件照不给看。
+            // 页上还剩书页、纸张这些装饰，一眼能看出「这一页还没填」而不是页面坏了。
+            SetText(view.nameLabel, known ? race.displayName : Unknown);
+            SetText(view.aliasLabel, known ? race.aliasName : string.Empty);
+            SetText(view.titleLabel, !known ? Unknown : string.IsNullOrEmpty(race.title) ? "——" : race.title);
+            SetText(view.idName, !known ? Unknown
+                : string.IsNullOrEmpty(race.aliasName) ? race.displayName : race.aliasName);
+            SetText(view.hobbiesLabel, "爱好：　" + (!known ? Unknown
+                : string.IsNullOrEmpty(race.hobbies) ? "待补充" : race.hobbies));
+            SetText(view.introLabel, "介绍：\n\n" + (!known ? Unknown
+                : string.IsNullOrEmpty(race.intro) ? "这位客人的档案还没有写完。" : race.intro));
+            SetText(view.quoteLabel, !known ? Unknown
+                : string.IsNullOrEmpty(race.quote) ? string.Empty : "“" + race.quote + "”");
 
-            // 星级：多出来的星藏掉（素材是一整块牌子，星是单独三颗压在上面）
+            // 星级：多出来的星藏掉（素材是一整块牌子，星是单独三颗压在上面）；没接待过的一颗不给
             if (view.stars != null)
                 for (var i = 0; i < view.stars.Length; i++)
-                    if (view.stars[i] != null) view.stars[i].enabled = i < race.stars;
+                    if (view.stars[i] != null) view.stars[i].enabled = known && i < race.stars;
 
             // QUOTE 纸有四版，按条目下标轮换，翻角色时纸也跟着换一张
             if (view.quotePaper != null && view.quotePapers != null && view.quotePapers.Length > 0)
@@ -118,8 +133,8 @@ namespace MasterHouse
                 if (paper != null) view.quotePaper.sprite = paper;
             }
             // RawImage 贴图为空会画成一整块白板，缺图时直接关掉这一层（2026-08-19 反馈）
-            SetTexture(view.portrait, Pick(view.portraits, index));
-            SetTexture(view.idAvatar, Pick(view.avatars, index));
+            SetTexture(view.portrait, known ? Pick(view.portraits, index) : null);
+            SetTexture(view.idAvatar, known ? Pick(view.avatars, index) : null);
         }
 
         private static void SetTexture(UnityEngine.UI.RawImage image, Texture2D texture)
