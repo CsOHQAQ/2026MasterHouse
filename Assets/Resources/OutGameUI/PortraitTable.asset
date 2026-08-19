@@ -50,27 +50,27 @@ MonoBehaviour:
     note: "\u5E73\u9759\u8138\u9884\u5360"
     sourceRow: 13
   - portraitId: "leopard_\u5E73\u9759"
-    path: OutGameUI/Portraits/leopard
+    path: OutGameUI/Portraits/cheetah
     note: "\u8C79\u65CF_\u8C79\xB7\u68D2\u7403\u5E3D"
     sourceRow: 15
   - portraitId: "leopard_\u5F00\u5FC3"
-    path: OutGameUI/Portraits/leopard
+    path: OutGameUI/Portraits/cheetah
     note: "\u5E73\u9759\u8138\u9884\u5360"
     sourceRow: 16
   - portraitId: "leopard_\u4F24\u5FC3"
-    path: OutGameUI/Portraits/leopard
+    path: OutGameUI/Portraits/cheetah
     note: "\u5E73\u9759\u8138\u9884\u5360"
     sourceRow: 17
   - portraitId: "cheetah_\u5E73\u9759"
-    path: OutGameUI/Portraits/cheetah
+    path: OutGameUI/Portraits/leopard
     note: "\u730E\u8C79\u65CF_\u730E\u8C79\xB7\u68D2\u7403\u670D\uFF0C\u5750\u4E0D\u4F4F"
     sourceRow: 19
   - portraitId: "cheetah_\u5F00\u5FC3"
-    path: OutGameUI/Portraits/cheetah
+    path: OutGameUI/Portraits/leopard
     note: "\u5E73\u9759\u8138\u9884\u5360"
     sourceRow: 20
   - portraitId: "cheetah_\u4F24\u5FC3"
-    path: OutGameUI/Portraits/cheetah
+    path: OutGameUI/Portraits/leopard
     note: "\u5E73\u9759\u8138\u9884\u5360"
     sourceRow: 21
   - portraitId: "ox_\u5E73\u9759"
