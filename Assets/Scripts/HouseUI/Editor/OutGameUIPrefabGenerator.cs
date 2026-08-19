@@ -298,9 +298,10 @@ namespace MasterHouse
             // 现在的 hideUiButton 藏在 LegacyHidden 里点不到；补一枚放在「完成放置」左侧并重绑引用
             repaired |= RepairPrefab<OutGameFurnitureHudView>(FurnitureHudPath,
                 (root, view) => AppendFurnitureHudHideButton(view),
-                view => view.hideUiButton == null ||
-                        !view.hideUiButton.gameObject.activeInHierarchy && view.topGroup != null &&
-                        view.topGroup.transform.Find("HideUiVisible") == null);
+                view => view.hideUiButton == null || !view.hideUiButton.gameObject.activeInHierarchy ||
+                        // 用户手摆的根级 HideUi/ShowUi 还没被认领时也要跑一次修补
+                        view.transform.Find("HideUi") != null &&
+                        view.hideUiButton.transform != view.transform.Find("HideUi"));
 
             // 右侧 dock：把运行时生成的「家具摆放/结束今天」按钮收编进 Prefab（只补缺失节点，不动既有布局）
             repaired |= RepairPrefab<OutGameHubRightDockView>(HubRightDockPath,
@@ -2467,13 +2468,28 @@ namespace MasterHouse
 
         /// <summary>家具模式 HUD（原型期运行时 uGUI 固化）：顶栏 + 收纳栏（页签/翻页/槽位容器）+ 提示条 + 购买弹窗。</summary>
         /// <summary>
-        /// 增量修补（2026-08-20）：给摆放页补一个可见的「收起」按钮，放在右下「完成放置」左侧。
-        /// 只加这一个节点并重绑 hideUiButton，其余布局一概不动；已存在则跳过（幂等）。
-        /// 点击行为走 FurnitureRoomHud 现成的绑定：收起整套 HUD，屏上留「显示界面」小按钮恢复。
+        /// 增量修补（2026-08-20）：让「收起」按钮可见可点。
+        /// 用户在 Prefab 根级手摆了 HideUi/ShowUi 两个节点（与 Toast 同级）——优先认领它们：
+        /// hideUiButton 绑根级 HideUi、restoreButton 绑根级 ShowUi，不再新建节点；
+        /// 早先补的 TopChrome/HideUiVisible 若存在则移除（避免双份）。
+        /// 都找不到才回退到「在完成放置左侧补一枚」。幂等，其余布局一概不动。
         /// </summary>
         private static void AppendFurnitureHudHideButton(OutGameFurnitureHudView view)
         {
-            if (view == null || view.topGroup == null) return;
+            if (view == null) return;
+            var root = view.transform;
+            var rootHide = root.Find("HideUi");
+            var rootShow = root.Find("ShowUi");
+            if (rootShow != null && rootShow.GetComponent<Button>() != null)
+                view.restoreButton = rootShow.GetComponent<Button>();
+            if (rootHide != null && rootHide.GetComponent<Button>() != null)
+            {
+                view.hideUiButton = rootHide.GetComponent<Button>();
+                var stale = view.topGroup != null ? view.topGroup.transform.Find("HideUiVisible") : null;
+                if (stale != null) Object.DestroyImmediate(stale.gameObject);
+                return;
+            }
+            if (view.topGroup == null) return;
             var chrome = view.topGroup.transform;
             var existing = chrome.Find("HideUiVisible");
             if (existing != null)

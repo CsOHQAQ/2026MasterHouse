@@ -397,6 +397,11 @@ namespace MasterHouse
             FadeGroup(view.topGroup, hidden ? 0f : 1f, !hidden);
             FadeGroup(view.inventoryGroup, hidden ? 0f : 1f, !hidden);
             FadeGroup(view.restoreGroup, hidden ? 1f : 0f, hidden);
+            // 「收起」按钮摆在根级（不归 topGroup 管，2026-08-20 用户手摆）：
+            // 显隐跟 topGroup 同步，收起后别和「显示界面」叠在一起
+            if (view.hideUiButton != null && view.topGroup != null &&
+                !view.hideUiButton.transform.IsChildOf(view.topGroup.transform))
+                FadeGroup(HouseUIUtil.Group(view.hideUiButton.gameObject), hidden ? 0f : 1f, !hidden);
         }
 
         private static void FadeGroup(CanvasGroup group, float alpha, bool interactable)
