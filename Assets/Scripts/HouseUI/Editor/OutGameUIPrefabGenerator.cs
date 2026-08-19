@@ -294,6 +294,14 @@ namespace MasterHouse
                 view.taskCard == null || view.guestRail == null || view.rightDock == null ||
                 view.roomNavigation == null || view.sceneOverlay == null);
             repaired |= RepairPrefab<OutGameSystemPanelView>(PanelPath, RepairSystemPanel);
+            // 家具摆放页：补一个可见的「收起」按钮（2026-08-20 用户要求：只加按钮，不动其他布局）。
+            // 现在的 hideUiButton 藏在 LegacyHidden 里点不到；补一枚放在「完成放置」左侧并重绑引用
+            repaired |= RepairPrefab<OutGameFurnitureHudView>(FurnitureHudPath,
+                (root, view) => AppendFurnitureHudHideButton(view),
+                view => view.hideUiButton == null ||
+                        !view.hideUiButton.gameObject.activeInHierarchy && view.topGroup != null &&
+                        view.topGroup.transform.Find("HideUiVisible") == null);
+
             // 右侧 dock：把运行时生成的「家具摆放/结束今天」按钮收编进 Prefab（只补缺失节点，不动既有布局）
             repaired |= RepairPrefab<OutGameHubRightDockView>(HubRightDockPath,
                 (root, view) => AppendDockActionButtons(root, view),
@@ -2458,6 +2466,30 @@ namespace MasterHouse
         }
 
         /// <summary>家具模式 HUD（原型期运行时 uGUI 固化）：顶栏 + 收纳栏（页签/翻页/槽位容器）+ 提示条 + 购买弹窗。</summary>
+        /// <summary>
+        /// 增量修补（2026-08-20）：给摆放页补一个可见的「收起」按钮，放在右下「完成放置」左侧。
+        /// 只加这一个节点并重绑 hideUiButton，其余布局一概不动；已存在则跳过（幂等）。
+        /// 点击行为走 FurnitureRoomHud 现成的绑定：收起整套 HUD，屏上留「显示界面」小按钮恢复。
+        /// </summary>
+        private static void AppendFurnitureHudHideButton(OutGameFurnitureHudView view)
+        {
+            if (view == null || view.topGroup == null) return;
+            var chrome = view.topGroup.transform;
+            var existing = chrome.Find("HideUiVisible");
+            if (existing != null)
+            {
+                view.hideUiButton = existing.GetComponent<Button>();
+                return;
+            }
+            var button = PageButton(chrome, "HideUiVisible", "收起", new Vector2(-338, 118),
+                new Vector2(150, 62), new Color(.97f, .96f, .92f, .95f), Hex("3E6FA8"), 20,
+                TextAnchor.MiddleCenter, new Vector2(1, 0));
+            var outline = button.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(.42f, .55f, .72f, .5f);
+            outline.effectDistance = new Vector2(1, -1);
+            view.hideUiButton = button;
+        }
+
         /// <summary>房间放置 2.0 素材目录（2026-08-20 按新设计图重做）。</summary>
         private const string Place2Dir = "Assets/PC ui 2.0/房间放置/";
 
