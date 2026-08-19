@@ -368,6 +368,11 @@ namespace MasterHouse
                 view => view.cardSlots != null && view.cardSlots.Length > 0 &&
                         (view.focusNumberRoot == null || CodexSlotsAreStale(view) ||
                          view.focusNumberRoot.parent != view.cardSlots[view.cardSlots.Length / 2].transform));
+            // 图鉴与详情页：重新绑按种族烘的图（2026-08-19 素材改名后补录）。
+            // 只重填数组引用，**不碰任何位置尺寸**；上一版生成时还叫旧名的那几张
+            // 当时没找到、存成了 null，改名并不会把 null 变回来。
+            repaired |= RepairPrefab<OutGameCodexDetailView>(CodexDetailPath, RebindCodexDetailArt,
+                view => CodexArtNeedsRebind(view.races, view.portraits, view.avatars));
             // 档案面板：补「访客图鉴」入口按钮（2026-08-18）
             repaired |= RepairPrefab<OutGameArchivePanelView>(ArchivePanelPath,
                 (root, view) => view.codexButton = AppendArchiveCodexButton(root.transform),
@@ -2766,6 +2771,41 @@ namespace MasterHouse
                 Detail("中键-默认"), Detail("中键-悬停"),
                 new Vector2(1, 0), new Vector2(-163, 57), new Vector2(196, 80));
             Save(root, path);
+        }
+
+        /// <summary>条目数对不上、或者哪张图是空的，就该重绑。</summary>
+        private static bool CodexArtNeedsRebind(VisitorRaceDef[] races, Texture2D[] portraits, Texture2D[] avatars)
+        {
+            if (races == null || races.Length != CodexEntries.Length) return true;
+            if (portraits == null || portraits.Length != CodexEntries.Length) return true;
+            if (avatars == null || avatars.Length != CodexEntries.Length) return true;
+            foreach (var texture in portraits) if (texture == null) return true;
+            foreach (var texture in avatars) if (texture == null) return true;
+            return false;
+        }
+
+        /// <summary>按 raceId 重新取一遍种族资产 / 右页立绘 / 证件照，只改引用。</summary>
+        private static void RebindCodexDetailArt(GameObject root, OutGameCodexDetailView view)
+        {
+            var races = new System.Collections.Generic.List<VisitorRaceDef>();
+            var portraits = new System.Collections.Generic.List<Texture2D>();
+            var avatars = new System.Collections.Generic.List<Texture2D>();
+            foreach (var entry in CodexEntries)
+            {
+                var race = AssetDatabase.LoadAssetAtPath<VisitorRaceDef>(
+                    "Assets/Resources/OutGameUI/VisitorRaces/Race_" + entry.Race + ".asset");
+                if (race == null) continue;
+                races.Add(race);
+                var portrait = DetailTex("右侧立绘", entry.Portrait);
+                var avatar = DetailTex("头像", entry.Avatar);
+                if (portrait == null) Debug.LogWarning("[OutGameUI] 详情页缺右页立绘：" + entry.Portrait);
+                if (avatar == null) Debug.LogWarning("[OutGameUI] 详情页缺证件照：" + entry.Avatar);
+                portraits.Add(portrait);
+                avatars.Add(avatar);
+            }
+            view.races = races.ToArray();
+            view.portraits = portraits.ToArray();
+            view.avatars = avatars.ToArray();
         }
 
         [MenuItem("Tools/MasterHouse/OutGame UI/重建图鉴详情页（2.0 设计图）")]
