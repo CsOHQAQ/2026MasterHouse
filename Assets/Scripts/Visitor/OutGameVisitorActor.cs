@@ -30,6 +30,8 @@ namespace MasterHouse
         private bool ambient;
         private Texture2D awaitTexture;
         private OutGameVisitorSheet awaitSheet;
+        private Texture2D walkTexture;
+        private OutGameVisitorSheet walkSheet;
         private Texture2D celebrateTexture;
         private OutGameVisitorSheet celebrateSheet;
         private OutGameVisitorSheetAnimator animator;
@@ -57,12 +59,19 @@ namespace MasterHouse
         private bool moving;
         private bool facingRight;
         private bool reacting;
+        private bool usingWalkSheet;
+        private bool movementReachedTarget;
+        private bool movementAnimationFinished;
+        private int finishWalkAfterLoop;
+        private WalkVisualPhase walkVisualPhase;
         private float walkSpeed;      // 视口单位/秒
         private float stateTimer;     // 游走停顿 / 生成延迟
         private float patienceTimer;  // 邻居在门口的耐心，耗尽自行离开
         private float departTimer = -1f; // 仅邻居使用：请进屋后的停留倒计时；业务访客离场由业务层驱动
         private float bobPhase;
         private float reactHopTimer;
+
+        private enum WalkVisualPhase { None, Rising, Walking, Settling }
 
         /// <summary>业务访客当前同步到的业务状态；-1 = 尚未同步/氛围邻居。</summary>
         private int businessState = -1;
@@ -110,6 +119,7 @@ namespace MasterHouse
             actor.ambient = isAmbient;
             actor.awaitTexture = awaitTex;
             actor.awaitSheet = awaitMeta;
+            actor.walkSheet = OutGameVisitorSheet.Load(sheetBase + "_walk_sheet", out actor.walkTexture);
             actor.celebrateSheet = OutGameVisitorSheet.Load(sheetBase + "_attack_sheet", out actor.celebrateTexture);
             actor.doorPoint = door;
             actor.waitPoint = wait;
@@ -119,7 +129,7 @@ namespace MasterHouse
             actor.onGone = gone;
             actor.spawnInside = spawnInside;
             actor.RoomIndex = startRoom; // 主楼场景（2026-08-16）：访客进场落在接待室，而不是默认房间 0
-            actor.walkSpeed = .055f * UnityEngine.Random.Range(.85f, 1.15f);
+            actor.walkSpeed = .042f * UnityEngine.Random.Range(.85f, 1.15f);
             actor.stateTimer = Mathf.Max(0f, spawnDelay);
             actor.BuildHierarchy();
             return actor;
@@ -255,7 +265,7 @@ namespace MasterHouse
         {
             if (!IsDraggable) return;
             Dragging = true;
-            moving = false;
+            StopMoving();
             dragOriginPosition = ScenePosition;
             dragOriginRoom = RoomIndex;
         }
@@ -290,7 +300,7 @@ namespace MasterHouse
             Dragging = false;
             RoomIndex = dragOriginRoom;
             ScenePosition = dragOriginPosition;
-            moving = false;
+            StopMoving();
             UpdateStatusCard();
         }
 
@@ -299,7 +309,7 @@ namespace MasterHouse
         {
             RoomIndex = roomIndex;
             ScenePosition = localPosition;
-            moving = false;
+            StopMoving();
             UpdateStatusCard();
         }
 
@@ -310,7 +320,7 @@ namespace MasterHouse
             if ((waitPoint - point).sqrMagnitude < 1e-6f) return;
             waitPoint = point;
             moveTarget = point;
-            moving = true;
+            StartMoving();
         }
 
         private void OnDestroy()
@@ -376,7 +386,7 @@ namespace MasterHouse
         /// <summary>完成服务：播放一次庆祝动作，然后继续游走。</summary>
         private void Celebrate()
         {
-            moving = false;
+            StopMoving();
             if (celebrateSheet != null)
             {
                 state = ActorState.Celebrating;
@@ -423,13 +433,14 @@ namespace MasterHouse
                     moveTarget = waitPoint; // 队位/前台位可能被舞台层实时调整
                     if (MoveTowards(dt))
                     {
+                        StopMoving();
                         state = ActorState.Waiting;
                         if (ambient) patienceTimer = UnityEngine.Random.Range(45f, 75f);
                         UpdateStatusCard();
                     }
                     break;
                 case ActorState.Waiting:
-                    if (moving && MoveTowards(dt)) moving = false; // 队伍前移
+                    if (moving && MoveTowards(dt)) StopMoving(); // 队伍前移
                     if (ambient)
                     {
                         patienceTimer -= dt;
@@ -447,7 +458,7 @@ namespace MasterHouse
                     {
                         if (MoveTowards(dt))
                         {
-                            moving = false;
+                            StopMoving();
                             stateTimer = UnityEngine.Random.Range(2.5f, 6f);
                         }
                     }
@@ -462,6 +473,7 @@ namespace MasterHouse
                 case ActorState.Leaving:
                     if (MoveTowards(dt))
                     {
+                        StopMoving();
                         state = ActorState.Gone;
                         group.DOFade(0f, .45f).SetTarget(this).SetUpdate(true)
                             .OnComplete(() =>
@@ -483,7 +495,7 @@ namespace MasterHouse
             state = ActorState.Arriving;
             ScenePosition = doorPoint;
             moveTarget = waitPoint;
-            moving = true;
+            StartMoving();
             group.DOFade(1f, .4f).SetTarget(this).SetUpdate(true);
             UpdateStatusCard();
         }
@@ -508,7 +520,7 @@ namespace MasterHouse
         private void EnterWandering(float idleDelay)
         {
             state = ActorState.Wandering;
-            moving = false;
+            StopMoving();
             stateTimer = idleDelay;
             UpdateStatusCard();
         }
@@ -528,7 +540,7 @@ namespace MasterHouse
             {
                 moveTarget = doorPoint;
             }
-            moving = true;
+            StartMoving();
             UpdateStatusCard();
         }
 
@@ -551,7 +563,7 @@ namespace MasterHouse
                 var candidate = RandomWalkPoint();
                 if ((candidate - ScenePosition).sqrMagnitude < .01f) continue;
                 moveTarget = candidate;
-                moving = true;
+                StartMoving();
                 return;
             }
             stateTimer = 2f;
@@ -561,7 +573,7 @@ namespace MasterHouse
         private void PokeReaction()
         {
             if (state != ActorState.Wandering && state != ActorState.Waiting) return;
-            moving = false;
+            StopMoving();
             stateTimer = Mathf.Max(stateTimer, 1.5f);
             reactHopTimer = .55f;
             if (celebrateSheet != null && !reacting)
@@ -575,15 +587,137 @@ namespace MasterHouse
             }
         }
 
+        private void StartMoving()
+        {
+            if (moving) return;
+            moving = true;
+            movementReachedTarget = false;
+            movementAnimationFinished = false;
+            finishWalkAfterLoop = 0;
+            if (usingWalkSheet) ReturnToAwaitAnimation();
+        }
+
+        private void StopMoving()
+        {
+            moving = false;
+            movementReachedTarget = false;
+            movementAnimationFinished = false;
+            finishWalkAfterLoop = 0;
+            ReturnToAwaitAnimation();
+        }
+
+        private void EnsureMovementAnimation()
+        {
+            if (usingWalkSheet || walkSheet == null || reacting || state == ActorState.Celebrating) return;
+            usingWalkSheet = true;
+            movementAnimationFinished = false;
+            var fps = walkSheet.TransitionPlaybackFps;
+            if (walkSheet.HasMovementWindow && walkSheet.moveStartFrame > 0)
+            {
+                walkVisualPhase = WalkVisualPhase.Rising;
+                animator.PlayRange(walkTexture, walkSheet, fps, 0, walkSheet.moveStartFrame - 1, false, () =>
+                {
+                    if (usingWalkSheet && moving && !reacting) BeginWalkLoop();
+                });
+            }
+            else
+            {
+                BeginWalkLoop();
+            }
+        }
+
+        private void BeginWalkLoop()
+        {
+            if (walkSheet == null) return;
+            walkVisualPhase = WalkVisualPhase.Walking;
+            var first = walkSheet.HasMovementWindow ? walkSheet.moveStartFrame : 0;
+            var last = walkSheet.HasMovementWindow ? walkSheet.moveEndFrame : walkSheet.frameCount - 1;
+            var loopFirst = walkSheet.HasMovementWindow ? walkSheet.WalkLoopStartFrame : first;
+            if (loopFirst > first)
+            {
+                animator.PlayRange(walkTexture, walkSheet, walkSheet.PlaybackFps,
+                    first, loopFirst - 1, false, () =>
+                    {
+                        if (usingWalkSheet && moving && !movementReachedTarget &&
+                            walkVisualPhase == WalkVisualPhase.Walking)
+                            BeginWalkCycle(loopFirst, last);
+                    });
+                return;
+            }
+            BeginWalkCycle(loopFirst, last);
+        }
+
+        private void BeginWalkCycle(int first, int last)
+        {
+            animator.PlayRange(walkTexture, walkSheet, walkSheet.PlaybackFps, first, last, true);
+        }
+
+        private void BeginWalkOutro()
+        {
+            if (walkSheet == null || !walkSheet.HasMovementWindow)
+            {
+                movementAnimationFinished = true;
+                return;
+            }
+            walkVisualPhase = WalkVisualPhase.Settling;
+            if (walkSheet.moveEndFrame + 1 < walkSheet.frameCount)
+            {
+                animator.PlayRange(walkTexture, walkSheet, walkSheet.TransitionPlaybackFps,
+                    walkSheet.moveEndFrame + 1, walkSheet.frameCount - 1, false, FinishMovementAnimation);
+            }
+            else if (walkSheet.reverseIntroOnStop && walkSheet.moveStartFrame > 0)
+            {
+                animator.PlayRange(walkTexture, walkSheet, walkSheet.TransitionPlaybackFps,
+                    walkSheet.moveStartFrame - 1, 0, false, FinishMovementAnimation);
+            }
+            else
+            {
+                movementAnimationFinished = true;
+            }
+        }
+
+        private void FinishMovementAnimation()
+        {
+            if (usingWalkSheet) movementAnimationFinished = true;
+        }
+
+        private void ReturnToAwaitAnimation()
+        {
+            if (!usingWalkSheet) return;
+            usingWalkSheet = false;
+            walkVisualPhase = WalkVisualPhase.None;
+            if (!reacting && animator != null)
+                animator.Play(awaitTexture, awaitSheet, 12f, true);
+        }
+
         /// <summary>朝 moveTarget 匀速移动一帧；到达返回 true。速度随深度缩放，远处走得慢，近大远小不穿帮。</summary>
         private bool MoveTowards(float dt)
         {
+            EnsureMovementAnimation();
+            if (movementAnimationFinished) return true;
             var delta = moveTarget - ScenePosition;
             if (Mathf.Abs(delta.x) > .003f) facingRight = delta.x > 0f;
+            if (movementReachedTarget)
+            {
+                if (walkVisualPhase == WalkVisualPhase.Walking && animator.CompletedLoops >= finishWalkAfterLoop)
+                    BeginWalkOutro();
+                return false;
+            }
+            if (walkSheet != null && walkSheet.HasMovementWindow && walkVisualPhase != WalkVisualPhase.Walking)
+                return false;
             var step = walkSpeed * Mathf.Lerp(1f, .55f, DepthT()) * dt;
             if (delta.magnitude <= step)
             {
                 ScenePosition = moveTarget;
+                if (walkSheet != null && walkSheet.HasMovementWindow)
+                {
+                    movementReachedTarget = true;
+                    if (walkSheet.reverseIntroOnStop || walkSheet.stopImmediatelyAtTarget)
+                        BeginWalkOutro();
+                    else
+                        finishWalkAfterLoop = animator.CompletedLoops + 1;
+                    return false;
+                }
                 return true;
             }
             ScenePosition += delta.normalized * step;
@@ -592,7 +726,7 @@ namespace MasterHouse
 
         private float DepthT() => Mathf.InverseLerp(NearY, FarY, ScenePosition.y);
 
-        /// <summary>按深度更新显示尺寸与左右翻转（素材默认朝左，向右走时镜像）。</summary>
+        /// <summary>按深度更新显示尺寸与左右翻转；少数 walk 素材可在 JSON 中单独反转朝向约定。</summary>
         private void ApplyDepth()
         {
             var scale = Mathf.Lerp(1f, FarScale, DepthT());
@@ -600,7 +734,13 @@ namespace MasterHouse
             var rect = (RectTransform)transform;
             rect.sizeDelta = new Vector2(height * animator.CurrentAspect, height);
             if (spriteRect != null)
-                spriteRect.localScale = new Vector3(facingRight ? -1f : 1f, 1f, 1f);
+            {
+                var mirrorForRight = facingRight;
+                if (walkSheet != null && walkSheet.invertFacing &&
+                    (usingWalkSheet || walkSheet.keepWalkFacingWhenIdle))
+                    mirrorForRight = !mirrorForRight;
+                spriteRect.localScale = new Vector3(mirrorForRight ? -1f : 1f, 1f, 1f);
+            }
             // 名牌/气泡挂在矩形上边缘，但立绘头顶上方还有一段透明留白，
             // 按它下压挂点，名牌才是贴着头而不是浮在半空（2026-08-18 反馈）
             var headDrop = Mathf.Clamp01(awaitSheet != null ? awaitSheet.headPadding : 0f) * height;
@@ -608,7 +748,7 @@ namespace MasterHouse
             if (bubble != null) bubble.SetHeadDrop(headDrop);
         }
 
-        /// <summary>行走时的小幅跳动（素材没有走路动画，用节奏跳动代替步态）；被逗时原地跳一下。</summary>
+        /// <summary>没有 walk 素材时才用小幅跳动兜底；有真实序列帧时脚底保持稳定。</summary>
         private void ApplyBobbing(float dt)
         {
             if (spriteRect == null) return;
@@ -618,7 +758,7 @@ namespace MasterHouse
                 spriteRect.anchoredPosition = new Vector2(0f, Mathf.Abs(Mathf.Sin(reactHopTimer * 11f)) * 16f);
                 return;
             }
-            if (moving && state != ActorState.Hidden)
+            if (moving && walkSheet == null && state != ActorState.Hidden)
             {
                 bobPhase += dt * 9f;
                 spriteRect.anchoredPosition = new Vector2(0f, Mathf.Abs(Mathf.Sin(bobPhase)) * 7f);
