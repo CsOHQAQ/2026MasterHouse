@@ -241,7 +241,7 @@
 10401,player,goat_伤心,5,2,2,Line,非常抱歉咩，目前没有能够满足您要求的房间咩。,,365
 10401,visitor,rabbit_伤心,5,2,3,Line,啊……没关系啦，我再去其他地方看看。,,366
 10401,player,rabbit_平静,5,3,,Branch,（先想一下）,,368
-10401,visitor,rabbit_平静,5,3,1,Line,您稍等下，我还在找合适的房间。,,369
+10401,player,goat_平静,5,3,1,Line,您稍等下，我还在找合适的房间。,,369
 10401,visitor,rabbit_平静,5,3,2,Line,好呀，我正好补一下妆。,,370
 20401,visitor,rabbit_平静,1,,,Line,找到合适的房间了嘛？,,372
 20401,,,2,1,,Branch,接待,CanAcceptGuest,374
