@@ -74,6 +74,20 @@ namespace MasterHouse
             Pop(timer);
         }
 
+        /// <summary>
+        /// 立刻收起当前气泡（符号与句子共用）：演员在「有需求」那一刻调用，
+        /// 免得已经挂在头顶的气泡陪着感叹号一起停留（2026-08-19 反馈）。
+        /// </summary>
+        public void HideNow()
+        {
+            if (group == null || !showing) return;
+            showing = false;
+            timer = UnityEngine.Random.Range(2f, 4f);
+            rect.DOKill();
+            group.DOKill();
+            group.DOFade(0f, .2f).SetTarget(this).SetUpdate(true);
+        }
+
         private void Update()
         {
             timer -= Time.unscaledDeltaTime;
