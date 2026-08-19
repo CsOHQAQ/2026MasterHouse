@@ -429,11 +429,13 @@ namespace MasterHouse
             for (var room = 0; room < nightRoomArts.Length; room++)
             {
                 if (roomArts[room] == null) continue;
-                var path = $"OutGameUI/RoomNight/room-night-{room + 1:00}";
-                var texture = Resources.Load<Texture2D>(path);
+                // 夜间层用**夜间合成图**（夜图 + 按夜间几何摆的家具），不是那张空房间原图：
+                // 只铺原图的话入夜后 Hub 里家具会被整片盖掉；而家具位置也必须走夜间校正，
+                // 否则与摆放模式看到的对不上（2026-08-19 反馈）
+                var texture = FurnitureSceneComposer.EnsureBaked(room, night: true);
                 if (texture == null)
                 {
-                    Debug.LogWarning("[HouseUI] 夜间房间图缺失：" + path);
+                    Debug.LogWarning("[HouseUI] 夜间房间合成图烘焙失败，房间下标：" + room);
                     continue;
                 }
                 var rect = HouseUIRuntime.Stretch(roomArts[room].rectTransform, "NightRoomArt");
@@ -941,6 +943,8 @@ namespace MasterHouse
                 if (roomArts[room] == null) continue;
                 var baked = FurnitureSceneComposer.EnsureBaked(room);
                 if (baked != null) roomArts[room].texture = baked;
+                var bakedNight = FurnitureSceneComposer.EnsureBaked(room, night: true);
+                if (bakedNight != null && nightRoomArts[room] != null) nightRoomArts[room].texture = bakedNight;
             }
         }
 

@@ -36,8 +36,19 @@ namespace MasterHouse
         /// <summary>烘焙分辨率倍数（2026-08-17）：房间推到满屏时按场景像素 1:1 会发糊，×2 接近原画密度。</summary>
         private const float BakeScale = 2f;
 
-        /// <summary>房间 id → 合成图（惰性创建，尺寸随房间场景尺寸）。</summary>
+        /// <summary>
+        /// 房间 id（夜间版后缀 "#night"）→ 合成图。
+        /// **昆夜各烘一张**（2026-08-19）：两张房间图的墙脚线不同，家具位置也跟着变，
+        /// 只烘白天那张的话，Hub 里看到的家具位置会与摆放模式对不上。
+        /// </summary>
         private static readonly Dictionary<string, RenderTexture> bakes = new Dictionary<string, RenderTexture>();
+
+        /// <summary>夜间房间图的 Resources 路径（与摆放模式同一套素材）。</summary>
+        private static Sprite NightBackground(int roomIndex) =>
+            Resources.Load<Sprite>($"OutGameUI/RoomNight/room-night-{roomIndex + 1:00}");
+
+        private static string BakeKey(FurnitureRoomEntry room, bool night) =>
+            night ? room.id + "#night" : room.id;
 
         /// <summary>作废全部合成图（新游戏 / 读入无布局的存档后，Hub 恢复原始美术图并按需重烘）。</summary>
         public static void ClearBaked()
@@ -48,23 +59,24 @@ namespace MasterHouse
         }
 
         /// <summary>取指定房间的合成图；null = 尚未烘焙。</summary>
-        public static Texture BakedFor(int roomIndex)
+        public static Texture BakedFor(int roomIndex, bool night = false)
         {
             var room = RoomAt(roomIndex);
-            return room != null && bakes.TryGetValue(room.id, out var texture) ? texture : null;
+            return room != null && bakes.TryGetValue(BakeKey(room, night), out var texture) ? texture : null;
         }
 
         /// <summary>取指定房间的合成图，缺失时立即烘焙一张（Hub 进场/切房间用：初始摆放直接可见）。</summary>
-        public static Texture EnsureBaked(int roomIndex)
+        public static Texture EnsureBaked(int roomIndex, bool night = false)
         {
-            var existing = BakedFor(roomIndex);
-            return existing != null ? existing : Bake(roomIndex);
+            var existing = BakedFor(roomIndex, night);
+            return existing != null ? existing : Bake(roomIndex, night);
         }
 
         /// <summary>按当前布局（会话布局，否则房间默认摆放）同步重新合成指定房间。回调保留异步形式的兼容签名。</summary>
         public static void RequestBake(int roomIndex, Action<Texture> onDone = null)
         {
-            var result = Bake(roomIndex);
+            var result = Bake(roomIndex, false);
+            Bake(roomIndex, true); // 夜间版一并重烘，否则入夜后 Hub 还是旧布局
             onDone?.Invoke(result);
         }
 
@@ -75,31 +87,35 @@ namespace MasterHouse
             return roomIndex >= 0 && roomIndex < rooms.rooms.Count ? rooms.rooms[roomIndex] : rooms.rooms[0];
         }
 
-        private static Texture Bake(int roomIndex)
+        private static Texture Bake(int roomIndex, bool night)
         {
             var table = GameManager.Instance.FurnitureTable;
             var room = RoomAt(roomIndex);
             if (table == null || room == null || room.background == null) return null;
+            // 夜间版用夜间房间图；缺图就退回白天那张（总比不出图好）
+            var background = night ? NightBackground(roomIndex) ?? room.background : room.background;
+            var nightAlpha = night ? 1f : 0f;
 
             // 烘焙分辨率放大（2026-08-17）：场景像素 1672 宽的画布推到单房间满屏时只有 ~40% 像素密度，
             // 放大后明显发糊；×2 后接近原画分辨率，家具坐标按同一倍数缩放，几何关系不变。
             var width = Mathf.RoundToInt(room.sceneWidth * BakeScale);
             var height = Mathf.RoundToInt(room.sceneHeight * BakeScale);
-            bakes.TryGetValue(room.id, out var baked);
+            var key = BakeKey(room, night);
+            bakes.TryGetValue(key, out var baked);
             if (baked == null || baked.width != width || baked.height != height)
             {
                 if (baked != null) baked.Release();
                 // ARGB32：需要 alpha 通道（家具层是透明底，2026-08-17）
                 baked = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32)
                 {
-                    name = "FurnitureSceneBaked_" + room.id,
+                    name = "FurnitureSceneBaked_" + key,
                 };
                 baked.Create();
-                bakes[room.id] = baked;
+                bakes[key] = baked;
             }
 
             // 收集绘制项：背景 + 家具（按层级排序后自后向前绘制）
-            var draws = Collect(table, room);
+            var draws = Collect(table, room, nightAlpha);
             // 光影：立式家具（地面/桌面带，order ≥ 100）脚下垫柔和投影，插到该件之下（order-1）
             var shadowSprite = Resources.Load<Sprite>("OutGameUI/soft-shadow");
             if (shadowSprite != null)
@@ -134,7 +150,7 @@ namespace MasterHouse
             // 像素坐标系（左上原点、Y 向下），与场景像素坐标一一对应
             // 绘制坐标系仍用**场景像素**口径（家具矩形都按它算），渲染目标分辨率高一档即自动提清晰度
             GL.LoadPixelMatrix(0, room.sceneWidth, room.sceneHeight, 0);
-            DrawSprite(room.background, new Rect(0, 0, room.sceneWidth, room.sceneHeight), false);
+            DrawSprite(background, new Rect(0, 0, room.sceneWidth, room.sceneHeight), false);
             foreach (var draw in draws)
                 DrawSprite(draw.entry != null ? draw.entry.sprite : shadowSprite, draw.rect, draw.flipped);
             GL.PopMatrix();
@@ -143,7 +159,7 @@ namespace MasterHouse
         }
 
         /// <summary>当前布局中每件家具的场景像素矩形（与合成图一致的锚点数学）。</summary>
-        private static List<(FurnitureEntry entry, int order, Rect rect, bool flipped)> Collect(FurnitureTable table, FurnitureRoomEntry room)
+        private static List<(FurnitureEntry entry, int order, Rect rect, bool flipped)> Collect(FurnitureTable table, FurnitureRoomEntry room, float nightAlpha)
         {
             var placements = FurnitureRoomController.CaptureSessionPlacements(room.id) ?? room.initialPlacements;
             var result = new List<(FurnitureEntry, int, Rect, bool)>();
@@ -152,7 +168,7 @@ namespace MasterHouse
                 if (placement == null || placement.IsOnHost) continue;
                 var entry = table.Find(placement.furnitureId);
                 if (entry == null || entry.sprite == null) continue;
-                if (!BaseAnchor(room, entry, placement, out var left, out var bottom, out var order)) continue;
+                if (!BaseAnchor(room, entry, placement, nightAlpha, out var left, out var bottom, out var order)) continue;
                 result.Add((entry, order, new Rect(left, bottom - entry.displayHeight, entry.displayWidth, entry.displayHeight), placement.flipped));
             }
             foreach (var placement in placements)
@@ -160,7 +176,7 @@ namespace MasterHouse
                 if (placement == null || !placement.IsOnHost) continue;
                 var entry = table.Find(placement.furnitureId);
                 if (entry == null || entry.sprite == null) continue;
-                if (!HostedAnchor(room, table, placements, placement, entry, out var left, out var bottom, out var order)) continue;
+                if (!HostedAnchor(room, table, placements, placement, entry, nightAlpha, out var left, out var bottom, out var order)) continue;
                 result.Add((entry, order, new Rect(left, bottom - entry.displayHeight, entry.displayWidth, entry.displayHeight), placement.flipped));
             }
             return result;
@@ -173,7 +189,7 @@ namespace MasterHouse
             var table = GameManager.Instance.FurnitureTable;
             var room = RoomAt(roomIndex);
             if (table == null || room == null) return result;
-            foreach (var (entry, order, rect, flipped) in Collect(table, room))
+            foreach (var (entry, order, rect, flipped) in Collect(table, room, 0f))
             {
                 var viewport = new Rect(
                     rect.x / room.sceneWidth,
@@ -205,12 +221,14 @@ namespace MasterHouse
         }
 
         private static bool BaseAnchor(FurnitureRoomEntry room, FurnitureEntry entry, FurniturePlacementConfig placement,
-            out float left, out float bottom, out int order)
+            float nightAlpha, out float left, out float bottom, out int order)
         {
             left = bottom = 0f;
             order = 0;
             var grid = FindGrid(room, placement.gridId);
             if (grid == null) return false;
+            // 与摆放模式同一套昆夜几何校正，否则两边位置对不上
+            grid = FurnitureNightLayout.Adjust(room, grid, nightAlpha);
             left = grid.x + placement.col * grid.cellWidth + (entry.cols * grid.cellWidth - entry.displayWidth) * .5f;
             if (grid.surface == FurnitureSurfaceType.Floor)
             {
@@ -234,7 +252,7 @@ namespace MasterHouse
 
         private static bool HostedAnchor(FurnitureRoomEntry room, FurnitureTable table,
             List<FurniturePlacementConfig> placements, FurniturePlacementConfig placement, FurnitureEntry entry,
-            out float left, out float bottom, out int order)
+            float nightAlpha, out float left, out float bottom, out int order)
         {
             left = bottom = 0f;
             order = 0;
@@ -251,7 +269,7 @@ namespace MasterHouse
             var hostEntry = table.Find(hostPlacement.furnitureId);
             var surface = hostEntry?.tableSurface;
             if (surface == null || !surface.enabled) return false;
-            if (!BaseAnchor(room, hostEntry, hostPlacement, out var hostLeft, out var hostBottom, out var hostOrder)) return false;
+            if (!BaseAnchor(room, hostEntry, hostPlacement, nightAlpha, out var hostLeft, out var hostBottom, out var hostOrder)) return false;
             var gridX = hostLeft + surface.offsetX;
             var gridY = hostBottom - surface.surfaceHeight - surface.cellHeight;
             left = gridX + placement.col * surface.cellWidth + (entry.cols * surface.cellWidth - entry.displayWidth) * .5f;
