@@ -34,6 +34,34 @@ namespace MasterHouse
         /// <summary>纸的前缘扫到书脊时，这条曲线的取值：过了这一刻，被翻走的那页就完全立起来了。</summary>
         public const float SpineAt = .432f;
 
+        /// <summary>
+        /// 每帧「掀起的纸身」的横向范围（帧坐标 0~1）：和摊平帧作差、密度窗 35 抑掉细线后取包围。
+        /// 倒放的条带按它裁——只露掀起的部分，摊平躺着的部分不盖内容。
+        /// 帧 0 没有纸（1,1 = 空）；帧 26~29 只剩右缘一点落定余晃。
+        /// </summary>
+        private static readonly Vector2[] Lifted =
+        {
+            new Vector2(1.000f, 1.000f), new Vector2(.805f, .889f), new Vector2(.770f, .889f),
+            new Vector2(.735f, .889f), new Vector2(.707f, .889f), new Vector2(.676f, .889f),
+            new Vector2(.658f, .889f), new Vector2(.634f, .889f), new Vector2(.598f, .889f),
+            new Vector2(.559f, .889f), new Vector2(.521f, .889f), new Vector2(.484f, .889f),
+            new Vector2(.446f, .889f), new Vector2(.414f, .889f), new Vector2(.385f, .889f),
+            new Vector2(.310f, .890f), new Vector2(.295f, .889f), new Vector2(.299f, .889f),
+            new Vector2(.291f, .890f), new Vector2(.284f, .890f), new Vector2(.272f, .890f),
+            new Vector2(.256f, .890f), new Vector2(.236f, .890f), new Vector2(.212f, .890f),
+            new Vector2(.166f, .890f), new Vector2(.183f, .890f), new Vector2(.860f, .889f),
+            new Vector2(.860f, .889f), new Vector2(.860f, .889f), new Vector2(.861f, .890f),
+        };
+
+        /// <summary>按进度取掀纸范围（x=左缘、y=右缘，帧坐标）。<paramref name="reversed"/> = 倒放。</summary>
+        public static Vector2 LiftedSpanAt(float t01, bool reversed)
+        {
+            var t = Mathf.Clamp01(reversed ? 1f - t01 : t01);
+            var at = t * (Lifted.Length - 1);
+            var lo = Mathf.FloorToInt(at);
+            return Vector2.Lerp(Lifted[lo], Lifted[Mathf.Min(Lifted.Length - 1, lo + 1)], at - lo);
+        }
+
         /// <summary>帧数；0 = 素材缺失（调用方退回代码模拟的翻页）。</summary>
         public static int Count => Load().Length;
 
