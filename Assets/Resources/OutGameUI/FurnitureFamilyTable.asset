@@ -283,3 +283,39 @@ MonoBehaviour:
       cellHeight: 56
       offsetX: 50
       surfaceHeight: 146
+  - familyId: bed_side
+    displayName: "\u5355\u4EBA\u5E8A"
+    category: "\u684C\u6905"
+    description: "\u8EBA\u4E0B\u53BB\u5C31\u4E0D\u60F3\u8D77\u6765\u7684\u5E8A\u3002"
+    surfaces: 00000000
+    stackable: 0
+    cols: 7
+    rows: 2
+    decorationScore: 40
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - familyId: bed_front
+    displayName: "\u5E8A\u5934\u5E8A"
+    category: "\u684C\u6905"
+    description: "\u5E8A\u5934\u662F\u5B83\u7684\u95E8\u9762\u3002"
+    surfaces: 00000000
+    stackable: 0
+    cols: 5
+    rows: 2
+    decorationScore: 40
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146

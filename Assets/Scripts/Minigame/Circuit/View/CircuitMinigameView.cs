@@ -36,8 +36,11 @@ namespace MasterHouse
         public CircuitUIStyleConfig uiStyle;
 
         [Header("关卡背景")]
-        [Tooltip("全屏背景图。Sprite 由当前 LevelDef.BackgroundSprite 驱动。")]
+        [Tooltip("最底层全屏背景图。Sprite 由 CircuitVisualStyleConfig.levelBackgroundSprite 驱动。")]
         public Image levelBackground;
+
+        [Tooltip("介于底层背景与节点层之间的装饰图。Sprite 由当前 LevelDef.BackgroundSprite 驱动。")]
+        public Image levelDecorativeBackground;
 
         [Header("顶部预算条")]
         public CircuitTopStatusBarView topStatusBar;
@@ -143,7 +146,7 @@ namespace MasterHouse
         public Button summaryStayButton;
 
         [Header("占位配色")]
-        public Color cellColor = new Color(1f, 1f, 1f, 0.06f);
+        public Color cellColor = new Color(0.25f, 0.25f, 0.25f, 0.20f);
         public Color sourceColor = new Color(0.35f, 0.72f, 0.40f, 0.95f);
         public Color batteryColor = new Color(0.34f, 0.52f, 0.85f, 0.95f);
         public Color batteryLitColor = new Color(0.98f, 0.83f, 0.30f, 1f);

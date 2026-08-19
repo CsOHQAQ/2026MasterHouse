@@ -68,6 +68,8 @@ namespace MasterHouse
         private Vector2 lastBoardAreaSize;
         private Sprite defaultLevelBackgroundSprite;
         private Color defaultLevelBackgroundColor;
+        private Sprite defaultDecorativeBackgroundSprite;
+        private Color defaultDecorativeBackgroundColor;
 
         private bool IsLastLesson => currentIndex >= levels.Count - 1;
 
@@ -231,6 +233,15 @@ namespace MasterHouse
             if (view.retryLessonButton != null) view.retryLessonButton.gameObject.SetActive(isLessonPack);
             if (view.summaryPanel != null) view.summaryPanel.SetActive(false);
             summaryOpen = false;
+
+            // 初始化顶部状态条静态文案
+            if (view.topStatusBar != null)
+            {
+                if (view.topStatusBar.titleLabel != null)
+                    view.topStatusBar.titleLabel.text = "修理电路";
+                if (view.topStatusBar.subtitleLabel != null)
+                    view.topStatusBar.subtitleLabel.text = "在有限的格子内连通电路！";
+            }
         }
 
         /// <summary>刷新教学栏、进度与按钮文案。单关模式什么都不做。</summary>
@@ -417,11 +428,7 @@ namespace MasterHouse
             }
             if (view.topStatusBar.pieceBudgetLabel != null)
             {
-                view.topStatusBar.pieceBudgetLabel.text = $"中转件 {placed}/{cap}";
-                // 摆满 = 提示色而非报红：CanBuild 硬拦着，摆满是常态不是错误（与导线栏同一套语义）
-                view.topStatusBar.pieceBudgetLabel.color = cap > 0 && placed >= cap
-                    ? view.budgetFullColor
-                    : view.budgetNormalColor;
+                view.topStatusBar.pieceBudgetLabel.text = $"已使用中转件 ({placed}/{cap})";
             }
 
             if (view.topStatusBar.litLabel != null)
@@ -448,11 +455,9 @@ namespace MasterHouse
             int budget = level.LinkCellBudget;
 
             var used = pending > 0 ? $"{committed}(+{pending})" : committed.ToString();
-            view.topStatusBar.linkBudgetLabel.text = budget > 0 ? $"导线 {used}/{budget}" : $"导线 {used}";
+            view.topStatusBar.linkBudgetLabel.text = budget > 0 ? $"已消耗格子数 ({used}/{budget})" : $"已消耗格子数 ({used})";
 
-            if (budget <= 0 || total < budget) view.topStatusBar.linkBudgetLabel.color = view.budgetNormalColor;
-            else if (total == budget) view.topStatusBar.linkBudgetLabel.color = view.budgetFullColor;
-            else view.topStatusBar.linkBudgetLabel.color = view.budgetWarnColor;
+            // Budget 颜色由 Prefab Inspector 手动配置，运行时不再覆盖
         }
 
         // ══════════ 件库 ══════════
@@ -803,10 +808,14 @@ namespace MasterHouse
                     size.y = style.topBarHeight;
                     barRect.sizeDelta = size;
                 }
-                if (bar.progressLabel != null) bar.progressLabel.color = style.topBarProgressTextColor;
-                if (bar.linkBudgetLabel != null) bar.linkBudgetLabel.color = style.topBarTextColor;
-                if (bar.pieceBudgetLabel != null) bar.pieceBudgetLabel.color = style.topBarTextColor;
-                if (bar.litLabel != null) bar.litLabel.color = style.topBarTextColor;
+                // TopBar 各标签的颜色统一在 CircuitTopStatusBar.prefab 中手动配置，
+                // 这里只负责替换字体，避免运行时将 Prefab 里调好的颜色盖掉。
+                if (bar.progressLabel != null && style.uiFont != null) bar.progressLabel.font = style.uiFont;
+                if (bar.linkBudgetLabel != null && style.uiFont != null) bar.linkBudgetLabel.font = style.uiFont;
+                if (bar.pieceBudgetLabel != null && style.uiFont != null) bar.pieceBudgetLabel.font = style.uiFont;
+                if (bar.litLabel != null && style.uiFont != null) bar.litLabel.font = style.uiFont;
+                if (bar.titleLabel != null && style.uiFont != null) bar.titleLabel.font = style.uiFont;
+                if (bar.subtitleLabel != null && style.uiFont != null) bar.subtitleLabel.font = style.uiFont;
             }
             if (view.palettePanelBackground != null)
             {
@@ -860,17 +869,52 @@ namespace MasterHouse
 
         private void CacheDefaultLevelBackground()
         {
-            defaultLevelBackgroundSprite = view.levelBackground.sprite;
-            defaultLevelBackgroundColor = view.levelBackground.color;
+            if (view.levelBackground != null)
+            {
+                defaultLevelBackgroundSprite = view.levelBackground.sprite;
+                defaultLevelBackgroundColor = view.levelBackground.color;
+            }
+            if (view.levelDecorativeBackground != null)
+            {
+                defaultDecorativeBackgroundSprite = view.levelDecorativeBackground.sprite;
+                defaultDecorativeBackgroundColor = view.levelDecorativeBackground.color;
+            }
         }
 
         private void RefreshLevelBackground()
         {
-            var backgroundSprite = level?.Def?.BackgroundSprite;
-            view.levelBackground.sprite = backgroundSprite != null ? backgroundSprite : defaultLevelBackgroundSprite;
-            view.levelBackground.type = Image.Type.Simple;
-            view.levelBackground.preserveAspect = false;
-            view.levelBackground.color = backgroundSprite != null ? Color.white : defaultLevelBackgroundColor;
+            var visualStyle = view.visualStyle;
+
+            // 最底层背景：由全局视觉样式统一配置
+            if (view.levelBackground != null)
+            {
+                var bottomSprite = visualStyle != null && visualStyle.levelBackgroundSprite != null
+                    ? visualStyle.levelBackgroundSprite
+                    : defaultLevelBackgroundSprite;
+                view.levelBackground.sprite = bottomSprite;
+                view.levelBackground.type = Image.Type.Simple;
+                view.levelBackground.preserveAspect = false;
+                view.levelBackground.color = visualStyle != null && visualStyle.levelBackgroundSprite != null
+                    ? Color.white
+                    : defaultLevelBackgroundColor;
+            }
+
+            // 装饰层：由当前关卡单独配置，介于底层与节点层之间。
+            // 关卡没配 BackgroundSprite 时直接隐藏该层，避免空 Image 占位或显示默认脏图。
+            if (view.levelDecorativeBackground != null)
+            {
+                var decorativeSprite = level?.Def?.BackgroundSprite;
+                bool hasSprite = decorativeSprite != null;
+                view.levelDecorativeBackground.gameObject.SetActive(hasSprite);
+
+                if (hasSprite)
+                {
+                    view.levelDecorativeBackground.sprite = decorativeSprite;
+                    view.levelDecorativeBackground.type = Image.Type.Simple;
+                    view.levelDecorativeBackground.preserveAspect = false;
+                    view.levelDecorativeBackground.color = Color.white;
+                }
+            }
         }
 
         private int MaxCountOf(NodeDef def)
@@ -915,6 +959,7 @@ namespace MasterHouse
             if (view.visualStyle == null) missing.Add(nameof(view.visualStyle));
             if (view.uiStyle == null) missing.Add(nameof(view.uiStyle));
             if (view.levelBackground == null) missing.Add(nameof(view.levelBackground));
+            if (view.levelDecorativeBackground == null) missing.Add(nameof(view.levelDecorativeBackground));
             if (view.topStatusBar == null) missing.Add(nameof(view.topStatusBar));
             else
             {

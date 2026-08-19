@@ -50,6 +50,13 @@ namespace MasterHouse
         [Tooltip("描线超出导线预算时，超出部分的颜色")]
         public Color wireOverflowColor = new Color(0.92f, 0.35f, 0.32f, 0.55f);
 
+        [Header("关卡背景")]
+        [Tooltip("小游戏最底层的全屏背景图。会覆盖 Prefab 根节点 levelBackground 的默认 Sprite。")]
+        public Sprite cellSprite; // [Tooltip("棋盘格子底图。留空时使用纯色方块表现。")]
+
+        [Tooltip("小游戏最底层的全屏背景图。会覆盖 Prefab 根节点 levelBackground 的默认 Sprite。")]
+        public Sprite levelBackgroundSprite;
+
         [Header("节点移动状态")]
         [Tooltip("节点按实际规则可移动时，叠加在右上角的图标")]
         public Sprite movableIcon;

@@ -9,6 +9,8 @@
 // （前提：拖动速度 > 波元扩散速度），停在原地是同一点持续搅动的光斑。
 // 每个波元记住出生点、自行扩散变淡，半径/强度由代码按年龄算好喂入。
 // 液面边缘的角向晃动相位独立（_WobblePhase）：晃动速度由速度方差驱动，与涡环无关。
+// 2026-08-20 又加了一圈**进度环**（_Progress）：贴杯壁内侧、自 12 点顺时针合拢——
+// 进度条原来在左上角底卡里，而玩家全程盯着杯子，那根条在余光之外，索性把它画到焦点上。
 // 杯壁裁剪与 PourGame.InsideCup 是同一个圆（半径 = 区域短边一半），视觉与判定天然同圆。
 // 所有动态量由代码逐帧喂入，不用 _Time：时间统一走根组件的 dt，暂停时水面跟着停。
 Shader "MasterHouse/UIWater"
@@ -25,6 +27,11 @@ Shader "MasterHouse/UIWater"
         _EdgeWobble ("边缘晃动基准幅度（uv，乘 _WobbleAmp）", Range(0, 0.05)) = 0.015
         _RingThickness ("波元环带厚度（uv，细才叠得出包络）", Range(0.001, 0.1)) = 0.012
         _EdgeSoft ("杯壁羽化（uv）", Range(0.001, 0.1)) = 0.012
+        _Progress ("进度 0~1（代码喂：冲泡进度）", Range(0, 1)) = 0
+        _ProgressColor ("进度环色（读作咖啡油脂圈）", Color) = (0.96, 0.86, 0.66, 0.9)
+        _ProgressWidth ("进度环带宽（uv）", Range(0, 0.2)) = 0.035
+        _ProgressInset ("进度环距杯壁的内缩（uv）", Range(0, 0.2)) = 0.02
+        _ProgressTrackAlpha ("未走到那段的浅槽透明度（相对环色 alpha）", Range(0, 1)) = 0.22
         // 波元槽位 _Rings[32] 是数组 uniform，进不了 Properties——由代码每帧 SetVectorArray
     }
     SubShader
@@ -51,6 +58,14 @@ Shader "MasterHouse/UIWater"
             float _EdgeWobble;
             float _RingThickness;
             float _EdgeSoft;
+            float _Progress;
+            fixed4 _ProgressColor;
+            float _ProgressWidth;
+            float _ProgressInset;
+            float _ProgressTrackAlpha;
+
+            #define WATER_TWO_PI  6.28318530718
+            #define WATER_HALF_PI 1.57079632679
 
             // 每槽 xy=出生点(uv) z=当前半径(uv) w=当前强度(0=空槽)，年龄衰减在 CPU 侧算好
             #define RING_SLOTS 32
@@ -97,6 +112,29 @@ Shader "MasterHouse/UIWater"
                 fixed4 col;
                 col.rgb = lerp(_WaterColor.rgb, _RippleColor.rgb, ripple);
                 col.a = lerp(_WaterColor.a, _RippleColor.a, ripple) * water * cup;
+
+                // ── 进度环（2026-08-20）：贴着杯壁内侧的一圈，从 12 点顺时针合拢 ──
+                // 进度条原本在左上角的底卡里，而玩家全程盯着屏幕中央的杯子，那根条在余光之外。
+                // 把它画到视线焦点上，读作「咖啡油脂圈慢慢围起来」。
+                // 角度归一化成「自正上方顺时针 0→1」：屏幕上顺时针 = 方位角减小，所以取 (π/2 − ang)
+                float t = frac((WATER_HALF_PI - ang) / WATER_TWO_PI);
+                float ringOuter = 0.5 - _ProgressInset;
+                float ringInner = ringOuter - _ProgressWidth;
+                float ringBand = smoothstep(ringInner - 0.004, ringInner + 0.004, r)
+                               * (1 - smoothstep(ringOuter - 0.004, ringOuter + 0.004, r));
+                // 还没走到的那段留一道浅槽，玩家才知道这圈要绕多远（_ProgressTrackAlpha = 0 则不画槽）
+                float filled = 1 - smoothstep(_Progress - 0.003, _Progress, t);
+                float pa = ringBand * cup * _ProgressColor.a * lerp(_ProgressTrackAlpha, 1, filled);
+
+                // 叠在水面**之上**，走直 alpha 的 over 合成。
+                // 别图省事写成 lerp(col, ring, pa)——那样会把水本身的透明度一起冲掉，
+                // 环所在的那一圈会变得比周围更透，看起来像杯壁破了个洞
+                float outA = col.a + pa * (1 - col.a);
+                col.rgb = outA > 1e-4
+                    ? (col.rgb * col.a + _ProgressColor.rgb * pa * (1 - col.a)) / outA
+                    : col.rgb;
+                col.a = outA;
+
                 return col * tex2D(_MainTex, i.uv) * i.color;
             }
             ENDCG

@@ -588,6 +588,8 @@ namespace MasterHouse
             foreach (var grid in level.Def.Canvas.Grids)
             {
                 var image = gridPool.Next();
+                var style = view.visualStyle;
+                image.sprite = style != null ? style.cellSprite : null;
                 image.color = view.cellColor;
                 var rect = image.rectTransform;
                 rect.sizeDelta = new Vector2(cellSize - CellGap, cellSize - CellGap);

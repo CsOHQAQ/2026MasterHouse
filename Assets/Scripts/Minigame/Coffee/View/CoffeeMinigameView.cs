@@ -137,6 +137,26 @@ namespace MasterHouse
         [Tooltip("结算展示（研磨 X + 冲泡 Y = Z 分）停留秒数，之后才真正 onFinish")]
         public float settleShowSeconds = 1.6f;
 
+        [Header("环节过场（磨豆 → 冲泡）")]
+        [Tooltip("过场幕布根：整屏米白纸色 + 居中的环节名。默认隐藏，只在换环节那一下放。\n" +
+                 "它压在 HUD 之上、暂停弹窗之下——换环节时连 HUD 一起盖住才干净")]
+        public RectTransform transitionRoot;
+
+        [Tooltip("幕布的 CanvasGroup：代码只推这一个 alpha，纸色与环节名一起进退")]
+        public CanvasGroup transitionGroup;
+
+        [Tooltip("幕布正中的环节名（「② 冲咖啡」），文案由代码写")]
+        public Text transitionLabel;
+
+        [Tooltip("幕布淡入秒数。**环节是在幕布全满那一帧换的**，玩家看不到硬切")]
+        public float transitionInSeconds = 0.35f;
+
+        [Tooltip("幕布全满的停留秒数：留给玩家读那行环节名（2026-08-20 反馈从 0.35 延到 2）")]
+        public float transitionHoldSeconds = 2f;
+
+        [Tooltip("幕布淡出秒数。出场比入场慢一点，新画面是「揭开」而不是「闪现」")]
+        public float transitionOutSeconds = 0.5f;
+
         [Header("水面表现（不影响判定；俯视：液面从杯心扩展，倒水点高频冒波元叠出尾迹）")]
         [Tooltip("边缘晃动速度下限（弧度/秒；滑窗方差=0 时，2026-08-17 访谈：速度由方差线性归一驱动）")]
         public float waterWobbleSpeedMin = 1.5f;
@@ -172,10 +192,22 @@ namespace MasterHouse
         public float waterWakeWaveSpeed = 0.22f;
 
         [Tooltip("单个波元的出生强度（0~1）：要弱，亮度只该在波元扎堆的包络处积累出来")]
-        [Range(0f, 1f)] public float waterWakeStrength = 0.12f;
+        // 2026-08-20 反馈「水波不够明显」后上调（原 0.12）：
+        // 静止搅动时，同一像素上同时处在环带里的波元只有约 2 个（环带厚 0.018uv ÷ 扩散 0.22uv/s
+        // ≈ 0.08s 的时间窗，除以 0.03s 的生成间隔）。0.12 × 2 = 0.24，远没到饱和，所以看着很淡。
+        // 0.35 × 2 ≈ 0.7，包络才亮得起来；再高就会连成一片糊掉，失去尾迹的形状
+        [Range(0f, 1f)] public float waterWakeStrength = 0.35f;
 
         [Tooltip("按下瞬间落水水花的出生强度（可超 1，与波元叠加后在 shader 里饱和）")]
-        public float waterSplashStrength = 1.4f;
+        public float waterSplashStrength = 2f;
+
+        [Tooltip("波纹环带厚度（uv）：越厚，相邻波元越容易叠在一起、包络越亮。\n" +
+                 "和「波元出生强度」一起决定水波的明显程度，调这两个即可")]
+        [Range(0.001f, 0.06f)] public float waterRingThickness = 0.018f;
+
+        [Tooltip("液面边缘晃动的基准幅度（uv，再乘晃动幅度）：读作咖啡在杯里晃荡。\n" +
+                 "0.03 × 杯径 420 ≈ 13px 的进出，太小就看不出来")]
+        [Range(0f, 0.08f)] public float waterEdgeWobble = 0.03f;
 
         [Header("磨豆的指针染色")]
         [Tooltip("常态：白 = 不染色，显示把手贴图的本色")]
@@ -187,10 +219,24 @@ namespace MasterHouse
 
         [Tooltip("液面底色：底图已经画了满杯咖啡，这里只压很薄的一层。\n" +
                  "它存在的意义是让晃动的液面边沿看得出来（读作咖啡在杯里晃）——太浓会把底图的水彩笔触糊掉")]
-        public Color waterColor = new Color(0.24f, 0.16f, 0.10f, 0.18f);
+        public Color waterColor = new Color(0.24f, 0.16f, 0.10f, 0.28f);
 
         [Tooltip("波纹亮纹色（读作高光/咖啡油脂）")]
-        public Color waterRippleColor = new Color(0.88f, 0.78f, 0.62f, 0.55f);
+        public Color waterRippleColor = new Color(0.96f, 0.90f, 0.76f, 0.85f);
+
+        [Tooltip("进度环色（2026-08-20 加）：贴杯壁内侧、自 12 点顺时针合拢，读作咖啡油脂圈围起来。\n" +
+                 "进度条原本只在左上底卡里，而玩家全程盯着杯子——这一圈是给焦点看的")]
+        public Color waterProgressColor = new Color(0.96f, 0.86f, 0.66f, 0.9f);
+
+        [Tooltip("进度环的带宽（uv，杯径 = 1）。0.035 × 杯径 420 ≈ 15px")]
+        [Range(0f, 0.2f)] public float waterProgressWidth = 0.035f;
+
+        [Tooltip("进度环离杯壁的内缩（uv）：别贴死在边上，留一点余地")]
+        [Range(0f, 0.2f)] public float waterProgressInset = 0.02f;
+
+        [Tooltip("还没走到那一段的浅槽透明度（相对环色 alpha）：留道槽，玩家才知道这圈要绕多远。\n" +
+                 "0 = 不画槽，进度环凭空长出来")]
+        [Range(0f, 1f)] public float waterProgressTrackAlpha = 0.22f;
 
         [Tooltip("提示文字常态色：设计图取色 #5676A5，与 ESC 键位条上的蓝是同一个")]
         public Color messageNormalColor = new Color(0.337f, 0.463f, 0.647f, 1f);
