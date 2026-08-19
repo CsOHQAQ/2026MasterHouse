@@ -259,9 +259,21 @@ namespace MasterHouse
         private static bool RepairExistingPrefabs()
         {
             var repaired = false;
-            repaired |= RepairPrefab<OutGameTitleView>(TitlePath,
-                (root, view) => { RepairTitle(root, view); MigrateTitleLogin(view); },
-                view => view.cover != null && (view.cover.texture == null || view.cover.texture.name != "title-login"));
+            // \u6807\u9898\u9875 2.0\uff082026-08-19\uff09\uff1a\u68c0\u5230\u65e7\u7ed3\u6784\uff08\u5c01\u9762\u4e0d\u662f 2.0 \u90a3\u5f20 / \u83dc\u5355\u4e0d\u662f\u56db\u9879\uff09
+            // \u5c31\u6574\u9875\u91cd\u5efa\u4e00\u6b21\u3002\u65e7\u7684 RepairTitle/MigrateTitleLogin \u5df2\u9000\u5f79\u2014\u2014\u4e24\u5957\u7ed3\u6784\u5b8c\u5168\u4e0d\u540c\uff0c
+            // \u8ddf\u7740\u8dd1\u53ea\u4f1a\u628a\u65b0\u9875\u9762\u6539\u56de\u65e7\u6837\u5b50\u3002
+            {
+                var titleRoot = AssetDatabase.LoadAssetAtPath<GameObject>(TitlePath);
+                var titleView = titleRoot != null ? titleRoot.GetComponent<OutGameTitleView>() : null;
+                if (titleView == null || titleView.titleArt == null ||
+                    titleView.menuButtons == null || titleView.menuButtons.Length != 4 ||
+                    titleView.cover == null || titleView.cover.texture == null ||
+                    titleView.cover.texture.name != "image 293")
+                {
+                    BuildTitle(TitlePath);
+                    repaired = true;
+                }
+            }
             repaired |= RepairPrefab<OutGamePaperView>(PaperPath, RepairPaper);
             repaired |= RepairPrefab<OutGameSavePageView>(SavePagePath, RepairSavePage);
             repaired |= RepairPrefab<OutGameGalleryPageView>(GalleryPagePath, RepairGalleryPage);
@@ -590,92 +602,6 @@ namespace MasterHouse
             }
             return false;
         }
-
-        private static void RemoveMissingScripts(GameObject root)
-        {
-            foreach (var transform in root.GetComponentsInChildren<Transform>(true))
-            {
-                if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(transform.gameObject) > 0)
-                    GameObjectUtility.RemoveMonoBehavioursWithMissingScript(transform.gameObject);
-            }
-        }
-
-        private static void RepairTitle(GameObject root, OutGameTitleView view)
-        {
-            view.cover = Required<RawImage>(root.transform, "Cover");
-            view.horizontalVignette = Required<RawImage>(root.transform, "HorizontalVignette");
-            view.verticalVignette = Required<RawImage>(root.transform, "VerticalVignette");
-            var menu = RequiredTransform(root.transform, "MainMenu");
-            view.menuGradient = Required<RawImage>(menu, "MenuGradient");
-            view.topRule = Required<RawImage>(menu, "TopRule");
-            view.bottomRule = Required<RawImage>(menu, "BottomRule");
-            view.saveState = Required<Text>(menu, "SaveStateRow/Text");
-            view.hints = Required<Text>(menu, "Hints");
-
-            var names = new[] { "继续游戏", "新游戏", "读取存档", "画廊", "设置", "退出游戏" };
-            view.menuButtons = new Button[names.Length];
-            view.menuMainLabels = new Text[names.Length];
-            view.menuSubtitles = new Text[names.Length];
-            view.menuHoverImages = new RawImage[names.Length];
-            for (var i = 0; i < names.Length; i++)
-            {
-                var buttonRoot = RequiredTransform(menu, "Menu_" + names[i]);
-                view.menuButtons[i] = Required<Button>(buttonRoot);
-                view.menuMainLabels[i] = Required<Text>(buttonRoot, "Main");
-                view.menuSubtitles[i] = Required<Text>(buttonRoot, "Subtitle");
-                view.menuHoverImages[i] = Required<RawImage>(buttonRoot, "Hover");
-
-                var feedback = buttonRoot.GetComponent<OutGameTweenButton>();
-                if (feedback == null) feedback = buttonRoot.gameObject.AddComponent<OutGameTweenButton>();
-                feedback.hoverScale = 1.055f;
-                feedback.hoverGraphic = view.menuHoverImages[i];
-                EnsureSpacing(view.menuMainLabels[i], 3.2f);
-                EnsureSpacing(view.menuSubtitles[i], 1.5f);
-            }
-            EnsureSpacing(view.saveState, .65f);
-            EnsureSpacing(view.hints, .8f);
-        }
-
-        /// <summary>
-        /// 登录页重做（2026-08-16 新美术）：封面换成登录图（NEW GAME 等菜单文案已烘焙在图上），
-        /// 四个可用入口（新游戏/读取存档/设置/退出）移到图上文字的位置做透明热区；
-        /// 旧左列装饰（渐变底/分隔线/存档状态行）退场。继续游戏/画廊按钮的显隐由 TitlePage 运行时处理。
-        /// </summary>
-        private static void MigrateTitleLogin(OutGameTitleView view)
-        {
-            var login = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/OutGameUI/title-login.png");
-            if (view.cover != null && login != null)
-            {
-                view.cover.texture = login;
-                var fitter = view.cover.GetComponent<AspectRatioFitter>();
-                if (fitter != null) fitter.aspectRatio = (float)login.width / login.height;
-            }
-            if (view.menuGradient != null) view.menuGradient.gameObject.SetActive(false);
-            if (view.topRule != null) view.topRule.gameObject.SetActive(false);
-            if (view.bottomRule != null) view.bottomRule.gameObject.SetActive(false);
-            if (view.saveState != null) view.saveState.transform.parent.gameObject.SetActive(false);
-            // 图上四行文字的中心（按登录图量取的屏幕锚点，y 自底）；下标对齐 menuButtons（0 继续/3 画廊无图上位）
-            var anchors = new[]
-            {
-                Vector2.zero, new Vector2(.7825f, .458f), new Vector2(.784f, .37f),
-                Vector2.zero, new Vector2(.774f, .288f), new Vector2(.78f, .211f),
-            };
-            for (var i = 0; i < anchors.Length && i < view.menuButtons.Length; i++)
-            {
-                if (anchors[i] == Vector2.zero || view.menuButtons[i] == null) continue;
-                var rect = (RectTransform)view.menuButtons[i].transform;
-                rect.anchorMin = rect.anchorMax = anchors[i];
-                rect.anchoredPosition = Vector2.zero;
-                rect.sizeDelta = new Vector2(360, 66);
-            }
-            if (view.hints != null)
-            {
-                var rect = view.hints.rectTransform;
-                rect.anchorMin = rect.anchorMax = new Vector2(.78f, .13f);
-                rect.anchoredPosition = Vector2.zero;
-            }
-        }
-
         private static void RepairPaper(GameObject root, OutGamePaperView view)
         {
             RepairPaperCommon(root, view);
@@ -800,6 +726,15 @@ namespace MasterHouse
             label.SetVerticesDirty();
         }
 
+        private static void RemoveMissingScripts(GameObject root)
+        {
+            foreach (var transform in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(transform.gameObject) > 0)
+                    GameObjectUtility.RemoveMonoBehavioursWithMissingScript(transform.gameObject);
+            }
+        }
+
         private static void EnsureFolder()
         {
             var parts = Folder.Split('/');
@@ -812,75 +747,72 @@ namespace MasterHouse
             }
         }
 
+        private const string LoginDir = "Assets/PC ui 2.0/\u767b\u5f55/";
+
+        private static Sprite Login(string name) =>
+            AssetDatabase.LoadAssetAtPath<Sprite>(LoginDir + name + ".png");
+
+        /// <summary>2.0 \u767b\u5f55\u9875\u7684\u56db\u9879\u83dc\u5355\uff08\u7d20\u6750\u540d, \u539f\u5bbd, \u539f\u9ad8\uff09\u3002</summary>
+        private static readonly (string Art, float W, float H)[] LoginMenuArts =
+        {
+            ("NEW GAME", 550f, 81f),
+            ("LOAD GAME", 593f, 81f),
+            ("OPTIONS", 441f, 82f),
+            ("EXIT", 238f, 81f),
+        };
+
+        /// <summary>
+        /// \u6807\u9898\uff08\u767b\u5f55\uff09\u9875\uff082026-08-19 \u6309 2.0 \u8bbe\u8ba1\u56fe\u91cd\u505a\uff09\uff1a
+        /// \u6574\u5c4f\u5c01\u9762 + \u53f3\u4fa7\u6e38\u620f\u540d + \u5206\u9694\u7ebf + \u56db\u9879\u83dc\u5355\u3002
+        /// **\u6807\u9898\u4e0e\u83dc\u5355\u90fd\u662f\u5355\u72ec\u7684\u900f\u660e\u56fe**\uff0c\u4e0d\u518d\u50cf 1.0 \u90a3\u6837\u70d8\u5728\u5c01\u9762\u91cc\u9760\u900f\u660e\u70ed\u533a\u53bb\u78b0\u2014\u2014
+        /// \u6362\u5c01\u9762\u4e0d\u7528\u91cd\u65b0\u5bf9\u70b9\uff0c\u60ac\u505c\u4e5f\u80fd\u76f4\u63a5\u67d3\u83dc\u5355\u56fe\u672c\u8eab\u3002
+        /// \u5750\u6807\u6309 1920\u00d71080 \u53e3\u5f84\uff0c\u7531\u8bbe\u8ba1\u56fe\u7b49\u6bd4\u6298\u7b97\u3002
+        /// </summary>
         private static void BuildTitle(string path)
         {
             var root = Root("TitlePage");
             var refs = root.AddComponent<OutGameTitleView>();
             refs.cover = Raw(root.transform, "Cover", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            refs.cover.texture = Resources.Load<Texture2D>("OutGameUI/og-meros");
+            refs.cover.texture = AssetDatabase.LoadAssetAtPath<Texture2D>(LoginDir + "image 293.png");
             var fitter = refs.cover.gameObject.AddComponent<AspectRatioFitter>();
             fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
-            if (refs.cover.texture != null) fitter.aspectRatio = (float)refs.cover.texture.width / refs.cover.texture.height;
-            refs.horizontalVignette = Raw(root.transform, "HorizontalVignette", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            refs.verticalVignette = Raw(root.transform, "VerticalVignette", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            if (refs.cover.texture != null)
+                fitter.aspectRatio = (float)refs.cover.texture.width / refs.cover.texture.height;
 
-            var menu = Rect(root.transform, "MainMenu", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            refs.menuGradient = Raw(menu, "MenuGradient", new Vector2(.264f, 1), new Vector2(.264f, 1), new Vector2(0, -780), new Vector2(520, 568));
-            refs.topRule = Raw(menu, "TopRule", new Vector2(.264f, 1), new Vector2(.264f, 1), new Vector2(0, -515), new Vector2(344, 1));
-            refs.bottomRule = Raw(menu, "BottomRule", new Vector2(.264f, 1), new Vector2(.264f, 1), new Vector2(0, -1044), new Vector2(344, 1));
+            // \u6807\u9898\uff1a\u7d20\u6750 1439\u00d7394\uff0c\u53d6\u5bbd 523
+            refs.titleArt = Image(root.transform, "TitleArt", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(1531, -369), new Vector2(523, 523f * 394f / 1439f), Color.white);
+            refs.titleArt.sprite = Login("The Guesthouse of Meros");
+            refs.titleArt.preserveAspect = true;
+            refs.titleArt.raycastTarget = false;
+            refs.titleRule = Image(root.transform, "TitleRule", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(1531, -489), new Vector2(523, 3), Color.white);
+            refs.titleRule.sprite = Login("Group 109");
+            refs.titleRule.raycastTarget = false;
 
-            var stateRow = Rect(menu, "SaveStateRow", new Vector2(.264f, 1), new Vector2(.264f, 1), new Vector2(0, -548), new Vector2(500, 28));
-            var row = stateRow.gameObject.AddComponent<HorizontalLayoutGroup>();
-            row.childAlignment = TextAnchor.MiddleCenter;
-            row.spacing = 12;
-            row.childControlWidth = true;
-            row.childControlHeight = false;
-            row.childForceExpandWidth = false;
-            row.childForceExpandHeight = false;
-            var dot = Image(stateRow, "Dot", new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(6, 6), Hex("DD725A"));
-            var dotLayout = dot.gameObject.AddComponent<LayoutElement>();
-            dotLayout.minWidth = dotLayout.preferredWidth = 6;
-            dotLayout.minHeight = dotLayout.preferredHeight = 6;
-            refs.saveState = Label(stateRow, "Text", "等待第一位住客", 12, Hex("A99A91"), TextAnchor.MiddleCenter, FontStyle.Bold);
-            refs.saveState.gameObject.AddComponent<OutGameLetterSpacing>().spacing = .65f;
-
-            refs.menuButtons = new Button[6];
-            refs.menuMainLabels = new Text[6];
-            refs.menuSubtitles = new Text[6];
-            refs.menuHoverImages = new RawImage[6];
-            var chinese = new[] { "继续游戏", "新游戏", "读取存档", "画廊", "设置", "退出游戏" };
-            var english = new[] { "暂无存档", "NEW STORY", "LOAD GAME", "LOG & ACHIEVEMENT", "OPTIONS", "QUIT" };
-            for (var i = 0; i < 6; i++)
+            // \u56db\u9879\u83dc\u5355\uff1a\u6587\u5b57\u56fe\u672c\u8eab\u5c31\u662f\u6309\u94ae\uff0c\u60ac\u505c\u65f6\u7531\u7ed1\u5b9a\u5c42\u63d0\u4eae
+            refs.menuButtons = new Button[LoginMenuArts.Length];
+            refs.menuIcons = new Image[LoginMenuArts.Length];
+            refs.menuMainLabels = new Text[LoginMenuArts.Length];
+            refs.menuSubtitles = new Text[LoginMenuArts.Length];
+            refs.menuHoverImages = new RawImage[LoginMenuArts.Length];
+            for (var i = 0; i < LoginMenuArts.Length; i++)
             {
-                var buttonImage = Image(menu, "Menu_" + chinese[i], new Vector2(.264f, 1), new Vector2(.264f, 1),
-                    new Vector2(0, -584 - i * 76), new Vector2(520, 70), Color.clear);
-                var button = buttonImage.gameObject.AddComponent<Button>();
-                button.targetGraphic = buttonImage;
-                var feedback = buttonImage.gameObject.AddComponent<OutGameTweenButton>();
-                feedback.hoverScale = 1.055f;
-                var hover = Raw(buttonImage.transform, "Hover", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
-                    Vector2.zero, new Vector2(430, 58));
-                hover.color = new Color(1, 1, 1, 0);
-                feedback.hoverGraphic = hover;
-                var main = Label(buttonImage.transform, "Main", chinese[i], 23, i == 1 ? Hex("F0A080") : Hex("DBC9BD"),
-                    new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 8), new Vector2(500, 34), TextAnchor.MiddleCenter, FontStyle.Bold);
-                main.gameObject.AddComponent<OutGameLetterSpacing>().spacing = 3.2f;
-                var subtitle = Label(buttonImage.transform, "Subtitle", english[i], 8, Hex("81736E"),
-                    new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -17), new Vector2(500, 15), TextAnchor.MiddleCenter, FontStyle.Bold);
-                subtitle.gameObject.AddComponent<OutGameLetterSpacing>().spacing = 1.5f;
-                buttonImage.gameObject.AddComponent<CanvasGroup>();
+                var art = LoginMenuArts[i];
+                var width = art.W * .373f;                 // \u8bbe\u8ba1\u56fe\u4e0a NEW GAME \u5bbd 205 / \u7d20\u6750 550
+                var height = width * art.H / art.W;
+                var icon = Image(root.transform, "Menu_" + art.Art, new Vector2(0, 1), new Vector2(0, 1),
+                    new Vector2(1523, -558 - i * 84), new Vector2(width, height), Color.white);
+                icon.sprite = Login(art.Art);
+                icon.preserveAspect = true;
+                var button = icon.gameObject.AddComponent<Button>();
+                button.targetGraphic = icon;
+                button.transition = Selectable.Transition.None; // \u60ac\u505c\u9ad8\u4eae\u7531\u7ed1\u5b9a\u5c42\u505a\uff08\u53ea\u6539\u989c\u8272\uff0c\u4e0d\u6362\u56fe\uff09
                 refs.menuButtons[i] = button;
-                refs.menuMainLabels[i] = main;
-                refs.menuSubtitles[i] = subtitle;
-                refs.menuHoverImages[i] = hover;
+                refs.menuIcons[i] = icon;
             }
-            refs.hints = Label(menu, "Hints", "↑ ↓ 选择     ENTER 确认", 8, Hex("756B67"),
-                new Vector2(.264f, 1), new Vector2(.264f, 1), new Vector2(0, -1063), new Vector2(500, 18), TextAnchor.MiddleCenter, FontStyle.Bold);
-            refs.hints.gameObject.AddComponent<OutGameLetterSpacing>().spacing = .8f;
-            MigrateTitleLogin(refs); // 登录页新美术布局（2026-08-16）
             Save(root, path);
         }
-
         private static void BuildPaper(string path)
         {
             var root = Root("PaperPage");

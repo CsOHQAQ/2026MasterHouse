@@ -63,15 +63,14 @@ namespace MasterHouse
             if (view.saveState != null)
                 view.saveState.text = "等待第一位住客";
 
+            // 2.0 \u767b\u5f55\u9875\u7684\u56db\u9879\u83dc\u5355\uff08\u4e0e Prefab \u91cc\u7684\u6392\u5e8f\u4e00\u81f4\uff09\u3002
+            // \u300c\u7ee7\u7eed\u6e38\u620f\u300d\u4e0e\u300c\u753b\u5eca\u300d\u5728\u65b0\u8bbe\u8ba1\u56fe\u4e0a\u6ca1\u4f4d\u5b50\uff0c\u6574\u9879\u4e0d\u518d\u51fa\u73b0\uff08\u5b58\u6863\u672a\u63a5\u56de\u6765\u4e4b\u524d\u4e5f\u6ca1\u4e1c\u897f\u53ef\u7ee7\u7eed\uff09\u3002
             var items = new[]
             {
-                // §16.5：存档移除期间「继续游戏」禁用占位（待定 #9 统一存档接入后回归）
-                new MenuItem("继续游戏", "存档系统重构中", null, false),
-                new MenuItem("新游戏", "NEW STORY", StartNewGame, true),
-                new MenuItem("读取存档", "LOAD GAME", () => UI.ShowPage(new SavePlaceholderPage()), true),
-                new MenuItem("画廊", "LOG & ACHIEVEMENT", () => UI.ShowPage(new GalleryPage()), true),
-                new MenuItem("设置", "OPTIONS", () => UI.ShowPage(new TitleSettingsPage()), true),
-                new MenuItem("退出游戏", "QUIT", () => UI.ShowPage(new ExitPage()), true),
+                new MenuItem("\u65b0\u6e38\u620f", "NEW GAME", StartNewGame, true),
+                new MenuItem("\u8bfb\u53d6\u5b58\u6863", "LOAD GAME", () => UI.ShowPage(new SavePlaceholderPage()), true),
+                new MenuItem("\u8bbe\u7f6e", "OPTIONS", () => UI.ShowPage(new TitleSettingsPage()), true),
+                new MenuItem("\u9000\u51fa\u6e38\u620f", "EXIT", () => UI.ShowPage(new ExitPage()), true),
             };
 
             menuButtons = view.menuButtons;
@@ -79,37 +78,30 @@ namespace MasterHouse
             {
                 var item = items[i];
                 var button = menuButtons[i];
-                // 登录图上只有四行菜单（NEW GAME / LOAD GAME / OPTIONS / EXIT）：
-                // 「继续游戏」「画廊」没有图上位，整个隐藏（2026-08-16 登录页重做）
-                if (i == 0 || i == 3)
-                {
-                    button.interactable = false;
-                    button.gameObject.SetActive(false);
-                    continue;
-                }
+                if (button == null) continue;
                 button.onClick.RemoveAllListeners();
                 if (item.Action != null) button.onClick.AddListener(() => item.Action());
                 button.interactable = item.Enabled;
-                // 文字烘焙在登录图上，运行时标签清空、只留透明热区 + 悬停高亮
+                // \u6587\u5b57\u662f\u5355\u72ec\u7684\u900f\u660e\u56fe\uff082.0 \u7d20\u6750\uff09\uff0c\u6807\u7b7e\u69fd\u4f4d\u7559\u7740\u4f46\u4e0d\u5199\u5b57
                 if (i < view.menuMainLabels.Length && view.menuMainLabels[i] != null)
                     view.menuMainLabels[i].text = string.Empty;
                 if (i < view.menuSubtitles.Length && view.menuSubtitles[i] != null)
                     view.menuSubtitles[i].text = string.Empty;
+                // \u60ac\u505c\u53cd\u9988\uff1a\u83dc\u5355\u5c31\u662f\u4e00\u5f20\u56fe\uff0c\u76f4\u63a5\u653e\u5927\u5b83\u81ea\u5df1\uff08\u4e0d\u518d\u9760\u8986\u5728\u4e0a\u9762\u7684\u6a59\u8272\u6e10\u53d8\uff09
+                var feedback = button.GetComponent<OutGameTweenButton>();
+                if (feedback == null) feedback = button.gameObject.AddComponent<OutGameTweenButton>();
+                feedback.hoverScale = 1.06f;
                 if (i < view.menuHoverImages.Length && view.menuHoverImages[i] != null)
                 {
                     view.menuHoverImages[i].texture = titleHoverGradient;
-                    // Prefab 中的 hover 图可能保存为可见状态，绑定时强制归零，默认不显示
                     var hoverColor = view.menuHoverImages[i].color;
                     view.menuHoverImages[i].color = new Color(hoverColor.r, hoverColor.g, hoverColor.b, 0f);
+                    feedback.hoverGraphic = view.menuHoverImages[i];
                 }
-                var feedback = button.GetComponent<OutGameTweenButton>();
-                if (feedback == null) feedback = button.gameObject.AddComponent<OutGameTweenButton>();
-                feedback.hoverScale = 1.055f;
-                if (i < view.menuHoverImages.Length) feedback.hoverGraphic = view.menuHoverImages[i];
                 var group = HouseUIUtil.Group(button.gameObject, 0);
                 var targetAlpha = item.Enabled ? 1f : .34f;
-                // 错峰淡入以 CanvasGroup 为目标：不能挂在 button.transform 上——
-                // OutGameTweenButton 的 hover/选中逻辑会按 transform 目标 DOKill，会误杀进场动画（不可见但可点击的 bug）
+                // \u9519\u5cf0\u6de1\u5165\u4ee5 CanvasGroup \u4e3a\u76ee\u6807\uff1a\u4e0d\u80fd\u6302\u5728 button.transform \u4e0a\u2014\u2014
+                // OutGameTweenButton \u7684 hover/\u9009\u4e2d\u903b\u8f91\u4f1a\u6309 transform \u76ee\u6807 DOKill\uff0c\u4f1a\u8bef\u6740\u8fdb\u573a\u52a8\u753b
                 group.DOFade(targetAlpha, .42f).SetEase(Ease.OutCubic).SetUpdate(true)
                     .SetDelay(.08f + i * .055f);
             }
@@ -117,7 +109,7 @@ namespace MasterHouse
             HouseUIUtil.EnsureLetterSpacing(view.hints, .8f);
             HouseUIUtil.ApplyFallbackFont(Root);
             // 默认不选中任何菜单项：橙色 hover 渐变只在鼠标悬停或键盘导航后出现（无存档概念，默认落在「新游戏」）
-            menuIndex = 1;
+            menuIndex = 0; // \u9ed8\u8ba4\u843d\u5728 NEW GAME
         }
 
         public override void OnUpdate()
