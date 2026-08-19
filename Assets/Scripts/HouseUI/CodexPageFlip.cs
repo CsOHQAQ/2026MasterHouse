@@ -39,13 +39,16 @@ namespace MasterHouse
         private Sequence sequence;
 
         /// <summary>
-        /// 把这些节点之外的内容按左右半页收进两个以书脊为轴的容器。
+        /// 把内容按左右半页收进两个以书脊为轴的容器。
         /// </summary>
-        /// <param name="paperBack">纸背贴图（从书页底图裁出的干净纸面，烘在 Prefab 上）。</param>
-        public void Bind(RectTransform root, Texture2D paperBack, params Transform[] excluded)
+        /// <param name="paperBack">纸背贴图（书页纸面，烘在 Prefab 上）。</param>
+        /// <param name="background">整屏底图：不参与翻页，且**必须留在最底下**。</param>
+        /// <param name="topmost">不参与翻页、且要压在翻页层之上的（帆船、键位条）。</param>
+        public void Bind(RectTransform root, Texture2D paperBack, Transform background, params Transform[] topmost)
         {
             if (rightPage != null) return;
             paper = paperBack;
+            var excluded = new List<Transform>(topmost) { background };
             // 左半页：pivot 在右边缘；右半页：pivot 在左边缘。两者的轴心都落在书脊上
             leftPage = CreateHalf(root, "PageLeft", new Vector2(0f, 0f), new Vector2(.5f, 1f), new Vector2(1f, .5f));
             rightPage = CreateHalf(root, "PageRight", new Vector2(.5f, 0f), new Vector2(1f, 1f), new Vector2(0f, .5f));
@@ -71,9 +74,10 @@ namespace MasterHouse
             // 纸背要盖住本页全部内容，所以最后建（画在最上），默认不显示
             leftBack = CreatePaperBack(leftPage);
             rightBack = CreatePaperBack(rightPage);
-            // 不参与翻页的（帆船、键位条）压到最上：两个半页容器是后建的，
-            // 不提上来的话翻页层会盖住它们（2026-08-19 反馈：船不能被盖住）
-            foreach (var keep in excluded)
+            // 底图压回最底（它也在排除名单里，但绝不能提到上面——提上去整本书就盖住内容了）
+            if (background != null && background.parent == root) background.SetAsFirstSibling();
+            // 帆船与键位条压到最上：两个半页容器是后建的，不提上来会被翻页层盖住
+            foreach (var keep in topmost)
                 if (keep != null && keep.parent == root && keep != leftPage && keep != rightPage)
                     keep.SetAsLastSibling();
         }
