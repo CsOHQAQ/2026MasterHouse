@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 194b3197d51ff7b419751bff3d1ce26c, type: 3}
-  m_Name: "Need_\u8981\u84DD\u8272\u6905\u5B50"
+  m_Name: "Need_\u9ED1-\u9ED1\u677F"
   m_EditorClassIdentifier: 
-  needId: "\u5154-\u5316\u5986\u53F0"
-  description: "\u660E\u5929\u6709\u6253\u6B4C\u821E\u53F0\uFF0C\u60F3\u8981\u4E00\u4E2A\u597D\u770B\u7684\u5316\u5986\u53F0\u53EF\u4EE5\u561B\uFF1F"
+  needId: 黑-黑板
+  description: "\u6211\u9700\u8981\u4E00\u5757\u9ED1\u677F\uFF0C\u628A\u6848\u60C5\u7EBF\u7D22\u90FD\u8BB0\u5F55\u4E0B\u6765\u624D\u80FD\u7406\u6E05\u601D\u8DEF\uFF01"
   familyIds: []
   furnitureIds:
-  - cat_sofa_01
+  - chalkboard_01

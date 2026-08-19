@@ -3181,3 +3181,291 @@ MonoBehaviour:
       cellHeight: 56
       offsetX: 50
       surfaceHeight: 146
+  - id: vanity_01
+    nameKey: vanity_01
+    displayName: "\u5F69\u8272\u68B3\u5986\u53F0\u00B701"
+    familyId: vanity
+    category: "\u684C\u6905"
+    description: ""
+    surfaces: 00000001
+    stackable: 0
+    cols: 8
+    rows: 2
+    displayWidth: 240
+    displayHeight: 306
+    decorationScore: 35
+    sprite: {fileID: 21300000, guid: 7836d1024fcf6fd408f9869fe7941713, type: 3}
+    swatchColor: {r: 0.85882353, g: 0.74901961, b: 0.61960784, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: retro_radio_01
+    nameKey: retro_radio_01
+    displayName: "\u590D\u53E4\u6536\u97F3\u673A\u00B701"
+    familyId: retro_radio
+    category: "\u6446\u4EF6"
+    description: ""
+    surfaces: 00000002
+    stackable: 0
+    cols: 2
+    rows: 2
+    displayWidth: 60
+    displayHeight: 43
+    decorationScore: 12
+    sprite: {fileID: 21300000, guid: b06558452320c7e44b211caf5631f184, type: 3}
+    swatchColor: {r: 0.55294118, g: 0.62745098, b: 0.57254902, a: 1}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: music_player_01
+    nameKey: music_player_01
+    displayName: "\u97F3\u4E50\u64AD\u653E\u5668\u00B701"
+    familyId: music_player
+    category: "\u6446\u4EF6"
+    description: ""
+    surfaces: 00000001
+    stackable: 0
+    cols: 6
+    rows: 2
+    displayWidth: 180
+    displayHeight: 140
+    decorationScore: 20
+    sprite: {fileID: 21300000, guid: 181b943a9f501f146aaa600f4ce822c0, type: 3}
+    swatchColor: {r: 0.72941176, g: 0.60392157, b: 0.55294118, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: piano_01
+    nameKey: piano_01
+    displayName: "\u5976\u6CB9\u94A2\u7434\u00B701"
+    familyId: piano
+    category: "\u684C\u6905"
+    description: ""
+    surfaces: 00000001
+    stackable: 0
+    cols: 10
+    rows: 2
+    displayWidth: 300
+    displayHeight: 291
+    decorationScore: 40
+    sprite: {fileID: 21300000, guid: 24253a62ab21ec14fbacf703ddaf632d, type: 3}
+    swatchColor: {r: 0.52156863, g: 0.54509804, b: 0.59607843, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: flashlight_01
+    nameKey: flashlight_01
+    displayName: "\u624B\u7535\u7B52\u00B701"
+    familyId: flashlight
+    category: "\u6446\u4EF6"
+    description: ""
+    surfaces: 00000002
+    stackable: 0
+    cols: 2
+    rows: 2
+    displayWidth: 60
+    displayHeight: 31
+    decorationScore: 8
+    sprite: {fileID: 21300000, guid: 7f93e4d18eb0171498eb1482697020f5, type: 3}
+    swatchColor: {r: 0.50196078, g: 0.65098039, b: 0.72941176, a: 1}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: iron_01
+    nameKey: iron_01
+    displayName: "\u590D\u53E4\u71A8\u6597\u00B701"
+    familyId: iron
+    category: "\u6446\u4EF6"
+    description: ""
+    surfaces: 00000002
+    stackable: 0
+    cols: 2
+    rows: 2
+    displayWidth: 60
+    displayHeight: 46
+    decorationScore: 8
+    sprite: {fileID: 21300000, guid: 3469f149e2b3ba14abdb8792b2b1ae7a, type: 3}
+    swatchColor: {r: 0.69803922, g: 0.79215686, b: 0.85882353, a: 1}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: telescope_01
+    nameKey: telescope_01
+    displayName: "\u590D\u53E4\u671B\u8FDC\u955C\u00B701"
+    familyId: telescope
+    category: "\u6446\u4EF6"
+    description: ""
+    surfaces: 00000002
+    stackable: 0
+    cols: 2
+    rows: 2
+    displayWidth: 60
+    displayHeight: 74
+    decorationScore: 10
+    sprite: {fileID: 21300000, guid: 177409c3d99c44f45ade0304f01fe14f, type: 3}
+    swatchColor: {r: 0.74509804, g: 0.64313725, b: 0.52549020, a: 1}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: colorful_cabinet_01
+    nameKey: colorful_cabinet_01
+    displayName: "\u5F69\u8272\u67DC\u5B50\u00B701"
+    familyId: colorful_cabinet
+    category: "\u684C\u6905"
+    description: ""
+    surfaces: 00000001
+    stackable: 0
+    cols: 8
+    rows: 2
+    displayWidth: 240
+    displayHeight: 130
+    decorationScore: 28
+    sprite: {fileID: 21300000, guid: 3b314eb97d66b1941ba10a0662a7f6a9, type: 3}
+    swatchColor: {r: 0.81568627, g: 0.78431373, b: 0.67450980, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: floor_lamp_01
+    nameKey: floor_lamp_01
+    displayName: "\u827A\u672F\u843D\u5730\u706F\u00B701"
+    familyId: floor_lamp
+    category: "\u706F\u5177"
+    description: ""
+    surfaces: 00000001
+    stackable: 0
+    cols: 2
+    rows: 2
+    displayWidth: 60
+    displayHeight: 131
+    decorationScore: 18
+    sprite: {fileID: 21300000, guid: 911be811507fe2748aa05d301ad208b8, type: 3}
+    swatchColor: {r: 0.69411765, g: 0.56078431, b: 0.37254902, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: chalkboard_01
+    nameKey: chalkboard_01
+    displayName: "\u590D\u53E4\u9ED1\u677F\u00B701"
+    familyId: chalkboard
+    category: "\u6446\u4EF6"
+    description: ""
+    surfaces: 00000001
+    stackable: 0
+    cols: 4
+    rows: 3
+    displayWidth: 120
+    displayHeight: 88
+    decorationScore: 15
+    sprite: {fileID: 21300000, guid: c402ce67d0ed85d418929f6baeb4e79c, type: 3}
+    swatchColor: {r: 0.76862745, g: 0.56470588, b: 0.36078431, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: macaron_sofa_01
+    nameKey: macaron_sofa_01
+    displayName: "\u9A6C\u5361\u9F99\u6C99\u53D1\u00B701"
+    familyId: macaron_sofa
+    category: "\u684C\u6905"
+    description: ""
+    surfaces: 00000001
+    stackable: 0
+    cols: 8
+    rows: 2
+    displayWidth: 240
+    displayHeight: 106
+    decorationScore: 30
+    sprite: {fileID: 21300000, guid: b0dc52a600686fa4e99bc73701385220, type: 3}
+    swatchColor: {r: 0.74117647, g: 0.80784314, b: 0.80784314, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: metronome_01
+    nameKey: metronome_01
+    displayName: "\u8282\u62CD\u5668\u00B701"
+    familyId: metronome
+    category: "\u6446\u4EF6"
+    description: ""
+    surfaces: 00000002
+    stackable: 0
+    cols: 2
+    rows: 2
+    displayWidth: 60
+    displayHeight: 92
+    decorationScore: 10
+    sprite: {fileID: 21300000, guid: 3f5ef6e7f8f9a784b86a922985fcdb13, type: 3}
+    swatchColor: {r: 0.53725490, g: 0.63137255, b: 0.71372549, a: 1}
+    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
