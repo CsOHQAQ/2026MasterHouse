@@ -3383,7 +3383,7 @@ MonoBehaviour:
     sourceRow: 5
   - groupId: 30002
     raceId: cat
-    needId: "Need_\u7535\u8DEF\u6559\u7A0B"
+    needId: "Need_\u4FEE\u7406\u7535\u8DEF_01"
     category: 2
     conditions: []
     sourceRow: 6
@@ -3443,7 +3443,7 @@ MonoBehaviour:
     sourceRow: 16
   - groupId: 30102
     raceId: leopard
-    needId: "Need_\u7535\u8DEF\u6559\u7A0B"
+    needId: "Need_\u4FEE\u7406\u7535\u8DEF_01"
     category: 2
     conditions: []
     sourceRow: 17
@@ -3509,7 +3509,7 @@ MonoBehaviour:
     sourceRow: 28
   - groupId: 30202
     raceId: cheetah
-    needId: "Need_\u7535\u8DEF\u6559\u7A0B"
+    needId: "Need_\u4FEE\u7406\u7535\u8DEF_01"
     category: 2
     conditions: []
     sourceRow: 29
@@ -3581,7 +3581,7 @@ MonoBehaviour:
     sourceRow: 41
   - groupId: 30302
     raceId: yak
-    needId: "Need_\u7535\u8DEF\u6559\u7A0B"
+    needId: "Need_\u4FEE\u7406\u7535\u8DEF_01"
     category: 2
     conditions: []
     sourceRow: 42
@@ -3653,7 +3653,7 @@ MonoBehaviour:
     sourceRow: 54
   - groupId: 30402
     raceId: rabbit
-    needId: "Need_\u7535\u8DEF\u6559\u7A0B"
+    needId: "Need_\u4FEE\u7406\u7535\u8DEF_01"
     category: 2
     conditions: []
     sourceRow: 55
@@ -3725,7 +3725,7 @@ MonoBehaviour:
     sourceRow: 67
   - groupId: 30502
     raceId: wolf
-    needId: "Need_\u7535\u8DEF\u6559\u7A0B"
+    needId: "Need_\u4FEE\u7406\u7535\u8DEF_01"
     category: 2
     conditions: []
     sourceRow: 68
@@ -3797,7 +3797,7 @@ MonoBehaviour:
     sourceRow: 80
   - groupId: 30602
     raceId: ox
-    needId: "Need_\u7535\u8DEF\u6559\u7A0B"
+    needId: "Need_\u4FEE\u7406\u7535\u8DEF_01"
     category: 2
     conditions: []
     sourceRow: 81
