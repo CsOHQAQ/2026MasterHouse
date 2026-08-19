@@ -696,7 +696,7 @@ MonoBehaviour:
   portrait: {fileID: 6705087154436439925}
   shipDecor: {fileID: 8814625452103762886}
   lockedHint: {fileID: 6673762362152550855}
-  pageBackPaper: {fileID: 2800000, guid: 8cfabd2e3858ee54bb5f9e5d3ce6d88b, type: 3}
+  pageBackPaper: {fileID: 2800000, guid: c1e72ddc8ef1f214e8ca481c34257ef3, type: 3}
   races:
   - {fileID: 11400000, guid: baca918edc19fa54a89959d88b512972, type: 2}
   - {fileID: 11400000, guid: 4a0a9ea2a74b71742b4aaff26e32166a, type: 2}
