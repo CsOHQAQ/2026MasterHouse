@@ -296,6 +296,8 @@ namespace MasterHouse
                     return $"{instance.DisplayName}还在门口等着被接待 · 先点他交谈";
                 case EVisitorState.Serving:
                     return $"{instance.DisplayName}正在等需求被满足 · 服务中不能换房";
+                case EVisitorState.AwaitingFarewell:
+                    return $"{instance.DisplayName}准备走了 · 点他道个别吧";
                 case EVisitorState.AwaitingRoom:
                 case EVisitorState.Wandering:
                     if (roomIndex < VisitorManager.FirstGuestRoomIndex || roomIndex > VisitorManager.LastGuestRoomIndex)

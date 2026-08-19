@@ -13,6 +13,11 @@ namespace MasterHouse
     ///
     /// 时间自治（View 豁免区）：走 Update + Time.deltaTime，与全局 tick 零关系。
     ///
+    /// ⚠ §8.5「不认识任何 Manager」的一处窄口豁免（2026-08-20 加音效时）：本类引用 SfxManager /
+    /// BgmManager。那条硬约束管的是**业务** Manager（GameManager / Visitor / Economy / HouseClock /
+    /// HouseUIManager）与宿主类型——它们会把玩法和外部状态缠在一起；音频这两位是 View 层的全局出口
+    /// （见 SfxManager 类注释），本类调它们只是"发声"，不读也不写任何业务状态，依赖方向没有掰弯。
+    ///
     /// 流程：磨豆子（环上避障，上限 50 分）→ 冲咖啡（匀速移动，三档 50/30/20 分）
     /// → 结算展示片刻 → onFinish(两环节相加)。没有失败条件；【放弃】/ESC 走 onAbort，重开全重置。
     /// </summary>
@@ -103,6 +108,10 @@ namespace MasterHouse
             ShowPhaseMessage();
             RefreshHud();
 
+            // 整局期间把 BGM 让开一点，好让研磨/冲泡声站到前面来（倍率配在 View 上）。
+            // 压低是**整局**而不是"循环音响的时候"——后者会让 BGM 随撞障碍/松手一跳一跳，很难听
+            BgmManager.SetDuck(view.bgmDuckFactor);
+
             running = true;
         }
 
@@ -142,6 +151,9 @@ namespace MasterHouse
 
             // 水面是纯表现：磨豆阶段 pourRoot 未激活，不喂；结算展示期间余波继续
             if (phase != EPhase.Grind) TickWater(dt);
+
+            // 放在环节切换之后：磨满的那一帧已经切到冲泡，研磨声当帧就停
+            UpdateLoopSfx();
         }
 
         // ══════════ 环节切换 ══════════
@@ -182,6 +194,7 @@ namespace MasterHouse
         {
             if (!running) return;
             running = false;
+            StopAudio();
             var finish = onFinish;
             onFinish = null;
             onAbort = null;
@@ -193,6 +206,7 @@ namespace MasterHouse
         {
             if (!running || phase == EPhase.Settle) return;
             running = false;
+            StopAudio();
             var abort = onAbort;
             onFinish = null;
             onAbort = null;
@@ -204,7 +218,10 @@ namespace MasterHouse
             if (grind != null) grind.Hit -= OnGrindHit;
             if (waterMaterial != null) Destroy(waterMaterial);
             // 页面被壳直接销毁（ESC / 遮罩）时，宿主已经按「关掉页面且不结算」处理，
-            // 这里不再补调 onAbort——重复回调会违反「只调一次」的契约
+            // 这里不再补调 onAbort——重复回调会违反「只调一次」的契约；
+            // 但音频必须在这里兜住：这条路 Finish/OnAbortClicked 都没走过，
+            // 不掐的话循环音与 BGM 压低会跟着玩家回到主界面
+            StopAudio();
             running = false;
         }
 
@@ -270,6 +287,37 @@ namespace MasterHouse
                     view.tuningLabel.text = string.Empty;
                 }
             }
+        }
+
+        // ══════════ 音效 ══════════
+
+        /// <summary>
+        /// 两路循环音（2026-08-20 拍板）：
+        /// - **研磨音**：磨豆环节一直响，只在撞障碍的硬直期间停——「进度条还在推进就继续响」；
+        /// - **冲泡音**：只在按住左键且鼠标在杯内时响（PourGame.IsPouring，与进度增长同一条件），
+        ///   松手或滑出杯即停。
+        ///
+        /// 硬起硬停不做淡入淡出、再响从头播（同日拍板）。逐帧调用即可：
+        /// SfxManager.SetLoop 对同状态是空操作，本类不必自己记上一帧。
+        /// 剪辑留空（View 上没配）时 SetLoop 直接返回，等于该环节静音，不报错。
+        /// </summary>
+        private void UpdateLoopSfx()
+        {
+            bool grinding = running && phase == EPhase.Grind && !grind.IsStunned;
+            bool pouring = running && phase == EPhase.Pour && pour.IsPouring;
+            SfxManager.SetLoop(view.grindLoopClip, grinding, view.grindLoopVolume);
+            SfxManager.SetLoop(view.pourLoopClip, pouring, view.pourLoopVolume);
+        }
+
+        /// <summary>收尾：掐掉两路循环音、把 BGM 还回去。结束 / 放弃 / 被销毁三条路都要走，重复调用无害。</summary>
+        private void StopAudio()
+        {
+            if (view != null)
+            {
+                SfxManager.SetLoop(view.grindLoopClip, false);
+                SfxManager.SetLoop(view.pourLoopClip, false);
+            }
+            BgmManager.SetDuck(1f);
         }
 
         // ══════════ 水面表现 ══════════

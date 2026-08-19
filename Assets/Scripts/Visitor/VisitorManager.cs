@@ -5,10 +5,10 @@ using UnityEngine;
 namespace MasterHouse
 {
     /// <summary>
-    /// 访客业务逻辑（访客交付说明 §3/§5/§6/§7）：日程投放、五态状态机推进、两段超时、
+    /// 访客业务逻辑（访客交付说明 §3/§5/§6/§7）：日程投放、六态状态机推进、两段超时、
     /// 接待/拒绝/提交结算、闲逛冒泡调度与日结，全部挂全局 tick、整数比较（§16.4/§11.3）。
     /// 表现层只读实例列表生成演员，不回写业务（§16.4 表现层豁免）。
-    /// 对话事件经 Accept/Reject/CompleteNeed 驱动业务（§8 契约，状态不对时返回 false 而不是抛异常）。
+    /// 对话事件经 Accept/Reject/CompleteNeed/Leave 驱动业务（§8 契约，状态不对时返回 false 而不是抛异常）。
     /// </summary>
     public class VisitorManager
     {
@@ -60,6 +60,9 @@ namespace MasterHouse
 
         /// <summary>本 tick 该冒闲聊气泡的。</summary>
         private readonly List<VisitorInstance> bubbleBuffer = new List<VisitorInstance>();
+
+        /// <summary>停留时长到点，转【待告别】等玩家来道别（2026-08-20）。</summary>
+        private readonly List<VisitorInstance> farewellBuffer = new List<VisitorInstance>();
 
         public VisitorData Data { get; } = new VisitorData();
 
@@ -212,7 +215,7 @@ namespace MasterHouse
             InstanceSpawned?.Invoke(instance);
         }
 
-        // ── 状态推进：两段超时 + 闲逛（§5）──
+        // ── 状态推进：两段超时 + 闲逛 + 待告别（§5）──
 
         private void TickStates()
         {
@@ -220,6 +223,7 @@ namespace MasterHouse
             timeoutBuffer.Clear();
             promptedBuffer.Clear();
             bubbleBuffer.Clear();
+            farewellBuffer.Clear();
             foreach (var instance in Data.Instances) // 在场列表按 InstanceId 升序（§11.2）
             {
                 var elapsed = Data.BusinessTick - instance.StateEnterTick;
@@ -244,17 +248,23 @@ namespace MasterHouse
                             timeoutBuffer.Add(instance);
                         break;
                     case EVisitorState.Wandering:
-                        if (elapsed >= instance.Race.wanderMaxTicks) departBuffer.Add(instance);
+                        // 停留到点**不再直接离场**：转【待告别】等玩家点他道别（2026-08-20 定案）。
+                        // 这里刻意不当场请求【告别】对话——tick 里弹模态会在玩家逛商店 / 摆家具时
+                        // 盖上来，而家具模式禁着整个壳 Canvas，那是硬卡死（与「进屋不自动弹」同一条）。
+                        if (elapsed >= instance.Race.wanderMaxTicks) farewellBuffer.Add(instance);
                         else if (instance.NextBubbleTick > 0 && Data.BusinessTick >= instance.NextBubbleTick)
                             bubbleBuffer.Add(instance);
                         break;
+                    // AwaitingFarewell（待告别）**没有任何超时，也不冒泡**：他就站在自己房间里
+                    // 等玩家来道别，直到【告别】对话里那条 Leave 事件执行。已定案接受「玩家不点就一直等」，
+                    // 代价是那间客房一直被占着。
                 }
             }
 
             // **一切对外广播都在遍历之后**：InstanceChanged / RequestDialogue 的调用链是同步的，
-            // 而对话事件（Accept/Reject/CompleteNeed）会改 Data.Instances——
+            // 而对话事件（Accept/Reject/CompleteNeed/Leave）会改 Data.Instances——
             // 今天闲聊冒泡不会走到那些事件，但把广播留在循环里等于给后来人埋一个
-            // InvalidOperationException。三个 buffer 的成本是零，规矩清楚。
+            // InvalidOperationException。几个 buffer 的成本是零，规矩清楚。
             foreach (var instance in promptedBuffer) InstanceChanged?.Invoke(instance);
             foreach (var instance in bubbleBuffer)
             {
@@ -266,10 +276,13 @@ namespace MasterHouse
             foreach (var instance in timeoutBuffer)
                 SettleNeedResult(instance, EServeSatisfaction.Mismatch, countAsServed: false);
 
+            // 停留到点：只转状态、只亮提示，一个字都不说——说什么由玩家点他之后才发生
+            foreach (var instance in farewellBuffer)
+                SetState(instance, EVisitorState.AwaitingFarewell);
+
             foreach (var instance in departBuffer)
             {
-                if (instance.State == EVisitorState.Wandering) Data.Today.WanderDepartCount++;
-                else Data.Today.RefusedCount++; // 前台等太久自己走了：计一次流失，但不扣声望
+                Data.Today.RefusedCount++; // 前台等太久自己走了：计一次流失，但不扣声望
                 Depart(instance);
             }
         }
@@ -349,6 +362,27 @@ namespace MasterHouse
         private static bool CanReject(EVisitorState state) =>
             state == EVisitorState.FrontDesk || state == EVisitorState.Serving;
 
+        /// <summary>
+        /// 送别离场（2026-08-20）：【待告别】的访客当场离开。对话表里【告别】组末尾那条
+        /// `Action | Leave` 的落点，也是这一态**唯一**的出口。
+        ///
+        /// 这是**刻意违背铁律①**（「事件不承担必须发生的后续推进」）的一处，代价已定案接受：
+        /// 玩家播到一半按 ESC，Leave 就没执行，客人继续等在【待告别】——但他还站在那儿、
+        /// 头顶还亮着提示，再点一次就能重播，不是死局。反过来把离场挂回状态机（播完自动走）
+        /// 就没法让策划决定「说到哪一句才走」，而这正是这次要的东西。
+        ///
+        /// 计入当日「闲逛后离场」（原先在 TickStates 里记，现在挪到真正离场的这一刻）。
+        /// 与 Accept/Reject/CompleteNeed 同口径：状态不对返回 false 而不是抛异常（§8 契约）。
+        /// </summary>
+        public bool Leave(int instanceId)
+        {
+            var instance = Find(instanceId);
+            if (instance == null || instance.State != EVisitorState.AwaitingFarewell) return false;
+            Data.Today.WanderDepartCount++;
+            Depart(instance);
+            return true;
+        }
+
         // ── 房间占用（需求重做说明 §5.2）──
 
         /// <summary>记下「这个种族来过」（访客图鉴的解锁判据；生成与读档恢复都要走这里）。</summary>
@@ -363,8 +397,8 @@ namespace MasterHouse
             !string.IsNullOrEmpty(raceId) && Data.MetRaces.Contains(raceId);
 
         /// <summary>
-        /// 房间是否已被占用：在场实例中有 Serving 或 Wandering 且 RoomIndex == 该房。
-        /// **闲逛也占房**——服务完成后访客仍在自己房间游走，直到离场才释放。
+        /// 房间是否已被占用：在场实例中有 Serving / Wandering / AwaitingFarewell 且 RoomIndex == 该房。
+        /// **闲逛与待告别也占房**——服务完成后访客仍在自己房间游走、道别前也还站在里面，直到离场才释放。
         /// 起居室（大堂）与越界下标一律视为「不可分配」，即恒占用。
         /// </summary>
         public bool IsRoomOccupied(int roomIndex)
@@ -373,7 +407,8 @@ namespace MasterHouse
             foreach (var instance in Data.Instances)
             {
                 if (instance.RoomIndex != roomIndex) continue;
-                if (instance.State == EVisitorState.Serving || instance.State == EVisitorState.Wandering) return true;
+                if (instance.State == EVisitorState.Serving || instance.State == EVisitorState.Wandering ||
+                    instance.State == EVisitorState.AwaitingFarewell) return true;
             }
             return false;
         }
@@ -466,6 +501,8 @@ namespace MasterHouse
                     return ENoTalkReason.AwaitingRoom;
                 case EVisitorState.Serving:
                     return IsNeedPrompted(instance) ? ENoTalkReason.None : ENoTalkReason.SettlingIn;
+                case EVisitorState.AwaitingFarewell:
+                    return ENoTalkReason.None; // 待告别永远点得动，且点了他才会走
                 default:
                     return ENoTalkReason.Wandering;
             }
@@ -504,6 +541,7 @@ namespace MasterHouse
         /// | Wandering    | 目标 ∈ 1..3 且该房空闲  | 换房，纯位置变更，无业务影响                       |
         /// | FrontDesk    | 否                      | 前台访客在门口排队，不可搬走                       |
         /// | Serving      | 否                      | **服务中锁房**                                     |
+        /// | AwaitingFarewell | 否                  | 人都要走了，别再折腾他换房                         |
         ///
         /// 服务中锁房是设计要点而不是保守：不锁的话条件类需求会退化成
         /// 「把客人搬去已经有那件家具的房间」，盲选房的赌注就不存在了。
@@ -590,12 +628,27 @@ namespace MasterHouse
         ///
         ///   前台队首 + 现在接待得了 → 【初次见面】（首次）/【等待接待】（已打过招呼）
         ///   服务中 + 已开口示意     → 【需求对话】（说需求 + 交付/推迟/放弃分支）
+        ///   待告别                  → 【告别】（说完由组里那条 Leave 事件送他走）
         ///   其余                    → false
         /// </summary>
         public bool RequestTalk(int instanceId)
         {
             var instance = Find(instanceId);
             if (instance == null || !CanInteract(instance)) return false;
+
+            if (instance.State == EVisitorState.AwaitingFarewell)
+            {
+                if (RequestDialogue(instance, EDialogueCategory.Farewell)) return true;
+                // 内容缺口的兜底，**只在这一类做**：告别台词一个字都没播出来时不能把人扣在这儿——
+                // 他占着一间客房，卡下去连带把后续日程投放一起堵死，等于"策划还没填表"就把游戏玩坏了。
+                // 打 Warning 并按 2026-08-20 之前的老行为（停留到点就走）放他离开。
+                Debug.LogWarning($"[VisitorManager] {instance.DisplayName} 的【告别】没有可播内容，" +
+                                 "已直接放他离场（否则他会一直占着房间）；请在 Excel/对话表.xlsx 里" +
+                                 "给这个种族补一组 farewell，详见上一条 Console 报错");
+                Leave(instanceId);
+                return true; // 人已经走了，玩家看得见反馈，不该再弹「没什么想说的」
+            }
+
             // 返回值一路透传到 UI：内容缺失（分类空 / 条件全不满足 / 组里全是事件）时对话不会出现，
             // 那时得给玩家一句话，否则就是「点了、响了个音效、然后什么都没发生」
             return RequestDialogue(instance, instance.State == EVisitorState.Serving
@@ -621,6 +674,7 @@ namespace MasterHouse
         /// 打烊后时钟停走、所有超时一并停表，所以「阻塞」意味着玩家必须有办法亲手解开它：
         ///   前台等待 → 不阻塞：EndDay 里自动清场（从没答应过他们什么，店打烊了自然就散了）
         ///   服务中   → 不阻塞：原样跨天，次日续算延迟与超时，玩家可以选择今天办还是明天办
+        ///   待告别   → 不阻塞：没道别不是欠着的事，原样跨天等玩家哪天想起来点他（2026-08-20）
         ///   等待分房 → **阻塞**：他是你已经点头答应的客人，而 CanAcceptGuest 保证了一定有空房，
         ///              拖进去就解开了，不会死锁
         /// </summary>
@@ -643,7 +697,7 @@ namespace MasterHouse
         /// 日结只展示不惩罚——惩罚已在拒绝当时结清，这里不重复扣。
         ///
         /// 闲逛访客的「跨天留宿 roll」已于 2026-08-14 删除：服务中/待分房都无条件跨天了，
-        /// 单给闲逛的掷一次骰子不一致；现在统一按停留时长走，到点自己离开。
+        /// 单给闲逛的掷一次骰子不一致；现在统一按停留时长走，到点转【待告别】等玩家来道别。
         /// （因此失去消费方的 VisitorRaceDef.stayOvernightPercent 与种族表那一列已在同日的
         /// 立绘 ID 化那一轮里删除。日结快照里的 StayOvernightCount 是**实际留宿人数**，与它无关。）
         /// </summary>
@@ -659,7 +713,7 @@ namespace MasterHouse
                 Data.Today.RefusedCount++;
                 Depart(instance);
             }
-            // 清完前台后场上剩下的都过夜（服务中/闲逛无条件跨天，待分房已被 CanEndDay 挡住）——
+            // 清完前台后场上剩下的都过夜（服务中/闲逛/待告别无条件跨天，待分房已被 CanEndDay 挡住）——
             // 这就是注释里说的「实际留宿人数」，在快照前一次性点数，不在状态机里逐处 ++
             Data.Today.StayOvernightCount = Data.Instances.Count;
             var summary = Data.Today.Clone();

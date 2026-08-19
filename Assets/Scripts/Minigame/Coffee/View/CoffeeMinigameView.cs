@@ -54,6 +54,26 @@ namespace MasterHouse
 
         public Button abortButton;
 
+        [Header("音效（循环音：剪辑直配在这里，不进音效表）")]
+        [Tooltip("研磨循环音：磨豆环节持续播放，撞障碍的硬直期间停（磨盘停转磨豆声也停）。\n" +
+                 "留空 = 本环节静音。硬起硬停，不做淡入淡出；再次响起从头播")]
+        public AudioClip grindLoopClip;
+
+        [Tooltip("研磨循环音的音量倍率，乘在设置页「音效」音量之上")]
+        [Range(0f, 2f)] public float grindLoopVolume = 1f;
+
+        [Tooltip("冲泡循环音：按住左键且鼠标在杯内时持续播放，松手或滑出杯即停（与进度增长同一条件）。\n" +
+                 "留空 = 本环节静音")]
+        public AudioClip pourLoopClip;
+
+        [Tooltip("冲泡循环音的音量倍率，乘在设置页「音效」音量之上")]
+        [Range(0f, 2f)] public float pourLoopVolume = 1f;
+
+        [Tooltip("本小游戏进行期间把 BGM 压低到原音量的这个倍率——让研磨/冲泡声站到前面来。\n" +
+                 "1 = 不压低，0 = 期间全哑。结算走完 / 放弃 / 页面被销毁都会恢复。\n" +
+                 "与设置页「背景音乐」是相乘关系：压低期间玩家改设置照样生效")]
+        [Range(0f, 1f)] public float bgmDuckFactor = 0.35f;
+
         [Header("表现参数（不影响判定）")]
         [Range(0.1f, 0.5f)] public float outerRingRadiusFraction = 0.42f;
         [Range(0.05f, 0.45f)] public float innerRingRadiusFraction = 0.27f;

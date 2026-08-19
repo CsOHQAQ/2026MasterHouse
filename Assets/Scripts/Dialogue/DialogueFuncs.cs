@@ -37,10 +37,19 @@ namespace MasterHouse
         /// </summary>
         public readonly bool IsReward;
 
+        /// <summary>
+        /// 必须放在所在路径的最后一个事件位。**奖励类天然属于这一档**（默认跟随 IsReward），
+        /// 但反过来不成立：Leave 不给任何奖励，却同样只能放末尾——它一执行访客就离场、
+        /// 演员开始走向门口，而对话框还开着，后面的台词会读成「人都走了还在说话」。
+        /// 校验器判的是这一条，不是 IsReward。
+        /// </summary>
+        public readonly bool MustBeLast;
+
         public DialogueActionDef(DialogueActionFunc fn, string label, string argsHint = "", int argCount = 0,
-            bool isReward = false)
+            bool isReward = false, bool? mustBeLast = null)
         {
             Fn = fn; Label = label; ArgsHint = argsHint; ArgCount = argCount; IsReward = isReward;
+            MustBeLast = mustBeLast ?? isReward;
         }
     }
 
@@ -104,7 +113,7 @@ namespace MasterHouse
                 ["VisitorStateIs"] = new DialogueConditionDef(
                     (ctx, a) => ctx?.Visitor != null && ctx.Visitor.State == a.VisitorState(0),
                     "访客处于指定状态",
-                    "状态 FrontDesk/AwaitingRoom/Serving/Wandering", 1),
+                    "状态 FrontDesk/AwaitingRoom/Serving/Wandering/AwaitingFarewell", 1),
             };
 
         // ══════════ 事件 ══════════
@@ -114,7 +123,13 @@ namespace MasterHouse
         //      拒绝事件只置状态，离场由状态机自己走完——把「离场」挂在对话末尾的话，
         //      玩家一按 ESC 访客就永远卡在场上。（ExecuteOnInterrupt 那个补丁已于本次重构删除，
         //      因为八个事件里从来没有一个用过它，而状态机自洽才是根本。）
+        //
+        //      **Leave 是刻意的唯一例外**（2026-08-20 定案）：告别本来就是「说完才走」，
+        //      推进权必须在内容手里，不然策划没法决定他说到哪一句才离开。铁律①怕的那个后果
+        //      （ESC → 卡在场上）在这里被明确接受了——访客留在【待告别】、头顶还亮着提示，
+        //      再点一次就能重播，不是死局。除它以外不要再给第二个事件开这个口子。
         //   ② 奖励类事件只允许放在所在路径的最后一个事件位（IsReward = true 的那些）。
+        //      Leave 同样只能放末尾，但理由不是重复领取（见 DialogueActionDef.MustBeLast）。
 
         public static readonly Dictionary<string, DialogueActionDef> Actions =
             new Dictionary<string, DialogueActionDef>(System.StringComparer.OrdinalIgnoreCase)
@@ -139,6 +154,17 @@ namespace MasterHouse
                                              "（前台 / 服务中才可以；等待分房的客人必须先分房）");
                     },
                     "拒绝（扣声望并离场）"),
+
+                ["Leave"] = new DialogueActionDef(
+                    (ctx, a) =>
+                    {
+                        if (ctx?.VisitorManager == null) { Warn("送别离场", "上下文缺 VisitorManager"); return; }
+                        if (!ctx.VisitorManager.Leave(ctx.VisitorInstanceId))
+                            Debug.LogWarning($"[对话事件] 送别离场未生效：实例 {ctx.VisitorInstanceId} 不在「待告别」状态；" +
+                                             "本事件只能配在【告别】（farewell）对话组里，别的分类填了不会有任何效果");
+                    },
+                    "送别离场（客人当场离开）。**只在【告别】组里有效，且必须是这条路径的最后一个事件**",
+                    mustBeLast: true),
 
                 ["CompleteNeed"] = new DialogueActionDef(
                     (ctx, a) =>
@@ -262,10 +288,15 @@ namespace MasterHouse
             foreach (var call in calls) Execute(call, ctx);
         }
 
-        /// <summary>这条事件是不是奖励类（校验器判「奖励必须在路径末尾」用）。未注册时按不是处理。</summary>
+        /// <summary>这条事件是不是奖励类（校验器措辞用）。未注册时按不是处理。</summary>
         public static bool IsReward(DialogueCall call) =>
             call != null && !string.IsNullOrEmpty(call.func) &&
             Actions.TryGetValue(call.func, out var def) && def.IsReward;
+
+        /// <summary>这条事件是不是「只能放路径最后一个事件位」（校验器的判据）。未注册时按不是处理。</summary>
+        public static bool MustBeLast(DialogueCall call) =>
+            call != null && !string.IsNullOrEmpty(call.func) &&
+            Actions.TryGetValue(call.func, out var def) && def.MustBeLast;
 
         private static void Warn(string what, string why) =>
             Debug.LogWarning($"[对话事件] {what}：{why}，已跳过");

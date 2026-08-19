@@ -61,6 +61,7 @@ namespace MasterHouse
             EVisitorState.AwaitingRoom => "等待分配房间",
             EVisitorState.Serving => "服务中",
             EVisitorState.Wandering => $"闲逛中（{ServeSatisfactionText.NameOf(instance.Satisfaction)}）",
+            EVisitorState.AwaitingFarewell => "等着道别",
             _ => "正在离开",
         };
 
@@ -72,6 +73,7 @@ namespace MasterHouse
                 ? "有话要说 · 点击交谈"
                 : "正在安顿",
             EVisitorState.Wandering => "服务完成 · " + ServeSatisfactionText.NameOf(instance.Satisfaction),
+            EVisitorState.AwaitingFarewell => "准备离开 · 点击道别",
             _ => "已离场",
         };
     }

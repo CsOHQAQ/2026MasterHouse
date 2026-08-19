@@ -27,7 +27,7 @@ MonoBehaviour:
     displayHeight: 110
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 901e8c1725af6374ebf1156e2c3bec43, type: 3}
-    swatchColor: {r: 0.835294118, g: 0.690196078, b: 0.380392157, a: 1}
+    swatchColor: {r: 0.8352941, g: 0.6901961, b: 0.38039216, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -51,7 +51,7 @@ MonoBehaviour:
     displayHeight: 110
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 54ad8e206d71d564da504351cb12fcae, type: 3}
-    swatchColor: {r: 0.752941176, g: 0.68627451, b: 0.592156863, a: 1}
+    swatchColor: {r: 0.7529412, g: 0.6862745, b: 0.5921569, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -75,7 +75,7 @@ MonoBehaviour:
     displayHeight: 110
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 35ff611611765dc4f9841e686b47e6d3, type: 3}
-    swatchColor: {r: 0.8, g: 0.643137255, b: 0.611764706, a: 1}
+    swatchColor: {r: 0.8, g: 0.6431373, b: 0.6117647, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -99,7 +99,7 @@ MonoBehaviour:
     displayHeight: 110
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 68d4c82f7c21c974698fd49475c9dd3e, type: 3}
-    swatchColor: {r: 0.611764706, g: 0.623529412, b: 0.51372549, a: 1}
+    swatchColor: {r: 0.6117647, g: 0.62352943, b: 0.5137255, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -123,7 +123,7 @@ MonoBehaviour:
     displayHeight: 110
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 66ca596788a64454aac759cae2eeaa35, type: 3}
-    swatchColor: {r: 0.639215686, g: 0.68627451, b: 0.741176471, a: 1}
+    swatchColor: {r: 0.6392157, g: 0.6862745, b: 0.7411765, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -147,7 +147,7 @@ MonoBehaviour:
     displayHeight: 110
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 397751f6dd9de7f4bad99e3903d95d11, type: 3}
-    swatchColor: {r: 0.670588235, g: 0.584313725, b: 0.62745098, a: 1}
+    swatchColor: {r: 0.67058825, g: 0.58431375, b: 0.627451, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -171,7 +171,7 @@ MonoBehaviour:
     displayHeight: 220
     decorationScore: 30
     sprite: {fileID: 21300000, guid: 6b099074ba0b014408154651d1c03384, type: 3}
-    swatchColor: {r: 0.556862745, g: 0.670588235, b: 0.760784314, a: 1}
+    swatchColor: {r: 0.5568628, g: 0.67058825, b: 0.7607843, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -195,7 +195,7 @@ MonoBehaviour:
     displayHeight: 223
     decorationScore: 30
     sprite: {fileID: 21300000, guid: ae657da8aa1413e4fb9ebc97d535726b, type: 3}
-    swatchColor: {r: 0.674509804, g: 0.694117647, b: 0.537254902, a: 1}
+    swatchColor: {r: 0.6745098, g: 0.69411767, b: 0.5372549, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -219,7 +219,7 @@ MonoBehaviour:
     displayHeight: 225
     decorationScore: 30
     sprite: {fileID: 21300000, guid: def435ca23b6a0b4482e34e8a02ae5e2, type: 3}
-    swatchColor: {r: 0.878431373, g: 0.478431373, b: 0.376470588, a: 1}
+    swatchColor: {r: 0.8784314, g: 0.47843137, b: 0.3764706, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -243,7 +243,7 @@ MonoBehaviour:
     displayHeight: 227
     decorationScore: 30
     sprite: {fileID: 21300000, guid: c82e1e2da1f35354990be9f902ac8b5d, type: 3}
-    swatchColor: {r: 0.898039216, g: 0.819607843, b: 0.698039216, a: 1}
+    swatchColor: {r: 0.8980392, g: 0.81960785, b: 0.69803923, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -267,7 +267,7 @@ MonoBehaviour:
     displayHeight: 226
     decorationScore: 30
     sprite: {fileID: 21300000, guid: a62c7e2c1707b704084d92909a3bb2fd, type: 3}
-    swatchColor: {r: 0.411764706, g: 0.439215686, b: 0.458823529, a: 1}
+    swatchColor: {r: 0.4117647, g: 0.4392157, b: 0.45882353, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -291,7 +291,7 @@ MonoBehaviour:
     displayHeight: 228
     decorationScore: 30
     sprite: {fileID: 21300000, guid: fce92780b999c484f96e66be9bef6417, type: 3}
-    swatchColor: {r: 0.905882353, g: 0.764705882, b: 0.454901961, a: 1}
+    swatchColor: {r: 0.90588236, g: 0.7647059, b: 0.45490196, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -315,7 +315,7 @@ MonoBehaviour:
     displayHeight: 224
     decorationScore: 30
     sprite: {fileID: 21300000, guid: 125ecc6e6aa4da9439b0785abe3945ea, type: 3}
-    swatchColor: {r: 0.91372549, g: 0.729411765, b: 0.694117647, a: 1}
+    swatchColor: {r: 0.9137255, g: 0.7294118, b: 0.69411767, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -339,7 +339,7 @@ MonoBehaviour:
     displayHeight: 227
     decorationScore: 30
     sprite: {fileID: 21300000, guid: f7edfb157cd4cee4ea049fa72455bee2, type: 3}
-    swatchColor: {r: 0.694117647, g: 0.780392157, b: 0.725490196, a: 1}
+    swatchColor: {r: 0.69411767, g: 0.78039217, b: 0.7254902, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -363,7 +363,7 @@ MonoBehaviour:
     displayHeight: 95
     decorationScore: 30
     sprite: {fileID: 21300000, guid: 439cf6303d2bf5346927fe4fecdc29ef, type: 3}
-    swatchColor: {r: 0.694117647, g: 0.77254902, b: 0.776470588, a: 1}
+    swatchColor: {r: 0.69411767, g: 0.77254903, b: 0.7764706, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -387,7 +387,7 @@ MonoBehaviour:
     displayHeight: 95
     decorationScore: 30
     sprite: {fileID: 21300000, guid: fdb831d8e26e71c4ab3938689d20d80f, type: 3}
-    swatchColor: {r: 0.705882353, g: 0.658823529, b: 0.721568627, a: 1}
+    swatchColor: {r: 0.7058824, g: 0.65882355, b: 0.72156864, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -411,7 +411,7 @@ MonoBehaviour:
     displayHeight: 95
     decorationScore: 30
     sprite: {fileID: 21300000, guid: 54af1ca2eba9c594a99e136889036bf6, type: 3}
-    swatchColor: {r: 0.815686275, g: 0.82745098, b: 0.701960784, a: 1}
+    swatchColor: {r: 0.8156863, g: 0.827451, b: 0.7019608, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -435,7 +435,7 @@ MonoBehaviour:
     displayHeight: 95
     decorationScore: 30
     sprite: {fileID: 21300000, guid: 589ace4da57c6894d836ae35ca800a6d, type: 3}
-    swatchColor: {r: 0.894117647, g: 0.839215686, b: 0.792156863, a: 1}
+    swatchColor: {r: 0.89411765, g: 0.8392157, b: 0.7921569, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -459,7 +459,7 @@ MonoBehaviour:
     displayHeight: 122
     decorationScore: 25
     sprite: {fileID: 21300000, guid: 7bcfa7ec8f42bc74691bc2b48070621f, type: 3}
-    swatchColor: {r: 0.588235294, g: 0.698039216, b: 0.796078431, a: 1}
+    swatchColor: {r: 0.5882353, g: 0.69803923, b: 0.79607844, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -483,7 +483,7 @@ MonoBehaviour:
     displayHeight: 123
     decorationScore: 25
     sprite: {fileID: 21300000, guid: bc626a5bf1a4669489635e7b8a0d1cfc, type: 3}
-    swatchColor: {r: 0.909803922, g: 0.57254902, b: 0.462745098, a: 1}
+    swatchColor: {r: 0.9098039, g: 0.57254905, b: 0.4627451, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -507,7 +507,7 @@ MonoBehaviour:
     displayHeight: 123
     decorationScore: 25
     sprite: {fileID: 21300000, guid: 1ddac36592599f040aa1bcd5c162ee44, type: 3}
-    swatchColor: {r: 0.658823529, g: 0.745098039, b: 0.635294118, a: 1}
+    swatchColor: {r: 0.65882355, g: 0.74509805, b: 0.63529414, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -531,7 +531,7 @@ MonoBehaviour:
     displayHeight: 124
     decorationScore: 25
     sprite: {fileID: 21300000, guid: a6f5412f5e2bc9543824a490c2e91507, type: 3}
-    swatchColor: {r: 0.929411765, g: 0.741176471, b: 0.435294118, a: 1}
+    swatchColor: {r: 0.92941177, g: 0.7411765, b: 0.43529412, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -555,7 +555,7 @@ MonoBehaviour:
     displayHeight: 124
     decorationScore: 25
     sprite: {fileID: 21300000, guid: d6787acadd9472a47a4edf65381bac6b, type: 3}
-    swatchColor: {r: 0.784313725, g: 0.694117647, b: 0.749019608, a: 1}
+    swatchColor: {r: 0.78431374, g: 0.69411767, b: 0.7490196, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -579,7 +579,7 @@ MonoBehaviour:
     displayHeight: 125
     decorationScore: 25
     sprite: {fileID: 21300000, guid: 8a63ed097fb353542b9842c08b01d7e0, type: 3}
-    swatchColor: {r: 0.709803922, g: 0.831372549, b: 0.850980392, a: 1}
+    swatchColor: {r: 0.70980394, g: 0.83137256, b: 0.8509804, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -603,7 +603,7 @@ MonoBehaviour:
     displayHeight: 124
     decorationScore: 25
     sprite: {fileID: 21300000, guid: d69601b6f87e9af40848dc3eb05ec4d6, type: 3}
-    swatchColor: {r: 0.560784314, g: 0.654901961, b: 0.729411765, a: 1}
+    swatchColor: {r: 0.56078434, g: 0.654902, b: 0.7294118, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -627,7 +627,7 @@ MonoBehaviour:
     displayHeight: 124
     decorationScore: 25
     sprite: {fileID: 21300000, guid: 6fa1a6b111ae58140a12ed2f387cce20, type: 3}
-    swatchColor: {r: 0.925490196, g: 0.823529412, b: 0.666666667, a: 1}
+    swatchColor: {r: 0.9254902, g: 0.8235294, b: 0.6666667, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -651,7 +651,7 @@ MonoBehaviour:
     displayHeight: 199
     decorationScore: 32
     sprite: {fileID: 21300000, guid: ea7c7daf77d851b4497e78e46016e368, type: 3}
-    swatchColor: {r: 0.231372549, g: 0.309803922, b: 0.388235294, a: 1}
+    swatchColor: {r: 0.23137255, g: 0.30980393, b: 0.3882353, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -675,7 +675,7 @@ MonoBehaviour:
     displayHeight: 199
     decorationScore: 32
     sprite: {fileID: 21300000, guid: 15715a002540fa94e8d756656a258ea6, type: 3}
-    swatchColor: {r: 0.305882353, g: 0.356862745, b: 0.215686275, a: 1}
+    swatchColor: {r: 0.30588236, g: 0.35686275, b: 0.21568628, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -699,7 +699,7 @@ MonoBehaviour:
     displayHeight: 198
     decorationScore: 32
     sprite: {fileID: 21300000, guid: 141e551e9b010c2498716297e21e6e35, type: 3}
-    swatchColor: {r: 0.658823529, g: 0.447058824, b: 0.0980392157, a: 1}
+    swatchColor: {r: 0.65882355, g: 0.44705883, b: 0.09803922, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -723,7 +723,7 @@ MonoBehaviour:
     displayHeight: 199
     decorationScore: 32
     sprite: {fileID: 21300000, guid: c1820e07944c66e4db7be2dfbc6f8a44, type: 3}
-    swatchColor: {r: 0.4, g: 0.305882353, b: 0.443137255, a: 1}
+    swatchColor: {r: 0.4, g: 0.30588236, b: 0.44313726, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -747,7 +747,7 @@ MonoBehaviour:
     displayHeight: 199
     decorationScore: 32
     sprite: {fileID: 21300000, guid: 2199dc76b134d7348bc0bd35d6cd994c, type: 3}
-    swatchColor: {r: 0.219607843, g: 0.447058824, b: 0.454901961, a: 1}
+    swatchColor: {r: 0.21960784, g: 0.44705883, b: 0.45490196, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -771,7 +771,7 @@ MonoBehaviour:
     displayHeight: 198
     decorationScore: 32
     sprite: {fileID: 21300000, guid: 49b9ac5365f05fc44b33c13c34c7df8b, type: 3}
-    swatchColor: {r: 0.403921569, g: 0.196078431, b: 0.0705882353, a: 1}
+    swatchColor: {r: 0.40392157, g: 0.19607843, b: 0.07058824, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -795,7 +795,7 @@ MonoBehaviour:
     displayHeight: 201
     decorationScore: 32
     sprite: {fileID: 21300000, guid: 082e8680c05886e48945dffb8e1bfc99, type: 3}
-    swatchColor: {r: 0.388235294, g: 0.364705882, b: 0.345098039, a: 1}
+    swatchColor: {r: 0.3882353, g: 0.3647059, b: 0.34509805, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -819,7 +819,7 @@ MonoBehaviour:
     displayHeight: 200
     decorationScore: 32
     sprite: {fileID: 21300000, guid: b910ed6a53659944686dd832a44ab26e, type: 3}
-    swatchColor: {r: 0.780392157, g: 0.701960784, b: 0.568627451, a: 1}
+    swatchColor: {r: 0.78039217, g: 0.7019608, b: 0.5686275, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -843,7 +843,7 @@ MonoBehaviour:
     displayHeight: 194
     decorationScore: 32
     sprite: {fileID: 21300000, guid: e8e3c4ddb26bc444daec2523be8ed44a, type: 3}
-    swatchColor: {r: 0.752941176, g: 0.533333333, b: 0.51372549, a: 1}
+    swatchColor: {r: 0.7529412, g: 0.53333336, b: 0.5137255, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -867,7 +867,7 @@ MonoBehaviour:
     displayHeight: 197
     decorationScore: 32
     sprite: {fileID: 21300000, guid: d00fa96b4fce08d4da135224045ec249, type: 3}
-    swatchColor: {r: 0.635294118, g: 0.290196078, b: 0.0705882353, a: 1}
+    swatchColor: {r: 0.63529414, g: 0.2901961, b: 0.07058824, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -891,7 +891,7 @@ MonoBehaviour:
     displayHeight: 196
     decorationScore: 32
     sprite: {fileID: 21300000, guid: d37be0b7cfef5dd43b32d31198be7c15, type: 3}
-    swatchColor: {r: 0.164705882, g: 0.160784314, b: 0.156862745, a: 1}
+    swatchColor: {r: 0.16470589, g: 0.16078432, b: 0.15686275, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -915,7 +915,7 @@ MonoBehaviour:
     displayHeight: 199
     decorationScore: 30
     sprite: {fileID: 21300000, guid: 8a765a261f7ffcb4ab5466358c9f1855, type: 3}
-    swatchColor: {r: 0.592156863, g: 0.129411765, b: 0.117647059, a: 1}
+    swatchColor: {r: 0.5921569, g: 0.12941177, b: 0.11764706, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -939,7 +939,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 9190e11b670002341930a486d38be5a2, type: 3}
-    swatchColor: {r: 0.541176471, g: 0.48627451, b: 0.345098039, a: 1}
+    swatchColor: {r: 0.5411765, g: 0.4862745, b: 0.34509805, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -963,7 +963,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: e7334b5432fdf474cbc4853af8c9bdd9, type: 3}
-    swatchColor: {r: 0.48627451, g: 0.423529412, b: 0.388235294, a: 1}
+    swatchColor: {r: 0.4862745, g: 0.42352942, b: 0.3882353, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -987,7 +987,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: a875582aaccc82b42b59652a92c25aa5, type: 3}
-    swatchColor: {r: 0.631372549, g: 0.517647059, b: 0.545098039, a: 1}
+    swatchColor: {r: 0.6313726, g: 0.5176471, b: 0.54509807, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1011,7 +1011,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 163892bad17d74e4cbd3b6d3566989b4, type: 3}
-    swatchColor: {r: 0.384313725, g: 0.478431373, b: 0.392156863, a: 1}
+    swatchColor: {r: 0.38431373, g: 0.47843137, b: 0.39215687, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1035,7 +1035,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: fbb5e28d02dcb3d498388cd4f76fde88, type: 3}
-    swatchColor: {r: 0.309803922, g: 0.392156863, b: 0.333333333, a: 1}
+    swatchColor: {r: 0.30980393, g: 0.39215687, b: 0.33333334, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1059,7 +1059,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: f9b8a08ac83faa148bf79ee83381dd76, type: 3}
-    swatchColor: {r: 0.68627451, g: 0.682352941, b: 0.48627451, a: 1}
+    swatchColor: {r: 0.6862745, g: 0.68235296, b: 0.4862745, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1083,7 +1083,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: ce4e4164739109e4e866ec6b70b1a40d, type: 3}
-    swatchColor: {r: 0.596078431, g: 0.631372549, b: 0.529411765, a: 1}
+    swatchColor: {r: 0.59607846, g: 0.6313726, b: 0.5294118, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1107,7 +1107,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 999d7308d3f1ceb41824b7b63370a021, type: 3}
-    swatchColor: {r: 0.576470588, g: 0.596078431, b: 0.556862745, a: 1}
+    swatchColor: {r: 0.5764706, g: 0.59607846, b: 0.5568628, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1131,7 +1131,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 76ba131bbe45d584e9f4eda44a517a4c, type: 3}
-    swatchColor: {r: 0.658823529, g: 0.662745098, b: 0.494117647, a: 1}
+    swatchColor: {r: 0.65882355, g: 0.6627451, b: 0.49411765, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1155,7 +1155,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: f8e192e1b1b20d24bb491928281a6edd, type: 3}
-    swatchColor: {r: 0.760784314, g: 0.733333333, b: 0.533333333, a: 1}
+    swatchColor: {r: 0.7607843, g: 0.73333335, b: 0.53333336, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1179,7 +1179,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 285bcb05ea9446847ba796f9f0dfec3a, type: 3}
-    swatchColor: {r: 0.729411765, g: 0.705882353, b: 0.498039216, a: 1}
+    swatchColor: {r: 0.7294118, g: 0.7058824, b: 0.49803922, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1203,7 +1203,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 2aa00e6704dfd0943955630b65027e8e, type: 3}
-    swatchColor: {r: 0.721568627, g: 0.658823529, b: 0.584313725, a: 1}
+    swatchColor: {r: 0.72156864, g: 0.65882355, b: 0.58431375, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1227,7 +1227,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 99232e243e0829d4293d36774cff56e6, type: 3}
-    swatchColor: {r: 0.68627451, g: 0.678431373, b: 0.545098039, a: 1}
+    swatchColor: {r: 0.6862745, g: 0.6784314, b: 0.54509807, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1251,7 +1251,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: afd9de7a28d385246b02b01d3d223af8, type: 3}
-    swatchColor: {r: 0.68627451, g: 0.717647059, b: 0.537254902, a: 1}
+    swatchColor: {r: 0.6862745, g: 0.7176471, b: 0.5372549, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1275,7 +1275,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 3f9e90388efd3434cbe67cccfaa2b242, type: 3}
-    swatchColor: {r: 0.611764706, g: 0.647058824, b: 0.498039216, a: 1}
+    swatchColor: {r: 0.6117647, g: 0.64705884, b: 0.49803922, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1299,7 +1299,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: c233b03ddbdc65c4fb8c15753528fe60, type: 3}
-    swatchColor: {r: 0.666666667, g: 0.631372549, b: 0.568627451, a: 1}
+    swatchColor: {r: 0.6666667, g: 0.6313726, b: 0.5686275, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1323,7 +1323,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 3fee7326d0881c24ba1061ef1c53ef3c, type: 3}
-    swatchColor: {r: 0.603921569, g: 0.639215686, b: 0.501960784, a: 1}
+    swatchColor: {r: 0.6039216, g: 0.6392157, b: 0.5019608, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1347,7 +1347,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 0d7aaac971ee3dd4fae346bf423633e2, type: 3}
-    swatchColor: {r: 0.82745098, g: 0.815686275, b: 0.607843137, a: 1}
+    swatchColor: {r: 0.827451, g: 0.8156863, b: 0.60784316, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1371,7 +1371,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 099196bd447340b48b248e4438d15d3f, type: 3}
-    swatchColor: {r: 0.788235294, g: 0.690196078, b: 0.647058824, a: 1}
+    swatchColor: {r: 0.7882353, g: 0.6901961, b: 0.64705884, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1395,7 +1395,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 5f420032778614c448aee332334b3a04, type: 3}
-    swatchColor: {r: 0.647058824, g: 0.670588235, b: 0.490196078, a: 1}
+    swatchColor: {r: 0.64705884, g: 0.67058825, b: 0.49019608, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1419,7 +1419,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: b109f0ef7499c5148b0632a5d0f26ae5, type: 3}
-    swatchColor: {r: 0.678431373, g: 0.705882353, b: 0.588235294, a: 1}
+    swatchColor: {r: 0.6784314, g: 0.7058824, b: 0.5882353, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1443,7 +1443,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 05d318398456b6641b139a0621103b64, type: 3}
-    swatchColor: {r: 0.839215686, g: 0.831372549, b: 0.521568627, a: 1}
+    swatchColor: {r: 0.8392157, g: 0.83137256, b: 0.52156866, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1467,7 +1467,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 59066a2594c3d3641af651d4604713a7, type: 3}
-    swatchColor: {r: 0.709803922, g: 0.745098039, b: 0.639215686, a: 1}
+    swatchColor: {r: 0.70980394, g: 0.74509805, b: 0.6392157, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1491,7 +1491,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 2230aa850c983e84d9f560618f84321b, type: 3}
-    swatchColor: {r: 0.698039216, g: 0.666666667, b: 0.682352941, a: 1}
+    swatchColor: {r: 0.69803923, g: 0.6666667, b: 0.68235296, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1515,7 +1515,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 8dc8815f17f6fec4d84771069c8662a5, type: 3}
-    swatchColor: {r: 0.764705882, g: 0.77254902, b: 0.403921569, a: 1}
+    swatchColor: {r: 0.7647059, g: 0.77254903, b: 0.40392157, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1539,7 +1539,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: 639a491197f31b444aa3b813cbccef04, type: 3}
-    swatchColor: {r: 0.564705882, g: 0.650980392, b: 0.623529412, a: 1}
+    swatchColor: {r: 0.5647059, g: 0.6509804, b: 0.62352943, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1563,7 +1563,7 @@ MonoBehaviour:
     displayHeight: 117
     decorationScore: 18
     sprite: {fileID: 21300000, guid: eb8fa9e001cb0a74d9a91747f952f7f4, type: 3}
-    swatchColor: {r: 0.611764706, g: 0.694117647, b: 0.662745098, a: 1}
+    swatchColor: {r: 0.6117647, g: 0.69411767, b: 0.6627451, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1587,7 +1587,7 @@ MonoBehaviour:
     displayHeight: 120
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 5a3a5bc9d5e9af748a0c2ec84d877c16, type: 3}
-    swatchColor: {r: 0.619607843, g: 0.623529412, b: 0.509803922, a: 1}
+    swatchColor: {r: 0.61960787, g: 0.62352943, b: 0.50980395, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1611,7 +1611,7 @@ MonoBehaviour:
     displayHeight: 120
     decorationScore: 15
     sprite: {fileID: 21300000, guid: c1bc5651acb4159489d82653ae85b657, type: 3}
-    swatchColor: {r: 0.792156863, g: 0.57254902, b: 0.388235294, a: 1}
+    swatchColor: {r: 0.7921569, g: 0.57254905, b: 0.3882353, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1635,7 +1635,7 @@ MonoBehaviour:
     displayHeight: 120
     decorationScore: 15
     sprite: {fileID: 21300000, guid: ef28a7e26864ec74c87361abfcb1bc77, type: 3}
-    swatchColor: {r: 0.466666667, g: 0.415686275, b: 0.517647059, a: 1}
+    swatchColor: {r: 0.46666667, g: 0.41568628, b: 0.5176471, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1659,7 +1659,7 @@ MonoBehaviour:
     displayHeight: 120
     decorationScore: 15
     sprite: {fileID: 21300000, guid: b28a47c9ccbe7d240892183a2ed213f4, type: 3}
-    swatchColor: {r: 0.564705882, g: 0.635294118, b: 0.666666667, a: 1}
+    swatchColor: {r: 0.5647059, g: 0.63529414, b: 0.6666667, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1683,7 +1683,7 @@ MonoBehaviour:
     displayHeight: 120
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 08e0e147c074a7144ab342c29a1ca344, type: 3}
-    swatchColor: {r: 0.831372549, g: 0.631372549, b: 0.615686275, a: 1}
+    swatchColor: {r: 0.83137256, g: 0.6313726, b: 0.6156863, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1707,7 +1707,7 @@ MonoBehaviour:
     displayHeight: 120
     decorationScore: 15
     sprite: {fileID: 21300000, guid: ddd6463a3217701419c1925b29b3b432, type: 3}
-    swatchColor: {r: 0.611764706, g: 0.584313725, b: 0.552941176, a: 1}
+    swatchColor: {r: 0.6117647, g: 0.58431375, b: 0.5529412, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1731,7 +1731,7 @@ MonoBehaviour:
     displayHeight: 120
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 0c41c91023e6bec49a1eac1099525d80, type: 3}
-    swatchColor: {r: 0.858823529, g: 0.654901961, b: 0.349019608, a: 1}
+    swatchColor: {r: 0.85882354, g: 0.654902, b: 0.34901962, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1755,7 +1755,7 @@ MonoBehaviour:
     displayHeight: 120
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 25cdc1ff6acf13347976430177ac6b96, type: 3}
-    swatchColor: {r: 0.270588235, g: 0.447058824, b: 0.450980392, a: 1}
+    swatchColor: {r: 0.27058825, g: 0.44705883, b: 0.4509804, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1779,7 +1779,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: dd5502e6f133e424aa8ee09f35b579d8, type: 3}
-    swatchColor: {r: 0.615686275, g: 0.454901961, b: 0.521568627, a: 1}
+    swatchColor: {r: 0.6156863, g: 0.45490196, b: 0.52156866, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1803,7 +1803,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 2359e321d6d0ad14c88a4ad2e5df2d21, type: 3}
-    swatchColor: {r: 0.270588235, g: 0.537254902, b: 0.62745098, a: 1}
+    swatchColor: {r: 0.27058825, g: 0.5372549, b: 0.627451, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1827,7 +1827,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: c359ab9f21750344ca3699fc129fb591, type: 3}
-    swatchColor: {r: 0.643137255, g: 0.490196078, b: 0.274509804, a: 1}
+    swatchColor: {r: 0.6431373, g: 0.49019608, b: 0.27450982, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1851,7 +1851,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 815f0b3b3acc58d4089a9e08633ccceb, type: 3}
-    swatchColor: {r: 0.454901961, g: 0.556862745, b: 0.301960784, a: 1}
+    swatchColor: {r: 0.45490196, g: 0.5568628, b: 0.3019608, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1875,7 +1875,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: c9f66729e3782624ea481ec5731e8ffb, type: 3}
-    swatchColor: {r: 0.4, g: 0.333333333, b: 0.619607843, a: 1}
+    swatchColor: {r: 0.4, g: 0.33333334, b: 0.61960787, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1899,7 +1899,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 174133d5e5adf8b47847a4e0f02107b5, type: 3}
-    swatchColor: {r: 0.580392157, g: 0.309803922, b: 0.368627451, a: 1}
+    swatchColor: {r: 0.5803922, g: 0.30980393, b: 0.36862746, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1923,7 +1923,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 92750dd18b3619642b0d6f9650945e48, type: 3}
-    swatchColor: {r: 0.631372549, g: 0.521568627, b: 0.278431373, a: 1}
+    swatchColor: {r: 0.6313726, g: 0.52156866, b: 0.2784314, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1947,7 +1947,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: d11bd318b5a962946a9b66d0b5fdc039, type: 3}
-    swatchColor: {r: 0.470588235, g: 0.596078431, b: 0.662745098, a: 1}
+    swatchColor: {r: 0.47058824, g: 0.59607846, b: 0.6627451, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1971,7 +1971,7 @@ MonoBehaviour:
     displayHeight: 185
     decorationScore: 20
     sprite: {fileID: 21300000, guid: 16191290c86c77b46abf28b0882e774d, type: 3}
-    swatchColor: {r: 0.639215686, g: 0.662745098, b: 0.529411765, a: 1}
+    swatchColor: {r: 0.6392157, g: 0.6627451, b: 0.5294118, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -1995,7 +1995,7 @@ MonoBehaviour:
     displayHeight: 185
     decorationScore: 20
     sprite: {fileID: 21300000, guid: 9d61b5e489a61014ba602d4aa113b2e3, type: 3}
-    swatchColor: {r: 0.674509804, g: 0.690196078, b: 0.576470588, a: 1}
+    swatchColor: {r: 0.6745098, g: 0.6901961, b: 0.5764706, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2019,7 +2019,7 @@ MonoBehaviour:
     displayHeight: 185
     decorationScore: 20
     sprite: {fileID: 21300000, guid: 75a9b04e6ceb8494dbf02b04c928fd00, type: 3}
-    swatchColor: {r: 0.419607843, g: 0.501960784, b: 0.458823529, a: 1}
+    swatchColor: {r: 0.41960785, g: 0.5019608, b: 0.45882353, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2043,7 +2043,7 @@ MonoBehaviour:
     displayHeight: 185
     decorationScore: 20
     sprite: {fileID: 21300000, guid: a36d63a6266f2a84c9ed880ac8772652, type: 3}
-    swatchColor: {r: 0.650980392, g: 0.674509804, b: 0.549019608, a: 1}
+    swatchColor: {r: 0.6509804, g: 0.6745098, b: 0.54901963, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2067,7 +2067,7 @@ MonoBehaviour:
     displayHeight: 185
     decorationScore: 20
     sprite: {fileID: 21300000, guid: 87f8b4f36e90a474fbce9807cb97f33d, type: 3}
-    swatchColor: {r: 0.796078431, g: 0.780392157, b: 0.611764706, a: 1}
+    swatchColor: {r: 0.79607844, g: 0.78039217, b: 0.6117647, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2091,7 +2091,7 @@ MonoBehaviour:
     displayHeight: 185
     decorationScore: 20
     sprite: {fileID: 21300000, guid: 17993eaf408aed84592492e7f27a66c4, type: 3}
-    swatchColor: {r: 0.635294118, g: 0.666666667, b: 0.576470588, a: 1}
+    swatchColor: {r: 0.63529414, g: 0.6666667, b: 0.5764706, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2115,7 +2115,7 @@ MonoBehaviour:
     displayHeight: 185
     decorationScore: 20
     sprite: {fileID: 21300000, guid: bc05d8bc177e2a4429fe7d135ad0f45f, type: 3}
-    swatchColor: {r: 0.623529412, g: 0.662745098, b: 0.552941176, a: 1}
+    swatchColor: {r: 0.62352943, g: 0.6627451, b: 0.5529412, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2139,7 +2139,7 @@ MonoBehaviour:
     displayHeight: 85
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 1a71e89976d9ee147843f1fc8ecbd75e, type: 3}
-    swatchColor: {r: 0.533333333, g: 0.584313725, b: 0.631372549, a: 1}
+    swatchColor: {r: 0.53333336, g: 0.58431375, b: 0.6313726, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2163,7 +2163,7 @@ MonoBehaviour:
     displayHeight: 85
     decorationScore: 12
     sprite: {fileID: 21300000, guid: d5f5bb8d69c6c844abc532280fc505e2, type: 3}
-    swatchColor: {r: 0.584313725, g: 0.611764706, b: 0.57254902, a: 1}
+    swatchColor: {r: 0.58431375, g: 0.6117647, b: 0.57254905, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2187,7 +2187,7 @@ MonoBehaviour:
     displayHeight: 85
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 6cea41e4268c35e49aad890be78debd9, type: 3}
-    swatchColor: {r: 0.635294118, g: 0.647058824, b: 0.596078431, a: 1}
+    swatchColor: {r: 0.63529414, g: 0.64705884, b: 0.59607846, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2211,7 +2211,7 @@ MonoBehaviour:
     displayHeight: 85
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 1df9fe261f3b7e44b8ef860cb42038ba, type: 3}
-    swatchColor: {r: 0.607843137, g: 0.619607843, b: 0.568627451, a: 1}
+    swatchColor: {r: 0.60784316, g: 0.61960787, b: 0.5686275, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2235,7 +2235,7 @@ MonoBehaviour:
     displayHeight: 85
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 14ad11fa0bcf48c4d8ee9c2c22412f71, type: 3}
-    swatchColor: {r: 0.71372549, g: 0.635294118, b: 0.662745098, a: 1}
+    swatchColor: {r: 0.7137255, g: 0.63529414, b: 0.6627451, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2259,7 +2259,7 @@ MonoBehaviour:
     displayHeight: 85
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 2151e09e4922b184ab758944867b84e4, type: 3}
-    swatchColor: {r: 0.635294118, g: 0.650980392, b: 0.654901961, a: 1}
+    swatchColor: {r: 0.63529414, g: 0.6509804, b: 0.654902, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2283,7 +2283,7 @@ MonoBehaviour:
     displayHeight: 85
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 1b260c83113818d4fbfc610c9005b4ed, type: 3}
-    swatchColor: {r: 0.62745098, g: 0.623529412, b: 0.592156863, a: 1}
+    swatchColor: {r: 0.627451, g: 0.62352943, b: 0.5921569, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2307,7 +2307,7 @@ MonoBehaviour:
     displayHeight: 85
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 0b916b54a0d935047bb652ea2d3a7431, type: 3}
-    swatchColor: {r: 0.603921569, g: 0.62745098, b: 0.584313725, a: 1}
+    swatchColor: {r: 0.6039216, g: 0.627451, b: 0.58431375, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2331,7 +2331,7 @@ MonoBehaviour:
     displayHeight: 85
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 8a7fa3d0461dbdb49ae8d1013dd01f16, type: 3}
-    swatchColor: {r: 0.6, g: 0.62745098, b: 0.607843137, a: 1}
+    swatchColor: {r: 0.6, g: 0.627451, b: 0.60784316, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2355,7 +2355,7 @@ MonoBehaviour:
     displayHeight: 110
     decorationScore: 12
     sprite: {fileID: 21300000, guid: fe0f49d8142d11545b708ce726a4e199, type: 3}
-    swatchColor: {r: 0.682352941, g: 0.674509804, b: 0.498039216, a: 1}
+    swatchColor: {r: 0.68235296, g: 0.6745098, b: 0.49803922, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2379,7 +2379,7 @@ MonoBehaviour:
     displayHeight: 110
     decorationScore: 12
     sprite: {fileID: 21300000, guid: c93b287df76bf75459cdc00a69f135f0, type: 3}
-    swatchColor: {r: 0.792156863, g: 0.745098039, b: 0.545098039, a: 1}
+    swatchColor: {r: 0.7921569, g: 0.74509805, b: 0.54509807, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2403,7 +2403,7 @@ MonoBehaviour:
     displayHeight: 110
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 5a5f78a9ec66eb24db5986e18ac0c1d6, type: 3}
-    swatchColor: {r: 0.858823529, g: 0.749019608, b: 0.521568627, a: 1}
+    swatchColor: {r: 0.85882354, g: 0.7490196, b: 0.52156866, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2427,7 +2427,7 @@ MonoBehaviour:
     displayHeight: 110
     decorationScore: 12
     sprite: {fileID: 21300000, guid: e333a40c891e62443b7d69198d8d7ca0, type: 3}
-    swatchColor: {r: 0.529411765, g: 0.607843137, b: 0.568627451, a: 1}
+    swatchColor: {r: 0.5294118, g: 0.60784316, b: 0.5686275, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2451,7 +2451,7 @@ MonoBehaviour:
     displayHeight: 110
     decorationScore: 12
     sprite: {fileID: 21300000, guid: e1ad49e625bdc3549a40048aa7b7c006, type: 3}
-    swatchColor: {r: 0.631372549, g: 0.666666667, b: 0.584313725, a: 1}
+    swatchColor: {r: 0.6313726, g: 0.6666667, b: 0.58431375, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2475,7 +2475,7 @@ MonoBehaviour:
     displayHeight: 96
     decorationScore: 15
     sprite: {fileID: 21300000, guid: bc167f965c5bcc845b1845ad06abfeba, type: 3}
-    swatchColor: {r: 0.57254902, g: 0.658823529, b: 0.764705882, a: 1}
+    swatchColor: {r: 0.57254905, g: 0.65882355, b: 0.7647059, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2499,7 +2499,7 @@ MonoBehaviour:
     displayHeight: 96
     decorationScore: 15
     sprite: {fileID: 21300000, guid: d65b71cb77e4a454bb85efeabbe36b3c, type: 3}
-    swatchColor: {r: 0.611764706, g: 0.729411765, b: 0.666666667, a: 1}
+    swatchColor: {r: 0.6117647, g: 0.7294118, b: 0.6666667, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2523,7 +2523,7 @@ MonoBehaviour:
     displayHeight: 101
     decorationScore: 15
     sprite: {fileID: 21300000, guid: a5c17790b71e6124b8152b21476e8c03, type: 3}
-    swatchColor: {r: 0.662745098, g: 0.741176471, b: 0.698039216, a: 1}
+    swatchColor: {r: 0.6627451, g: 0.7411765, b: 0.69803923, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2547,7 +2547,7 @@ MonoBehaviour:
     displayHeight: 101
     decorationScore: 15
     sprite: {fileID: 21300000, guid: ed9d04ad2adfe934a974a829d2418126, type: 3}
-    swatchColor: {r: 0.862745098, g: 0.658823529, b: 0.560784314, a: 1}
+    swatchColor: {r: 0.8627451, g: 0.65882355, b: 0.56078434, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2571,7 +2571,7 @@ MonoBehaviour:
     displayHeight: 101
     decorationScore: 15
     sprite: {fileID: 21300000, guid: ed845cb8114e72a4abaf94698fa0a96a, type: 3}
-    swatchColor: {r: 0.443137255, g: 0.556862745, b: 0.68627451, a: 1}
+    swatchColor: {r: 0.44313726, g: 0.5568628, b: 0.6862745, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2595,7 +2595,7 @@ MonoBehaviour:
     displayHeight: 102
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 881bba792e8108c4688e754f08d38b2c, type: 3}
-    swatchColor: {r: 0.917647059, g: 0.823529412, b: 0.615686275, a: 1}
+    swatchColor: {r: 0.91764706, g: 0.8235294, b: 0.6156863, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2619,7 +2619,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: 3210a38b3709580438327d648e41b5ba, type: 3}
-    swatchColor: {r: 0.77254902, g: 0.847058824, b: 0.905882353, a: 1}
+    swatchColor: {r: 0.77254903, g: 0.84705883, b: 0.90588236, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2643,7 +2643,7 @@ MonoBehaviour:
     displayHeight: 105
     decorationScore: 15
     sprite: {fileID: 21300000, guid: b5f13033ad19dca46b8ea69c845a1c26, type: 3}
-    swatchColor: {r: 0.905882353, g: 0.788235294, b: 0.580392157, a: 1}
+    swatchColor: {r: 0.90588236, g: 0.7882353, b: 0.5803922, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2667,7 +2667,7 @@ MonoBehaviour:
     displayHeight: 104
     decorationScore: 15
     sprite: {fileID: 21300000, guid: ed41090bf060f9f46abe2d88541ae503, type: 3}
-    swatchColor: {r: 0.929411765, g: 0.839215686, b: 0.764705882, a: 1}
+    swatchColor: {r: 0.92941177, g: 0.8392157, b: 0.7647059, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2691,7 +2691,7 @@ MonoBehaviour:
     displayHeight: 104
     decorationScore: 15
     sprite: {fileID: 21300000, guid: b14d469cedaedb042a87942937c113f6, type: 3}
-    swatchColor: {r: 0.741176471, g: 0.819607843, b: 0.882352941, a: 1}
+    swatchColor: {r: 0.7411765, g: 0.81960785, b: 0.88235295, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2715,7 +2715,7 @@ MonoBehaviour:
     displayHeight: 95
     decorationScore: 12
     sprite: {fileID: 21300000, guid: f2efba155b0206c4dafd3077f226d0ee, type: 3}
-    swatchColor: {r: 0.270588235, g: 0.262745098, b: 0.196078431, a: 1}
+    swatchColor: {r: 0.27058825, g: 0.2627451, b: 0.19607843, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2739,7 +2739,7 @@ MonoBehaviour:
     displayHeight: 95
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 8329f5e46a4f6324e96281fd8fd2b305, type: 3}
-    swatchColor: {r: 0.243137255, g: 0.250980392, b: 0.231372549, a: 1}
+    swatchColor: {r: 0.24313726, g: 0.2509804, b: 0.23137255, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2763,7 +2763,7 @@ MonoBehaviour:
     displayHeight: 95
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 71a82482d436c8541a12a88834df413a, type: 3}
-    swatchColor: {r: 0.239215686, g: 0.203921569, b: 0.160784314, a: 1}
+    swatchColor: {r: 0.23921569, g: 0.20392157, b: 0.16078432, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2787,7 +2787,7 @@ MonoBehaviour:
     displayHeight: 95
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 3e579306895326e48a5ac8a727469ea0, type: 3}
-    swatchColor: {r: 0.725490196, g: 0.631372549, b: 0.498039216, a: 1}
+    swatchColor: {r: 0.7254902, g: 0.6313726, b: 0.49803922, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2811,7 +2811,7 @@ MonoBehaviour:
     displayHeight: 95
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 7813a1a7785e98c4291a94a75fe8391e, type: 3}
-    swatchColor: {r: 0.349019608, g: 0.247058824, b: 0.164705882, a: 1}
+    swatchColor: {r: 0.34901962, g: 0.24705882, b: 0.16470589, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2835,7 +2835,7 @@ MonoBehaviour:
     displayHeight: 95
     decorationScore: 12
     sprite: {fileID: 21300000, guid: f2d6b0d4efdaced4eb5553df14d8a53f, type: 3}
-    swatchColor: {r: 0.235294118, g: 0.231372549, b: 0.180392157, a: 1}
+    swatchColor: {r: 0.23529412, g: 0.23137255, b: 0.18039216, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2859,7 +2859,7 @@ MonoBehaviour:
     displayHeight: 95
     decorationScore: 12
     sprite: {fileID: 21300000, guid: a126a7f30e3445f428696086cfd0a2f4, type: 3}
-    swatchColor: {r: 0.384313725, g: 0.243137255, b: 0.203921569, a: 1}
+    swatchColor: {r: 0.38431373, g: 0.24313726, b: 0.20392157, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2883,7 +2883,7 @@ MonoBehaviour:
     displayHeight: 95
     decorationScore: 12
     sprite: {fileID: 21300000, guid: 405e3745fcf3bb64d8615c693ca11252, type: 3}
-    swatchColor: {r: 0.498039216, g: 0.352941176, b: 0.211764706, a: 1}
+    swatchColor: {r: 0.49803922, g: 0.3529412, b: 0.21176471, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
@@ -2907,7 +2907,7 @@ MonoBehaviour:
     displayHeight: 95
     decorationScore: 12
     sprite: {fileID: 21300000, guid: e880b3356c70298419a9d588bb3c942e, type: 3}
-    swatchColor: {r: 0.349019608, g: 0.352941176, b: 0.305882353, a: 1}
+    swatchColor: {r: 0.34901962, g: 0.3529412, b: 0.30588236, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:

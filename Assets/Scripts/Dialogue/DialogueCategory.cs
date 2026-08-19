@@ -39,6 +39,18 @@ namespace MasterHouse
 
         /// <summary>闲聊：停留期由冒泡调度器定期请求，走场景气泡、不开模态、不碰闸门。</summary>
         SmallTalk = 7,
+
+        /// <summary>
+        /// 告别：停留时长到点后转【待告别】，玩家点他才播（2026-08-20 定案）。
+        ///
+        /// **不由 tick 自动弹**：自动弹模态会在玩家逛商店 / 摆家具时冷不丁盖上来，而家具模式
+        /// 禁着整个壳 Canvas——那是「看不见的对话框 + 关不掉的闸门」硬卡死。口径与「进屋不再自动
+        /// 弹需求对话」完全一致：到点只亮头顶提示，说不说话由玩家点。
+        ///
+        /// **组末尾必须配一条 `Action | Leave`**，客人才会真的走。没配就一直等在场上占着房间
+        /// （已定案可接受：玩家随时能再点他重播一次），校验器给警告。
+        /// </summary>
+        Farewell = 8,
     }
 
     /// <summary>
@@ -54,7 +66,7 @@ namespace MasterHouse
         {
             "firstMeeting", "waitingReception", "needTalk",
             "feedbackDisappointed", "feedbackPlain", "feedbackFine", "feedbackPerfect",
-            "smallTalk",
+            "smallTalk", "farewell",
         };
 
         /// <summary>下标 = (int)EDialogueCategory。</summary>
@@ -62,7 +74,7 @@ namespace MasterHouse
         {
             "初次见面", "等待接待", "需求对话",
             "需求反馈·失望", "需求反馈·一般", "需求反馈·还行", "需求反馈·完美",
-            "闲聊",
+            "闲聊", "告别",
         };
 
         public static string KeyOf(EDialogueCategory category)
@@ -102,9 +114,13 @@ namespace MasterHouse
         /// <summary>需求ID 是否必填：只有【需求对话】这一类要求（一条需求配自己的一套说辞）。</summary>
         public static bool RequiresNeedId(EDialogueCategory category) => category == EDialogueCategory.NeedTalk;
 
-        /// <summary>需求ID 是否允许填写：需求对话（必填）与四档反馈（选填，专属优先）。其余三类填了是配错。</summary>
+        /// <summary>
+        /// 需求ID 是否允许填写：需求对话（必填）、四档反馈与告别（选填，专属优先）。其余三类填了是配错。
+        /// 告别允许专属，是因为「谢谢你修好我的电路」这种告别词本来就该按需求写。
+        /// </summary>
         public static bool AllowsNeedId(EDialogueCategory category) =>
             category == EDialogueCategory.NeedTalk ||
+            category == EDialogueCategory.Farewell ||
             (category >= EDialogueCategory.FeedbackDisappointed && category <= EDialogueCategory.FeedbackPerfect);
 
         /// <summary>满意度档位 → 对应的反馈分类。</summary>

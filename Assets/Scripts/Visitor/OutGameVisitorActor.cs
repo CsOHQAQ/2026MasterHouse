@@ -453,6 +453,11 @@ namespace MasterHouse
                     if (first) EnterWandering(.3f); // 重建舞台时已在闲逛：直接游走，不补庆祝
                     else Celebrate();              // 完成服务：庆祝一次，然后继续闲逛
                     break;
+                case EVisitorState.AwaitingFarewell:
+                    // 停留到点转过来：人还在自己房间里，照旧游走，只是头顶亮起「！」等玩家来道别。
+                    // 不在这里走向门口——真正离场由【告别】对话里的 Leave 事件触发 BeginDepart
+                    if (first) EnterWandering(.3f);
+                    break;
             }
             UpdateStatusCard();
         }
@@ -899,6 +904,8 @@ namespace MasterHouse
                     // 安顿中哼着小曲收拾行李；开口示意（NoTalkReason.None）后由 BubbleMuted 静音，只留头顶「！」
                     (int)EVisitorState.Serving => new[] { "…", "♪" },
                     (int)EVisitorState.Wandering => new[] { "♥", "♪", "★" },
+                    // 待告别：头顶「！」常亮，BubbleMuted 会把气泡整个静音，这一项实际上取不到
+                    (int)EVisitorState.AwaitingFarewell => new[] { "…" },
                     _ => state == ActorState.Leaving ? new[] { "…" } : null,
                 };
             }
@@ -937,9 +944,12 @@ namespace MasterHouse
                 // 点下去却吃一句「还在安顿」，名牌和 Toast 自相矛盾（2026-08-19 反馈）
                 status = talkReason switch
                 {
-                    VisitorManager.ENoTalkReason.None => businessState == (int)EVisitorState.Serving
-                        ? "有话要说 · 点击交谈"
-                        : "在门口等待接待 · 点击交谈",
+                    VisitorManager.ENoTalkReason.None => businessState switch
+                    {
+                        (int)EVisitorState.Serving => "有话要说 · 点击交谈",
+                        (int)EVisitorState.AwaitingFarewell => "准备离开 · 点击道别",
+                        _ => "在门口等待接待 · 点击交谈",
+                    },
                     VisitorManager.ENoTalkReason.NotFrontOfQueue => "门口排队中 · 等前面那位",
                     VisitorManager.ENoTalkReason.SomeoneAwaitingRoom => "门口等着 · 先安顿上一位",
                     VisitorManager.ENoTalkReason.NoFreeRoom => "门口等着 · 客房已住满",

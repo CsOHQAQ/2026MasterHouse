@@ -25,6 +25,8 @@ namespace MasterHouse.EditorTools
         private const string MinigameDefPath = Folder + "/Minigame_制作咖啡.asset";
         private const string DefaultLevelPath = LevelFolder + "/Coffee_Default.asset";
         private const string NeedDefPath = "Assets/GameData/Needs/Need_制作咖啡.asset";
+        private const string GrindLoopClipPath = "Assets/Resources/SoundEffect/MiniGame/Coffee/研磨音效.mp3";
+        private const string PourLoopClipPath = "Assets/Resources/SoundEffect/MiniGame/Coffee/冲泡音效.mp3";
 
         // 占位配色（无美术阶段；与修理电路的底色同一族，界面观感统一）
         private static readonly Color Backdrop = new Color(0.078f, 0.063f, 0.106f, 0.97f);
@@ -60,9 +62,9 @@ namespace MasterHouse.EditorTools
                 prefab = BuildPrefab();
                 created.Add(PrefabPath + (overwritePrefab ? "（重建）" : string.Empty));
             }
-            else if (PatchPrefabIfMissing())
+            else if (PatchPrefabIfMissing(out var patched))
             {
-                created.Add(PrefabPath + "（补水面节点）");
+                created.Add(PrefabPath + "（补" + patched + "）");
             }
 
             var defaultLevel = AssetDatabase.LoadAssetAtPath<CoffeeLevelDef>(DefaultLevelPath);
@@ -144,6 +146,7 @@ namespace MasterHouse.EditorTools
             BuildGrind(rootRect, view);
             BuildPour(rootRect, view);
             BuildFooter(rootRect, view);
+            AssignLoopClips(view);
 
             bool ok;
             var asset = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out ok);
@@ -225,17 +228,28 @@ namespace MasterHouse.EditorTools
         }
 
         /// <summary>
-        /// 节点粒度的「补缺失」：给已存在的 Prefab 补后加的水面节点，不动其他手调内容。
-        /// 以后再加新节点，照这个模式扩展本方法即可。
+        /// 节点/引用粒度的「补缺失」：给已存在的 Prefab 补后加的水面节点与循环音剪辑，
+        /// 不动其他手调内容。以后再加新节点，照这个模式往 patched 里追一条即可。
         /// </summary>
-        private static bool PatchPrefabIfMissing()
+        private static bool PatchPrefabIfMissing(out string patched)
         {
+            patched = string.Empty;
             var root = PrefabUtility.LoadPrefabContents(PrefabPath);
             try
             {
                 var view = root.GetComponent<CoffeeMinigameView>();
-                if (view == null || view.cupArea == null || view.waterImage != null) return false;
-                AddWaterImage(view);
+                if (view == null) return false;
+
+                var notes = new List<string>();
+                if (view.cupArea != null && view.waterImage == null)
+                {
+                    AddWaterImage(view);
+                    notes.Add("水面节点");
+                }
+                if (AssignLoopClips(view)) notes.Add("循环音剪辑");
+
+                if (notes.Count == 0) return false;
+                patched = string.Join("、", notes);
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
                 return true;
             }
@@ -243,6 +257,28 @@ namespace MasterHouse.EditorTools
             {
                 PrefabUtility.UnloadPrefabContents(root);
             }
+        }
+
+        /// <summary>
+        /// 补两路循环音的剪辑（研磨 / 冲泡，2026-08-20）：**只补空的**，已手动换过的不动。
+        /// 剪辑不进音效表——循环音是本小游戏的专属表现，配在自己的 Prefab 上更就近（换音 = 换这两个引用）。
+        /// </summary>
+        private static bool AssignLoopClips(CoffeeMinigameView view)
+        {
+            var changed = false;
+            if (view.grindLoopClip == null)
+            {
+                view.grindLoopClip = AssetDatabase.LoadAssetAtPath<AudioClip>(GrindLoopClipPath);
+                if (view.grindLoopClip != null) changed = true;
+                else Debug.LogWarning("[制作咖啡] 未找到研磨循环音：" + GrindLoopClipPath + "（留空 = 该环节静音）");
+            }
+            if (view.pourLoopClip == null)
+            {
+                view.pourLoopClip = AssetDatabase.LoadAssetAtPath<AudioClip>(PourLoopClipPath);
+                if (view.pourLoopClip != null) changed = true;
+                else Debug.LogWarning("[制作咖啡] 未找到冲泡循环音：" + PourLoopClipPath + "（留空 = 该环节静音）");
+            }
+            return changed;
         }
 
         /// <summary>杯内水面：铺满 cupArea，材质由 CoffeeMinigame 运行时创建（Prefab 不挂材质资产）。</summary>

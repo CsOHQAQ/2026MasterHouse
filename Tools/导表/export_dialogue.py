@@ -36,8 +36,14 @@ CONTENT_HEADER = ["对话组ID", "说话人", "立绘ID", "步骤", "选项", "�
 CATEGORIES = [
     "firstMeeting", "waitingReception", "needTalk",
     "feedbackDisappointed", "feedbackPlain", "feedbackFine", "feedbackPerfect",
-    "smallTalk",
+    "smallTalk", "farewell",
 ]
+# 允许填「需求ID」的分类：needTalk 必填，四档反馈与 farewell 选填（填了即专属）。
+# 与 DialogueCategoryText.AllowsNeedId 一一对应，改一边记得改另一边。
+NEED_ID_ALLOWED = {
+    "needTalk", "farewell",
+    "feedbackDisappointed", "feedbackPlain", "feedbackFine", "feedbackPerfect",
+}
 KINDS = ["Line", "Action", "Branch"]
 SPEAKERS = ["visitor", "player", "narration"]
 
@@ -178,7 +184,7 @@ def validate_groups(rows, races_seen):
             fail(GROUP_SHEET, row, "unknown category: %s (expected one of %s)" % (category, "/".join(CATEGORIES)))
         elif category == "needTalk" and data["需求ID"] == "":
             fail(GROUP_SHEET, row, "needTalk requires a 需求ID")
-        elif data["需求ID"] != "" and not category.startswith("feedback") and category != "needTalk":
+        elif data["需求ID"] != "" and category not in NEED_ID_ALLOWED:
             fail(GROUP_SHEET, row, "category %s must leave 需求ID empty" % category)
 
 

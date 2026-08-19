@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Coffee_Default
   m_EditorClassIdentifier: 
   GrindMode: 0
-  GrindFillSeconds: 8
+  GrindFillSeconds: 15
   PointerDegreesPerSecond: 60
   ObstacleCount: 8
-  ObstacleArcDegrees: 16
+  ObstacleArcDegrees: 12
   ObstacleMinGapDegrees: 20
   SpawnSafeDegrees: 25
   GrindMaxScore: 50

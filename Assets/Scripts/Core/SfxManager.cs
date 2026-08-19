@@ -11,6 +11,11 @@ namespace MasterHouse
     /// 由本类订阅 VisitorManager / EconomyManager 的事件统一发声，业务代码不出现任何音频调用。
     ///
     /// 内容数据在 SfxTable 资产（§16.6）：换音/调音量/调节流间隔 = 改 Inspector，不碰代码。
+    ///
+    /// 两条通道：**一次性音**走 Play(ESfx)（PlayOneShot，剪辑配在音效表）；
+    /// **循环音**走 SetLoop(clip, on)（一剪辑一路常驻 AudioSource，剪辑由调用方直传）——
+    /// 研磨、冲泡这类「按住/进行中就一直响」的环境音属后者，见 SetLoop 注释。
+    ///
     /// 音量消费 HouseSettings.Data.sfxVolume（0~100，§16.5 设置文件），每次播放实时读取。
     /// 由 OutGameBootstrap 在业务 Manager 就位后拉起；Play 内部有惰性兜底，早于拉起的调用不炸只播。
     /// </summary>
@@ -20,7 +25,15 @@ namespace MasterHouse
 
         public static SfxManager Instance { get; private set; }
 
+        /// <summary>一路循环音：一个剪辑独占一个常驻 AudioSource，Scale 是它的单条音量倍率。</summary>
+        private sealed class LoopChannel
+        {
+            public AudioSource Source;
+            public float Scale;
+        }
+
         private AudioSource source;
+        private readonly Dictionary<AudioClip, LoopChannel> loops = new Dictionary<AudioClip, LoopChannel>();
         private readonly Dictionary<ESfx, SfxEntry> entries = new Dictionary<ESfx, SfxEntry>();
         private readonly Dictionary<ESfx, float> lastPlayTime = new Dictionary<ESfx, float>();
         private readonly HashSet<ESfx> warned = new HashSet<ESfx>();
@@ -63,6 +76,66 @@ namespace MasterHouse
             if (volume <= 0f || manager.source == null) return;
             manager.source.PlayOneShot(clip, volume);
         }
+
+        /// <summary>
+        /// 开 / 关一路**循环音**（研磨、冲泡这类「持续中」的环境音；2026-08-20 制作咖啡）。
+        ///
+        /// 一个剪辑 = 一路通道，重复设置同一状态是空操作——所以调用方可以放心逐帧调，
+        /// 由「本帧该不该响」这个布尔直接驱动，不必自己记上一帧的状态。
+        /// 硬起硬停不做淡入淡出，再次开启从头播放（2026-08-20 拍板）。
+        ///
+        /// 剪辑由调用方直传（同 PlayOverride 的口径），不进音效表——
+        /// 循环音是某个玩法的专属表现，配在自己的 Prefab / Def 上更就近。
+        /// 音量 = 设置页「音效」音量 × volumeScale，播放中改设置实时生效（见 RefreshLoopVolumes）。
+        /// </summary>
+        public static void SetLoop(AudioClip clip, bool on, float volumeScale = 1f)
+        {
+            if (clip == null || !Application.isPlaying) return;
+            Ensure().SetLoopInternal(clip, on, volumeScale);
+        }
+
+        /// <summary>
+        /// 设置页拖动「音效」音量后刷新正在播的循环音。
+        /// 一次性音是每次播放时现读音量，天然跟手；循环音正响着，必须有人推一把（HouseSettings.Apply 调）。
+        /// </summary>
+        public static void RefreshLoopVolumes()
+        {
+            if (Instance == null) return;
+            foreach (var channel in Instance.loops.Values)
+                channel.Source.volume = Instance.LoopVolume(channel.Scale);
+        }
+
+        private void SetLoopInternal(AudioClip clip, bool on, float volumeScale)
+        {
+            if (!loops.TryGetValue(clip, out var channel))
+            {
+                if (!on) return; // 从没开过的通道要求关闭：什么都不用做，别白建 AudioSource
+                var loopSource = gameObject.AddComponent<AudioSource>();
+                loopSource.playOnAwake = false;
+                loopSource.spatialBlend = 0f;
+                loopSource.loop = true;
+                loopSource.clip = clip;
+                channel = new LoopChannel { Source = loopSource };
+                loops[clip] = channel;
+            }
+
+            channel.Scale = volumeScale;
+            channel.Source.volume = LoopVolume(volumeScale);
+
+            // 音量为 0 时照样让它空转：这是「持续状态」而非一次性音，
+            // 中途把音量拖回来就该接着响，不能因为开播那一刻是静音就整段哑掉
+            if (on)
+            {
+                if (!channel.Source.isPlaying) channel.Source.Play(); // Stop 过的源 Play 即从头
+            }
+            else if (channel.Source.isPlaying)
+            {
+                channel.Source.Stop();
+            }
+        }
+
+        private float LoopVolume(float scale) =>
+            Mathf.Clamp01(HouseSettings.Data.sfxVolume / 100f) * Mathf.Max(0f, scale);
 
         private void Awake()
         {

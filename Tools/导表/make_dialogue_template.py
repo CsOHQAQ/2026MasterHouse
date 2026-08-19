@@ -60,6 +60,8 @@ CATEGORIES = [
     ("feedbackFine", "需求反馈·还行：小游戏中间分。条件类走不到这一档"),
     ("feedbackPerfect", "需求反馈·完美：条件类交付成功 / 小游戏满分"),
     ("smallTalk", "闲聊：停留期冒泡，走场景气泡。**一组只显示第一句**，多句请拆成多组"),
+    ("farewell", "告别：停留到点后转「待告别」，玩家点他才播。**组末尾必须配一行 Action|Leave**，"
+                 "否则客人道完别也不会走，会一直占着那间客房"),
 ]
 KINDS = [
     ("Line", "说一句话。填说话人 / 立绘ID / 文本"),
@@ -78,11 +80,12 @@ CONDITIONS = [
     ("CurrencyAtLeast(N)", "货币不少于 N"),
     ("ReputationAtLeast(N)", "声望不少于 N"),
     ("SatisfactionAtLeast(档)", "本次满意度不低于 disappointed/plain/fine/perfect"),
-    ("VisitorStateIs(状态)", "访客处于 FrontDesk/AwaitingRoom/Serving/Wandering"),
+    ("VisitorStateIs(状态)", "访客处于 FrontDesk/AwaitingRoom/Serving/Wandering/AwaitingFarewell"),
 ]
 ACTIONS = [
     ("Accept", "接待（转「等待分配房间」，此时不说需求）"),
     ("Reject", "拒绝（扣声望并离场）"),
+    ("Leave", "送别离场（客人当场离开）。**只在【告别】组里有效，且必须是这条路径的最后一个事件**"),
     ("CompleteNeed(档)", "完成需求结算，留空 = perfect。**奖励类：必须是这条路径的最后一个事件**"),
     ("StartMinigame", "开始小游戏（小游戏类需求的开局口）"),
     ("AddCurrency(N)", "增减货币。**奖励类**"),
@@ -229,6 +232,20 @@ def one_liner(face, text):
     return [("visitor", face, 1, "", "", "Line", text, "")]
 
 
+def farewell_rows(face):
+    """告别：纯台词 + **末尾一条 Leave**。
+
+    Leave 是这一类唯一让客人真的离开的开关——去掉它，他会一直站在「待告别」占着客房。
+    这也是全表唯一一条「由内容决定业务推进」的事件，所以只能放在最后一步：
+    它一执行访客就离场、演员开始走向门口，后面还有台词的话会读成「人都走了还在说话」。
+    """
+    return [
+        ("visitor", face, 1, "", "", "Line", "时候不早了，我也该走啦。", ""),
+        ("visitor", "", 2, "", "", "Line", "谢谢你这几天的照顾——下次路过，我还来。", ""),
+        ("", "", 3, "", "", "Action", "Leave", ""),
+    ]
+
+
 FEEDBACKS = [
     ("feedbackDisappointed", 40001, "算了……可能是我要求太多了。", "服务超时后说的话"),
     ("feedbackPlain", 40101, "嗯，还行吧，谢谢你。", "只有小游戏类会走到"),
@@ -247,7 +264,7 @@ def build_all(needs, races, portraits):
 
     ID 分段（只是约定，导入器不强制）：
         1xxxx 初次见面   2xxxx 等待接待   3xxxx 需求对话
-        4xxxx 需求反馈   5xxxx 闲聊
+        4xxxx 需求反馈   5xxxx 闲聊       6xxxx 告别
     每一段里再按「内容序号 × 100 + 种族下标」排开，加种族/加需求都不会撞号。
     """
     content = []
@@ -281,6 +298,11 @@ def build_all(needs, races, portraits):
             gid = 50001 + k * 100 + r
             content.append((gid, one_liner(face, text)))
             bindings.append((gid, race, "", "smallTalk", "", ""))
+
+        gid = 60001 + r
+        content.append((gid, farewell_rows(face)))
+        bindings.append((gid, race, "", "farewell", "",
+                         "停留到点后点他才播；末尾那条 Leave 才是让他离开的开关"))
 
     content.sort(key=lambda item: item[0])
     bindings.sort(key=lambda item: item[0])
@@ -366,9 +388,9 @@ def build_workbook(needs, races, portraits):
         return "=%s!$%s$%d:$%s$%d" % (REF_SHEET, letter, top, letter, bottom + pad)
 
     # ── 下拉 ──
-    add_list_validation(ws_group, "D", ref("所属对话池"), prompt="八个触发分类，见「参考」页")
+    add_list_validation(ws_group, "D", ref("所属对话池"), prompt="九个触发分类，见「参考」页")
     add_list_validation(ws_group, "C", ref("需求ID", pad=40),
-                        prompt="NeedDef 的资产名。needTalk 必填；四档反馈选填；其余分类留空")
+                        prompt="NeedDef 的资产名。needTalk 必填；四档反馈与告别选填；其余分类留空")
     add_list_validation(ws_group, "B", ref("种族id", pad=20),
                         prompt="**只能填一个 raceId**：一个对话组只属于一个种族，不再有「通用」与 / 多选")
     add_list_validation(ws_content, "G", ref("类型"))

@@ -843,6 +843,11 @@ MonoBehaviour:
   messageLabel: {fileID: 3552155047306507941}
   tuningLabel: {fileID: 6146495737897883952}
   abortButton: {fileID: 3486356029917781884}
+  grindLoopClip: {fileID: 8300000, guid: 68c947722785efc48b7a1e52287a2b2d, type: 3}
+  grindLoopVolume: 1
+  pourLoopClip: {fileID: 8300000, guid: be9cd1a9fd1c2164dbb34802ff7fa843, type: 3}
+  pourLoopVolume: 1
+  bgmDuckFactor: 0.35
   outerRingRadiusFraction: 0.42
   innerRingRadiusFraction: 0.27
   ringDotCount: 72

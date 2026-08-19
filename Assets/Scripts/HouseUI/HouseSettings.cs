@@ -33,13 +33,15 @@ namespace MasterHouse
 
         /// <summary>
         /// 把当前设置作用到运行时（启动与设置页改动时调，2026-08-16 设置页重做）：
-        /// 主音量走 AudioListener；音效音量由 SfxManager 播放时自行读取；BGM 音量留给将来的音乐播放器；
+        /// 主音量走 AudioListener；一次性音效由 SfxManager 播放时自行读取（天然跟手），
+        /// **正在播的循环音**要显式推一把（2026-08-20 制作咖啡的研磨/冲泡音）；BGM 音量推给 BgmManager；
         /// 昼夜交替开关由 HouseDayLight 读取；窗口模式映射 Screen.fullScreenMode。
         /// </summary>
         public static void Apply()
         {
             AudioListener.volume = Mathf.Clamp01(Data.masterVolume / 100f);
             BgmManager.SetVolume(Data.bgmVolume / 100f);
+            SfxManager.RefreshLoopVolumes();
             switch (Data.windowMode)
             {
                 case "全屏": Screen.fullScreenMode = FullScreenMode.ExclusiveFullScreen; break;

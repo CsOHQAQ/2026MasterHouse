@@ -75,6 +75,10 @@ namespace MasterHouse
         /// <summary>摇柄模式下是否已握住磨柄（调参标签显示用）。</summary>
         public bool CrankEngaged => crankEngaged;
 
+        /// <summary>是否正处在撞障碍后的硬直里（指针停转、进度冻结）。
+        /// 根组件靠它掐研磨循环音——磨盘停转，磨豆声也该停（2026-08-20）。</summary>
+        public bool IsStunned => stunRemaining > 0f;
+
         /// <summary>撞到障碍（扣分扣进度已生效）。根组件订阅它来闪提示。</summary>
         public event Action Hit;
 

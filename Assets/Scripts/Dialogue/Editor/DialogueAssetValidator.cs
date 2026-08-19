@@ -20,6 +20,8 @@ namespace MasterHouse.EditorTools
     /// 警告（能跑，但多半是事故）：
     ///   · 奖励事件不在所在路径的末尾——中途给奖励 + 玩家 ESC = 反复领取（§5.3 铁律②）
     ///   · 闲聊组含分支/事件或多条台词——气泡只显示第一句，其余永远走不到
+    ///   · 告别组里没有 Leave 事件——客人道完别也不会走，一直占着那间房
+    ///   · Leave 配在【告别】以外的分类里——那一态调不动它，等于白写
     ///   · 覆盖度：某条需求没配【需求对话】、某个种族缺必备分类（见 ValidateCoverage 的注释，
     ///     刻意不是错误——不该因为新建一个需求资产就把整张已调好的表废掉）
     ///   · 空台词、空组、选项没有文本
@@ -32,6 +34,8 @@ namespace MasterHouse.EditorTools
             EDialogueCategory.FirstMeeting,
             EDialogueCategory.WaitingReception,
             EDialogueCategory.SmallTalk,
+            // 缺了它客人到点会一直卡在【待告别】占着房间（运行时有兜底放行，但那是事故路径）
+            EDialogueCategory.Farewell,
         };
 
         [MenuItem("MasterHouse/对话系统/校验对话表")]
@@ -62,6 +66,7 @@ namespace MasterHouse.EditorTools
             foreach (var group in groups) ValidateGroup(group, report);
             ValidateCoverage(entries, report);
             ValidateSmallTalkShape(groups, entries, report);
+            ValidateFarewellShape(groups, entries, report);
         }
 
         // ══════════ 单组结构 ══════════
@@ -92,7 +97,7 @@ namespace MasterHouse.EditorTools
 
                     case EDialogueStepKind.Action:
                         // 主线上的奖励事件必须是主线的最后一步（否则 ESC 重进可反复领取）
-                        if (i != group.steps.Count - 1) WarnIfReward(step.actions, report, row, where);
+                        if (i != group.steps.Count - 1) WarnIfMustBeLast(step.actions, report, row, where);
                         break;
 
                     case EDialogueStepKind.Branch:
@@ -130,7 +135,7 @@ namespace MasterHouse.EditorTools
                 {
                     var sub = option.steps[s];
                     if (sub == null || sub.kind != EDialogueStepKind.Action || s == lastActionAt) continue;
-                    WarnIfReward(sub.actions, report, sub.sourceRow > 0 ? sub.sourceRow : optionRow,
+                    WarnIfMustBeLast(sub.actions, report, sub.sourceRow > 0 ? sub.sourceRow : optionRow,
                         $"{where} 选项「{option.text}」的这一句");
                 }
             }
@@ -141,14 +146,22 @@ namespace MasterHouse.EditorTools
                     $"{where} 这个分支**没有无条件选项**：条件全不满足时对话会卡死，必须至少留一个不填条件的选项");
         }
 
-        private static void WarnIfReward(List<DialogueCall> actions, DialogueReport report, int row, string where)
+        /// <summary>
+        /// 「只能放路径末尾」的事件位置校验。判据是 MustBeLast 而不是 IsReward——
+        /// Leave 不给奖励却同样只能放末尾（见 DialogueActionDef.MustBeLast），措辞按两种理由分开。
+        /// </summary>
+        private static void WarnIfMustBeLast(List<DialogueCall> actions, DialogueReport report, int row, string where)
         {
             if (actions == null) return;
             foreach (var call in actions)
-                if (DialogueFuncs.IsReward(call))
-                    report.Warn("对话内容", row,
-                        $"{where} 的奖励事件 {call.func} 不在这条路径的最后一个事件位——" +
-                        "玩家播到这里按 ESC 再点开可能反复领取（§5.3 铁律②）");
+            {
+                if (!DialogueFuncs.MustBeLast(call)) continue;
+                report.Warn("对话内容", row, DialogueFuncs.IsReward(call)
+                    ? $"{where} 的奖励事件 {call.func} 不在这条路径的最后一个事件位——" +
+                      "玩家播到这里按 ESC 再点开可能反复领取（§5.3 铁律②）"
+                    : $"{where} 的 {call.func} 不在这条路径的最后一个事件位——" +
+                      "它一执行访客就离场、演员开始走向门口，后面的台词会读成「人都走了还在说话」");
+            }
         }
 
         // ══════════ 覆盖度 ══════════
@@ -244,6 +257,67 @@ namespace MasterHouse.EditorTools
                     report.Warn("对话内容", group.sourceRow,
                         $"闲聊组 {group.id} 含有事件或分支，但气泡没有点击推进与选项列，这些步骤永远走不到");
             }
+        }
+
+        // ══════════ 告别组的形态（2026-08-20）══════════
+
+        /// <summary>
+        /// 【告别】是**唯一**由内容决定「访客什么时候离开」的分类：组里那条 `Action | Leave`
+        /// 执行了他才走。两条都是警告而不是错误——两种配错都还跑得起来：
+        ///
+        ///   · 告别组没有 Leave → 客人道完别继续站在【待告别】，那间客房一直被占；
+        ///     玩家可以再点他重播，所以不是死局，但多半不是策划想要的。
+        ///   · Leave 出现在别的分类 → 那些状态下 VisitorManager.Leave 直接返回 false，
+        ///     运行时打 Warning、对话照播，等于白写一行。
+        ///
+        /// **分支不拦**：告别按「纯台词 + 末尾一条 Leave」配就够了，但真配了分支也能跑
+        /// （模态播放本来就支持），所以这里连子句一起扫，不因为 Leave 写在某个选项里就误报。
+        /// </summary>
+        private static void ValidateFarewellShape(List<DialogueGroup> groups, List<DialoguePoolEntry> entries,
+            DialogueReport report)
+        {
+            var farewellIds = new HashSet<int>();
+            foreach (var entry in entries)
+                if (entry != null && entry.category == EDialogueCategory.Farewell)
+                    farewellIds.Add(entry.groupId);
+
+            foreach (var group in groups)
+            {
+                if (group.steps == null) continue;
+                var isFarewell = farewellIds.Contains(group.id);
+                var hasLeave = false;
+                foreach (var step in group.steps)
+                {
+                    if (step == null) continue;
+                    if (step.kind == EDialogueStepKind.Action && ContainsLeave(step.actions)) hasLeave = true;
+                    if (step.kind != EDialogueStepKind.Branch || step.options == null) continue;
+                    foreach (var option in step.options)
+                    {
+                        if (option?.steps == null) continue;
+                        foreach (var sub in option.steps)
+                            if (sub != null && sub.kind == EDialogueStepKind.Action && ContainsLeave(sub.actions))
+                                hasLeave = true;
+                    }
+                }
+
+                if (isFarewell && !hasLeave)
+                    report.Warn("对话内容", group.sourceRow,
+                        $"告别组 {group.id} 里没有 Leave 事件——客人说完还是不会走，会一直占着那间客房；" +
+                        "请在组末尾补一行「类型 = Action、文本 = Leave」");
+                else if (!isFarewell && hasLeave)
+                    report.Warn("对话内容", group.sourceRow,
+                        $"对话组 {group.id} 配了 Leave，但它不属于【告别】（farewell）分类——" +
+                        "别的状态下这条事件不会生效，运行时只会打一条 Warning");
+            }
+        }
+
+        private static bool ContainsLeave(List<DialogueCall> actions)
+        {
+            if (actions == null) return false;
+            foreach (var call in actions)
+                if (call != null && string.Equals(call.func, "Leave", System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+            return false;
         }
     }
 }

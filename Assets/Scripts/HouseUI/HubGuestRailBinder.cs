@@ -78,7 +78,12 @@ namespace MasterHouse
         {
             var reason = visitor.NoTalkReason(instance);
             if (reason == VisitorManager.ENoTalkReason.None)
-                return instance.State == EVisitorState.Serving ? "有话要说 · 点击交谈" : "门口等待接待 · 点击交谈";
+                return instance.State switch
+                {
+                    EVisitorState.Serving => "有话要说 · 点击交谈",
+                    EVisitorState.AwaitingFarewell => "准备离开 · 点击道别",
+                    _ => "门口等待接待 · 点击交谈",
+                };
 
             return reason switch
             {
@@ -97,6 +102,7 @@ namespace MasterHouse
             EVisitorState.AwaitingRoom => "房",
             EVisitorState.Serving => "服",
             EVisitorState.Wandering => "逛",
+            EVisitorState.AwaitingFarewell => "别",
             _ => "…",
         };
     }
