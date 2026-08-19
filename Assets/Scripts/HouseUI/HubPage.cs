@@ -454,6 +454,7 @@ namespace MasterHouse
                 furnitureModeOpen = false;
                 UI.Canvas.enabled = true; // 画布在截完定格背景后被整块关闭（输入也一并回收）
                 SetImmersive(immersiveBeforeFurniture);
+                RestoreImmersiveToggle(); // SnapChromeHidden 把它也压掉了，SetImmersive 不管它
                 // 旧壳此处落档；存档功能移除（§16.5），仅重烘焙背景与热点
                 scene.RefreshAfterFurniture();
                 SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：退出家具模式
@@ -463,6 +464,7 @@ namespace MasterHouse
                 furnitureModeOpen = false;
                 UI.Canvas.enabled = true;
                 SetImmersive(immersiveBeforeFurniture);
+                RestoreImmersiveToggle();
                 Toast("家具配置表缺失：请先执行菜单 MasterHouse → 家具系统 → 创建配置表");
             }
             else
@@ -485,6 +487,8 @@ namespace MasterHouse
             foreach (Transform child in view.chromeRoot)
             {
                 if (child == view.sceneRoot) continue;
+                // 「收起界面」开关也压掉（2026-08-20：它被拍进定格背景，摆放模式右下角
+                // 就多出一枚点不动的假按钮）；退出摆放时单独把它恢复
                 HouseUIUtil.Group(child.gameObject).alpha = 0f;
             }
             Transform hubLayer = view.chromeRoot;
@@ -493,6 +497,14 @@ namespace MasterHouse
                 if (sibling != hubLayer)
                     HouseUIUtil.Group(sibling.gameObject).alpha = 0f;
             Canvas.ForceUpdateCanvases();
+        }
+
+        /// <summary>「收起界面」开关被 SnapChromeHidden 压掉后的恢复（SetImmersive 特意不管它）。</summary>
+        private void RestoreImmersiveToggle()
+        {
+            foreach (Transform child in view.chromeRoot)
+                if (child.name == "ImmersiveToggle")
+                    HouseUIUtil.Group(child.gameObject).alpha = 1f;
         }
 
         /// <summary>收起/展开四周 UI。收起后进入观景模式：拖拽平移背景、滚轮缩放。</summary>
