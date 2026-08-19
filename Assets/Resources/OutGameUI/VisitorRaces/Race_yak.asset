@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   raceId: yak
   displayName: "\u725B\u83B1\u8001\u5E08"
+  aliasName: 
+  title: 
+  stars: 3
+  hobbies: 
+  intro: 
+  quote: 
   waitTalkTimeoutTicks: 3900
   waitDeliverTimeoutTicks: 7000
   wanderMaxTicks: 5600

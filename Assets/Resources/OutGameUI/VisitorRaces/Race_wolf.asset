@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   raceId: wolf
   displayName: "\u5609\u568E"
+  aliasName: 
+  title: 
+  stars: 3
+  hobbies: 
+  intro: 
+  quote: 
   waitTalkTimeoutTicks: 1800
   waitDeliverTimeoutTicks: 3600
   wanderMaxTicks: 2400

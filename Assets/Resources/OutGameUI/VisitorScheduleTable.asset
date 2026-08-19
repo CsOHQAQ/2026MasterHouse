@@ -20,12 +20,12 @@ MonoBehaviour:
     namedOverride: {fileID: 0}
   - day: 1
     appearMinute: 550
-    race: {fileID: 11400000, guid: 12eead56fec2c0a49ba59bd537eced5d, type: 2}
+    race: {fileID: 11400000, guid: 315fabaf61fe09b44a364f9f7c369942, type: 2}
     need: {fileID: 11400000, guid: 3360d4e6bcd8df6478210e33a71c2a70, type: 2}
     namedOverride: {fileID: 0}
   - day: 1
     appearMinute: 600
-    race: {fileID: 11400000, guid: 315fabaf61fe09b44a364f9f7c369942, type: 2}
+    race: {fileID: 11400000, guid: 12eead56fec2c0a49ba59bd537eced5d, type: 2}
     need: {fileID: 11400000, guid: ac7d645a104978c4e885c61c95ffc121, type: 2}
     namedOverride: {fileID: 0}
   - day: 1

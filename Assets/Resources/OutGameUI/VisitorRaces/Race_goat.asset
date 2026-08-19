@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   raceId: goat
   displayName: "\u563B\u6D0B\u7F8A"
+  aliasName: 
+  title: 
+  stars: 3
+  hobbies: 
+  intro: 
+  quote: 
   waitTalkTimeoutTicks: 3600
   waitDeliverTimeoutTicks: 6600
   wanderMaxTicks: 5400

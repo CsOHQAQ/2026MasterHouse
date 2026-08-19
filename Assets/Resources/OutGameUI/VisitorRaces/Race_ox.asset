@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   raceId: ox
   displayName: "\u725B\u5C0F\u987F"
+  aliasName: 
+  title: 
+  stars: 3
+  hobbies: 
+  intro: 
+  quote: 
   waitTalkTimeoutTicks: 4800
   waitDeliverTimeoutTicks: 8400
   wanderMaxTicks: 6600

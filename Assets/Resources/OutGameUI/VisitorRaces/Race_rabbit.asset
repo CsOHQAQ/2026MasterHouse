@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   raceId: rabbit
   displayName: "\u5154\u7C73\u9732"
+  aliasName: 
+  title: 
+  stars: 3
+  hobbies: 
+  intro: 
+  quote: 
   waitTalkTimeoutTicks: 4200
   waitDeliverTimeoutTicks: 7200
   wanderMaxTicks: 6000

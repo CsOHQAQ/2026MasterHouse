@@ -43,7 +43,7 @@
 30002,player,goat_平静,2,1,1,Line,好的，我去看看咩。,,61
 30002,player,goat_平静,2,1,2,Action,StartMinigame,,62
 30002,player,goat_平静,2,2,,Branch,暂不同意,,64
-30002,player,goat_平静,2,2,1,Line,现在有点忙，晚点帮您看。,,65
+30002,player,goat_平静,2,2,1,Line,不好意思咩，现在有些忙碌，暂时没有办法满足您的需求咩。,,65
 30002,player,goat_平静,2,2,2,Action,Reject,,66
 40001,visitor,cat_伤心,1,,,Line,你是觉得我要求太多了吗,,68
 40002,visitor,cat_平静,1,,,Line,嗯，还行吧，谢谢你。,,70
@@ -96,7 +96,7 @@
 30102,player,goat_平静,2,1,1,Line,好的，我去看看咩。,,143
 30102,player,goat_平静,2,1,2,Action,StartMinigame,,144
 30102,player,goat_平静,2,2,,Branch,暂不同意,,146
-30102,player,goat_平静,2,2,1,Line,现在有点忙，晚点帮您看。,,147
+30102,player,goat_平静,2,2,1,Line,不好意思咩，现在有些忙碌，暂时没有办法满足您的需求咩。,,147
 30102,player,goat_平静,2,2,2,Action,Reject,,148
 40101,visitor,leopard_伤心,1,,,Line,算了……可能是我要求太多了。,,150
 40102,visitor,leopard_平静,1,,,Line,嗯，还行吧，比之前好多了,,152

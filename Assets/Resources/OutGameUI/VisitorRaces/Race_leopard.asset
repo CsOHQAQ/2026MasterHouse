@@ -14,8 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   raceId: leopard
   displayName: "\u8C79\u51B2\u51B2"
+  aliasName: 
+  title: 
+  stars: 3
+  hobbies: 
+  intro: 
+  quote: "\u6211\u4F1A\u5728\u5927\u8D5B\u4E0A\uFF0C\u6253\u51FA\u6700\u68D2\u7684\u4E00\u7403"
   waitTalkTimeoutTicks: 2100
   waitDeliverTimeoutTicks: 4200
   wanderMaxTicks: 2700
   defaultPortraitId: "leopard_\u5E73\u9759"
-  sheetPath: OutGameUI/Visitors/cheetah
+  sheetPath: OutGameUI/Visitors/leopard
