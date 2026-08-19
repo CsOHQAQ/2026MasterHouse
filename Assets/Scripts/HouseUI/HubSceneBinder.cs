@@ -441,6 +441,7 @@ namespace MasterHouse
                 houseBackdrop.color = sharpReady && lod >= 1f ? Color.clear : Color.white;
             var roomColor = Color.Lerp(Color.white, tint, .5f); // 家具/房间只上半强度，好跟延时帧衔接
             roomColor.a = lod;
+            var furnitureGeometryChanged = false;
             for (var room = 0; room < roomArts.Length; room++)
             {
                 if (roomArts[room] == null) continue;
@@ -450,7 +451,15 @@ namespace MasterHouse
                 {
                     var refreshed = FurnitureSceneComposer.BakedFor(room);
                     if (refreshed != null) roomArts[room].texture = refreshed;
+                    furnitureGeometryChanged = true;
                 }
+            }
+            // 夜色重烘不仅换了底图，FurnitureNightLayout 也会改变家具几何。
+            // 同一帧刷新透明热点与访客遮挡代理，避免它们留在上一次（尤其是白天）的坐标上。
+            if (furnitureGeometryChanged)
+            {
+                BuildHotspots();
+                if (stage != null) stage.RebuildFurnitureProxies();
             }
             ambientLight.color = Color.clear;
             UpdateSceneCycle();

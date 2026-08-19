@@ -31,8 +31,35 @@ namespace MasterHouse
         /// 于是它们离真正的头顶隔着这一整段空气。挂点按它下压，名牌才贴着头。
         /// </summary>
         public float headPadding;
+        /// <summary>该图集的建议播放帧率；旧资源未配置时仍按 12 FPS 播放。</summary>
+        public float framesPerSecond;
+        /// <summary>起身/坐下等非移动段的建议帧率；未配置时沿用主体动画帧率。</summary>
+        public float transitionFramesPerSecond;
+        /// <summary>完整动作中允许产生位移的帧区间；区间外只播放起身/坐下，不改变位置。</summary>
+        public bool hasMovementWindow;
+        public int moveStartFrame;
+        public int moveEndFrame;
+        /// <summary>首次迈步后真正开始循环的帧；用于避开“入步帧 → 循环尾帧”之间的姿态断点。</summary>
+        public int walkLoopStartFrame;
+        /// <summary>仅该动作素材的默认朝向与工程约定相反时翻转。</summary>
+        public bool invertFacing;
+        /// <summary>没有收尾帧时，停止移动后倒放起步前置帧，平滑回到待机姿态。</summary>
+        public bool reverseIntroOnStop;
+        /// <summary>切回待机后仍沿用 walk 素材的朝向约定，避免站定瞬间左右翻面。</summary>
+        public bool keepWalkFacingWhenIdle;
+        /// <summary>到达目标时立即结束行走循环并进入收尾段，避免在终点原地踏步。</summary>
+        public bool stopImmediatelyAtTarget;
 
         public float Aspect => frameHeight > 0 ? (float)frameWidth / frameHeight : 1f;
+        public float PlaybackFps => framesPerSecond > 0f ? framesPerSecond : 12f;
+        public float TransitionPlaybackFps => transitionFramesPerSecond > 0f
+            ? transitionFramesPerSecond
+            : PlaybackFps;
+        public bool HasMovementWindow => hasMovementWindow &&
+            moveStartFrame >= 0 && moveEndFrame >= moveStartFrame && moveEndFrame < frameCount;
+        public int WalkLoopStartFrame => walkLoopStartFrame > moveStartFrame && walkLoopStartFrame <= moveEndFrame
+            ? walkLoopStartFrame
+            : moveStartFrame;
 
         /// <summary>
         /// 从 Resources 同名加载 PNG（Texture2D）与 JSON（TextAsset）。PNG 缺失返回 null。
@@ -77,10 +104,20 @@ namespace MasterHouse
         private bool playing;
         private float timer;
         private int frame;
+        private int firstFrame;
+        private int lastFrame;
+        private int frameStep = 1;
         private Action onComplete;
 
         /// <summary>切换到一段图集动画并从第 0 帧开始播放。onComplete 仅在非循环播放结束时回调一次。</summary>
         public void Play(Texture2D texture, OutGameVisitorSheet meta, float framesPerSecond, bool looping, Action completed = null)
+        {
+            PlayRange(texture, meta, framesPerSecond, 0, meta != null ? meta.frameCount - 1 : 0, looping, completed);
+        }
+
+        /// <summary>播放同一图集中的闭区间帧段，用于“起身一次 → 行走循环 → 坐下一次”。</summary>
+        public void PlayRange(Texture2D texture, OutGameVisitorSheet meta, float framesPerSecond,
+            int rangeStart, int rangeEnd, bool looping, Action completed = null)
         {
             if (image == null) image = GetComponent<RawImage>();
             if (image == null || texture == null || meta == null) return;
@@ -90,12 +127,18 @@ namespace MasterHouse
             loop = looping;
             onComplete = completed;
             timer = 0f;
-            frame = 0;
+            firstFrame = Mathf.Clamp(rangeStart, 0, meta.frameCount - 1);
+            lastFrame = Mathf.Clamp(rangeEnd, 0, meta.frameCount - 1);
+            frameStep = lastFrame >= firstFrame ? 1 : -1;
+            frame = firstFrame;
+            CompletedLoops = 0;
             playing = true;
             ApplyFrame();
         }
 
         public bool IsPlaying => playing;
+        public int CurrentFrame => frame;
+        public int CompletedLoops { get; private set; }
 
         /// <summary>当前图集的单帧长宽比（不同动作的帧尺寸可能不同）。</summary>
         public float CurrentAspect => sheet != null ? sheet.Aspect : 1f;
@@ -112,16 +155,18 @@ namespace MasterHouse
             while (timer >= step)
             {
                 timer -= step;
-                frame++;
-                if (frame >= sheet.frameCount)
+                frame += frameStep;
+                var passedEnd = frameStep > 0 ? frame > lastFrame : frame < lastFrame;
+                if (passedEnd)
                 {
                     if (loop)
                     {
-                        frame = 0;
+                        frame = firstFrame;
+                        CompletedLoops++;
                     }
                     else
                     {
-                        frame = sheet.frameCount - 1;
+                        frame = lastFrame;
                         playing = false;
                         var callback = onComplete;
                         onComplete = null;

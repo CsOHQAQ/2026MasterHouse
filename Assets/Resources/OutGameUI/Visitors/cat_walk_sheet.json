@@ -1,0 +1,16 @@
+{
+  "frameWidth": 400,
+  "frameHeight": 520,
+  "columns": 5,
+  "rows": 5,
+  "frameCount": 24,
+  "footPadding": 0.1215,
+  "headPadding": 0.3277,
+  "framesPerSecond": 5.0,
+  "transitionFramesPerSecond": 10.0,
+  "hasMovementWindow": true,
+  "moveStartFrame": 9,
+  "moveEndFrame": 15,
+  "walkLoopStartFrame": 11,
+  "stopImmediatelyAtTarget": true
+}

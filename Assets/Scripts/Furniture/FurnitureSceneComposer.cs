@@ -212,7 +212,12 @@ namespace MasterHouse
             var table = GameManager.Instance.FurnitureTable;
             var room = RoomAt(roomIndex);
             if (table == null || room == null) return result;
-            foreach (var (entry, order, rect, flipped) in Collect(table, room, 0f))
+            // 热点与访客遮挡代理必须和当前烘焙图使用同一份夜间几何。
+            // 固定传 0 会让底图里的家具在夜间位置、代理却仍在白天位置，最终看到错开的双份家具。
+            var nightAlpha = bakedNightAlpha.TryGetValue(room.id, out var bakedAlpha)
+                ? bakedAlpha
+                : FurnitureNightLayout.NightAlphaNow();
+            foreach (var (entry, order, rect, flipped) in Collect(table, room, nightAlpha))
             {
                 var viewport = new Rect(
                     rect.x / room.sceneWidth,

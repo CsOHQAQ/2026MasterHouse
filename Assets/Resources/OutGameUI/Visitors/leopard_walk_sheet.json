@@ -1,0 +1,16 @@
+{
+  "frameWidth": 400,
+  "frameHeight": 520,
+  "columns": 5,
+  "rows": 5,
+  "frameCount": 24,
+  "footPadding": 0.1062,
+  "headPadding": 0.2769,
+  "framesPerSecond": 12.0,
+  "transitionFramesPerSecond": 8.0,
+  "hasMovementWindow": true,
+  "moveStartFrame": 7,
+  "moveEndFrame": 18,
+  "invertFacing": true,
+  "stopImmediatelyAtTarget": true
+}

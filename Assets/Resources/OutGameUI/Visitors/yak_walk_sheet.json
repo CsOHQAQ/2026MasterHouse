@@ -1,0 +1,11 @@
+{
+  "frameWidth": 400,
+  "frameHeight": 520,
+  "columns": 5,
+  "rows": 5,
+  "frameCount": 24,
+  "footPadding": 0.0823,
+  "headPadding": 0.0269,
+  "framesPerSecond": 5.0,
+  "invertFacing": true
+}

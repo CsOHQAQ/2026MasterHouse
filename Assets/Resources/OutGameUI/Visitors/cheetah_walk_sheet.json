@@ -1,0 +1,9 @@
+{
+  "frameWidth": 400,
+  "frameHeight": 520,
+  "columns": 5,
+  "rows": 3,
+  "frameCount": 15,
+  "footPadding": 0.1215,
+  "headPadding": 0.18
+}
