@@ -117,8 +117,16 @@ namespace MasterHouse
                 var paper = view.quotePapers[index % view.quotePapers.Length];
                 if (paper != null) view.quotePaper.sprite = paper;
             }
-            if (view.portrait != null) view.portrait.texture = Pick(view.portraits, index);
-            if (view.idAvatar != null) view.idAvatar.texture = Pick(view.avatars, index);
+            // RawImage 贴图为空会画成一整块白板，缺图时直接关掉这一层（2026-08-19 反馈）
+            SetTexture(view.portrait, Pick(view.portraits, index));
+            SetTexture(view.idAvatar, Pick(view.avatars, index));
+        }
+
+        private static void SetTexture(UnityEngine.UI.RawImage image, Texture2D texture)
+        {
+            if (image == null) return;
+            image.texture = texture;
+            image.enabled = texture != null;
         }
 
         private static Texture2D Pick(Texture2D[] set, int i) =>

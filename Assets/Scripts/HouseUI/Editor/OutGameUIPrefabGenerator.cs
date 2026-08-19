@@ -2484,10 +2484,16 @@ namespace MasterHouse
         /// 图鉴条目：种族资产 ↔ 卡面素材名。顺序即翻页顺序（跟访客种族表行序）。
         /// 牦牛（yak）暂无卡面素材，故不收录——素材补齐后在这里加一行即可。
         /// </summary>
-        private static readonly (string Race, string Art)[] CodexEntries =
+        private static readonly (string Race, string Art, string Portrait, string Avatar)[] CodexEntries =
         {
-            ("rabbit", "兔子"), ("goat", "羊"), ("wolf", "狼"), ("leopard", "豹1"),
-            ("cheetah", "豹2"), ("ox", "牛1"), ("cat", "猫"),
+            //  种族      图鉴卡面   详情页右页立绘  详情页证件照
+            ("rabbit",  "兔子",  "兔",   "兔-2"),
+            ("goat",    "羊",    "羊",   "羊-1"),
+            ("wolf",    "狼",    "狼",   "狼-1"),
+            ("leopard", "豹1",   "豹",   "豹1"),
+            ("cheetah", "豹2",   "豹2",  "豹2-1"),
+            ("ox",      "牛1",   "牛1",  "牛"),
+            ("cat",     "猫",    "猫",   "猫-1"),
         };
 
         /// <summary>
@@ -2745,8 +2751,8 @@ namespace MasterHouse
                     "Assets/Resources/OutGameUI/VisitorRaces/Race_" + entry.Race + ".asset");
                 if (race == null) continue;
                 races.Add(race);
-                portraits.Add(DetailTex("右侧立绘", entry.Art));
-                avatars.Add(FindAvatar(entry.Art));
+                portraits.Add(DetailTex("右侧立绘", entry.Portrait));
+                avatars.Add(DetailTex("头像", entry.Avatar));
             }
             view.races = races.ToArray();
             view.portraits = portraits.ToArray();
@@ -2759,22 +2765,6 @@ namespace MasterHouse
                 Detail("中键-默认"), Detail("中键-悬停"),
                 new Vector2(1, 0), new Vector2(-163, 57), new Vector2(196, 80));
             Save(root, path);
-        }
-
-        /// <summary>头像文件名带后缀（猫-1 / 牛2-1 / 羊-2 …），按前缀找一张。</summary>
-        private static Texture2D FindAvatar(string art)
-        {
-            var direct = DetailTex("头像", art);
-            if (direct != null) return direct;
-            var folder = CodexDetailDir + "头像";
-            foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { folder }))
-            {
-                var assetPath = AssetDatabase.GUIDToAssetPath(guid);
-                var file = System.IO.Path.GetFileNameWithoutExtension(assetPath);
-                if (file != null && file.StartsWith(art))
-                    return AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
-            }
-            return null;
         }
 
         [MenuItem("Tools/MasterHouse/OutGame UI/重建图鉴详情页（2.0 设计图）")]
