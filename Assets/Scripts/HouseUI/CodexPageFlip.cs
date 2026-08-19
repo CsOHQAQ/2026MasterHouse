@@ -7,8 +7,9 @@ using UnityEngine.UI;
 namespace MasterHouse
 {
     /// <summary>
-    /// 图鉴详情页的翻书动效（2026-08-19）：翻页时整幅底图**播美术那圈翻书分帧**——
-    /// 纸的卷曲、投影、落页全是手绘的，比代码模拟的缩放像得多。往后翻正放、往前翻倒放。
+    /// 图鉴详情页的翻书动效（2026-08-19）：翻页时在底图上盖一本**抠出来的书**播分帧
+    /// （BiRefNet 去背景、带透明通道）——纸的卷曲、投影、落页全是手绘的；
+    /// 外圈云纹始终是详情页自己的底图，不会因视频背景不同而整屏跳变。往后翻正放、往前翻倒放。
     ///
     /// 内容**跟着纸走**（2026-08-19 反馈：不能只是原地不动地被切掉）。从分帧里量出每帧
     /// 「纸的前缘」在画面的横向位置，一条曲线同时驱动两件事：
@@ -62,8 +63,10 @@ namespace MasterHouse
         private RectTransform rightPage;
         private CanvasGroup leftGroup;
         private CanvasGroup rightGroup;
-        /// <summary>整幅底图：翻页时它来播分帧。</summary>
+        /// <summary>整幅底图：静止不动，只用来拿 cover 裁切的 uvRect。</summary>
         private RawImage background;
+        /// <summary>翻页时盖在底图上的那本「抠出来的书」（分帧带透明通道，背景已去掉）。</summary>
+        private RawImage turnBook;
         /// <summary>翻动的那张纸；pivot 在书脊上，横向缩放 1 → 0 就是被掀过去。</summary>
         private RectTransform sheet;
         private Sequence sequence;
@@ -136,8 +139,21 @@ namespace MasterHouse
             edgeImage.raycastTarget = false;
             sheet.gameObject.SetActive(false);
 
-            // 底图压回最底（提上去整本书就盖住内容了）；帆船与键位条压到最上
+            // 播分帧的那本书：贴着底图的正上方、内容之下——分帧里的书页是空白的，
+            // 盖到内容上就回到「一翻页内容立刻全没」的老问题
+            var bookGo = new GameObject("TurnBook", typeof(RectTransform)) { layer = root.gameObject.layer };
+            var bookRect = (RectTransform)bookGo.transform;
+            bookRect.SetParent(root, false);
+            bookRect.anchorMin = Vector2.zero;
+            bookRect.anchorMax = Vector2.one;
+            bookRect.offsetMin = bookRect.offsetMax = Vector2.zero;
+            turnBook = bookGo.AddComponent<RawImage>();
+            turnBook.raycastTarget = false;
+            bookGo.SetActive(false);
+
+            // 底图压回最底（提上去整本书就盖住内容了），抠出来的书紧跟其后；帆船与键位条压到最上
             if (backdropTransform != null && backdropTransform.parent == root) backdropTransform.SetAsFirstSibling();
+            bookRect.SetSiblingIndex(backdropTransform != null ? backdropTransform.GetSiblingIndex() + 1 : 0);
             foreach (var keep in topmost)
                 if (keep != null && keep.parent == root) keep.SetAsLastSibling();
         }
@@ -187,32 +203,34 @@ namespace MasterHouse
         /// <param name="reversed">true = 往前翻一页（倒放，纸从左往右扫）。</param>
         public void Play(Action swap, bool reversed = false)
         {
-            if (background == null || CodexPageTurnFrames.Count == 0) { PlayFallback(swap); return; }
+            if (turnBook == null || CodexPageTurnFrames.Count == 0) { PlayFallback(swap); return; }
             sequence?.Kill();
             SyncSize();
-            var restore = background.texture;
+            // 抠出来的书与底图同一套构图、同为 16:9：照抄底图的 cover 裁切就严丝合缝
+            if (background != null) turnBook.uvRect = background.uvRect;
+            turnBook.gameObject.SetActive(true);
             var swapped = false;
             ApplyTurn(1f, reversed);
             sequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
             sequence.Append(DOTween.To(() => 0f, t =>
             {
                 var frame = CodexPageTurnFrames.Sample(t, reversed);
-                if (frame != null) background.texture = frame;
+                if (frame != null) turnBook.texture = frame;
                 ApplyTurn(CodexPageTurnFrames.FrontAt(t, reversed), reversed);
             }, 1f, TurnSeconds).SetEase(Ease.Linear));
             sequence.AppendCallback(() =>
             {
-                // 此刻内容已被纸切干净，换页看不见；底图也换回常规那张（纸已经落定）
+                // 此刻内容已被纸清干净，换页看不见；书也落定了，撤掉分帧层
                 swapped = true;
                 swap?.Invoke();
-                background.texture = restore;
+                turnBook.gameObject.SetActive(false);
             });
             sequence.Append(DOTween.To(() => CodexPageTurnFrames.FrontAt(1f, reversed),
                 f => ApplyTurn(f, reversed), 1f, RevealSeconds).SetEase(Ease.OutSine));
             // 正常播完也会走 OnKill（autoKill），收尾与被打断时一致
             sequence.OnKill(() =>
             {
-                if (background != null) background.texture = restore;
+                if (turnBook != null) turnBook.gameObject.SetActive(false);
                 if (!swapped) swap?.Invoke();
                 ApplyTurn(1f, reversed);
             });
