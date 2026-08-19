@@ -37,10 +37,8 @@ namespace MasterHouse
         private const float PageBottom = .119f;
         private const float PageTop = .8295f;
 
-        /// <summary>换页时刻（进度 0~1）：纸飞到中途、最吸睛的一瞬。</summary>
+        /// <summary>换页时刻（进度 0~1）：纸飞到中途、且两侧内容都已经隐藏。</summary>
         private const float SwapAt = .5f;
-        /// <summary>换页前后内容快速压暗再回来的半窗（进度）。</summary>
-        private const float SwapDip = .12f;
 
 
         /// <summary>裁切窗：翻页时它的左右边跟着纸的前缘收，内容被切掉的地方就露出空白书页。</summary>
@@ -58,14 +56,13 @@ namespace MasterHouse
         /// <summary>翻动的那张纸；pivot 在书脊上，横向缩放 1 → 0 就是被掀过去。</summary>
         private RectTransform sheet;
         private Sequence sequence;
-        /// <summary>连点时最新一次翻页的令牌：内容的显隐只听最新那次的。</summary>
-        private int turnToken;
-
         /// <summary>一层并发的翻页动画：整幅只有那张纸（其余透明），直接叠在 UI 上。</summary>
         private sealed class TurnLayer
         {
             public RectTransform rect;
             public RawImage image;
+            public float progress;
+            public bool reversed;
         }
         private readonly List<TurnLayer> turnLayers = new List<TurnLayer>();
         private RectTransform turnLayerRoot;
@@ -193,40 +190,92 @@ namespace MasterHouse
         public void Play(Action swap, bool reversed = false)
         {
             if (turnLayerRoot == null || CodexPageTurnFrames.Count == 0) { PlayFallback(swap); return; }
-            SetContentAlpha(1f);
             SyncSize();
             var layer = TakeLayer();
-            var token = ++turnToken;
+            layer.reversed = reversed;
+            RefreshContentAlpha();
             var swapped = false;
             Sequence seq = null;
             seq = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
             sequence = seq;
             seq.Append(DOTween.To(() => 0f, t =>
             {
+                layer.progress = t;
                 var frame = CodexPageTurnFrames.Sample(t, reversed);
-                if (frame != null) layer.image.texture = frame;
+                layer.image.texture = frame;
+                layer.image.enabled = frame != null;
                 if (!swapped && t >= SwapAt) { swapped = true; swap?.Invoke(); }
-                // 换页那一瞬内容压暗再回来；只有最新一层有权动内容
-                if (token == turnToken)
-                    SetContentAlpha(Mathf.Clamp01(Mathf.Abs(t - SwapAt) / SwapDip));
+                // 连续滚动时可能同时有多张纸在翻。内容亮度取所有活动层中的最低值，
+                // 新层从 0 开始不会把旧层正在进行的压暗瞬间顶回全亮。
+                RefreshContentAlpha();
             }, 1f, TurnSeconds).SetEase(Ease.Linear));
             seq.OnComplete(() =>
             {
+                layer.image.enabled = false;
                 layer.rect.gameObject.SetActive(false);
-                if (token == turnToken) { sequence = null; SetContentAlpha(1f); }
+                if (sequence == seq) sequence = null;
+                RefreshContentAlpha();
             });
             seq.OnKill(() =>
             {
+                layer.image.enabled = false;
                 layer.rect.gameObject.SetActive(false);
                 if (!swapped) { swapped = true; swap?.Invoke(); } // 中断也要把这页落上
-                if (token == turnToken) SetContentAlpha(1f);
+                if (sequence == seq) sequence = null;
+                RefreshContentAlpha();
             });
         }
 
         private void SetContentAlpha(float alpha)
         {
-            if (leftGroup != null) leftGroup.alpha = alpha;
-            if (rightGroup != null) rightGroup.alpha = alpha;
+            SetContentAlpha(alpha, alpha);
+        }
+
+        private void SetContentAlpha(float leftAlpha, float rightAlpha)
+        {
+            if (leftGroup != null) leftGroup.alpha = leftAlpha;
+            if (rightGroup != null) rightGroup.alpha = rightAlpha;
+        }
+
+        /// <summary>
+        /// 合并所有并发翻页层的内容显隐。正放时纸从右页掀起，所以右页先淡出、
+        /// 左页稍后淡出；倒放反过来。换页发生时两侧均已隐藏，新内容再按纸移开的
+        /// 顺序逐侧浮现。不能只听最后一次输入，否则连续滚轮会产生亮闪。
+        /// </summary>
+        private void RefreshContentAlpha()
+        {
+            var leftAlpha = 1f;
+            var rightAlpha = 1f;
+            foreach (var layer in turnLayers)
+            {
+                if (layer.rect == null || !layer.rect.gameObject.activeSelf) continue;
+                var early = ContentAlpha(layer.progress, true);
+                var late = ContentAlpha(layer.progress, false);
+                leftAlpha = Mathf.Min(leftAlpha, layer.reversed ? early : late);
+                rightAlpha = Mathf.Min(rightAlpha, layer.reversed ? late : early);
+            }
+            SetContentAlpha(leftAlpha, rightAlpha);
+        }
+
+        /// <summary>
+        /// 一侧页面的平滑显隐曲线。early=true 是纸先经过的那一侧；
+        /// 中间留出隐藏平台，保证 Refresh 在 SwapAt 换内容时不会被看见。
+        /// </summary>
+        private static float ContentAlpha(float progress, bool early)
+        {
+            var fadeOutStart = early ? .10f : .25f;
+            var hiddenAt = early ? .38f : .46f;
+            var revealAt = early ? .52f : .58f;
+            var revealEnd = early ? .70f : .82f;
+            if (progress <= fadeOutStart) return 1f;
+            if (progress < hiddenAt)
+                return 1f - Mathf.SmoothStep(0f, 1f,
+                    Mathf.InverseLerp(fadeOutStart, hiddenAt, progress));
+            if (progress <= revealAt) return 0f;
+            if (progress < revealEnd)
+                return Mathf.SmoothStep(0f, 1f,
+                    Mathf.InverseLerp(revealAt, revealEnd, progress));
+            return 1f;
         }
 
         /// <summary>取一层空闲的翻页层（都在忙就新建），并压到容器最上——新纸盖在旧纸上面。</summary>
@@ -243,7 +292,11 @@ namespace MasterHouse
             }
             // 分帧与底图同一套构图、同为 16:9：照抄底图的 cover 裁切就严丝合缝
             if (background != null) layer.image.uvRect = background.uvRect;
+            // RawImage 在 texture 为空但 enabled=true 时会画一块默认白色。连续滚动复用层时，
+            // 必须先隐藏，等本次动画的首帧纹理赋好后再显示。
+            layer.image.enabled = false;
             layer.image.texture = null;
+            layer.progress = 0f;
             layer.rect.SetAsLastSibling();
             layer.rect.gameObject.SetActive(true);
             return layer;
