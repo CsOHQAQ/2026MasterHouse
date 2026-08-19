@@ -258,8 +258,8 @@ MonoBehaviour:
       height: 0.089999996
     dayFloorLine: 0.8
     nightFloorLine: 0.8753
-    nightWidthScale: 1.096
-    nightShiftX: -117.3
+    nightWidthScale: 1
+    nightShiftX: 0
     grids:
     - id: wall
       surface: 2
