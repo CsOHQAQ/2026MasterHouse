@@ -85,7 +85,7 @@ namespace MasterHouse
 
         public void BuildVisual(Transform parent, Sprite cellSprite, int sortingOrder)
         {
-            root = new GameObject("Grid_" + Id);
+            root = new GameObject("Grid_" + Id) { layer = FurnitureRoomController.FurnitureSceneLayer };
             root.transform.SetParent(parent, false);
             mesh = new Mesh { name = "GridMesh_" + Id };
             mesh.MarkDynamic(); // 染色高频更新

@@ -233,9 +233,20 @@ namespace MasterHouse
         {
             var texture = sprite.texture;
             if (texture == null) return;
-            var rect = sprite.textureRect;
-            var source = new Rect(rect.x / texture.width, rect.y / texture.height,
-                rect.width / texture.width, rect.height / texture.height);
+            // 源区取图形 UV 包络而不是整张 textureRect（2026-08-20 修「新家具缩窄」）：
+            // 与摆放侧按顶点包络缩放同一口径，大画布素材的留白不再挤进显示框
+            var uvs = sprite.uv;
+            var source = new Rect(0f, 0f, 1f, 1f);
+            if (uvs != null && uvs.Length > 0)
+            {
+                Vector2 min = uvs[0], max = uvs[0];
+                foreach (var uv in uvs)
+                {
+                    min = Vector2.Min(min, uv);
+                    max = Vector2.Max(max, uv);
+                }
+                source = new Rect(min.x, min.y, max.x - min.x, max.y - min.y);
+            }
             if (flipped) // 左右镜像：源 UV 水平反向
                 source = new Rect(source.xMax, source.y, -source.width, source.height);
             if (alpha >= .999f)
