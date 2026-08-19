@@ -45,17 +45,22 @@ namespace MasterHouse
         private readonly MinigameDef def;
         private readonly int visitorInstanceId;
 
+        /// <summary>本局的小游戏实现。只用来把 ESC 往下问一层（见 ConsumeEscape），不碰别的。</summary>
+        private readonly IMinigame game;
+
         /// <summary>已经收到过 onFinish：契约要求「只调一次」，但宿主不信任实现方（§11.4）。</summary>
         private bool settled;
 
         private bool closing;
 
-        private MinigameOverlay(HouseUIManager ui, GameObject instance, MinigameDef def, int visitorInstanceId)
+        private MinigameOverlay(HouseUIManager ui, GameObject instance, MinigameDef def, int visitorInstanceId,
+            IMinigame game)
         {
             this.ui = ui;
             this.instance = instance;
             this.def = def;
             this.visitorInstanceId = visitorInstanceId;
+            this.game = game;
         }
 
         public static bool IsOpen => current != null;
@@ -148,7 +153,7 @@ namespace MasterHouse
                 return;
             }
 
-            var overlay = new MinigameOverlay(ui, instance, def, request.VisitorInstanceId);
+            var overlay = new MinigameOverlay(ui, instance, def, request.VisitorInstanceId, game);
             current = overlay;
 
             // 关营业闸门（§3.4 ①）：时钟停走、访客各类倒计时停表
@@ -199,6 +204,12 @@ namespace MasterHouse
         /// 都是「关掉页面且不结算」，也就是 onAbort 的语义本身，所以这里不需要额外分支。
         /// 唯一要小心的是别把 HandleFinish 的结算重跑一遍：settled 标记挡住了。
         /// </summary>
+        /// <summary>
+        /// ESC 先问小游戏自己（2026-08-20 加局内暂停）：它可能只是想开/关自己的暂停弹窗。
+        /// 不消费才落到壳的默认语义——弹栈 = 关页面且不结算（见 Close 注释）。
+        /// </summary>
+        public bool ConsumeEscape() => game != null && game.ConsumeEscape();
+
         public void Close()
         {
             if (closing) return;

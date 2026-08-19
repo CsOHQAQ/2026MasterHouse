@@ -61,6 +61,50 @@ namespace MasterHouse
         [Header("提示（操作失败原因，须在界面可见）")]
         public Text messageLabel;
 
+        // ══════════ 音效（2026-08-20）══════════
+        // 剪辑直配在这里、不进音效表：本小游戏的专属音，配在就近的地方，换音不牵动全局通用音
+        //（口径与制作咖啡一致，见 Docs/音效系统说明.md §3.5）。留空 = 该处静音，是配置手段不是缺件。
+
+        [Header("音效（剪辑直配在这里，不进音效表）")]
+        [Tooltip("描线音：描格途中每往前延伸一格响一声。\n" +
+                 "退格截断不响（只有「往前画」才出声）；鼠标快扫一帧能吃进十几格，限一帧最多一声。\n" +
+                 "默认 2_Pickup_260813_1；留空 = 不响")]
+        public AudioClip drawStepClip;
+
+        [Tooltip("描线音的音量倍率，乘在设置页「音效」音量之上")]
+        [Range(0f, 2f)] public float drawStepVolume = 1f;
+
+        [Tooltip("落件音：中转件成功摆下（点选落子与件库拖放两条路径），以及挪动已摆好的件成功落位。\n" +
+                 "「这里放不下」「这种件已经用完了」这类失败不响——界面上已经有文字说明。\n" +
+                 "默认 2_Putdown_260812；留空 = 不响")]
+        public AudioClip nodePlaceClip;
+
+        [Tooltip("落件音的音量倍率，乘在设置页「音效」音量之上")]
+        [Range(0f, 2f)] public float nodePlaceVolume = 1f;
+
+        [Tooltip("接线音：从节点接口拉出线（按下那一刻）、以及成功接到另一个接口时，各响一次。\n" +
+                 "没描到接口的静默作废、超预算被拒等失败一律不响。\n" +
+                 "默认 1_Button_260812；留空 = 不响")]
+        public AudioClip linkConnectClip;
+
+        [Tooltip("接线音的音量倍率，乘在设置页「音效」音量之上")]
+        [Range(0f, 2f)] public float linkConnectVolume = 1f;
+
+        [Tooltip("电池满足音：有电池从「不满足」翻成「满足」的那一刻响一次。\n" +
+                 "默认 4_ScoreGain_260812；留空 = 不响")]
+        public AudioClip batteryLitClip;
+
+        [Tooltip("电池满足音的音量倍率，乘在设置页「音效」音量之上")]
+        [Range(0f, 2f)] public float batteryLitVolume = 1f;
+
+        [Tooltip("电池失去满足音：有电池从「满足」翻回「不满足」时响一次（拆线、挪件、删件导致）。\n" +
+                 "搭建途中「还没满足」不响——只有由满足变回不满足这一个瞬间才出声。\n" +
+                 "默认 4_ScoreLose_260813_1；留空 = 不响")]
+        public AudioClip batteryUnlitClip;
+
+        [Tooltip("电池失去满足音的音量倍率，乘在设置页「音效」音量之上")]
+        [Range(0f, 2f)] public float batteryUnlitVolume = 1f;
+
         // ══════════ 以下只在课程包模式（CircuitLessonPackDef）下用 ══════════
         // 单关模式一律隐藏，且**不参与 ValidateView 的必需件校验**——
         // 否则手调过的旧 Prefab 会因为缺这些新控件而连单关都开不了（那是本轮不该有的回归）。

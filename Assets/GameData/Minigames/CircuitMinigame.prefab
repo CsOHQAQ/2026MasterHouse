@@ -2743,6 +2743,16 @@ MonoBehaviour:
   abortButton: {fileID: 8864299831926519484}
   finishButtonLabel: {fileID: 7413285026999702173}
   messageLabel: {fileID: 7281319150209262614}
+  drawStepClip: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+  drawStepVolume: 1
+  nodePlaceClip: {fileID: 8300000, guid: 0f91df5d131647f41b6cefb92aef5be0, type: 3}
+  nodePlaceVolume: 1
+  linkConnectClip: {fileID: 8300000, guid: b51f46cc9089ac2488a18a95e178be58, type: 3}
+  linkConnectVolume: 1
+  batteryLitClip: {fileID: 8300000, guid: 9739985bd66ce6d4489d496732023a13, type: 3}
+  batteryLitVolume: 1
+  batteryUnlitClip: {fileID: 8300000, guid: 693c06ee41d01a8499c663d941c8bdbf, type: 3}
+  batteryUnlitVolume: 1
   lessonPanel: {fileID: 4903049387310209517}
   lessonPanelBackground: {fileID: 1769057044737457322}
   lessonTitleLabel: {fileID: 8305462264447812591}

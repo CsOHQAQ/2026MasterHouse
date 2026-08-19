@@ -17,6 +17,11 @@ namespace MasterHouse
     /// Prefab 权威定义的是 boardArea **在屏幕上的位置与大小**，本类只负责把格子摆进它里面。
     ///
     /// 交互属 View 层豁免区（小游戏说明 §3.3）：允许 Time.unscaledTime、允许 Input 轮询。
+    ///
+    /// **音效（2026-08-20）**：本类引用了 <see cref="SfxManager"/>，是 §8.5「小游戏不认识任何 Manager」
+    /// 的一处窄口豁免（同 CoffeeMinigame 的理由）——那条约束管的是**业务** Manager 与宿主类型，
+    /// SfxManager 是 View 层的全局音频出口，只发声、不读写任何业务状态。
+    /// 剪辑一律从 <see cref="CircuitMinigameView"/> 上取，本类不出现任何文件名或路径。
     /// </summary>
     public sealed class CircuitBoard
     {
@@ -59,6 +64,11 @@ namespace MasterHouse
         private Vector2Int hoverCell;
         private bool hoverValid;
 
+        /// <summary>上一次结算时处于「满足」的电池（NodeId）。只用来找翻转的那一刻——
+        /// 由不满足变满足响一次、由满足变回不满足响一次，搭建途中「一直没满足」是安静的。
+        /// 换关时由 <see cref="SeedLitBaseline"/> 静默重置：翻页看到的是上次留下的布线，不该当成刚做出来的事。</summary>
+        private readonly HashSet<long> litNodes = new HashSet<long>();
+
         // ── 右键短击（拖动不算，留给将来的平移）──
         private bool rmbHeld;
         private Vector3 rmbDownScreen;
@@ -97,6 +107,8 @@ namespace MasterHouse
             linkPool = new Pool<Image>(view.linkRoot, NewImage);
             previewPool = new Pool<Image>(view.previewRoot, NewImage);
             labelPool = new Pool<Text>(view.nodeRoot, NewLabel);
+
+            SeedLitBaseline();
         }
 
         /// <summary>
@@ -119,6 +131,8 @@ namespace MasterHouse
             draggingNode = null;
             hoverValid = false;
             rmbHeld = false;
+
+            SeedLitBaseline();
         }
 
         // ═══════════ 布局与坐标 ═══════════
@@ -219,6 +233,12 @@ namespace MasterHouse
                 int before = drawPath.Count;
                 UpdateDrawPath();
                 if (drawPath.Count != before) DrawingChanged?.Invoke();
+
+                // 描线音：只有「往前画」才响——退格截断是撤销，不该和画出去一个声音。
+                // 判定放在这里而不是 UpdateDrawPath 的循环里：鼠标快扫时那个循环一帧能吃十几格，
+                // 逐格发声会糊成一片；按帧比总数，天然就是「一帧最多一声」
+                if (drawPath.Count > before)
+                    SfxManager.PlayOnce(view.drawStepClip, view.drawStepVolume);
             }
 
             if (!Input.GetMouseButtonUp(0)) return;
@@ -260,6 +280,7 @@ namespace MasterHouse
                 drawFromPin = pin;
                 drawPath.Clear();
                 drawPath.Add(pin.Owner.GetPinPortCell(pin.IndexInNode));
+                SfxManager.PlayOnce(view.linkConnectClip, view.linkConnectVolume); // 从节点连出
                 DrawingChanged?.Invoke(); // 起点那一格也计入预算，按下即可见
                 return;
             }
@@ -344,6 +365,8 @@ namespace MasterHouse
                 return;
             }
 
+            SfxManager.PlayOnce(view.linkConnectClip, view.linkConnectVolume); // 连到节点
+
             // 先清描格状态再播 LayoutChanged：这条线的格数此刻已经进了 UsedLinkCells，
             // drawPath 不清的话标签会把它和 PendingLinkCells 重复加一遍
             drawFromPin = null;
@@ -351,7 +374,7 @@ namespace MasterHouse
 
             RebuildLinks();
             RebuildNodes(); // 点亮状态可能变了
-            LayoutChanged?.Invoke();
+            CommitLayoutChange();
         }
 
         private void FinishNodeDrag()
@@ -361,9 +384,11 @@ namespace MasterHouse
             if (!hoverValid || !levelManager.CanMoveNodeTo(level, draggingNode, target)) return;
             if (!levelManager.MoveNode(level, draggingNode, target)) return;
 
+            SfxManager.PlayOnce(view.nodePlaceClip, view.nodePlaceVolume); // 挪件成功落位，与摆件同一个落件音
+
             RebuildLinks(); // 附着导线已被删除并退还预算
             RebuildNodes();
-            LayoutChanged?.Invoke();
+            CommitLayoutChange();
         }
 
         /// <summary>点选落子：摆完保持选中，可以连摆同一种件。</summary>
@@ -390,8 +415,9 @@ namespace MasterHouse
                 return false;
             }
             levelManager.PlaceNode(level, def, cell);
+            SfxManager.PlayOnce(view.nodePlaceClip, view.nodePlaceVolume);
             RebuildNodes();
-            LayoutChanged?.Invoke();
+            CommitLayoutChange();
             return true;
         }
 
@@ -417,12 +443,14 @@ namespace MasterHouse
             var occupant = level.GetOccupant(cell);
             if (occupant == null) return;
 
+            // 删除本身不发声（静默即反馈，同家具无效落点的口径）；但走 CommitLayoutChange 是必须的——
+            // 拆掉一条线正是电池「由满足变回不满足」的典型来源，那一声得响
             if (occupant.Link != null)
             {
                 linkManager.DeleteLink(level, occupant.Link);
                 RebuildLinks();
                 RebuildNodes();
-                LayoutChanged?.Invoke();
+                CommitLayoutChange();
                 return;
             }
 
@@ -431,8 +459,53 @@ namespace MasterHouse
                 if (!levelManager.RemoveNode(level, occupant.Node)) return;
                 RebuildLinks();
                 RebuildNodes();
-                LayoutChanged?.Invoke();
+                CommitLayoutChange();
             }
+        }
+
+        // ═══════════ 布局提交与电池状态音 ═══════════
+
+        /// <summary>
+        /// 一次**改变了布局**的操作收尾：先把电池的满足状态翻转播成声音，再通知界面刷新。
+        ///
+        /// 增删线、摆件、挪件、删件五条路径全走这里，是为了让「谁会改变点亮状态」这件事只有一个答案——
+        /// 供电是纯函数（<see cref="CircuitSolver"/>），各 Manager 改完布局都已经重算过了，
+        /// 到这里只需要拿结果与上一次比对。纯高亮变化（如件库选中）不走本方法，直接发 LayoutChanged。
+        /// </summary>
+        private void CommitLayoutChange()
+        {
+            ReportLitChanges();
+            LayoutChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// 比对电池的满足状态并发声：新满足响一声正向音，失去满足响一声负向音。
+        /// 「一直没满足」不响——搭建途中大半时间都不满足，那会变成噪音。
+        ///
+        /// 一次操作同时点亮一个又弄灭另一个时（挪件才可能），**正向优先只响一声**：
+        /// 两声叠在同一帧只会糊成一团，而玩家刚做成的事比顺带弄坏的更值得先听见。
+        /// </summary>
+        private void ReportLitChanges()
+        {
+            bool anyLit = false, anyUnlit = false;
+            foreach (var node in level.Nodes)
+            {
+                if (node.Def.NodeType != ENodeType.Condition) continue;
+                if (node.IsLit) anyLit |= litNodes.Add(node.NodeId);
+                else anyUnlit |= litNodes.Remove(node.NodeId);
+            }
+
+            if (anyLit) SfxManager.PlayOnce(view.batteryLitClip, view.batteryLitVolume);
+            else if (anyUnlit) SfxManager.PlayOnce(view.batteryUnlitClip, view.batteryUnlitVolume);
+        }
+
+        /// <summary>把当前满足状态**静默**记为基线（开局与换关时）：翻页看到的是上次留下的布线，
+        /// 不该被当成刚刚做成的事而响一片音。</summary>
+        private void SeedLitBaseline()
+        {
+            litNodes.Clear();
+            foreach (var node in level.Nodes)
+                if (node.Def.NodeType == ENodeType.Condition && node.IsLit) litNodes.Add(node.NodeId);
         }
 
         // ═══════════ 拾取 ═══════════

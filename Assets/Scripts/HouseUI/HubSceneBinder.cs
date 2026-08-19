@@ -89,6 +89,8 @@ namespace MasterHouse
         private float camZoom = 1f;
         /// <summary>当前视角档位（初始相机即总览）。纯表现派生态，只驱动 UI 显隐（§11 豁免区）。</summary>
         private EHubViewTier viewTier = EHubViewTier.Overview;
+        /// <summary>视口中心落在哪个区域（含接待室与 None）。同为纯表现派生态，只给左下房间卡判「是不是在看大厅」。</summary>
+        private int viewportRegion = HubWorldGrid.None;
         /// <summary>滚轮设的目标缩放；camZoom 每帧向它指数逼近，滚起来才是连续的而不是一节一节跳。</summary>
         private float targetZoom = 1f;
         private Vector2 zoomAnchorViewport;
@@ -104,6 +106,13 @@ namespace MasterHouse
         private float lastGroundClickTime;
         private Vector2 lastGroundClickPointer;
         private static readonly List<RaycastResult> raycastCache = new List<RaycastResult>();
+
+        /// <summary>
+        /// 视口中心当前落在哪个区域：业务房间 0~3、底层大厅 <see cref="HubWorldGrid.Reception"/>、
+        /// 都不命中 <see cref="HubWorldGrid.None"/>。总览及以下不更新（那时没有「在看哪间」的概念），
+        /// 保持聚焦前的值，与 <see cref="DetectCurrentRoom"/> 同一套「保持现状」口径。
+        /// </summary>
+        public int ViewportRegion => viewportRegion;
 
         private static CodexTable Codex => GameManager.Instance.CodexTable;
 
@@ -864,6 +873,7 @@ namespace MasterHouse
                 Mathf.Clamp01(worldPoint.x / viewport.x),
                 Mathf.Clamp01(worldPoint.y / viewport.y));
             var room = HubWorldGrid.RoomAt(world01);
+            viewportRegion = room; // 纯观测量，含接待室/None；业务下标 page.RoomIndex 仍按下面的口径只认业务房间
             if (room < 0 || room >= HubWorldGrid.RoomCount) return;
             if (room != page.RoomIndex)
             {

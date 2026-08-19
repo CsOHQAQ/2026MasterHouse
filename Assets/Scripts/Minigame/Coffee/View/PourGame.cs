@@ -51,6 +51,14 @@ namespace MasterHouse
             this.uiCamera = uiCamera;
         }
 
+        /// <summary>
+        /// 丢掉「上一帧还在倒水」的记忆（2026-08-20 加暂停时补）：
+        /// 暂停期间本类不被 Tick，lastLocal 会停在暂停前那一点。玩家在弹窗上把鼠标挪开再继续，
+        /// 下一次有效帧就会把这段位移算成一次瞬移，方差被顶得很高、白白掉档。
+        /// 调它之后，下一次进入按「刚进入」处理：只重记起点、丢掉没满的采样窗，与出杯再回杯同一条路。
+        /// </summary>
+        public void DropTracking() => wasActive = false;
+
         public void Tick(float dt)
         {
             if (complete) return;
@@ -92,8 +100,8 @@ namespace MasterHouse
             }
             wasActive = active;
 
-            if (view.cupImage != null)
-                view.cupImage.color = active ? view.cupActiveColor : view.cupIdleColor;
+            // 「正在搅」的反馈交给液面波纹 + 循环音（2026-08-20 换美术底图时去掉了判定区整体染色）：
+            // 杯子已经画在底图里，再给判定区糊一层色只会把水彩笔触盖掉
 
             if (progress >= 1f)
             {

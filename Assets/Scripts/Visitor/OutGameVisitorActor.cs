@@ -23,8 +23,8 @@ namespace MasterHouse
         private const float FarScale = .6f;
         /// <summary>名牌底边与**头顶**的间距（名牌 pivot 在底边，所以这个数就是肉眼看到的空隙）。</summary>
         private const float CardOffsetY = 22f;
-        /// <summary>注意标记的挂点（气泡在右、标记在左，两者不叠）。</summary>
-        private static readonly Vector2 MarkerOffset = new Vector2(-22f, 4f);
+        /// <summary>注意标记的挂点（气泡在右、标记在左；气泡换成 60 宽的贴图后再往左让了一截，两者不叠）。</summary>
+        private static readonly Vector2 MarkerOffset = new Vector2(-32f, 4f);
         private const float NearY = .04f;          // 深度带：y 越小离镜头越近
         private const float FarY = .34f;
 
@@ -63,13 +63,6 @@ namespace MasterHouse
 
         /// <summary>上一次轮询到的判据；null = 还没轮询过（邻居恒为 null）。变了才重刷名牌文案。</summary>
         private VisitorManager.ENoTalkReason? talkReason;
-
-        /// <summary>
-        /// 「有需求」时静音气泡（2026-08-19 反馈）：头顶「！」一亮就只留这一个提示，
-        /// 情绪符号与闲逛台词一律不冒——两种提示挤同一块头顶，玩家分不清该看哪个。
-        /// 「等分房」不算有需求（头顶不亮标记），那边照常冒「…」气泡（内容见 ProvideEmote）。
-        /// </summary>
-        private bool BubbleMuted => !ambient && talkReason == VisitorManager.ENoTalkReason.None;
 
         private ActorState state = ActorState.Hidden;
         private bool spawnInside; // 常驻回填：不走进门流程，直接在屋内/前台淡入
@@ -181,9 +174,9 @@ namespace MasterHouse
             button.transition = Selectable.Transition.None;
             button.onClick.AddListener(OnClickSelf);
 
-            // 情绪/台词气泡（在名牌卡之前创建，悬停时名牌盖在气泡上）
+            // 头顶气泡（在名牌卡之前创建，悬停时名牌盖在气泡上）
             // 气泡以自身底边贴近演员头顶，稍微右移避免挡住脸。
-            bubble = OutGameVisitorBubble.Create(transform, new Vector2(18, 4), ProvideEmote);
+            bubble = OutGameVisitorBubble.Create(transform, new Vector2(18, 4), CanBubble);
 
             // 头顶悬停卡：访客名 + 当前状态
             var card = F.Panel(transform, "Card", new Vector2(.5f, 1), new Vector2(.5f, 1),
@@ -258,7 +251,7 @@ namespace MasterHouse
         /// <summary>
         /// 标记字形：有话要说时才亮「！」，其余一律空串 = 不亮。
         /// 「等分房」不再单给指路字形（2026-08-19 反馈）：黄色标记只代表「点我有对话」这一件事，
-        /// 不兼职提示手势；那一态头顶留给「…」气泡（见 ProvideEmote）。
+        /// 不兼职提示手势；那一态头顶只剩自发气泡（见 CanBubble）。
         /// </summary>
         private static string AttentionMarkOf(VisitorManager.ENoTalkReason? reason) =>
             reason == VisitorManager.ENoTalkReason.None ? "！" : "";
@@ -296,7 +289,6 @@ namespace MasterHouse
             }
             // 还在进场/庆祝/离场的路上就先不召唤：那时点了也被 IsInteractable 拦下
             SetAttentionMark(IsInteractable && !Dragging ? AttentionMarkOf(reason) : "");
-            if (BubbleMuted && bubble != null) bubble.HideNow(); // 刚亮起「！」时把还挂着的气泡立刻收掉
         }
 
         private void OnClickSelf()
@@ -476,12 +468,13 @@ namespace MasterHouse
             EnterLeaving();
         }
 
-        /// <summary>闲逛台词冒泡（§9：扩展既有气泡显示句子，不新建第二套气泡）。</summary>
-        public void ShowLine(string text, float holdSeconds)
+        /// <summary>
+        /// 闲逛冒泡（§9：复用头顶那一套气泡，不新建第二套）。
+        /// 台词文字已取消（2026-08-20），业务层给的只剩「什么时候冒、冒多久」。
+        /// </summary>
+        public void ShowBubble(float holdSeconds)
         {
-            if (BubbleMuted) return; // 有需求时头顶只留感叹号，闲逛台词也让位
-            if (bubble != null && !string.IsNullOrEmpty(text))
-                bubble.ShowSentence(text, holdSeconds);
+            if (bubble != null) bubble.ShowFor(holdSeconds);
         }
 
         /// <summary>完成服务：播放一次庆祝动作，然后继续游走。</summary>
@@ -874,44 +867,27 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 情绪气泡内容：随状态给出随机符号，返回空串表示当前不冒泡。
+        /// 这一轮该不该自发冒泡：只看状态，**不再挑内容**——气泡已改成一张统一贴图，不显示文字（2026-08-20）。
         ///
-        /// **纯氛围，不承担「可以点我」的语义**——那是头顶注意标记的活（AttentionMarkOf）。
-        /// 所以业务访客这边不再出现「！」这类召唤字形：气泡挂的是自己的墙钟计时器
-        /// （每几秒一冒，与业务 tick 无关），安顿中的客人照样冒，玩家却点不动他，
-        /// 「有气泡却没有对话」的误导就是这么来的（2026-08-19 反馈）。
-        /// 反过来「有需求」时（头顶「！」）气泡整个静音（BubbleMuted）：头顶同一时刻只留一个提示。
+        /// **纯氛围，不承担「可以点我」的语义**——那是头顶注意标记的活（AttentionMarkOf）：
+        /// 气泡挂的是自己的墙钟计时器（每几秒一冒，与业务 tick 无关），安顿中的客人照样冒，
+        /// 玩家却点不动他，「有气泡却没有对话」的误导就是这么来的（2026-08-19 反馈）。
+        /// 有需求时**照样冒**（2026-08-20）：气泡已是统一贴图，不再冒充「可以点我」，跟头顶的「！」并存不冲突。
         /// </summary>
-        private string ProvideEmote()
+        private bool CanBubble()
         {
-            string[] pool;
+            if (choiceOpen || state == ActorState.Hidden) return false;
             if (ambient)
+                return state == ActorState.Waiting || state == ActorState.Wandering || state == ActorState.Leaving;
+            // 在场的业务态一律冒泡（含安顿中、开口示意后、待告别）；
+            // Departed 与「尚未同步」只在走人的路上冒。
+            return businessState switch
             {
-                pool = state switch
-                {
-                    ActorState.Waiting => new[] { "？", "！", "…" }, // 邻居的「！」无歧义：他本来就随时可点
-                    ActorState.Wandering => new[] { "♪", "…", "★" },
-                    ActorState.Leaving => new[] { "…" },
-                    _ => null,
-                };
-            }
-            else
-            {
-                pool = businessState switch
-                {
-                    (int)EVisitorState.FrontDesk => new[] { "？", "…" },
-                    (int)EVisitorState.AwaitingRoom => new[] { "…" }, // 等分房：一言不发地等着被安排
-                    // 安顿中哼着小曲收拾行李；开口示意（NoTalkReason.None）后由 BubbleMuted 静音，只留头顶「！」
-                    (int)EVisitorState.Serving => new[] { "…", "♪" },
-                    (int)EVisitorState.Wandering => new[] { "♥", "♪", "★" },
-                    // 待告别：头顶「！」常亮，BubbleMuted 会把气泡整个静音，这一项实际上取不到
-                    (int)EVisitorState.AwaitingFarewell => new[] { "…" },
-                    _ => state == ActorState.Leaving ? new[] { "…" } : null,
-                };
-            }
-            // BubbleMuted：有需求（头顶「！」）时一律不冒，气泡不跟感叹号抢头顶
-            if (pool == null || choiceOpen || state == ActorState.Hidden || BubbleMuted) return "";
-            return pool[UnityEngine.Random.Range(0, pool.Length)];
+                (int)EVisitorState.FrontDesk or (int)EVisitorState.AwaitingRoom
+                    or (int)EVisitorState.Serving or (int)EVisitorState.Wandering
+                    or (int)EVisitorState.AwaitingFarewell => true,
+                _ => state == ActorState.Leaving,
+            };
         }
 
         private void UpdateStatusCard()
