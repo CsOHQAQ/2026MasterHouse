@@ -55,7 +55,7 @@ namespace MasterHouse
             var overlay = new CodexDetailOverlay(rect, view, ui, IndexOf(view, race));
             // 翻书动效（2026-08-19）：底图与底部键位条不参与翻页，其余内容整体绕书脊合上再摊开
             overlay.flip = instance.AddComponent<CodexPageFlip>();
-            overlay.flip.Bind(rect,
+            overlay.flip.Bind(rect, view.background,
                 view.background != null ? view.background.transform : null,
                 view.shipDecor != null ? view.shipDecor.transform : null, // \u5e06\u8239\u662f\u538b\u5728\u4e66\u5916\u7684\u88c5\u9970\uff0c\u4e0d\u8ddf\u7740\u7ffb
                 view.backButton != null ? view.backButton.transform : null,
