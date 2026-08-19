@@ -177,7 +177,7 @@ namespace MasterHouse
                 ui.ShowToast("还没有接待过这位客人");
                 return;
             }
-            CodexDetailOverlay.Open(ui, focusIndex);
+            CodexDetailOverlay.Open(ui, Race(focusIndex));
         }
 
         private bool IsUnlocked(int index)

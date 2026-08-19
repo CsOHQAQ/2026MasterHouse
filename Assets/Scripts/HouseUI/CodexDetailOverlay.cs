@@ -26,8 +26,12 @@ namespace MasterHouse
             this.index = index;
         }
 
-        /// <summary>打开详情页。startIndex = 图鉴页当前焦点的条目下标（两边共用同一份种族顺序）。</summary>
-        public static void Open(HouseUIManager ui, int startIndex)
+        /// <summary>
+        /// 打开详情页。**按种族定位，不传下标**（2026-08-19 修）：
+        /// 图鉴页与详情页各有一份自己的种族数组，两边生成时机不同、顺序可能不一致，
+        /// 靠下标对齐会串页——点开的卡是甲，翻出来的档案是乙。
+        /// </summary>
+        public static void Open(HouseUIManager ui, VisitorRaceDef race)
         {
             var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.CodexDetail);
             if (prefab == null)
@@ -47,7 +51,7 @@ namespace MasterHouse
             }
             var rect = (RectTransform)instance.transform;
             rect.SetAsLastSibling();
-            var overlay = new CodexDetailOverlay(rect, view, ui, startIndex);
+            var overlay = new CodexDetailOverlay(rect, view, ui, IndexOf(view, race));
             overlay.Bind();
             var hotkeys = instance.AddComponent<CodexHotkeys>();
             hotkeys.Bind(() => overlay.Step(-1), () => overlay.Step(1), () => { });
@@ -75,6 +79,18 @@ namespace MasterHouse
 
         /// <summary>未解锁时统一的占位串。</summary>
         private const string Unknown = "？？？";
+
+        /// <summary>在详情页自己的数组里找这一族；找不到就落到第一条。</summary>
+        private static int IndexOf(OutGameCodexDetailView view, VisitorRaceDef race)
+        {
+            if (view.races == null || race == null) return 0;
+            for (var i = 0; i < view.races.Length; i++)
+                if (view.races[i] == race) return i;
+            // 资产引用对不上时再按 raceId 兜一次（同一份表导出的资产被重建过也能命中）
+            for (var i = 0; i < view.races.Length; i++)
+                if (view.races[i] != null && view.races[i].raceId == race.raceId) return i;
+            return 0;
+        }
 
         private int Count => view.races != null ? view.races.Length : 0;
 
