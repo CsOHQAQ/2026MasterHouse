@@ -44,6 +44,13 @@ namespace MasterHouse
         private const float RevealSeconds = .2f;
         /// <summary>裁切边的横向羽化：硬边太像"擦除"，糊两个像素就贴着纸的前缘了。</summary>
         private const int ClipSoftness = 12;
+        /// <summary>
+        /// 被翻走那页的内容淡到全无的时机（以纸的前缘曲线取值计）。
+        /// 比书脊(0.432)早不少——纸一卷起来内容就该跟着走，留到最后会看见"内容浮在纸上面"。
+        /// </summary>
+        private const float CarriedGone = .62f;
+        /// <summary>另半页被落下来的纸盖住、内容淡到全无的时机。</summary>
+        private const float RestingGone = .30f;
 
         /// <summary>裁切窗：翻页时它的左右边跟着纸的前缘收，内容被切掉的地方就露出空白书页。</summary>
         private RectTransform clipWindow;
@@ -54,6 +61,7 @@ namespace MasterHouse
         private RectTransform leftPage;
         private RectTransform rightPage;
         private CanvasGroup leftGroup;
+        private CanvasGroup rightGroup;
         /// <summary>整幅底图：翻页时它来播分帧。</summary>
         private RawImage background;
         /// <summary>翻动的那张纸；pivot 在书脊上，横向缩放 1 → 0 就是被掀过去。</summary>
@@ -88,6 +96,7 @@ namespace MasterHouse
             leftPage = CreateHalf(pageHolder, "PageLeft", new Vector2(0f, 0f), new Vector2(.5f, 1f), new Vector2(1f, .5f));
             rightPage = CreateHalf(pageHolder, "PageRight", new Vector2(.5f, 0f), new Vector2(1f, 1f), new Vector2(0f, .5f));
             leftGroup = leftPage.gameObject.AddComponent<CanvasGroup>();
+            rightGroup = rightPage.gameObject.AddComponent<CanvasGroup>();
 
             var moving = new List<Transform>();
             foreach (Transform child in root)
@@ -98,6 +107,8 @@ namespace MasterHouse
                     if (keep != null && (child == keep || keep.IsChildOf(child))) { skip = true; break; }
                 if (!skip) moving.Add(child);
             }
+            if (moving.Count == 0)
+                Debug.LogWarning("[Codex] 翻页容器没收到任何内容节点：翻页时内容不会跟着纸走，检查详情页层级");
             var spine = root.rect.width * .5f;
             foreach (var child in moving)
             {
@@ -227,9 +238,15 @@ namespace MasterHouse
             // 被纸带走的那半页：书脊为轴横向压扁，压到 0 就是纸立成了一条线
             var carried = reversed ? leftPage : rightPage;
             var resting = reversed ? rightPage : leftPage;
+            var carriedGroup = reversed ? leftGroup : rightGroup;
+            var restingGroup = reversed ? rightGroup : leftGroup;
             var squash = Mathf.InverseLerp(CodexPageTurnFrames.SpineAt, 1f, visible);
             if (carried != null) carried.localScale = new Vector3(squash, 1f, 1f);
             if (resting != null) resting.localScale = Vector3.one;
+            // 透明度和裁切各管一半、又互为兜底：纸卷走的那页跟着淡掉，
+            // 被盖住的那页在纸压过来时淡掉，都比裁切边更早清干净（"消失得不够快"）
+            if (carriedGroup != null) carriedGroup.alpha = Mathf.InverseLerp(CarriedGone, 1f, visible);
+            if (restingGroup != null) restingGroup.alpha = Mathf.InverseLerp(0f, RestingGone, visible);
             SetClip(visible, reversed);
         }
 
