@@ -372,7 +372,8 @@ namespace MasterHouse
             // 只重填数组引用，**不碰任何位置尺寸**；上一版生成时还叫旧名的那几张
             // 当时没找到、存成了 null，改名并不会把 null 变回来。
             repaired |= RepairPrefab<OutGameCodexDetailView>(CodexDetailPath, RebindCodexDetailArt,
-                view => CodexArtNeedsRebind(view.races, view.portraits, view.avatars));
+                view => view.lockedHint == null ||
+                        CodexArtNeedsRebind(view.races, view.portraits, view.avatars));
             // 档案面板：补「访客图鉴」入口按钮（2026-08-18）
             repaired |= RepairPrefab<OutGameArchivePanelView>(ArchivePanelPath,
                 (root, view) => view.codexButton = AppendArchiveCodexButton(root.transform),
@@ -2669,6 +2670,7 @@ namespace MasterHouse
             // 右页立绘先建（压在左页文字之下，立绘边缘会越到中缝）
             view.portrait = Raw(root.transform, "Portrait", new Vector2(0, 1), new Vector2(0, 1),
                 new Vector2(1435, -595), new Vector2(950, 885));
+            view.lockedHint = AppendCodexLockedHint(root.transform);
             var ship = Image(root.transform, "ShipDecor", new Vector2(0, 1), new Vector2(0, 1),
                 new Vector2(1790, -941), new Vector2(240, 212), Color.white);
             ship.sprite = Detail("船");
@@ -2773,6 +2775,21 @@ namespace MasterHouse
             Save(root, path);
         }
 
+        /// <summary>
+        /// 未解锁提示：写在右页立绘的位置上（没接待过的时候那里本来就是空的）。
+        /// 已存在则复用，不动手调。
+        /// </summary>
+        private static Text AppendCodexLockedHint(Transform root)
+        {
+            var existing = root.Find("LockedHint");
+            if (existing != null) return existing.GetComponent<Text>();
+            var label = Label(root, "LockedHint", "未解锁", 46, Hex("9AA6B8"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(1406, -476), new Vector2(549, 246),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            label.raycastTarget = false;
+            return label;
+        }
+
         /// <summary>条目数对不上、或者哪张图是空的，就该重绑。</summary>
         private static bool CodexArtNeedsRebind(VisitorRaceDef[] races, Texture2D[] portraits, Texture2D[] avatars)
         {
@@ -2787,6 +2804,7 @@ namespace MasterHouse
         /// <summary>按 raceId 重新取一遍种族资产 / 右页立绘 / 证件照，只改引用。</summary>
         private static void RebindCodexDetailArt(GameObject root, OutGameCodexDetailView view)
         {
+            view.lockedHint = AppendCodexLockedHint(root.transform);
             var races = new System.Collections.Generic.List<VisitorRaceDef>();
             var portraits = new System.Collections.Generic.List<Texture2D>();
             var avatars = new System.Collections.Generic.List<Texture2D>();

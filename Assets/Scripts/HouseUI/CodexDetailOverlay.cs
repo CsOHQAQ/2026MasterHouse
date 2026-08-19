@@ -135,6 +135,12 @@ namespace MasterHouse
             // RawImage 贴图为空会画成一整块白板，缺图时直接关掉这一层（2026-08-19 反馈）
             SetTexture(view.portrait, known ? Pick(view.portraits, index) : null);
             SetTexture(view.idAvatar, known ? Pick(view.avatars, index) : null);
+            // 立绘位置没东西时写「未解锁」，别留一块空白书页
+            if (view.lockedHint != null)
+            {
+                view.lockedHint.text = "未解锁";
+                view.lockedHint.gameObject.SetActive(!known);
+            }
         }
 
         private static void SetTexture(UnityEngine.UI.RawImage image, Texture2D texture)
