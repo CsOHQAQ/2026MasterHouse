@@ -226,7 +226,7 @@ namespace MasterHouse
         {
             // 这里逐个判空是给「课程包字段没配的旧 Prefab + 单关关卡」留的路：
             // 课程包模式下 ValidateLessonView 已经保证它们都非空
-            if (view.lessonPanel != null) view.lessonPanel.SetActive(isLessonPack);
+            if (view.lessonPanel != null) view.lessonPanel.SetActive(isLessonPack && view.showLessonPanel);
             if (view.topStatusBar != null && view.topStatusBar.progressLabel != null)
                 view.topStatusBar.progressLabel.gameObject.SetActive(isLessonPack);
             if (view.prevLessonButton != null) view.prevLessonButton.gameObject.SetActive(isLessonPack);

@@ -113,6 +113,9 @@ namespace MasterHouse
         // 否则手调过的旧 Prefab 会因为缺这些新控件而连单关都开不了（那是本轮不该有的回归）。
 
         [Header("课程包·教学栏")]
+        [Tooltip("是否显示右侧教学栏。即使关闭，课程包模式下的关卡推进逻辑仍正常运行。")]
+        public bool showLessonPanel = false;
+
         [Tooltip("整条教学栏的根节点。单关模式下整体隐藏")]
         public GameObject lessonPanel;
 
@@ -149,7 +152,7 @@ namespace MasterHouse
         public Color cellColor = new Color(0.25f, 0.25f, 0.25f, 0.20f);
         public Color sourceColor = new Color(0.35f, 0.72f, 0.40f, 0.95f);
         public Color batteryColor = new Color(0.34f, 0.52f, 0.85f, 0.95f);
-        public Color batteryLitColor = new Color(0.98f, 0.83f, 0.30f, 1f);
+        public Color batteryLitColor = new Color(1f, 0.9f, 0f, 1f);
         public Color transitColor = new Color(0.62f, 0.45f, 0.80f, 0.95f);
         public Color legalColor = new Color(0.40f, 0.90f, 0.45f, 0.55f);
         public Color illegalColor = new Color(0.92f, 0.35f, 0.32f, 0.55f);

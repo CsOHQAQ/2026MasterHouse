@@ -615,12 +615,35 @@ namespace MasterHouse
 
                 var caption = Caption(node);
                 if (string.IsNullOrEmpty(caption)) continue;
-                var label = labelPool.Next();
-                label.text = caption;
-                label.fontSize = Mathf.Max(10, Mathf.RoundToInt(cellSize * 0.34f));
-                var labelRect = label.rectTransform;
-                labelRect.sizeDelta = new Vector2(cellSize * 2.4f, cellSize);
-                labelRect.anchoredPosition = CellToLocal(node.Origin) + new Vector2(0, cellSize * .1f);
+
+                var visualStyle = view.visualStyle;
+                bool hasDigitSprites = visualStyle != null && visualStyle.captionDigits != null
+                                       && visualStyle.captionDigits.Length >= 10;
+                if (hasDigitSprites)
+                {
+                    DrawCaptionSprites(node, caption);
+                }
+                else
+                {
+                    var label = labelPool.Next();
+                    label.text = caption;
+                    label.fontSize = Mathf.Max(10, Mathf.RoundToInt(cellSize * 0.34f));
+                    var labelRect = label.rectTransform;
+                    labelRect.sizeDelta = new Vector2(cellSize * 2.4f, cellSize);
+                    if (TryGetShapeBounds(node.Def.Shape, out int cMinX, out int cMinY, out int cW, out int cH))
+                    {
+                        var cBottomLeft = CellToLocal(node.Origin + new Vector2Int(cMinX, cMinY));
+                        var cCenter = cBottomLeft + new Vector2((cW - 1) * cellSize, (cH - 1) * cellSize) * .5f;
+                        var cVis = new Vector2(cW * cellSize - CellGap, cH * cellSize - CellGap);
+                        labelRect.anchoredPosition = new Vector2(
+                            cCenter.x + cVis.x * .5f - cellSize * 0.15f,
+                            cCenter.y + cVis.y * .5f - cellSize * 0.5f);
+                    }
+                    else
+                    {
+                        labelRect.anchoredPosition = CellToLocal(node.Origin) + new Vector2(0, cellSize * .1f);
+                    }
+                }
             }
 
             nodePool.End();
@@ -709,6 +732,95 @@ namespace MasterHouse
         }
 
         /// <summary>
+        /// 用 Sprite 逐字符绘制 Caption 数字（电源供电量 / 电池 received/required）。
+        /// 字符 unrecognized 时静默跳过，不影响前后字符的排列。
+        /// </summary>
+        private void DrawCaptionSprites(NodeData node, string caption)
+        {
+            var style = view.visualStyle;
+            if (style == null || style.captionDigits == null || style.captionDigits.Length < 10) return;
+            if (!TryGetShapeBounds(node.Def.Shape, out int minX, out int minY, out int width, out int height)) return;
+
+            var bottomLeft = CellToLocal(node.Origin + new Vector2Int(minX, minY));
+            var nodeCenter = bottomLeft + new Vector2((width - 1) * cellSize, (height - 1) * cellSize) * .5f;
+            var visualSize = new Vector2(width * cellSize - CellGap, height * cellSize - CellGap);
+
+            float dSize = cellSize * Mathf.Max(0f, style.captionDigitSize);
+            float dSpacing = cellSize * Mathf.Max(0f, style.captionDigitSpacing);
+
+            bool hasPowerIcon = node.Def.NodeType == ENodeType.Resource
+                                  && style.captionPowerIcon != null;
+            float iconSize = hasPowerIcon
+                ? cellSize * Mathf.Max(0f, style.captionPowerIconSize)
+                : 0f;
+
+            float totalW = 0f;
+            if (hasPowerIcon)
+                totalW += iconSize;
+
+            for (int i = 0; i < caption.Length; i++)
+            {
+                char c = caption[i];
+                if (c >= '0' && c <= '9')
+                    totalW += dSize;
+                else if (c == '/' && style.captionSlashSprite != null)
+                    totalW += dSize * 0.5f;
+                else
+                    continue;
+                if (i < caption.Length - 1) totalW += dSpacing;
+            }
+
+            float x = nodeCenter.x + visualSize.x * .5f - cellSize * 0.15f - totalW;
+            float y = nodeCenter.y + visualSize.y * .5f - cellSize * 0.5f;
+
+            // 电池节点：先画闪电图标
+            if (hasPowerIcon)
+            {
+                var iconImage = iconPool.Next();
+                iconImage.sprite = style.captionPowerIcon;
+                iconImage.type = Image.Type.Simple;
+                iconImage.preserveAspect = true;
+                iconImage.color = style.captionDigitColor;
+                var iconRect = iconImage.rectTransform;
+                iconRect.sizeDelta = new Vector2(iconSize, iconSize);
+                iconRect.anchoredPosition = new Vector2(x + iconSize * .5f, y);
+                x += iconSize;
+            }
+
+            // 再画数字
+            for (int i = 0; i < caption.Length; i++)
+            {
+                char c = caption[i];
+                Sprite sprite = null;
+                float w = 0f;
+
+                if (c >= '0' && c <= '9')
+                {
+                    sprite = style.captionDigits[c - '0'];
+                    w = dSize;
+                }
+                else if (c == '/' && style.captionSlashSprite != null)
+                {
+                    sprite = style.captionSlashSprite;
+                    w = dSize * 0.5f;
+                }
+
+                if (sprite == null) continue;
+
+                var image = iconPool.Next();
+                image.sprite = sprite;
+                image.type = Image.Type.Simple;
+                image.preserveAspect = true;
+                image.color = style.captionDigitColor;
+                var rect = image.rectTransform;
+                rect.sizeDelta = new Vector2(w, dSize);
+                rect.anchoredPosition = new Vector2(x + w * .5f, y);
+
+                x += w + dSpacing;
+            }
+        }
+
+        /// <summary>
         /// 节点右上角的全局移动状态图标。实际可移动性必须同时满足「中转件」与关卡实例 CanMove：
         /// LevelManager 会拒绝移动电源/电池，即使资产误把它们的 CanMove 勾上，表现也不能撒谎。
         /// </summary>
@@ -739,8 +851,8 @@ namespace MasterHouse
             var rect = icon.rectTransform;
             rect.sizeDelta = new Vector2(size, size);
             rect.anchoredPosition = new Vector2(
-                nodeCenter.x + visualSize.x * .5f - padding - size * .5f,
-                nodeCenter.y + visualSize.y * .5f - padding - size * .5f);
+                nodeCenter.x - visualSize.x * .5f + padding + size * .5f,
+                nodeCenter.y - visualSize.y * .5f + padding + size * .5f);
         }
 
         private void DrawPinMarker(NodeData node, PinData pin)
@@ -1077,7 +1189,8 @@ namespace MasterHouse
                     foreach (var entry in conditions)
                         if (entry != null)
                             required = Mathf.Max(required, entry.RequiredAmount);
-                    return $"{node.ReceivedPower}/{required}";
+                    int deficit = Mathf.Max(0, required - node.ReceivedPower);
+                    return deficit > 0 ? deficit.ToString() : null;
 
                 default:
                     return null;

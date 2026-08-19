@@ -22,8 +22,9 @@ MonoBehaviour:
   wireOpenEndSprite: {fileID: 21300000, guid: e7e81ba588f632643b6e4d39c1baaaf4, type: 3}
   wirePoweredColor: {r: 0.055802763, g: 0.6226415, b: 0.06959632, a: 0.95}
   wireUnpoweredColor: {r: 0.45, g: 0.47, b: 0.52, a: 0.85}
-  wirePreviewColor: {r: 1, g: 1, b: 1, a: 0.75}
+  wirePreviewColor: {r: 0.93530995, g: 0.8028257, b: 0.21554974, a: 0.75}
   wireOverflowColor: {r: 0.92, g: 0.35, b: 0.32, a: 0.55}
+  cellSprite: {fileID: 0}
   levelBackgroundSprite: {fileID: 0}
   movableIcon: {fileID: 21300000, guid: 4ae15d92bc7ed6f4480ac63aed2e1fb5, type: 3}
   immovableIcon: {fileID: 21300000, guid: b5c8598e6593e2b4eb4a203a56607480, type: 3}
@@ -31,3 +32,18 @@ MonoBehaviour:
   immovableIconColor: {r: 1, g: 1, b: 1, a: 1}
   mobilityIconSizeInCells: 0.8
   mobilityIconPaddingInCells: 0.12
+  captionDigits:
+  - {fileID: 21300000, guid: d8593b2706c9a924aaab52b48ac2723a, type: 3}
+  - {fileID: 21300000, guid: 7b1669be3a192af4bada1ab9c29b9525, type: 3}
+  - {fileID: 21300000, guid: 142e384d03119444fb04f3afe3e4608e, type: 3}
+  - {fileID: 21300000, guid: 6c1edc59912ea1349aeec3f96f218c4f, type: 3}
+  - {fileID: 21300000, guid: 7ecea9822db13004883128a61b4172d5, type: 3}
+  - {fileID: 21300000, guid: bf772aed7bc9e20458984f83b91f0039, type: 3}
+  - {fileID: 21300000, guid: bcb11be5c5b2e0a408928e87679f241c, type: 3}
+  - {fileID: 21300000, guid: 58a9f0210ede0014789f1ada24e985ba, type: 3}
+  - {fileID: 21300000, guid: ea54897cdaee4744ea2d84ebd5700eb8, type: 3}
+  - {fileID: 21300000, guid: 63430095c720bba4ebf9577d0a2810b6, type: 3}
+  captionDigitSize: 0.4
+  captionDigitSpacing: 0.05
+  captionDigitColor: {r: 1, g: 1, b: 1, a: 1}
+  captionSlashSprite: {fileID: 0}
