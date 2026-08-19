@@ -197,6 +197,19 @@ namespace MasterHouse
             if (!File.Exists(HubRoomNavigationPath)) { BuildHubRoomNavigation(HubRoomNavigationPath); changed = true; }
             if (!File.Exists(HubSceneOverlayPath)) { BuildHubSceneOverlay(HubSceneOverlayPath); changed = true; }
             if (!File.Exists(HubPath)) { BuildHub(HubPath); changed = true; }
+            else
+            {
+                // 主页面 2.0 重做（2026-08-20 用户定案：按新设计图全部替换）：
+                // 检测到 1.0 结构（页面上没有 2.0 才有的 OutGameHubChromeView）时整页重建覆盖。
+                // 1.0 那套壳的六个 HUD 区块在 2.0 版式里全部撤下，留着只会跟新壳叠在一起
+                var hubRoot = AssetDatabase.LoadAssetAtPath<GameObject>(HubPath);
+                var hubChrome = hubRoot != null ? hubRoot.GetComponent<OutGameHubChromeView>() : null;
+                if (hubChrome == null || hubChrome.timeCard == null || hubChrome.roomBody == null)
+                {
+                    BuildHub(HubPath);
+                    changed = true;
+                }
+            }
             if (!File.Exists(PanelPath)) { BuildSystemPanel(PanelPath); changed = true; }
             if (!File.Exists(HubImmersiveTogglePath)) { BuildHubImmersiveToggle(HubImmersiveTogglePath); changed = true; }
             if (!File.Exists(CalendarPanelPath)) { BuildCalendarPanel(CalendarPanelPath); changed = true; }
@@ -290,9 +303,8 @@ namespace MasterHouse
                          Settings2RowsNeedFix(view)));
             repaired |= RepairPrefab<OutGameExitPageView>(ExitPagePath, RepairExitPage);
             repaired |= RepairPrefab<OutGameSaveSlotView>(SaveSlotPath, RepairSaveSlot);
-            repaired |= RepairPrefab<OutGameHubView>(HubPath, RepairHub, view => view.topBar == null ||
-                view.taskCard == null || view.guestRail == null || view.rightDock == null ||
-                view.roomNavigation == null || view.sceneOverlay == null);
+            // 主页面：2.0 起旧壳六槽位为空是**正常态**，不能再拿它当「引用掉了」触发 RepairHub 回填——
+            // 那会把撤下的 1.0 HUD 全部重新塞回去。结构性升级由上面 EnsureMissingPrefabs 的旧结构检测负责
             repaired |= RepairPrefab<OutGameSystemPanelView>(PanelPath, RepairSystemPanel);
             // 家具摆放页：补一个可见的「收起」按钮（2026-08-20 用户要求：只加按钮，不动其他布局）。
             // 现在的 hideUiButton 藏在 LegacyHidden 里点不到；补一枚放在「完成放置」左侧并重绑引用
@@ -699,6 +711,10 @@ namespace MasterHouse
             view.actionLabel = Required<Text>(root.transform, "Action");
         }
 
+        /// <summary>
+        /// 1.0 旧壳装配：把六个 HUD 组件与页脚回填进主页面。
+        /// **2026-08-20 起不再调用**——2.0 壳没有这些区块（见 BuildHubChrome）。保留以备回滚。
+        /// </summary>
         private static void RepairHub(GameObject root, OutGameHubView view)
         {
             view.sceneRoot = RequiredTransform(root.transform, "SceneRoot") as RectTransform;
@@ -1442,10 +1458,155 @@ namespace MasterHouse
             refs.sceneRoot = Rect(root.transform, "SceneRoot", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             refs.chromeRoot = Rect(root.transform, "ChromeRoot", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             refs.modalRoot = Rect(root.transform, "ModalRoot", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            refs.footer = Label(refs.chromeRoot, "Footer", "NEW LIFE, NEW HOME · UI/UX CONCEPT", 12, new Color(1, 1, 1, .45f),
-                new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 12), new Vector2(1800, 26), TextAnchor.MiddleCenter, FontStyle.Normal);
-            EmbedHubComponents(refs);
+            // 2.0 主页面壳（2026-08-20）：1.0 的六个 HUD 组件与页脚不再内嵌（EmbedHubComponents 保留待回滚）
+            refs.chrome = BuildHubChrome(root, refs.chromeRoot);
             Save(root, path);
+        }
+
+        // ══════════ House 主页面壳（2.0 设计图） ══════════
+
+        private const string Main2Dir = "Assets/PC ui 2.0/主界面/";
+        private const string Placement2Dir = "Assets/PC ui 2.0/房间放置/";
+
+        private static Sprite Main2(string name) =>
+            AssetDatabase.LoadAssetAtPath<Sprite>(Main2Dir + name + ".png");
+
+        private static Sprite Placement2(string name) =>
+            AssetDatabase.LoadAssetAtPath<Sprite>(Placement2Dir + name + ".png");
+
+        /// <summary>2.0 壳的主色：数值与按钮文字用的那支墨蓝（与 ESC 菜单、图鉴页同一支）。</summary>
+        private static Color Chrome2Ink => Hex("4A6FA5");
+
+        /// <summary>2.0 壳的次色：小字说明（「装饰分」「声望值」这类抬头）。</summary>
+        private static Color Chrome2Sub => Hex("6B7F99");
+
+        /// <summary>
+        /// House 主页面壳（2026-08-20 按 2.0 设计图重做；素材 `PC ui 2.0/主界面` + `房间放置`，
+        /// 版式见 `Docs/待办工作流/主页面UI参考.png`）。八块，坐标按 1920×1080 直写：
+        ///
+        /// 左上时间牌（三档常显）/ 左侧图鉴·商店 / 右上装饰分·声望值 / 右下结束今日营业（二三档）/
+        /// 左下房间卡与布置房间（仅三档）。
+        ///
+        /// **每块都是 ChromeRoot 的直接子节点**：入场错峰（HubPage.AnimateHubIn）与档位浮入
+        /// （HubTierUiBinder）都按直接子节点逐块跑，套一层容器会退化成整块一起淡。
+        /// 1.0 的顶栏 / 任务卡 / 访客列表 / 右侧 dock / 房间导航 / 页脚 / 收起界面在 2.0 版式里全部撤下，
+        /// 对应 Prefab 与绑定文件仍保留（OutGameHubView 的旧槽位转为可选）。
+        /// </summary>
+        private static OutGameHubChromeView BuildHubChrome(GameObject pageRoot, RectTransform chromeRoot)
+        {
+            var refs = pageRoot.AddComponent<OutGameHubChromeView>();
+
+            // ── 左上 · 时间牌（624×350 → 204×114）──
+            refs.daySprite = Main2("白天");
+            refs.nightSprite = Main2("夜晚");
+            refs.timeCard = ChromeBlock(chromeRoot, "TimeCard", refs.daySprite, new Vector2(0, 1),
+                new Vector2(156, -118), new Vector2(204, 114), true, true, true, new Vector2(0, 22));
+            refs.clockLabel = Label(refs.timeCard.transform, "Clock", "14:35", 24, Chrome2Ink,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(30, 24), new Vector2(130, 34),
+                TextAnchor.MiddleLeft, FontStyle.Bold);
+            refs.dayLabel = Label(refs.timeCard.transform, "Day", "DAY-1", 36, Chrome2Ink,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(10, -24), new Vector2(170, 50),
+                TextAnchor.MiddleLeft, FontStyle.Bold);
+
+            // ── 左侧 · 图鉴（542×231 → 204×87）与商店（544×234 → 204×88）──
+            var codex = ChromeBlock(chromeRoot, "CodexButton", Main2("图鉴"), new Vector2(0, 1),
+                new Vector2(156, -287), new Vector2(204, 87), false, true, true, new Vector2(-24, 0));
+            refs.codexButton = SpriteButton(codex, Main2("图鉴"), Main2("图鉴-hover"));
+            var store = ChromeBlock(chromeRoot, "StoreButton", Main2("商店"), new Vector2(0, 1),
+                new Vector2(156, -402), new Vector2(204, 88), false, true, true, new Vector2(-24, 0));
+            refs.storeButton = SpriteButton(store, Main2("商店"), Main2("商店-hover"));
+
+            // ── 右上 · 装饰分 / 声望值（550×264 → 188×90，图标烘在素材左侧，文字排右侧）──
+            var decor = ChromeBlock(chromeRoot, "DecorationChip", Main2("装饰分"), new Vector2(1, 1),
+                new Vector2(-396, -95), new Vector2(188, 90), false, true, true, new Vector2(0, 22));
+            refs.decorationLabel = ValueChipLabels(decor, "装饰分", "1750");
+            var reputation = ChromeBlock(chromeRoot, "ReputationChip", Main2("声望值"), new Vector2(1, 1),
+                new Vector2(-156, -95), new Vector2(188, 90), false, true, true, new Vector2(0, 22));
+            refs.reputationLabel = ValueChipLabels(reputation, "声望值", "1750");
+
+            // ── 右下 · 结束今日营业（646×200 → 224×69，文字烘在素材里）──
+            var endDay = ChromeBlock(chromeRoot, "EndDayButton", Main2("结束-默认"), new Vector2(1, 0),
+                new Vector2(-157, 101), new Vector2(224, 69), false, true, true, new Vector2(0, -22));
+            refs.endDayButton = SpriteButton(endDay, Main2("结束-默认"), Main2("结束-hover"));
+
+            // ── 左下 · 房间卡与布置入口（仅第三档；卡与按钮共用 `房间放置/默认` 这张空白奶油框）──
+            var group = Rect(chromeRoot, "RoomGroup", new Vector2(0, 0), new Vector2(0, 0),
+                new Vector2(266, 196), new Vector2(412, 232));
+            TierMarker(group.gameObject, false, false, true, new Vector2(0, -24));
+            var body = Rect(group, "RoomBody", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            refs.roomBody = body.gameObject.AddComponent<CanvasGroup>();
+
+            var card = Image(body, "RoomCard", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                new Vector2(-86, 0), new Vector2(240, 214), Color.white);
+            card.sprite = Placement2("默认");
+            refs.roomNameLabel = Label(card.transform, "RoomName", "起居室", 30, Chrome2Ink,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 42), new Vector2(200, 52),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            refs.roomDecorationLabel = Label(card.transform, "RoomDecoration", "装饰分 0", 20, Chrome2Sub,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -18), new Vector2(200, 40),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+
+            var furnish = Image(body, "FurnishButton", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                new Vector2(118, -40), new Vector2(150, 134), Color.white);
+            furnish.sprite = Placement2("默认");
+            refs.furnishButton = SpriteButton(furnish, Placement2("默认"), Placement2("hover"));
+            Label(furnish.transform, "Label", "布置房间", 24, Chrome2Ink,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(130, 100),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+
+            return refs;
+        }
+
+        /// <summary>2.0 壳的一块：整图底板 + 档位显隐标记（<see cref="HubTierVisibility"/>）。</summary>
+        private static Image ChromeBlock(Transform parent, string name, Sprite sprite, Vector2 anchor,
+            Vector2 position, Vector2 size, bool exterior, bool overview, bool roomFocus, Vector2 floatOffset)
+        {
+            var image = Image(parent, name, anchor, anchor, position, size, Color.white);
+            image.sprite = sprite;
+            TierMarker(image.gameObject, exterior, overview, roomFocus, floatOffset);
+            return image;
+        }
+
+        private static void TierMarker(GameObject target, bool exterior, bool overview, bool roomFocus,
+            Vector2 floatOffset)
+        {
+            var marker = target.GetComponent<HubTierVisibility>();
+            if (marker == null) marker = target.AddComponent<HubTierVisibility>();
+            marker.visibleInExterior = exterior;
+            marker.visibleInOverview = overview;
+            marker.visibleInRoomFocus = roomFocus;
+            marker.floatOffset = floatOffset;
+        }
+
+        /// <summary>
+        /// 两态整图按钮。2.0 主页面这四对素材的默认态与悬停态**尺寸完全一致**
+        /// （542×231 / 544×234 / 646×200 / 506×452），所以直接走 Button 的 SpriteSwap——
+        /// 不需要对话选项那套二图叠放（那是因为它两张主体不等大，见 DialogueOptionView）。
+        /// </summary>
+        private static Button SpriteButton(Image frame, Sprite normal, Sprite hover)
+        {
+            var button = frame.gameObject.AddComponent<Button>();
+            button.targetGraphic = frame;
+            button.transition = Selectable.Transition.SpriteSwap;
+            button.spriteState = new SpriteState
+            {
+                highlightedSprite = hover,
+                pressedSprite = hover,
+                selectedSprite = normal,
+            };
+            AddTweenFeedback(button);
+            return button;
+        }
+
+        /// <summary>数值牌的两行字（抬头静态、数值由绑定层写）；素材左侧烘着图标，文字整体右移让位。</summary>
+        private static Text ValueChipLabels(Image chip, string caption, string sample)
+        {
+            Label(chip.transform, "Caption", caption, 16, Chrome2Sub,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(34, 16), new Vector2(110, 26),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+            return Label(chip.transform, "Value", sample, 26, Chrome2Ink,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(34, -14), new Vector2(110, 36),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
         }
 
         private static void BuildSystemPanel(string path)
@@ -3246,6 +3407,20 @@ namespace MasterHouse
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("[OutGameUI] 对话页已按 2.0 设计图重建。");
+        }
+
+        [MenuItem("Tools/MasterHouse/OutGame UI/重建主页面（2.0 设计图）")]
+        private static void RebuildHub2()
+        {
+            if (!EditorUtility.DisplayDialog("按 2.0 设计图重建主页面",
+                    "会覆盖 HouseHubPage 的现有布局（包括手动调整）。\n" +
+                    "1.0 的顶栏 / 任务卡 / 访客列表 / 右侧 dock / 房间导航 / 页脚不会再装配。确定继续吗？",
+                    "覆盖重建", "取消")) return;
+            EnsureFolder();
+            BuildHub(HubPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[OutGameUI] 主页面已按 2.0 设计图重建。");
         }
 
         [MenuItem("Tools/MasterHouse/OutGame UI/重建设置页（2.0 设计图）")]

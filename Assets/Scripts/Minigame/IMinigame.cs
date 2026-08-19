@@ -35,5 +35,15 @@ namespace MasterHouse
         /// </list>
         /// </summary>
         void Launch(MinigameLevelDef level, Action<int> onFinish, Action onAbort);
+
+        /// <summary>
+        /// ESC 语义扩展（2026-08-20 加局内暂停）：返回 true 表示本局自己消费了这次 ESC
+        /// ——比如开/关自己的暂停弹窗，壳这次就不弹栈。默认不消费，等同于旧行为（ESC = 关页面不结算）。
+        ///
+        /// 与 <see cref="IHouseOverlay.ConsumeEscape"/> 是同一套口径，只是再往下传了一层：
+        /// 壳收键 → 顶层叠加层 → 具体小游戏。小游戏**不要**自己去读 KeyCode.Escape，
+        /// 否则同一次按键会被两处各消费一遍。
+        /// </summary>
+        bool ConsumeEscape() => false;
     }
 }

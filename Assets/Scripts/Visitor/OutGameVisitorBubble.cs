@@ -7,20 +7,25 @@ using F = MasterHouse.HouseUIRuntime;
 namespace MasterHouse
 {
     /// <summary>
-    /// 访客头顶气泡（§9：单套气泡两种内容，不新建第二套）：
-    /// ①情绪符号：随机间隔浮现一个符号（♪ ？ ！ … ♥ 等），上飘一小段后消失，循环播放；
-    /// ②闲逛台词句子：由业务层冒泡调度器触发（ShowSentence），气泡加宽显示整句并按配置时长停留。
-    /// 挂在演员节点下自动跟随移动；符号内容由外部提供（随演员状态变化），返回空串表示本轮跳过。
+    /// 访客头顶气泡（§9）：一张美术贴图，**不显示任何文字**（2026-08-20 改版，原来的符号/整句都取消）。
+    /// 触发有两路，表现完全一样——淡入、上飘一小段、淡出：
+    /// ①自发冒泡：隔一段随机时间冒一次，冒不冒由外部谓词把关（返回 false = 这一轮跳过）；
+    /// ②业务冒泡：闲逛台词调度器触发（ShowFor），按配置时长停留。
+    /// 挂在演员节点下自动跟随移动。
     /// </summary>
     internal sealed class OutGameVisitorBubble : MonoBehaviour
     {
-        private const float EmoteWidth = 46f;
-        private const float SentenceMaxWidth = 320f;
+        /// <summary>
+        /// 气泡皮肤。**美术源在 Assets/PC ui 2.0/通用组件（toast）/聊天气泡.png**，
+        /// 这里加载的是它在 Resources 下的副本（口径同 common/Toast）——换图时两处一起换。
+        /// </summary>
+        private const string SkinPath = "OutGameUI/common/ChatBubble";
+        private const float BubbleSize = 60f;   // 显示边长（素材 200×200 方图，四周含发光留白）
         private const float FloatDistance = 5f;
 
-        private Func<string> emoteProvider;
+        /// <summary>「这一轮该不该冒泡」的外部谓词（演员按自身状态答；null = 从不自发冒泡）。</summary>
+        private Func<bool> canBubble;
         private CanvasGroup group;
-        private Text label;
         private RectTransform rect;
         private Vector2 basePosition;
         /// <summary>立绘头顶留白造成的下压量（演员按深度每帧喂）：气泡挂点跟着头走，不浮在半空。</summary>
@@ -39,53 +44,40 @@ namespace MasterHouse
         private bool showing;
         private float timer;      // 隐藏时=距下次浮现；显示时=剩余展示时长
 
-        public static OutGameVisitorBubble Create(Transform parent, Vector2 anchoredPosition, Func<string> emoteProvider)
+        public static OutGameVisitorBubble Create(Transform parent, Vector2 anchoredPosition, Func<bool> canBubble)
         {
             var panel = F.Panel(parent, "Bubble", new Vector2(.5f, 1), new Vector2(.5f, 1),
-                anchoredPosition, new Vector2(EmoteWidth, 42), new Color(.97f, .94f, .88f, .95f));
+                anchoredPosition, new Vector2(BubbleSize, BubbleSize), Color.white);
             panel.raycastTarget = false;
-            // 用底边做挂点：anchoredPosition.y 就是气泡与演员头顶的真实间距，
+            // 用底边做挂点：anchoredPosition.y 就是气泡尾巴与演员头顶的真实间距，
             // 不再因气泡高度而额外抬高半个气泡。
             panel.rectTransform.pivot = new Vector2(.5f, 0f);
-            F.Outline(panel.gameObject, new Color(.25f, .12f, .18f, .35f), new Vector2(1, -1));
+            var skin = Resources.Load<Sprite>(SkinPath);
+            if (skin == null) Debug.LogError($"[访客气泡] 缺少气泡皮肤 Resources/{SkinPath}，头顶将只剩一块白底");
+            panel.sprite = skin;
+            panel.type = Image.Type.Simple;   // 素材是整张图，不切九宫
+            panel.preserveAspect = true;
             var bubble = panel.gameObject.AddComponent<OutGameVisitorBubble>();
             bubble.rect = panel.rectTransform;
             bubble.basePosition = anchoredPosition;
-            bubble.label = F.Label(panel.transform, "Emote", "", 22, F.Hex("3F292E"), TextAnchor.MiddleCenter, FontStyle.Bold);
-            bubble.label.raycastTarget = false;
             bubble.group = F.Group(panel.gameObject, 0f);
             bubble.group.blocksRaycasts = false;
             bubble.group.interactable = false;
-            bubble.emoteProvider = emoteProvider;
+            bubble.canBubble = canBubble;
             bubble.timer = UnityEngine.Random.Range(2f, 7f);
             return bubble;
         }
 
-        /// <summary>显示一整句台词（闲逛冒泡，业务层触发）；打断当前符号气泡，宽度按文字长度自适应。</summary>
-        public void ShowSentence(string text, float holdSeconds)
+        /// <summary>
+        /// 按指定时长冒一次泡（闲逛台词调度器触发）：打断当前的自发气泡。
+        /// 台词内容已不再显示，业务层给的只剩「什么时候冒、冒多久」。
+        /// </summary>
+        public void ShowFor(float holdSeconds)
         {
-            if (label == null || string.IsNullOrEmpty(text)) return;
-            label.text = text;
-            label.fontSize = 16;
-            var width = Mathf.Clamp(34f + text.Length * 17f, EmoteWidth, SentenceMaxWidth);
-            rect.sizeDelta = new Vector2(width, 42f);
+            if (rect == null) return;
             showing = true;
             timer = Mathf.Max(1f, holdSeconds);
             Pop(timer);
-        }
-
-        /// <summary>
-        /// 立刻收起当前气泡（符号与句子共用）：演员在「有需求」那一刻调用，
-        /// 免得已经挂在头顶的气泡陪着感叹号一起停留（2026-08-19 反馈）。
-        /// </summary>
-        public void HideNow()
-        {
-            if (group == null || !showing) return;
-            showing = false;
-            timer = UnityEngine.Random.Range(2f, 4f);
-            rect.DOKill();
-            group.DOKill();
-            group.DOFade(0f, .2f).SetTarget(this).SetUpdate(true);
         }
 
         private void Update()
@@ -94,15 +86,11 @@ namespace MasterHouse
             if (timer > 0f) return;
             if (!showing)
             {
-                var emote = emoteProvider?.Invoke();
-                if (string.IsNullOrEmpty(emote))
+                if (canBubble == null || !canBubble())
                 {
                     timer = 2f; // 当前状态不冒泡，稍后再试
                     return;
                 }
-                label.text = emote;
-                label.fontSize = 22;
-                rect.sizeDelta = new Vector2(EmoteWidth, 42f);
                 showing = true;
                 var hold = UnityEngine.Random.Range(1.6f, 2.4f);
                 timer = hold;
@@ -117,7 +105,7 @@ namespace MasterHouse
             }
         }
 
-        /// <summary>淡入 + 上飘动效（符号与句子共用）。</summary>
+        /// <summary>淡入 + 上飘动效（两路触发共用）。</summary>
         private void Pop(float hold)
         {
             group.DOKill();

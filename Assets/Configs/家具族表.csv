@@ -14,6 +14,8 @@ orb_decoration,球形摆件,摆件,,桌面,否,2,2,12,SoundEffect/2_Pickup_26081
 potted_plant,盆栽植物,盆栽,,地面,否,2,2,12,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
 round_rug,圆形地毯,摆件,,地面,是,6,4,15,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
 vintage_square_clock,复古方钟,壁挂,,壁挂,否,2,2,12,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+bed_side,单人床,桌椅,躺下去就不想起来的床。,地面,否,7,2,40,SoundEffect/2_Pickup_260813_1,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
+bed_front,床头床,桌椅,床头是它的门面。,地面,否,5,2,40,SoundEffect/2_Pickup_260813_1,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
 vanity,梳妆台,桌椅,,地面,否,8,2,35,SoundEffect/2_Pickup_260813_1,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
 retro_radio,复古收音机,摆件,,桌面,否,2,2,12,SoundEffect/2_Pickup_260813_2,SoundEffect/2_Putdown_260813,否,3,64,56,50,146
 music_player,音乐播放器,摆件,,地面,否,6,2,20,SoundEffect/2_Pickup_260813_1,SoundEffect/2_Putdown_260813,否,3,64,56,50,146

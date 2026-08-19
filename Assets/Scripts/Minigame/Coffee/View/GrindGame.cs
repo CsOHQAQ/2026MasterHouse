@@ -42,8 +42,11 @@ namespace MasterHouse
 
         private readonly List<Obstacle> obstacles = new List<Obstacle>();
 
-        /// <summary>运行时生成的点（环轮廓 + 障碍弧段），存角度是为了分辨率变化时重摆。</summary>
-        private readonly List<(RectTransform rect, int ring, float angle)> dots =
+        /// <summary>
+        /// 运行时生成的障碍珠，存角度是为了分辨率变化时重摆。
+        /// 两条轨道**不在这里**——它们是底图上画好的两道细线，代码不再画环轮廓（2026-08-20 接美术）。
+        /// </summary>
+        private readonly List<(RectTransform rect, int ring, float angle)> beads =
             new List<(RectTransform, int, float)>();
 
         private float pointerAngle;
@@ -92,15 +95,14 @@ namespace MasterHouse
         public void Init()
         {
             score = level.GrindMaxScore;
-            view.grindDotTemplate.gameObject.SetActive(false);
+            view.obstacleBeadTemplate.gameObject.SetActive(false);
 
             // 先定初始位置再撒障碍：生成时直接拒绝落进安全区的候选，
             // 从构造上保证开局不贴脸（比生成后再找空当可靠——那样找不到时只能硬着头皮落子）
             pointerAngle = UnityEngine.Random.Range(0f, 360f);
 
             GenerateObstacles();
-            BuildRingDots();
-            BuildObstacleDots();
+            BuildObstacleBeads();
 
             insideObstacle = IsInsideObstacle(currentRing, pointerAngle); // 安全区保证下必为 false，留作兜底
             lastAreaSize = view.grindArea.rect.size;
@@ -214,7 +216,7 @@ namespace MasterHouse
             if ((size - lastAreaSize).sqrMagnitude <= 1f) return;
             lastAreaSize = size;
 
-            foreach (var (rect, ring, angle) in dots)
+            foreach (var (rect, ring, angle) in beads)
                 rect.anchoredPosition = PointOn(ring, angle);
             UpdatePointer();
         }
@@ -319,37 +321,37 @@ namespace MasterHouse
 
         // ══════════ 表现 ══════════
 
-        private void BuildRingDots()
+        /// <summary>
+        /// 把每段障碍串成一条红珠弧（2026-08-20 接美术）。
+        /// 珠子多大以模板为准（§16.2：Prefab 是布局唯一真相源），间距也照它的宽度算——
+        /// 系数小于 1，首尾略叠，串出来才是一条实心弧而不是一串分开的点。
+        /// 弧长按**这一环的实际半径**算：外环比内环长，珠子自然多几颗，两环的疏密才一致。
+        /// </summary>
+        private void BuildObstacleBeads()
         {
-            int count = Mathf.Max(8, view.ringDotCount);
-            for (int ring = 0; ring < 2; ring++)
-                for (int i = 0; i < count; i++)
-                    SpawnDot(ring, i * 360f / count, view.ringDotSize, view.ringColor);
-        }
+            float bead = Mathf.Max(1f, view.obstacleBeadTemplate.rectTransform.sizeDelta.x);
+            float step = Mathf.Max(1f, bead * view.obstacleBeadSpacing);
 
-        private void BuildObstacleDots()
-        {
             foreach (var o in obstacles)
             {
-                // 弧段用点串出来（无美术阶段的占位画法），点距约 5°
-                int steps = Mathf.Max(2, Mathf.CeilToInt(level.ObstacleArcDegrees / 5f));
+                float arcLength = RadiusOf(o.Ring) * level.ObstacleArcDegrees * Mathf.Deg2Rad;
+                int steps = Mathf.Max(1, Mathf.CeilToInt(arcLength / step));
                 float start = o.Center - level.ObstacleArcDegrees * 0.5f;
                 for (int s = 0; s <= steps; s++)
-                    SpawnDot(o.Ring, start + level.ObstacleArcDegrees * s / steps,
-                        view.obstacleDotSize, view.obstacleColor);
+                    SpawnBead(o.Ring, start + level.ObstacleArcDegrees * s / steps);
             }
         }
 
-        private void SpawnDot(int ring, float angle, float size, Color color)
+        /// <summary>克隆一颗障碍珠。尺寸与配色都不动——模板什么样，克隆件就什么样。</summary>
+        private void SpawnBead(int ring, float angle)
         {
-            var dot = UnityEngine.Object.Instantiate(view.grindDotTemplate, view.grindContentRoot, false);
-            dot.gameObject.SetActive(true);
-            dot.color = color;
-            dot.raycastTarget = false;
-            var rect = (RectTransform)dot.transform;
-            rect.sizeDelta = new Vector2(size, size);
+            var bead = UnityEngine.Object.Instantiate(
+                view.obstacleBeadTemplate, view.grindContentRoot, false);
+            bead.gameObject.SetActive(true);
+            bead.raycastTarget = false;
+            var rect = (RectTransform)bead.transform;
             rect.anchoredPosition = PointOn(ring, angle);
-            dots.Add((rect, ring, angle));
+            beads.Add((rect, ring, angle));
         }
 
         private void UpdatePointer()
@@ -359,13 +361,21 @@ namespace MasterHouse
                 view.pointerImage.color = stunRemaining > 0f ? view.pointerStunColor : view.pointerColor;
         }
 
-        private Vector2 PointOn(int ring, float angle)
+        /// <summary>
+        /// 某一环的半径。区域是按**外轨直径**摆的（锚在底图上，跟着底图缩放），
+        /// 所以外环比例就是 0.5、内环是两道细线的实测比 800/982 折半 —— 见 View 上那两个字段的注释。
+        /// </summary>
+        private float RadiusOf(int ring)
         {
             var rect = view.grindArea.rect;
             float shortSide = Mathf.Min(rect.width, rect.height);
-            float radius = shortSide * (ring == 1 ? view.outerRingRadiusFraction : view.innerRingRadiusFraction);
+            return shortSide * (ring == 1 ? view.outerRingRadiusFraction : view.innerRingRadiusFraction);
+        }
+
+        private Vector2 PointOn(int ring, float angle)
+        {
             float rad = angle * Mathf.Deg2Rad;
-            return new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * radius;
+            return new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * RadiusOf(ring);
         }
     }
 }

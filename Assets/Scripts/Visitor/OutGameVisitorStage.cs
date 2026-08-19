@@ -169,8 +169,8 @@ namespace MasterHouse
                 for (var k = 0; k < Mathf.Min(MaxAmbient, order.Count); k++)
                     stage.SpawnAmbient(order[k], 5f + k * 3.5f + UnityEngine.Random.Range(0f, 2f));
             }
-            // 闲逛台词直接订对话系统的气泡通道：内容选取（种族对话池 → 加权抽取 → recent 去重）
-            // 全在 DialogueManager 里，舞台只负责把成文的句子送到对应演员头顶
+            // 闲逛冒泡直接订对话系统的气泡通道：什么时候冒由 DialogueManager 定（§8），
+            // 舞台只负责把这一下推给对应演员（台词文字已取消，2026-08-20）
             if (GameManager.Instance != null && GameManager.Instance.DialogueManager != null)
                 GameManager.Instance.DialogueManager.BubbleRequested += stage.OnBubbleRequested;
             stage.RebuildFurnitureProxies(); // 家具深度代理（2026-08-16 访客与家具分层）
@@ -183,15 +183,16 @@ namespace MasterHouse
                 GameManager.Instance.DialogueManager.BubbleRequested -= OnBubbleRequested;
         }
 
-        /// <summary>闲逛台词冒泡（§8 满意后闲逛触发点）：推给对应演员的句子气泡展示。</summary>
+        /// <summary>闲逛冒泡（§8 满意后闲逛触发点）：推给对应演员冒一次头顶气泡（文字已取消，只用其时机）。</summary>
         private void OnBubbleRequested(VisitorInstance instance, string line)
         {
+            // line 只当触发信号：抽不到台词说明这一下不该冒（内容不再显示）
             if (instance == null || string.IsNullOrEmpty(line)) return;
             if (!businessActors.TryGetValue(instance.InstanceId, out var actor) || actor == null) return;
             // 气泡停留时长按 tick 配置（§4.5），表现层换算成秒（表现层豁免，§16.4）
             var ticksPerSecond = GameConfig.Instance != null ? Mathf.Max(1, GameConfig.Instance.TicksPerSecond) : 10;
             var holdTicks = Tuning != null ? Tuning.bubbleHoldTicks : 40;
-            actor.ShowLine(line, holdTicks / (float)ticksPerSecond);
+            actor.ShowBubble(holdTicks / (float)ticksPerSecond);
         }
 
         /// <summary>生成一位业务访客演员：出现在起居室入口区并**在门口等待接待**（请进来了才进屋，接待成功

@@ -16,6 +16,7 @@ namespace MasterHouse
         private readonly string notice;
 
         private OutGameHubView view;
+        private readonly HubChromeBinder chrome = new HubChromeBinder();
         private readonly HubTopBarBinder topBar = new HubTopBarBinder();
         private readonly HubTaskCardBinder taskCard = new HubTaskCardBinder();
         private readonly HubGuestRailBinder guestRail = new HubGuestRailBinder();
@@ -33,6 +34,13 @@ namespace MasterHouse
 
         /// <summary>当前相机视角档位（HubSceneBinder 按 camZoom 判定；初始相机即总览）。</summary>
         public EHubViewTier ViewTier { get; private set; } = EHubViewTier.Overview;
+
+        /// <summary>
+        /// 视口中心落在哪个**区域**（含底层大厅 <see cref="HubWorldGrid.Reception"/> 与 None）。
+        /// 与 <see cref="RoomIndex"/> 不同：那个只认业务房间、看到大厅时保持不变，
+        /// 左下房间卡需要分辨「正看着大厅」才有得判，所以另取一份。
+        /// </summary>
+        public int ViewportRegion => scene.ViewportRegion;
 
         /// <summary>当前选中的访客实例 id（任务卡与对话层共用；-1 = 未选中）。</summary>
         public int SelectedInstanceId { get; private set; } = -1;
@@ -60,9 +68,7 @@ namespace MasterHouse
         protected override void OnEnter()
         {
             view = Root != null ? Root.GetComponent<OutGameHubView>() : null;
-            if (view == null || view.sceneRoot == null || view.chromeRoot == null ||
-                view.topBar == null || view.taskCard == null || view.guestRail == null ||
-                view.rightDock == null || view.roomNavigation == null || view.sceneOverlay == null)
+            if (view == null || view.sceneRoot == null || view.chromeRoot == null || view.chrome == null)
             {
                 Debug.LogError("[HouseUI] Hub Prefab 缺失或槽位不完整，页面无法呈现（§16.2 不回退代码布局）：" +
                                OutGamePrefabResourcePaths.Hub);
@@ -70,13 +76,15 @@ namespace MasterHouse
             }
 
             scene.Build(view, this);
-            topBar.Bind(view.topBar, this, view.chromeRoot);
-            taskCard.Bind(view.taskCard, this);
-            guestRail.Bind(view.guestRail, this);
-            rightDock.Bind(view.rightDock, this, view.chromeRoot);
-            roomNav.Bind(view.roomNavigation, this);
+            chrome.Bind(view.chrome, this);
+            // 1.0 旧壳六区块（2026-08-20 起默认不装配，见 OutGameHubView）：槽位还在才绑，没有就整块不呈现。
+            // 「收起界面」开关同批撤下（BuildImmersiveToggle 保留未调用，回滚时接回即可）
+            if (view.topBar != null) topBar.Bind(view.topBar, this, view.chromeRoot);
+            if (view.taskCard != null) taskCard.Bind(view.taskCard, this);
+            if (view.guestRail != null) guestRail.Bind(view.guestRail, this);
+            if (view.rightDock != null) rightDock.Bind(view.rightDock, this, view.chromeRoot);
+            if (view.roomNavigation != null) roomNav.Bind(view.roomNavigation, this);
             tierUi.Bind(view, this); // 档位显隐：须在 AnimateHubIn 之前绑（原位采样要赶在入场动效挪位前）
-            BuildImmersiveToggle(view.chromeRoot);
             if (view.footer != null)
                 view.footer.text = "NEW LIFE, NEW HOME · UI/UX CONCEPT                                      ESC 返回 · ↑↓←→ 移动房间 · I 仓库";
             HouseUIUtil.ApplyFallbackFont(Root);
@@ -113,6 +121,7 @@ namespace MasterHouse
             // 离开 Hub 时丢弃未消化的小游戏请求，免得下次进来冷不丁弹一局出来
             MinigameOverlay.DiscardPending();
             GameManager.Instance.HouseClockManager.SetStopReason(EClockStopReason.OffHubPage, true);
+            chrome.Dispose();
             topBar.Dispose();
             scene.Dispose(); // 推镜补间兜底回收（DOTween 安全模式 missing target 的来源之一）
         }
@@ -148,6 +157,7 @@ namespace MasterHouse
             if (view == null) return;
             scene.RefreshAfterFurniture();
             scene.RebuildStage();
+            chrome.RefreshRoom();
             guestRail.Refresh();
             taskCard.Refresh();
             Toast("GM · 已恢复所有状态到初始态");
@@ -182,6 +192,7 @@ namespace MasterHouse
         public override void OnUpdate()
         {
             if (view == null || furnitureModeOpen) return;
+            chrome.Tick();
             topBar.Tick();
             scene.UpdateDayLight(); // 昼夜光照随时钟流动（叠加层开着时 HandleInput 被拦，这里不受影响）
         }
@@ -249,6 +260,7 @@ namespace MasterHouse
         public void NotifyCameraRoomChanged(int index)
         {
             RoomIndex = index;
+            chrome.RefreshRoom();
             roomNav.Refresh();
         }
 
@@ -467,6 +479,7 @@ namespace MasterHouse
                 RestoreImmersiveToggle(); // SnapChromeHidden 把它也压掉了，SetImmersive 不管它
                 // 旧壳此处落档；存档功能移除（§16.5），仅重烘焙背景与热点
                 scene.RefreshAfterFurniture();
+                chrome.RefreshRoom(); // 摆放变化会改这间房的装饰分，而按房间的装饰分不广播事件
                 SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：退出家具模式
             }, () => StoreOverlay.Open(UI, OpenFurnitureMode)); // 「购买家具」：开商店，关店后递归退回摆放模式
             if (!opened)
@@ -539,7 +552,11 @@ namespace MasterHouse
                 immersiveLabel.text = on ? "展开界面\n<size=12>ESC</size>" : "收起界面";
         }
 
-        /// <summary>「收起界面」开关按钮：模板 Prefab 实例化，缺失报错（§16.2）。</summary>
+        /// <summary>
+        /// 「收起界面」开关按钮：模板 Prefab 实例化，缺失报错（§16.2）。
+        /// **2026-08-20 起不再调用**——2.0 主页面壳没有这颗按钮（四周本来就只剩六块，且档位会自己收）。
+        /// SetImmersive 那套机制原样保留，回滚时在 OnEnter 里把这行接回去即可。
+        /// </summary>
         private void BuildImmersiveToggle(Transform root)
         {
             var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.HubImmersiveToggle);

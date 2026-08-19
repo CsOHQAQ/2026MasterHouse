@@ -20,15 +20,37 @@
 | `ExitPage.prefab` | 退出确认完整界面 | 页面说明、返回按钮、退出确认按钮 |
 | `PaperPage.prefab` | 公共纸张外壳 | 当前承载「存档功能重构中」占位页（§16.5） |
 | `SaveSlot.prefab` | 单个存档位 | 编号、状态、信息、操作按钮的内部排版（存档回归前闲置） |
-| `HouseHubPage.prefab` | House 主界面外壳 | Scene、Chrome、Modal 三层及页脚 |
+| `HouseHubPage.prefab` | House 主界面外壳（2026-08-20 换 2.0 设计图） | Scene、Chrome、Modal 三层 + Chrome 层里的八块 2.0 壳 |
 | `SystemPanel.prefab` | 右侧功能面板外壳 | 遮罩、面板宽度、Header 与 Content 区域 |
 | `MarketPage/MarketPanel/MarketCard.prefab` | 商城整页 / 内容 / 货架卡模板 | 钱包区、说明、卡片排布与三态样式 |
 | `PlaceholderPage/PlaceholderPanel.prefab` | 「尚未开放」统一占位页 | 仓库/个人/通讯录共用（§16.8） |
 | `DeviceCard/ArchiveCard/JournalArticle/AchievementRow.prefab` | 面板内动态列表项模板 | 单条目的排版与配色 |
 
-## House HUD 组件 Prefab
+## House 主界面 2.0 壳（2026-08-20）
 
-`HouseHubPage.prefab` 会嵌套以下组件，既可以单独打开组件 Prefab 调整，也可以在页面 Prefab 中调整实例位置：
+`HouseHubPage.prefab` 的 `ChromeRoot` 下直接放着八块，全部可在页面 Prefab 里调位置尺寸：
+
+| 节点 | 内容 |
+| --- | --- |
+| `TimeCard` | 时间牌：`Clock`（HH:MM）+ `Day`（DAY-N）；底板按时段在白天/夜晚两张素材间换图 |
+| `CodexButton` / `StoreButton` | 左侧两颗整图按钮（文字烘在素材里，无需改文本） |
+| `DecorationChip` / `ReputationChip` | 右上两块数值牌：`Caption` 静态抬头 + `Value` 数值 |
+| `EndDayButton` | 右下「结束今日营业」 |
+| `RoomGroup` → `RoomBody` → `RoomCard` / `FurnishButton` | 左下房间卡与「布置房间」，仅第三档可见 |
+
+**改哪一块在哪个相机档位出现 = 改 Inspector**：每块根上的 `HubTierVisibility` 勾选三个档位，
+并可调隐藏时的浮动偏移与时长。代码里没有任何显隐判断，不要往 `HubChromeBinder` 里加。
+
+根节点上的 `OutGameHubChromeView` 是 Prefab 与代码之间的唯一契约，不要删；
+`daySprite` / `nightSprite` 两个 Sprite 槽是时间牌换图的来源，留空则底板不随昼夜变化。
+
+`Tools/MasterHouse/OutGame UI/重建主页面（2.0 设计图）` 会带确认弹窗覆盖重建整页。
+
+## House HUD 组件 Prefab（1.0，2026-08-20 起不再装配）
+
+下列组件在 2.0 版式里全部撤下，Prefab 与绑定代码仍保留以备回滚；
+`HouseHubPage.prefab` 已不再嵌套它们，`OutGameHubView` 上对应槽位留空是正常态。
+若要接回，在生成器里改回 `EmbedHubComponents` 并重建主页面：
 
 | Prefab | 对应区域 |
 | --- | --- |
