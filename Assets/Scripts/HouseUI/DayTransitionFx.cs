@@ -172,6 +172,17 @@ namespace MasterHouse
         /// </summary>
         private static string BuildBody(VisitorDaySummary summary)
         {
+            // 对话奖励多数日子为 0，只在有变动时占一行；净值可正可负，带符号显示
+            var dialogueLine = string.Empty;
+            if (summary.DialogueCurrencyEarned != 0 || summary.DialogueReputationEarned != 0)
+            {
+                dialogueLine = "对话奖励　";
+                if (summary.DialogueCurrencyEarned != 0)
+                    dialogueLine += $"<color=#D4A46B>货币 {summary.DialogueCurrencyEarned:+0;-0}</color>　";
+                if (summary.DialogueReputationEarned != 0)
+                    dialogueLine += $"<color=#74D8D1>声望 {summary.DialogueReputationEarned:+0;-0}</color>";
+                dialogueLine += "\n";
+            }
             return
                 $"完成服务　{summary.ServedTotal} 位" +
                 $"（完美 {summary.ServedBySatisfaction[(int)EServeSatisfaction.Perfect]}" +
@@ -183,6 +194,7 @@ namespace MasterHouse
                 $"<color=#D4A46B>服务奖励 +{summary.CurrencyEarned:N0}</color>　" +
                 $"<color=#D4A46B>客人小费 +{summary.TipEarned:N0}</color>　" +
                 $"<color=#74D8D1>声望 +{summary.ReputationEarned}</color>\n" +
+                dialogueLine +
                 "<size=14>以上均为当日逐次结算的累计，日结不重复计算。</size>";
         }
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace MasterHouse
@@ -58,6 +59,12 @@ namespace MasterHouse
         private readonly List<CircuitPaletteItemView> paletteItems = new List<CircuitPaletteItemView>();
         private readonly List<NodeDef> paletteDefs = new List<NodeDef>();
 
+        // ── 件库拖放：正在被拖的件与跟手图标 ──
+        private NodeDef paletteDragDef;
+        private Image paletteDragIcon;
+        private int paletteDragIdleFrames;
+
+        private Camera uiCamera;
         private Vector2 lastBoardAreaSize;
         private Sprite defaultLevelBackgroundSprite;
         private Color defaultLevelBackgroundColor;
@@ -112,7 +119,8 @@ namespace MasterHouse
             // 万一仍不准，Update 里的尺寸变化检测会在下一帧纠正（它同时也是分辨率变化的处理路径）
             Canvas.ForceUpdateCanvases();
 
-            board = new CircuitBoard(levels[0], levelManager, linkManager, view, ResolveUiCamera());
+            uiCamera = ResolveUiCamera();
+            board = new CircuitBoard(levels[0], levelManager, linkManager, view, uiCamera);
             board.LayoutChanged += Refresh;
             board.DrawingChanged += RefreshLinkBudget;
 
@@ -133,6 +141,19 @@ namespace MasterHouse
                 lastBoardAreaSize = size;
                 board.LayoutRoots();
                 board.RebuildAll();
+            }
+
+            // 件库拖放的兜底：松手事件没送到（拖动中丢了焦点等）时自己收摊，
+            // 否则跟手图标会一直粘在指针上。**留两帧宽限**——EventSystem 与本 Update 的先后顺序不定，
+            // 松开那一帧完全可能先看到「左键已抬起」、后收到 OnEndDrag，抢在前面取消会把这次落子吃掉
+            if (paletteDragDef != null)
+            {
+                if (Input.GetMouseButton(0)) paletteDragIdleFrames = 0;
+                else if (++paletteDragIdleFrames > 2)
+                {
+                    CancelPaletteDrag();
+                    board.SetPendingPlacement(null);
+                }
             }
 
             // 小结面板开着时不接受棋盘操作。**面板挡不住棋盘**——棋盘的命中判定走
@@ -181,6 +202,9 @@ namespace MasterHouse
             currentIndex = Mathf.Clamp(index, 0, levels.Count - 1);
             level = levels[currentIndex];
 
+            // 件库条目马上要被重建：拖着的那个条目一旦销毁就再也发不出 OnEndDrag，
+            // 手势状态与跟手图标会永远卡住，所以先自己收尾（board 的选中态由 SetLevel 一并清）
+            CancelPaletteDrag();
             RefreshLevelBackground();
 
             board.SetLevel(level);
@@ -465,6 +489,11 @@ namespace MasterHouse
                 if (item.label != null)
                     item.label.text = string.IsNullOrEmpty(def.DisplayName) ? def.name : def.DisplayName;
 
+                // 拖到棋盘上摆放。条目本来就是运行时克隆的，手势组件跟着在这里挂——
+                // 模板 Prefab 上不放，免得同一件事有两个来源（§16.2 禁止双实现）
+                item.gameObject.AddComponent<CircuitPaletteDragHandler>()
+                    .Init(def, OnPaletteDragBegin, OnPaletteDragMove, OnPaletteDragEnd);
+
                 ConfigurePaletteItem(item, def);
 
                 paletteItems.Add(item);
@@ -477,6 +506,104 @@ namespace MasterHouse
             if (!running || summaryOpen) return;
             // 再点一次同一个 = 取消选中
             board.SetPendingPlacement(board.PendingPlacement == def ? null : def);
+        }
+
+        // ══════════ 件库拖放（按住件库条目拖到棋盘上松手即摆件）══════════
+        //
+        // 与原有的「先点件库、再点棋盘」两段式并存，不是替换：
+        // 点选适合连摆同一种件，拖放适合一次性放一件，玩家用哪种都行。
+        //
+        // 落子判定一行都没有重写：拖动期间把它当成一次**临时选中**（board.SetPendingPlacement），
+        // 于是幽灵预览绿/红、件库高亮、「这里放不下」等全部复用点选那一套；
+        // 唯一的区别是结束方式——松手即落子并解除选中。
+
+        /// <summary>拖动开始：件库还有余量才拿得起来。</summary>
+        private void OnPaletteDragBegin(NodeDef def, PointerEventData eventData)
+        {
+            if (!running || summaryOpen || def == null) return;
+            if (!levelManager.CanBuild(level, def))
+            {
+                board.ShowMessage("这种中转件已经用完了"); // 与点选落子同一句：玩家不必区分自己用了哪种手势
+                return;
+            }
+
+            paletteDragDef = def;
+            paletteDragIdleFrames = 0;
+            board.SetPendingPlacement(def);
+            ShowDragIcon(def);
+            MoveDragIcon(eventData);
+        }
+
+        private void OnPaletteDragMove(PointerEventData eventData)
+        {
+            if (paletteDragDef == null) return;
+            MoveDragIcon(eventData);
+        }
+
+        /// <summary>
+        /// 松手：落在画布格上就摆件，落在别处（件库自身、界外、按钮上）**静默取消**——
+        /// 拖出去又拖回来是玩家的反悔动作，弹「这里放不下」反而像是操作失败了。
+        /// </summary>
+        private void OnPaletteDragEnd(PointerEventData eventData)
+        {
+            if (paletteDragDef == null) return;
+
+            var def = paletteDragDef;
+            CancelPaletteDrag();
+            if (running && !summaryOpen) board.TryPlaceAt(def, eventData.position);
+            board.SetPendingPlacement(null); // 一次拖放只摆一件，不像点选那样保持选中
+        }
+
+        /// <summary>收掉拖动手势本身（状态 + 跟手图标）。棋盘的选中态由调用方按场景自己决定。</summary>
+        private void CancelPaletteDrag()
+        {
+            paletteDragDef = null;
+            if (paletteDragIcon != null) paletteDragIcon.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// 跟手图标：拖动期间贴着指针画一份节点图标，**尺寸按当前棋盘格算**，
+        /// 玩家从件库走到落点的这一路上都看得见自己拿着什么、它要占多大。
+        ///
+        /// 运行时创建而不是进 Prefab：§16.2 管的是**布局**，而它是一次性的指针装饰，
+        /// 尺寸取决于当前关卡解算出的格子大小，Prefab 无从预知——与棋盘上那些
+        /// 运行时绘制的格子、幽灵预览同类（见 CircuitBoard 类注释）。
+        /// </summary>
+        private void ShowDragIcon(NodeDef def)
+        {
+            if (paletteDragIcon == null)
+            {
+                var go = new GameObject("PaletteDragIcon", typeof(RectTransform), typeof(Image));
+                go.layer = 5;
+                var rect = (RectTransform)go.transform;
+                rect.SetParent(view.transform, false);
+                rect.anchorMin = rect.anchorMax = Vector2.zero; // 位置按页面左下角算，与页面自身 pivot 解耦
+                rect.pivot = new Vector2(.5f, .5f);
+                paletteDragIcon = go.GetComponent<Image>();
+                paletteDragIcon.raycastTarget = false; // 压在指针底下，开着射线会把底下的 UI 全挡掉
+                paletteDragIcon.preserveAspect = true;
+            }
+
+            paletteDragIcon.sprite = def.FunctionIconSprite;
+            var tint = def.IconColor;
+            paletteDragIcon.color = new Color(tint.r, tint.g, tint.b, tint.a * .85f); // 半透：是"拿着"不是"已放下"
+
+            var shape = ShapeSize(def);
+            paletteDragIcon.rectTransform.sizeDelta = new Vector2(shape.x, shape.y) * board.CellSize;
+            paletteDragIcon.transform.SetAsLastSibling(); // 压在教学栏与按钮条之上
+            paletteDragIcon.gameObject.SetActive(true);
+        }
+
+        private void MoveDragIcon(PointerEventData eventData)
+        {
+            if (paletteDragIcon == null) return;
+
+            var page = (RectTransform)view.transform;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    page, eventData.position, uiCamera, out var local))
+                return;
+            // 局部坐标以 pivot 为原点，锚点却在左下角：减去矩形左下角才对得上
+            paletteDragIcon.rectTransform.anchoredPosition = local - page.rect.min;
         }
 
         private void RefreshPalette()
@@ -572,29 +699,30 @@ namespace MasterHouse
 
         private static Vector2 PalettePreviewSize(NodeDef def, CircuitUIStyleConfig style)
         {
-            int width = 1;
-            int height = 1;
-            var shape = def != null ? def.Shape : null;
-            if (shape?.Grids != null && shape.Grids.Count > 0)
-            {
-                int minX = shape.Grids[0].DeltaPosition.x;
-                int maxX = minX;
-                int minY = shape.Grids[0].DeltaPosition.y;
-                int maxY = minY;
-                foreach (var grid in shape.Grids)
-                {
-                    minX = Mathf.Min(minX, grid.DeltaPosition.x);
-                    maxX = Mathf.Max(maxX, grid.DeltaPosition.x);
-                    minY = Mathf.Min(minY, grid.DeltaPosition.y);
-                    maxY = Mathf.Max(maxY, grid.DeltaPosition.y);
-                }
-                width = maxX - minX + 1;
-                height = maxY - minY + 1;
-            }
+            var shape = ShapeSize(def);
+            float scale = Mathf.Min(style.palettePiecePreviewMaxWidth / shape.x,
+                                    style.palettePiecePreviewMaxHeight / shape.y);
+            return new Vector2(shape.x * scale, shape.y * scale);
+        }
 
-            float scale = Mathf.Min(style.palettePiecePreviewMaxWidth / width,
-                                    style.palettePiecePreviewMaxHeight / height);
-            return new Vector2(width * scale, height * scale);
+        /// <summary>节点占格形状的外接格数。空 Shape 按 1×1 处理，只为不让调用方除零。</summary>
+        private static Vector2Int ShapeSize(NodeDef def)
+        {
+            var shape = def != null ? def.Shape : null;
+            if (shape?.Grids == null || shape.Grids.Count == 0) return Vector2Int.one;
+
+            int minX = shape.Grids[0].DeltaPosition.x;
+            int maxX = minX;
+            int minY = shape.Grids[0].DeltaPosition.y;
+            int maxY = minY;
+            foreach (var grid in shape.Grids)
+            {
+                minX = Mathf.Min(minX, grid.DeltaPosition.x);
+                maxX = Mathf.Max(maxX, grid.DeltaPosition.x);
+                minY = Mathf.Min(minY, grid.DeltaPosition.y);
+                maxY = Mathf.Max(maxY, grid.DeltaPosition.y);
+            }
+            return new Vector2Int(maxX - minX + 1, maxY - minY + 1);
         }
 
         /// <summary>用主题中的数字 SpriteSheet 显示当前剩余可摆数量；缺图时才退回旧文本。</summary>

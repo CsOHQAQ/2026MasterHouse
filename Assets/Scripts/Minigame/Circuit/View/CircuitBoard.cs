@@ -72,8 +72,11 @@ namespace MasterHouse
         /// <summary>正在描的线长度变了：只有导线预算那一个标签要重刷，别走整套 <see cref="LayoutChanged"/>。</summary>
         public event Action DrawingChanged;
 
-        /// <summary>玩家当前从件库选中的中转件；null = 没选。</summary>
+        /// <summary>玩家当前从件库选中的中转件；null = 没选。件库拖放期间也走它，预览与高亮共用一套。</summary>
         public NodeDef PendingPlacement => pendingPlacement;
+
+        /// <summary>当前格子边长（像素）。跟随关卡行列数与分辨率变化，件库的跟手图标按它取尺寸。</summary>
+        public float CellSize => cellSize;
 
         /// <summary>正在描的这条线已经占了几格，没在描线时为 0。
         /// **含起点接线格**——与 <see cref="LinkManager.TryCreateLink"/> 的预算口径一致（§8.3）。</summary>
@@ -168,11 +171,15 @@ namespace MasterHouse
 
         /// <summary>鼠标 → 棋盘格；指针不在棋盘范围内时返回 false。</summary>
         private bool TryGetPointerCell(out Vector2Int cell, out Vector2 offsetInCell)
+            => TryGetCellAt(Input.mousePosition, out cell, out offsetInCell);
+
+        /// <summary>任意屏幕坐标 → 棋盘格。件库拖放的落点判定也走这里，坐标换算只此一份。</summary>
+        private bool TryGetCellAt(Vector2 screenPosition, out Vector2Int cell, out Vector2 offsetInCell)
         {
             cell = default;
             offsetInCell = default;
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    view.gridRoot, Input.mousePosition, uiCamera, out var local))
+                    view.gridRoot, screenPosition, uiCamera, out var local))
                 return false;
 
             var fx = local.x / cellSize;
@@ -359,25 +366,33 @@ namespace MasterHouse
             LayoutChanged?.Invoke();
         }
 
+        /// <summary>点选落子：摆完保持选中，可以连摆同一种件。</summary>
         private void TryPlacePending(Vector2Int cell)
         {
-            if (!levelManager.CanBuild(level, pendingPlacement))
-            {
-                ShowMessage("这种中转件已经用完了");
-                return;
-            }
-            if (!levelManager.CanPlaceNode(level, pendingPlacement, cell))
-            {
-                ShowMessage("这里放不下");
-                return;
-            }
-            levelManager.PlaceNode(level, pendingPlacement, cell);
-            RebuildNodes();
-            LayoutChanged?.Invoke();
+            if (!TryPlace(pendingPlacement, cell)) return;
 
             // 摆满上限就自动取消选中，免得玩家一直点空气
             if (!levelManager.CanBuild(level, pendingPlacement))
                 SetPendingPlacement(null);
+        }
+
+        /// <summary>把件落到 cell（作为 Origin）。失败原因一律在界面上说清楚。</summary>
+        private bool TryPlace(NodeDef def, Vector2Int cell)
+        {
+            if (!levelManager.CanBuild(level, def))
+            {
+                ShowMessage("这种中转件已经用完了");
+                return false;
+            }
+            if (!levelManager.CanPlaceNode(level, def, cell))
+            {
+                ShowMessage("这里放不下");
+                return false;
+            }
+            levelManager.PlaceNode(level, def, cell);
+            RebuildNodes();
+            LayoutChanged?.Invoke();
+            return true;
         }
 
         private void HandleRightButton(bool overBoard, Vector2Int cell)
@@ -471,6 +486,17 @@ namespace MasterHouse
         {
             pendingPlacement = def;
             LayoutChanged?.Invoke(); // 件库高亮跟着变
+        }
+
+        /// <summary>
+        /// 把件落在给定屏幕坐标所在的格上（件库拖放松手时调）。
+        /// 落点不在画布上直接返回 false 且**不提示**——那是玩家把件拖回去的反悔动作，不是操作失败。
+        /// </summary>
+        public bool TryPlaceAt(NodeDef def, Vector2 screenPosition)
+        {
+            if (def == null) return false;
+            if (!TryGetCellAt(screenPosition, out var cell, out _)) return false;
+            return TryPlace(def, cell);
         }
 
         // ═══════════ 渲染 ═══════════

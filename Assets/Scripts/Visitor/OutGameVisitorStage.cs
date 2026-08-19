@@ -209,12 +209,28 @@ namespace MasterHouse
                 isAmbient: false, spawnDelay: walkIn ? UnityEngine.Random.Range(0f, .6f) : delay,
                 RandomEntryPoint(HubWorldGrid.Reception), frontPoint, RandomWalkPoint, EntryArea,
                 () => onGuestClicked?.Invoke(instanceId), null,
-                spawnInside: !walkIn, startRoom: HubWorldGrid.Reception);
+                spawnInside: !walkIn, startRoom: HubWorldGrid.Reception,
+                noTalkReason: () => TalkStateOf(instanceId));
             if (actor == null) return;
             actor.SyncBusinessState(instance.State);
             AttachDrag(actor, instanceId);
             actors.Add(actor);
             businessActors[instanceId] = actor;
+        }
+
+        /// <summary>
+        /// 「现在点他有没有对话」——演员每帧问这一句，用来决定头顶标记亮不亮、名牌怎么写。
+        /// 判据只有 VisitorManager.NoTalkReason 一处（与 Hub 的 Toast、访客卡同源）。
+        ///
+        /// 实例已离场（演员还在走向门口）时 Find 返回 null，NoTalkReason 照口径给非 None，标记自然收起。
+        /// 退出播放模式期间 GameManager 可能先没，兜一手免得演员的 Update 报空引用。
+        /// </summary>
+        private static VisitorManager.ENoTalkReason TalkStateOf(int instanceId)
+        {
+            var visitor = GameManager.Instance != null ? GameManager.Instance.VisitorManager : null;
+            return visitor == null
+                ? VisitorManager.ENoTalkReason.Wandering
+                : visitor.NoTalkReason(visitor.Find(instanceId));
         }
 
         // ── 拖拽换房（§16.4：拖动只改表现坐标，松手经页面回调走业务方法）──

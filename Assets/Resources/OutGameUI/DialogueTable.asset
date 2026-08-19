@@ -745,15 +745,15 @@ MonoBehaviour:
         steps:
         - kind: 0
           line:
-            speaker: 0
+            speaker: 1
             text: "\u60A8\u7A0D\u7B49\u4E0B\uFF0C\u6211\u5E2E\u60A8\u627E\u627E\u5408\u9002\u7684\u623F\u95F4\u3002"
-            portraitId: "wolf_\u5E73\u9759"
+            portraitId: "goat_\u5E73\u9759"
           actions: []
           sourceRow: 459
         - kind: 0
           line:
             speaker: 0
-            text: "\u55EF\u5462\uFF01\u6211\u7B49\u4F60\uFF01"
+            text: "\u8BF7\u5FEB\u70B9\uFF0C\u6211\u7684\u65F6\u95F4\u5F88\u5B9D\u8D35\u3002"
             portraitId: "wolf_\u5E73\u9759"
           actions: []
           sourceRow: 460
@@ -769,7 +769,7 @@ MonoBehaviour:
         portraitId: "ox_\u5E73\u9759"
       actions: []
       options: []
-      sourceRow: 532
+      sourceRow: 534
     - kind: 0
       line:
         speaker: 1
@@ -777,7 +777,7 @@ MonoBehaviour:
         portraitId: "goat_\u5E73\u9759"
       actions: []
       options: []
-      sourceRow: 533
+      sourceRow: 535
     - kind: 2
       line:
         speaker: 0
@@ -796,21 +796,21 @@ MonoBehaviour:
             text: "\u6211\u6CA1\u6709\u4EC0\u4E48\u7279\u6B8A\u9700\u6C42\uFF0C\u5B89\u9759\u5C31\u597D\u3002"
             portraitId: "ox_\u5E73\u9759"
           actions: []
-          sourceRow: 537
+          sourceRow: 539
         - kind: 0
           line:
             speaker: 1
             text: "\u5DF2\u7ECF\u5E2E\u60A8\u5B89\u6392\u597D\u4E86\uFF0C\u8FD9\u662F\u623F\u5361\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 538
+          sourceRow: 540
         - kind: 0
           line:
             speaker: 0
             text: "\u8C22\u8C22\u3002\uFF08\u56DB\u5904\u5F20\u671B\uFF09"
             portraitId: "ox_\u5E73\u9759"
           actions: []
-          sourceRow: 539
+          sourceRow: 541
         - kind: 1
           line:
             speaker: 0
@@ -819,8 +819,8 @@ MonoBehaviour:
           actions:
           - func: Accept
             args: []
-          sourceRow: 540
-        sourceRow: 536
+          sourceRow: 542
+        sourceRow: 538
       - text: "\u6682\u4E0D\u63A5\u5F85"
         conditions: []
         steps:
@@ -832,22 +832,22 @@ MonoBehaviour:
           actions:
           - func: Reject
             args: []
-          sourceRow: 543
+          sourceRow: 545
         - kind: 0
           line:
             speaker: 0
             text: "\u975E\u5E38\u62B1\u6B49\uFF0C\u76EE\u524D\u6CA1\u6709\u80FD\u591F\u6EE1\u8DB3\u60A8\u8981\u6C42\u7684\u623F\u95F4\u3002"
             portraitId: "goat_\u4F24\u5FC3"
           actions: []
-          sourceRow: 544
+          sourceRow: 546
         - kind: 0
           line:
             speaker: 0
             text: "\u597D\u7684\uFF0C\u4E0D\u8FC7\u4E00\u65E6\u6709\uFF0C\u8BF7\u7ACB\u9A6C\u901A\u77E5\u6211\u54DE\u3002"
             portraitId: "ox_\u4F24\u5FC3"
           actions: []
-          sourceRow: 545
-        sourceRow: 542
+          sourceRow: 547
+        sourceRow: 544
       - text: "\uFF08\u5148\u60F3\u4E00\u4E0B\uFF09"
         conditions: []
         steps:
@@ -857,17 +857,17 @@ MonoBehaviour:
             text: "\u60A8\u7A0D\u7B49\u4E0B\uFF0C\u6211\u5E2E\u60A8\u627E\u627E\u5408\u9002\u7684\u623F\u95F4\u3002"
             portraitId: "ox_\u5E73\u9759"
           actions: []
-          sourceRow: 548
+          sourceRow: 550
         - kind: 0
           line:
             speaker: 0
             text: "\u597D\u7684\uFF0C\u7B49\u5F85\u8FC7\u7A0B\u4E2D\u6211\u987A\u4FBF\u89C2\u5BDF\u4E0B\u6C11\u5BBF\u5E03\u5C40\u3002"
             portraitId: "ox_\u5E73\u9759"
           actions: []
-          sourceRow: 549
-        sourceRow: 547
-      sourceRow: 536
-    sourceRow: 532
+          sourceRow: 551
+        sourceRow: 549
+      sourceRow: 538
+    sourceRow: 534
   - id: 20001
     steps:
     - kind: 0
@@ -1310,7 +1310,7 @@ MonoBehaviour:
           sourceRow: 465
         - kind: 0
           line:
-            speaker: 1
+            speaker: 0
             text: "\u8C22\u8C22\uFF0C\u5E2E\u6211\u628A\u884C\u674E\u63D0\u4E0A\u53BB\u5427\u3002"
             portraitId: "wolf_\u5E73\u9759"
           actions: []
@@ -1323,17 +1323,17 @@ MonoBehaviour:
           line:
             speaker: 1
             text: "\u975E\u5E38\u62B1\u6B49\u54A9\uFF0C\u76EE\u524D\u6CA1\u6709\u5408\u9002\u623F\u95F4\u54A9\u3002"
-            portraitId: "wolf_\u5E73\u9759"
+            portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 469
+          sourceRow: 470
         - kind: 0
           line:
-            speaker: 1
+            speaker: 0
             text: "\u597D\u5427\uFF0C\u4E0D\u8FC7\u4F60\u4EEC\u9152\u5E97\u7684\u63A5\u5F85\u80FD\u529B\u4E5F\u8BE5\u63D0\u5347\u4E0B\u4E86\u3002"
             portraitId: "wolf_\u5E73\u9759"
           actions: []
-          sourceRow: 470
-        sourceRow: 468
+          sourceRow: 471
+        sourceRow: 469
       - text: "\uFF08\u518D\u60F3\u4E00\u4F1A\uFF09"
         conditions: []
         steps:
@@ -1343,15 +1343,15 @@ MonoBehaviour:
             text: "\u8FD8\u5728\u627E\uFF0C\u8F9B\u82E6\u518D\u7B49\u5F85\u4E0B\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 473
+          sourceRow: 475
         - kind: 0
           line:
-            speaker: 1
+            speaker: 0
             text: "\u53EF\u4EE5\uFF0C\u4F46\u4E0D\u8981\u8BA9\u6211\u7B49\u592A\u4E45\u3002\u6211\u7684\u65F6\u95F4\u5F88\u5B9D\u8D35\u3002"
             portraitId: "wolf_\u5E73\u9759"
           actions: []
-          sourceRow: 474
-        sourceRow: 472
+          sourceRow: 476
+        sourceRow: 474
       sourceRow: 464
     sourceRow: 462
   - id: 20601
@@ -1363,7 +1363,7 @@ MonoBehaviour:
         portraitId: "ox_\u5E73\u9759"
       actions: []
       options: []
-      sourceRow: 551
+      sourceRow: 553
     - kind: 2
       line:
         speaker: 0
@@ -1382,15 +1382,15 @@ MonoBehaviour:
             text: "\u5DF2\u7ECF\u5E2E\u60A8\u5B89\u6392\u597D\u4E86\uFF0C\u8FD9\u662F\u623F\u5361\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 554
+          sourceRow: 556
         - kind: 0
           line:
             speaker: 0
             text: "\u55EF\u55EF\uFF0C\u90A3\u6211\u5148\u53BB\u653E\u884C\u674E\u3002"
             portraitId: "ox_\u5E73\u9759"
           actions: []
-          sourceRow: 555
-        sourceRow: 553
+          sourceRow: 557
+        sourceRow: 555
       - text: "\u6682\u4E0D\u63A5\u5F85"
         conditions: []
         steps:
@@ -1400,15 +1400,15 @@ MonoBehaviour:
             text: "\u62B1\u6B49\u554A\uFF0C\u6CA1\u6709\u627E\u5230\u5408\u9002\u7684\u623F\u95F4\u3002"
             portraitId: "ox_\u5E73\u9759"
           actions: []
-          sourceRow: 558
+          sourceRow: 560
         - kind: 0
           line:
             speaker: 0
             text: "\u597D\u7684\uFF0C\u4E0D\u8FC7\u4E00\u65E6\u6709\uFF0C\u8BF7\u7ACB\u9A6C\u901A\u77E5\u6211\u54DE\u3002"
             portraitId: "ox_\u5E73\u9759"
           actions: []
-          sourceRow: 559
-        sourceRow: 557
+          sourceRow: 561
+        sourceRow: 559
       - text: "\uFF08\u518D\u60F3\u4E00\u4F1A\uFF09"
         conditions: []
         steps:
@@ -1418,17 +1418,17 @@ MonoBehaviour:
             text: "\u8FD8\u5728\u627E\uFF0C\u8F9B\u82E6\u518D\u7B49\u5F85\u4E0B"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 562
+          sourceRow: 564
         - kind: 0
           line:
             speaker: 0
             text: "\u597D\u7684\uFF0C\u7B49\u5F85\u8FC7\u7A0B\u4E2D\u6211\u987A\u4FBF\u89C2\u5BDF\u4E0B\u6C11\u5BBF\u5E03\u5C40\u3002"
             portraitId: "ox_\u5E73\u9759"
           actions: []
-          sourceRow: 563
-        sourceRow: 561
-      sourceRow: 553
-    sourceRow: 551
+          sourceRow: 565
+        sourceRow: 563
+      sourceRow: 555
+    sourceRow: 553
   - id: 30001
     steps:
     - kind: 0
@@ -2404,7 +2404,7 @@ MonoBehaviour:
         portraitId: "wolf_\u5E73\u9759"
       actions: []
       options: []
-      sourceRow: 477
+      sourceRow: 479
     - kind: 2
       line:
         speaker: 0
@@ -2421,14 +2421,14 @@ MonoBehaviour:
             text: "\u597D\u7684\uFF0C\u6211\u53BB\u627E\u627E\u54A9\uFF0C\u5B89\u6392\u597D\u4E86\u8DDF\u60A8\u8BF4~"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 480
+          sourceRow: 482
         - kind: 0
           line:
             speaker: 1
             text: "\u53EF\u4EE5\uFF0C\u4F46\u4E0D\u8981\u8BA9\u6211\u7B49\u592A\u4E45\u3002\u6211\u7684\u65F6\u95F4\u5F88\u5B9D\u8D35\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 481
+          sourceRow: 483
         - kind: 1
           line:
             speaker: 0
@@ -2437,8 +2437,8 @@ MonoBehaviour:
           actions:
           - func: Accept
             args: []
-          sourceRow: 482
-        sourceRow: 479
+          sourceRow: 484
+        sourceRow: 481
       - text: "\u6682\u4E0D\u540C\u610F"
         conditions: []
         steps:
@@ -2448,7 +2448,7 @@ MonoBehaviour:
             text: "\u4E0D\u597D\u610F\u601D\u54A9\uFF0C\u73B0\u5728\u6709\u4E9B\u5FD9\u788C\uFF0C\u6682\u65F6\u6CA1\u6709\u529E\u6CD5\u6EE1\u8DB3\u60A8\u7684\u9700\u6C42\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 485
+          sourceRow: 487
         - kind: 1
           line:
             speaker: 0
@@ -2457,8 +2457,8 @@ MonoBehaviour:
           actions:
           - func: Reject
             args: []
-          sourceRow: 486
-        sourceRow: 484
+          sourceRow: 488
+        sourceRow: 486
       - text: "\u5DF2\u5B8C\u6210"
         conditions:
         - func: RoomHasNeedFurniture
@@ -2470,14 +2470,14 @@ MonoBehaviour:
             text: "\u5DF2\u7ECF\u6309\u7167\u4F60\u7684\u8981\u6C42\u5E03\u7F6E\u597D\u623F\u95F4\u5566~"
             portraitId: "goat_\u5F00\u5FC3"
           actions: []
-          sourceRow: 489
+          sourceRow: 491
         - kind: 0
           line:
             speaker: 0
             text: "\u55EF\uFF0C\u8FD9\u6837\u624D\u7A0D\u5FAE\u50CF\u6837\uFF0C\u4F60\u7684\u670D\u52A1\u6211\u5F88\u6EE1\u610F\u3002"
             portraitId: "wolf_\u5F00\u5FC3"
           actions: []
-          sourceRow: 490
+          sourceRow: 492
         - kind: 1
           line:
             speaker: 0
@@ -2487,10 +2487,10 @@ MonoBehaviour:
           - func: CompleteNeed
             args:
             - perfect
-          sourceRow: 491
-        sourceRow: 488
-      sourceRow: 479
-    sourceRow: 477
+          sourceRow: 493
+        sourceRow: 490
+      sourceRow: 481
+    sourceRow: 479
   - id: 30502
     steps:
     - kind: 0
@@ -2500,7 +2500,7 @@ MonoBehaviour:
         portraitId: "wolf_\u5E73\u9759"
       actions: []
       options: []
-      sourceRow: 494
+      sourceRow: 496
     - kind: 2
       line:
         speaker: 0
@@ -2517,7 +2517,7 @@ MonoBehaviour:
             text: "\u597D\u7684\uFF0C\u6211\u53BB\u770B\u770B\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 497
+          sourceRow: 499
         - kind: 1
           line:
             speaker: 1
@@ -2526,8 +2526,8 @@ MonoBehaviour:
           actions:
           - func: StartMinigame
             args: []
-          sourceRow: 498
-        sourceRow: 496
+          sourceRow: 500
+        sourceRow: 498
       - text: "\u6682\u4E0D\u540C\u610F"
         conditions: []
         steps:
@@ -2537,7 +2537,7 @@ MonoBehaviour:
             text: "\u4E0D\u597D\u610F\u601D\u54A9\uFF0C\u73B0\u5728\u6709\u4E9B\u5FD9\u788C\uFF0C\u6682\u65F6\u6CA1\u6709\u529E\u6CD5\u6EE1\u8DB3\u60A8\u7684\u9700\u6C42\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 501
+          sourceRow: 503
         - kind: 1
           line:
             speaker: 1
@@ -2546,10 +2546,10 @@ MonoBehaviour:
           actions:
           - func: Reject
             args: []
-          sourceRow: 502
-        sourceRow: 500
-      sourceRow: 496
-    sourceRow: 494
+          sourceRow: 504
+        sourceRow: 502
+      sourceRow: 498
+    sourceRow: 496
   - id: 30503
     steps:
     - kind: 0
@@ -2559,7 +2559,7 @@ MonoBehaviour:
         portraitId: "wolf_\u5E73\u9759"
       actions: []
       options: []
-      sourceRow: 506
+      sourceRow: 508
     - kind: 2
       line:
         speaker: 0
@@ -2576,7 +2576,7 @@ MonoBehaviour:
             text: "\u597D\u7684\uFF0C\u6211\u53BB\u770B\u770B\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 509
+          sourceRow: 511
         - kind: 1
           line:
             speaker: 1
@@ -2585,8 +2585,8 @@ MonoBehaviour:
           actions:
           - func: StartMinigame
             args: []
-          sourceRow: 510
-        sourceRow: 508
+          sourceRow: 512
+        sourceRow: 510
       - text: "\u6682\u4E0D\u540C\u610F"
         conditions: []
         steps:
@@ -2596,7 +2596,7 @@ MonoBehaviour:
             text: "\u4E0D\u597D\u610F\u601D\u54A9\uFF0C\u73B0\u5728\u6709\u4E9B\u5FD9\u788C\uFF0C\u6682\u65F6\u6CA1\u6709\u529E\u6CD5\u6EE1\u8DB3\u60A8\u7684\u9700\u6C42\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 513
+          sourceRow: 515
         - kind: 1
           line:
             speaker: 1
@@ -2605,10 +2605,10 @@ MonoBehaviour:
           actions:
           - func: Reject
             args: []
-          sourceRow: 514
-        sourceRow: 512
-      sourceRow: 508
-    sourceRow: 506
+          sourceRow: 516
+        sourceRow: 514
+      sourceRow: 510
+    sourceRow: 508
   - id: 30601
     steps:
     - kind: 0
@@ -2618,7 +2618,7 @@ MonoBehaviour:
         portraitId: "ox_\u5E73\u9759"
       actions: []
       options: []
-      sourceRow: 566
+      sourceRow: 568
     - kind: 2
       line:
         speaker: 0
@@ -2635,14 +2635,14 @@ MonoBehaviour:
             text: "\u597D\u7684\uFF0C\u6211\u53BB\u627E\u627E\u54A9\uFF0C\u5B89\u6392\u597D\u4E86\u8DDF\u60A8\u8BF4~"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 569
+          sourceRow: 571
         - kind: 0
           line:
             speaker: 0
             text: "\u55EF\u55EF\uFF0C\u6211\u4F1A\u7B49\u4F60\u7684\u3002"
             portraitId: "ox_\u5E73\u9759"
           actions: []
-          sourceRow: 570
+          sourceRow: 572
         - kind: 1
           line:
             speaker: 0
@@ -2651,8 +2651,8 @@ MonoBehaviour:
           actions:
           - func: Accept
             args: []
-          sourceRow: 571
-        sourceRow: 568
+          sourceRow: 573
+        sourceRow: 570
       - text: "\u6682\u4E0D\u540C\u610F"
         conditions: []
         steps:
@@ -2662,7 +2662,7 @@ MonoBehaviour:
             text: "\u4E0D\u597D\u610F\u601D\u54A9\uFF0C\u73B0\u5728\u6709\u4E9B\u5FD9\u788C\uFF0C\u6682\u65F6\u6CA1\u6709\u529E\u6CD5\u6EE1\u8DB3\u60A8\u7684\u9700\u6C42\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 574
+          sourceRow: 576
         - kind: 1
           line:
             speaker: 0
@@ -2671,8 +2671,8 @@ MonoBehaviour:
           actions:
           - func: Reject
             args: []
-          sourceRow: 575
-        sourceRow: 573
+          sourceRow: 577
+        sourceRow: 575
       - text: "\u5DF2\u5B8C\u6210"
         conditions:
         - func: RoomHasNeedFurniture
@@ -2684,14 +2684,14 @@ MonoBehaviour:
             text: "\u5DF2\u7ECF\u6309\u7167\u4F60\u7684\u8981\u6C42\u5E03\u7F6E\u597D\u623F\u95F4\u5566~"
             portraitId: "goat_\u5F00\u5FC3"
           actions: []
-          sourceRow: 578
+          sourceRow: 580
         - kind: 0
           line:
             speaker: 0
             text: "\u975E\u5E38\u611F\u8C22\uFF0C\u6211\u76F8\u4FE1\u7528\u5F20\u684C\u5B50\u4E00\u5B9A\u80FD\u66F4\u5FEB\u7406\u6E05\u7EBF\u7D22\u3002"
             portraitId: "ox_\u5F00\u5FC3"
           actions: []
-          sourceRow: 579
+          sourceRow: 581
         - kind: 1
           line:
             speaker: 0
@@ -2701,10 +2701,10 @@ MonoBehaviour:
           - func: CompleteNeed
             args:
             - perfect
-          sourceRow: 580
-        sourceRow: 577
-      sourceRow: 568
-    sourceRow: 566
+          sourceRow: 582
+        sourceRow: 579
+      sourceRow: 570
+    sourceRow: 568
   - id: 30602
     steps:
     - kind: 0
@@ -2714,7 +2714,7 @@ MonoBehaviour:
         portraitId: "ox_\u5E73\u9759"
       actions: []
       options: []
-      sourceRow: 583
+      sourceRow: 585
     - kind: 2
       line:
         speaker: 0
@@ -2731,7 +2731,7 @@ MonoBehaviour:
             text: "\u597D\u7684\uFF0C\u6211\u53BB\u770B\u770B\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 586
+          sourceRow: 588
         - kind: 1
           line:
             speaker: 1
@@ -2740,8 +2740,8 @@ MonoBehaviour:
           actions:
           - func: StartMinigame
             args: []
-          sourceRow: 587
-        sourceRow: 585
+          sourceRow: 589
+        sourceRow: 587
       - text: "\u6682\u4E0D\u540C\u610F"
         conditions: []
         steps:
@@ -2751,7 +2751,7 @@ MonoBehaviour:
             text: "\u4E0D\u597D\u610F\u601D\u54A9\uFF0C\u73B0\u5728\u6709\u4E9B\u5FD9\u788C\uFF0C\u6682\u65F6\u6CA1\u6709\u529E\u6CD5\u6EE1\u8DB3\u60A8\u7684\u9700\u6C42\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 590
+          sourceRow: 592
         - kind: 1
           line:
             speaker: 1
@@ -2760,10 +2760,10 @@ MonoBehaviour:
           actions:
           - func: Reject
             args: []
-          sourceRow: 591
-        sourceRow: 589
-      sourceRow: 585
-    sourceRow: 583
+          sourceRow: 593
+        sourceRow: 591
+      sourceRow: 587
+    sourceRow: 585
   - id: 30603
     steps:
     - kind: 0
@@ -2773,7 +2773,7 @@ MonoBehaviour:
         portraitId: "ox_\u5E73\u9759"
       actions: []
       options: []
-      sourceRow: 595
+      sourceRow: 597
     - kind: 2
       line:
         speaker: 0
@@ -2790,7 +2790,7 @@ MonoBehaviour:
             text: "\u597D\u7684\uFF0C\u6211\u53BB\u770B\u770B\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 598
+          sourceRow: 600
         - kind: 1
           line:
             speaker: 1
@@ -2799,8 +2799,8 @@ MonoBehaviour:
           actions:
           - func: StartMinigame
             args: []
-          sourceRow: 599
-        sourceRow: 597
+          sourceRow: 601
+        sourceRow: 599
       - text: "\u6682\u4E0D\u540C\u610F"
         conditions: []
         steps:
@@ -2810,7 +2810,7 @@ MonoBehaviour:
             text: "\u4E0D\u597D\u610F\u601D\u54A9\uFF0C\u73B0\u5728\u6709\u4E9B\u5FD9\u788C\uFF0C\u6682\u65F6\u6CA1\u6709\u529E\u6CD5\u6EE1\u8DB3\u60A8\u7684\u9700\u6C42\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
-          sourceRow: 602
+          sourceRow: 604
         - kind: 1
           line:
             speaker: 1
@@ -2819,10 +2819,10 @@ MonoBehaviour:
           actions:
           - func: Reject
             args: []
-          sourceRow: 603
-        sourceRow: 601
-      sourceRow: 597
-    sourceRow: 595
+          sourceRow: 605
+        sourceRow: 603
+      sourceRow: 599
+    sourceRow: 597
   - id: 40001
     steps:
     - kind: 0
@@ -3052,8 +3052,8 @@ MonoBehaviour:
         portraitId: "wolf_\u4F24\u5FC3"
       actions: []
       options: []
-      sourceRow: 516
-    sourceRow: 516
+      sourceRow: 518
+    sourceRow: 518
   - id: 40502
     steps:
     - kind: 0
@@ -3063,8 +3063,8 @@ MonoBehaviour:
         portraitId: "wolf_\u5E73\u9759"
       actions: []
       options: []
-      sourceRow: 518
-    sourceRow: 518
+      sourceRow: 520
+    sourceRow: 520
   - id: 40503
     steps:
     - kind: 0
@@ -3074,8 +3074,8 @@ MonoBehaviour:
         portraitId: "wolf_\u5E73\u9759"
       actions: []
       options: []
-      sourceRow: 520
-    sourceRow: 520
+      sourceRow: 522
+    sourceRow: 522
   - id: 40504
     steps:
     - kind: 0
@@ -3085,8 +3085,8 @@ MonoBehaviour:
         portraitId: "wolf_\u5F00\u5FC3"
       actions: []
       options: []
-      sourceRow: 522
-    sourceRow: 522
+      sourceRow: 524
+    sourceRow: 524
   - id: 40601
     steps:
     - kind: 0
@@ -3096,8 +3096,8 @@ MonoBehaviour:
         portraitId: "ox_\u4F24\u5FC3"
       actions: []
       options: []
-      sourceRow: 606
-    sourceRow: 606
+      sourceRow: 608
+    sourceRow: 608
   - id: 40602
     steps:
     - kind: 0
@@ -3107,8 +3107,8 @@ MonoBehaviour:
         portraitId: "ox_\u5E73\u9759"
       actions: []
       options: []
-      sourceRow: 608
-    sourceRow: 608
+      sourceRow: 610
+    sourceRow: 610
   - id: 40603
     steps:
     - kind: 0
@@ -3118,8 +3118,8 @@ MonoBehaviour:
         portraitId: "ox_\u5E73\u9759"
       actions: []
       options: []
-      sourceRow: 610
-    sourceRow: 610
+      sourceRow: 612
+    sourceRow: 612
   - id: 40604
     steps:
     - kind: 0
@@ -3129,8 +3129,8 @@ MonoBehaviour:
         portraitId: "ox_\u5F00\u5FC3"
       actions: []
       options: []
-      sourceRow: 612
-    sourceRow: 612
+      sourceRow: 614
+    sourceRow: 614
   - id: 50001
     steps:
     - kind: 0
@@ -3305,8 +3305,8 @@ MonoBehaviour:
         portraitId: "wolf_\u5F00\u5FC3"
       actions: []
       options: []
-      sourceRow: 524
-    sourceRow: 524
+      sourceRow: 526
+    sourceRow: 526
   - id: 50502
     steps:
     - kind: 0
@@ -3316,8 +3316,8 @@ MonoBehaviour:
         portraitId: "wolf_\u5F00\u5FC3"
       actions: []
       options: []
-      sourceRow: 526
-    sourceRow: 526
+      sourceRow: 528
+    sourceRow: 528
   - id: 50503
     steps:
     - kind: 0
@@ -3327,8 +3327,8 @@ MonoBehaviour:
         portraitId: "wolf_\u5F00\u5FC3"
       actions: []
       options: []
-      sourceRow: 528
-    sourceRow: 528
+      sourceRow: 530
+    sourceRow: 530
   - id: 50601
     steps:
     - kind: 0
@@ -3338,8 +3338,8 @@ MonoBehaviour:
         portraitId: "ox_\u5F00\u5FC3"
       actions: []
       options: []
-      sourceRow: 614
-    sourceRow: 614
+      sourceRow: 616
+    sourceRow: 616
   - id: 50602
     steps:
     - kind: 0
@@ -3349,8 +3349,8 @@ MonoBehaviour:
         portraitId: "ox_\u5F00\u5FC3"
       actions: []
       options: []
-      sourceRow: 616
-    sourceRow: 616
+      sourceRow: 618
+    sourceRow: 618
   - id: 50603
     steps:
     - kind: 0
@@ -3360,8 +3360,8 @@ MonoBehaviour:
         portraitId: "ox_\u5F00\u5FC3"
       actions: []
       options: []
-      sourceRow: 618
-    sourceRow: 618
+      sourceRow: 620
+    sourceRow: 620
   entries:
   - groupId: 10001
     raceId: cat

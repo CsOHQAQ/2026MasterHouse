@@ -182,7 +182,9 @@ namespace MasterHouse
                     (ctx, a) =>
                     {
                         if (ctx?.Economy == null) { Warn("增减货币", "上下文缺 EconomyManager"); return; }
-                        ctx.Economy.AddCurrency(a.Int(0));
+                        var applied = ctx.Economy.AddCurrency(a.Int(0));
+                        // 计入当日结算累计（日结面板「对话奖励」行）；缺 VisitorManager 只影响统计，入账已生效不回滚
+                        ctx.VisitorManager?.RecordDialogueReward(applied, 0);
                     },
                     "增减货币（正给负扣，下限 0）", "数量", 1, isReward: true),
 
@@ -190,7 +192,8 @@ namespace MasterHouse
                     (ctx, a) =>
                     {
                         if (ctx?.Economy == null) { Warn("增减声望", "上下文缺 EconomyManager"); return; }
-                        ctx.Economy.AddReputation(a.Int(0));
+                        var applied = ctx.Economy.AddReputation(a.Int(0));
+                        ctx.VisitorManager?.RecordDialogueReward(0, applied);
                     },
                     "增减声望（正给负扣，下限 0）", "数量", 1, isReward: true),
 

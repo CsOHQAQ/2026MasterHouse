@@ -659,11 +659,25 @@ namespace MasterHouse
                 Data.Today.RefusedCount++;
                 Depart(instance);
             }
+            // 清完前台后场上剩下的都过夜（服务中/闲逛无条件跨天，待分房已被 CanEndDay 挡住）——
+            // 这就是注释里说的「实际留宿人数」，在快照前一次性点数，不在状态机里逐处 ++
+            Data.Today.StayOvernightCount = Data.Instances.Count;
             var summary = Data.Today.Clone();
             clock.NextDay(); // Day+1，时间跳次日开门时刻（解冻打烊闸门）
             Data.Today.Reset();
             DayEnded?.Invoke(summary);
             return summary;
+        }
+
+        /// <summary>
+        /// 对话奖励事件（AddCurrency/AddReputation，对话设计说明 §7）计入当日累计。
+        /// 传入的是 EconomyManager 返回的**实际生效净值**（下限 0 截断后），可为负；
+        /// VisitorData 只能由本 Manager 修改（§11.4），对话侧经此入口而不直摸 Data.Today。
+        /// </summary>
+        public void RecordDialogueReward(int currency, int reputation)
+        {
+            Data.Today.DialogueCurrencyEarned += currency;
+            Data.Today.DialogueReputationEarned += reputation;
         }
 
         // ── 查询 ──

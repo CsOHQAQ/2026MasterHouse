@@ -32,6 +32,13 @@ namespace MasterHouse
 
         public int ReputationEarned;
 
+        /// <summary>对话奖励事件（AddCurrency）的当日净入账。记**实际生效值**（下限 0 截断后），可为负。</summary>
+        public int DialogueCurrencyEarned;
+
+        /// <summary>对话奖励事件（AddReputation）的当日净入账，可为负。与 <see cref="ReputationEarned"/>（服务结算）分开，
+        /// 日结面板单列一行——混算的话玩家看不出哪部分是对话事件给的。</summary>
+        public int DialogueReputationEarned;
+
         public int ServedTotal
         {
             get
@@ -51,6 +58,8 @@ namespace MasterHouse
             CurrencyEarned = 0;
             TipEarned = 0;
             ReputationEarned = 0;
+            DialogueCurrencyEarned = 0;
+            DialogueReputationEarned = 0;
         }
 
         public VisitorDaySummary Clone()
@@ -63,6 +72,8 @@ namespace MasterHouse
                 CurrencyEarned = CurrencyEarned,
                 TipEarned = TipEarned,
                 ReputationEarned = ReputationEarned,
+                DialogueCurrencyEarned = DialogueCurrencyEarned,
+                DialogueReputationEarned = DialogueReputationEarned,
             };
             Array.Copy(ServedBySatisfaction, copy.ServedBySatisfaction, ServedBySatisfaction.Length);
             return copy;

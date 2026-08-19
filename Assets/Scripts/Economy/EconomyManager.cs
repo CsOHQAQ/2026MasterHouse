@@ -128,23 +128,34 @@ namespace MasterHouse
         /// 货币增减（下限 0）：对话奖励事件等玩法入口（对话设计说明 §7）。
         /// 与 GmAddCurrency 分开是语义问题——GM 是调试后门，本方法是正经玩法收支，
         /// 将来要加日志/成就统计/数值埋点时只该挂在这一侧。
+        /// 返回**实际生效净值**（扣穿下限时被截断，可能小于 |amount|；日结累计要记这个值，不虚报）。
+        /// 无实际变化时返回 0 且不广播不发反馈——余额 0 再扣钱不该响损失音。
         /// </summary>
-        public void AddCurrency(int amount)
+        public int AddCurrency(int amount)
         {
-            if (amount == 0) return;
+            if (amount == 0) return 0;
+            var before = Data.Currency;
             Data.Currency = Mathf.Max(0, Data.Currency + amount);
+            var applied = Data.Currency - before;
+            if (applied == 0) return 0;
             RaiseChanged();
-            Feedback?.Invoke(amount > 0 ? EEconomyFeedback.CurrencyGain : EEconomyFeedback.CurrencyLoss);
+            Feedback?.Invoke(applied > 0 ? EEconomyFeedback.CurrencyGain : EEconomyFeedback.CurrencyLoss);
+            return applied;
         }
 
         /// <summary>声望增减（下限 0）：对话奖励事件等玩法入口。声望变化会实时影响 Item 解禁状态。
-        /// 业务路径只增不减，但本方法**允许配负数**——它是策划可见的公开入口（也是 ReputationLoss 反馈的唯一产生方）。</summary>
-        public void AddReputation(int amount)
+        /// 业务路径只增不减，但本方法**允许配负数**——它是策划可见的公开入口（也是 ReputationLoss 反馈的唯一产生方）。
+        /// 返回实际生效净值（口径同 <see cref="AddCurrency"/>）。</summary>
+        public int AddReputation(int amount)
         {
-            if (amount == 0) return;
+            if (amount == 0) return 0;
+            var before = Data.Reputation;
             Data.Reputation = Mathf.Max(0, Data.Reputation + amount);
+            var applied = Data.Reputation - before;
+            if (applied == 0) return 0;
             RaiseChanged();
-            Feedback?.Invoke(amount > 0 ? EEconomyFeedback.ReputationGain : EEconomyFeedback.ReputationLoss);
+            Feedback?.Invoke(applied > 0 ? EEconomyFeedback.ReputationGain : EEconomyFeedback.ReputationLoss);
+            return applied;
         }
 
         // ── 家具库存（家具库存说明 §5）──
