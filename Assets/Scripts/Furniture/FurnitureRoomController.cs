@@ -291,24 +291,14 @@ namespace MasterHouse
         /// <summary>
         /// 把精灵缩放到指定的场景像素尺寸。必须用 bounds（世界单位）而非 rect（导入后像素）：
         /// 原图超过导入 Max Size 被降采样时，rect 变小但 bounds 不变，用 rect 会把大图放大（如 5120px 房间背景放大 2.5 倍）。
+        /// ⚠ 口径与 FurnitureSceneComposer.DrawSprite 一致：拉伸填满 displayWidth×displayHeight
+        ///（2026-08-20 曾改等比、导致摆放模式和局外烘焙图大小不一致，已回退）。
+        /// 家具比例不对去表里改 displayWidth/Height，别在这儿加等比。
         /// </summary>
         private static Vector3 SpriteScale(Sprite sprite, float scenePxWidth, float scenePxHeight) =>
             new Vector3(
                 scenePxWidth / PixelsPerUnit / Mathf.Max(1e-4f, sprite.bounds.size.x),
                 scenePxHeight / PixelsPerUnit / Mathf.Max(1e-4f, sprite.bounds.size.y), 1f);
-
-        /// <summary>
-        /// 等比版（2026-08-20 修家具变形）：按「装得进 displayWidth×displayHeight」的最大等比缩放，
-        /// 保持素材自身宽高比——表里的显示宽高和素材比例不一致时，硬拉伸会把家具压窄。
-        /// 房间背景仍用上面的拉伸版（必须精确铺满场景尺寸）。
-        /// </summary>
-        private static Vector3 SpriteScaleFit(Sprite sprite, float scenePxWidth, float scenePxHeight)
-        {
-            var uniform = Mathf.Min(
-                scenePxWidth / PixelsPerUnit / Mathf.Max(1e-4f, sprite.bounds.size.x),
-                scenePxHeight / PixelsPerUnit / Mathf.Max(1e-4f, sprite.bounds.size.y));
-            return new Vector3(uniform, uniform, 1f);
-        }
 
         /// <summary>场景像素（左上原点、Y 向下）→ 世界坐标。</summary>
         private Vector3 PxToWorld(float px, float py, float z)
@@ -435,7 +425,7 @@ namespace MasterHouse
             item.Renderer.sprite = entry.sprite;
             item.Renderer.flipX = flipped;
             if (entry.sprite != null)
-                item.Root.transform.localScale = SpriteScaleFit(entry.sprite, entry.displayWidth, entry.displayHeight);
+                item.Root.transform.localScale = SpriteScale(entry.sprite, entry.displayWidth, entry.displayHeight);
             // 光影：落地/桌面家具脚下垫柔和椭圆投影（壁挂与地毯类不投）
             if (!entry.stackable && grid.Surface != FurnitureSurfaceType.Wall)
                 item.Shadow = CreateShadow(item);
@@ -689,7 +679,7 @@ namespace MasterHouse
             drag.GhostRenderer.sortingOrder = OrderGhost;
             drag.GhostRenderer.color = new Color(1f, 1f, 1f, .85f);
             if (entry.sprite != null)
-                drag.Ghost.transform.localScale = SpriteScaleFit(entry.sprite, entry.displayWidth, entry.displayHeight);
+                drag.Ghost.transform.localScale = SpriteScale(entry.sprite, entry.displayWidth, entry.displayHeight);
 
             if (item != null)
             {
@@ -714,7 +704,7 @@ namespace MasterHouse
                             offsetX / PixelsPerUnit / hostScale.x, offsetY / PixelsPerUnit / hostScale.y, 0f);
                         if (child.Entry.sprite != null)
                         {
-                            var childScale = SpriteScaleFit(child.Entry.sprite, child.Entry.displayWidth, child.Entry.displayHeight);
+                            var childScale = SpriteScale(child.Entry.sprite, child.Entry.displayWidth, child.Entry.displayHeight);
                             childGhost.transform.localScale = new Vector3(
                                 childScale.x / hostScale.x, childScale.y / hostScale.y, 1f);
                         }
