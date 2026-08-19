@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DisplayName: DeviceIntro00
   BackgroundSprite: {fileID: 21300000, guid: 2076370049aadd24f89642e83fd986ca, type: 3}
-  FunctionIconSprite: {fileID: 21300000, guid: bf4a6c469ed4d724fb2a8126ff2768f2, type: 3}
+  FunctionIconSprite: {fileID: 21300000, guid: 8a881c5a41904829959080649c24488b, type: 3}
   BackgroundColor: {r: 0.8980392, g: 0.6117647, b: 0.36078432, a: 1}
   Shape:
     Grids:
