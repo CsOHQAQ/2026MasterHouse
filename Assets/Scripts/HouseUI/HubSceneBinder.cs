@@ -440,7 +440,10 @@ namespace MasterHouse
             if (houseBackdrop != null)
                 houseBackdrop.color = sharpReady && lod >= 1f ? Color.clear : Color.white;
             var roomColor = Color.Lerp(Color.white, tint, .5f); // 家具/房间只上半强度，好跟延时帧衔接
-            roomColor.a = lod;
+            // 夜间高清房间必须在总览态也接管：否则缩小时露出延时主楼里的另一套房间透视，
+            // 家具代理仍按高清夜图坐标绘制，看起来就会随缩放换位置。取 max 让白天仍按 LOD 接管，
+            // 入夜后则沿既有 NightRoomAlpha 曲线渐显，并在任意缩放下保持同一张背景/同一套坐标。
+            roomColor.a = Mathf.Max(lod, FurnitureNightLayout.NightAlphaNow());
             var furnitureGeometryChanged = false;
             for (var room = 0; room < roomArts.Length; room++)
             {

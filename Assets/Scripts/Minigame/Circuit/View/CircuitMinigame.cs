@@ -832,23 +832,28 @@ namespace MasterHouse
                 view.lessonPanelBackground.color = style.lessonPanelColor;
             }
 
-            ApplyButtonStyle(view.finishButton, style);
-            ApplyButtonStyle(view.abortButton, style);
-            ApplyButtonStyle(view.prevLessonButton, style);
-            ApplyButtonStyle(view.retryLessonButton, style);
-            ApplyButtonStyle(view.summaryContinueButton, style);
-            ApplyButtonStyle(view.summaryStayButton, style);
+            ApplyButtonStyle(view.finishButton, style, style.finishButtonSprite);
+            ApplyButtonStyle(view.abortButton, style, style.abortButtonSprite);
+            ApplyButtonStyle(view.prevLessonButton, style, style.prevLessonButtonSprite);
+            ApplyButtonStyle(view.retryLessonButton, style, style.retryLessonButtonSprite);
+            ApplyButtonStyle(view.summaryContinueButton, style, style.summaryContinueButtonSprite);
+            ApplyButtonStyle(view.summaryStayButton, style, style.summaryStayButtonSprite);
         }
 
         /// <summary>把主题中的按钮底图覆盖到 Button 的 TargetGraphic 上；缺图则保持 Prefab 原样。</summary>
-        private static void ApplyButtonStyle(Button button, CircuitUIStyleConfig style)
+        private static void ApplyButtonStyle(Button button, CircuitUIStyleConfig style, Sprite overrideSprite = null)
         {
             if (button == null) return;
             var image = button.targetGraphic as Image;
             if (image == null) return;
-            if (style.buttonBackgroundSprite == null) return;
 
-            image.sprite = style.buttonBackgroundSprite;
+            var sprite = overrideSprite != null ? overrideSprite : style.buttonBackgroundSprite;
+            if (sprite == null) return;
+
+            image.sprite = sprite;
+            image.type = Image.Type.Sliced;
+            image.preserveAspect = false;
+            image.color = Color.white;
             image.type = Image.Type.Sliced;
             image.preserveAspect = false;
         }

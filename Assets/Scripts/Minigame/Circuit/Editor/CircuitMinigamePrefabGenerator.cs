@@ -657,6 +657,7 @@ namespace MasterHouse.EditorTools
         {
             var rect = Rect(parent, name, anchor, anchor, position, size);
             var image = ImageOn(rect, color);
+            image.color = Color.white;
             var button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
             captionLabel = Label(rect, "Caption", caption, 28, Ink, Vector2.zero, Vector2.one, Vector2.zero,

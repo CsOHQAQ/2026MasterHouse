@@ -90,9 +90,27 @@ namespace MasterHouse
         public Color paletteCountDigitDisabledColor = new Color(0.75f, 0.42f, 0.42f, 1f);
 
         [Header("按钮")]
-        [Tooltip("所有固定按钮（完成、放弃、上一关、重试、小结继续、小结留下等）共用的九宫格底图。" +
+        [Tooltip("所有固定按钮的默认九宫格底图。各按钮有独立字段时可覆盖此默认值。" +
                  "留空时沿用 Prefab 上的原图。运行时会覆盖到各 Button 的 TargetGraphic 上，" +
                  "保留 ColorTint 的悬停/按下反馈。有 Sprite 时按 Sliced 渲染。")]
         public Sprite buttonBackgroundSprite;
+
+        [Tooltip("【完成 / 下一关】按钮的专用底图。课程包模式下文案会变成「下一关」/「交卷」。")]
+        public Sprite finishButtonSprite;
+
+        [Tooltip("【放弃】按钮的专用底图。")]
+        public Sprite abortButtonSprite;
+
+        [Tooltip("【上一关】按钮的专用底图。")]
+        public Sprite prevLessonButtonSprite;
+
+        [Tooltip("【重试本关】按钮的专用底图。")]
+        public Sprite retryLessonButtonSprite;
+
+        [Tooltip("小结面板【继续（下一关 / 交卷）】按钮的专用底图。")]
+        public Sprite summaryContinueButtonSprite;
+
+        [Tooltip("小结面板【留下继续调整】按钮的专用底图。")]
+        public Sprite summaryStayButtonSprite;
     }
 }
