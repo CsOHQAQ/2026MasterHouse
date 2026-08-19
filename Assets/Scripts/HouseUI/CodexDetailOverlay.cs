@@ -17,6 +17,7 @@ namespace MasterHouse
         private readonly HouseUIManager ui;
         private int index;
         private bool closing;
+        private CodexPageFlip flip;
 
         private CodexDetailOverlay(RectTransform root, OutGameCodexDetailView view, HouseUIManager ui, int index)
         {
@@ -52,6 +53,12 @@ namespace MasterHouse
             var rect = (RectTransform)instance.transform;
             rect.SetAsLastSibling();
             var overlay = new CodexDetailOverlay(rect, view, ui, IndexOf(view, race));
+            // 翻书动效（2026-08-19）：底图与底部键位条不参与翻页，其余内容整体绕书脊合上再摊开
+            overlay.flip = instance.AddComponent<CodexPageFlip>();
+            overlay.flip.Bind(rect,
+                view.background != null ? view.background.transform : null,
+                view.backButton != null ? view.backButton.transform : null,
+                view.switchButton != null ? view.switchButton.transform : null);
             overlay.Bind();
             var hotkeys = instance.AddComponent<CodexHotkeys>();
             hotkeys.Bind(() => overlay.Step(-1), () => overlay.Step(1), () => { });
@@ -112,8 +119,10 @@ namespace MasterHouse
         private void Step(int direction)
         {
             if (Count == 0 || direction == 0) return;
-            index = ((index + direction) % Count + Count) % Count;
-            Refresh();
+            // 内容在书页完全合拢的那一帧才换，看到的就是翻了一页而不是原地换图
+            var next = ((index + direction) % Count + Count) % Count;
+            if (flip != null) flip.Play(() => { index = next; Refresh(); });
+            else { index = next; Refresh(); }
         }
 
         private void Refresh()

@@ -76,7 +76,6 @@ namespace MasterHouse
         private Vector2 viewportSize = new Vector2(1920f, 1080f);
         private RawImage houseBackdrop;
         private readonly RawImage[] roomArts = new RawImage[HubWorldGrid.RoomCount];
-        private readonly RawImage[] nightRoomArts = new RawImage[HubWorldGrid.RoomCount];
         private Image sceneWash;
         private Image ambientLight;
         private OutGameHubSceneOverlayView overlay;
@@ -205,7 +204,6 @@ namespace MasterHouse
                 rect.offsetMin = rect.offsetMax = Vector2.zero;
                 regions[room] = display;
             }
-            BuildNightRoomArts();
             regions[HubWorldGrid.Reception] = worldView.receptionArea != null
                 ? NormalizedRegion(worldView.receptionArea, designSize)
                 : HubWorldGrid.RegionOf(HubWorldGrid.Reception);
@@ -420,33 +418,6 @@ namespace MasterHouse
 
         // ══════════ 昼夜光照 ══════════
 
-        /// <summary>
-        /// 把四张夜间房间图铺在对应高清房间烘焙图上方。夜图只接管背景；家具前景代理与访客舞台
-        /// 后建在更高层，夜图完全浮现后家具和人物仍会保留。
-        /// </summary>
-        private void BuildNightRoomArts()
-        {
-            for (var room = 0; room < nightRoomArts.Length; room++)
-            {
-                if (roomArts[room] == null) continue;
-                // 夜间层用**夜间合成图**（夜图 + 按夜间几何摆的家具），不是那张空房间原图：
-                // 只铺原图的话入夜后 Hub 里家具会被整片盖掉；而家具位置也必须走夜间校正，
-                // 否则与摆放模式看到的对不上（2026-08-19 反馈）
-                var texture = FurnitureSceneComposer.EnsureBaked(room, night: true);
-                if (texture == null)
-                {
-                    Debug.LogWarning("[HouseUI] 夜间房间合成图烘焙失败，房间下标：" + room);
-                    continue;
-                }
-                var rect = HouseUIRuntime.Stretch(roomArts[room].rectTransform, "NightRoomArt");
-                var image = rect.gameObject.AddComponent<RawImage>();
-                image.texture = texture;
-                image.color = Color.clear;
-                image.raycastTarget = false;
-                nightRoomArts[room] = image;
-            }
-        }
-
         /// <summary>每帧按局内时钟推环境光（HubPage.OnUpdate 调；叠加层开着也走，面板后面的天色照常流动）。
         /// 色带定义在 HouseDayLight（与标题页封面共用）。</summary>
         public void UpdateDayLight()
@@ -470,12 +441,16 @@ namespace MasterHouse
                 houseBackdrop.color = sharpReady && lod >= 1f ? Color.clear : Color.white;
             var roomColor = Color.Lerp(Color.white, tint, .5f); // 家具/房间只上半强度，好跟延时帧衔接
             roomColor.a = lod;
-            var nightAlpha = HouseDayLight.NightRoomAlphaNow() * lod;
             for (var room = 0; room < roomArts.Length; room++)
             {
-                if (roomArts[room] != null) roomArts[room].color = roomColor;
-                if (nightRoomArts[room] != null)
-                    nightRoomArts[room].color = new Color(1f, 1f, 1f, nightAlpha);
+                if (roomArts[room] == null) continue;
+                roomArts[room].color = roomColor;
+                // 天色推移到一定程度就按新的夜色权重重烘一张（内部按 0.02 一档节流）
+                if (FurnitureSceneComposer.TickNight(room))
+                {
+                    var refreshed = FurnitureSceneComposer.BakedFor(room);
+                    if (refreshed != null) roomArts[room].texture = refreshed;
+                }
             }
             ambientLight.color = Color.clear;
             UpdateSceneCycle();
@@ -943,8 +918,6 @@ namespace MasterHouse
                 if (roomArts[room] == null) continue;
                 var baked = FurnitureSceneComposer.EnsureBaked(room);
                 if (baked != null) roomArts[room].texture = baked;
-                var bakedNight = FurnitureSceneComposer.EnsureBaked(room, night: true);
-                if (bakedNight != null && nightRoomArts[room] != null) nightRoomArts[room].texture = bakedNight;
             }
         }
 
