@@ -288,7 +288,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a8b45db6285afe5439d9968f2aa8b09a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  level: {fileID: 11400000, guid: 9d41102a1959ee14098d23b9192b2332, type: 2}
+  level: {fileID: 11400000, guid: 021048af95f9bdc499bfc615fb11778e, type: 2}
   minigamePrefab: {fileID: 5775854228913083967, guid: ccd3d3b8cd8a17241871e3f42431796a, type: 3}
   launchOnStart: 1
   availableLevels: []

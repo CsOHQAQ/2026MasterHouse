@@ -12,16 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad62da4ca5841084ea3a7a0be12b97cc, type: 3}
   m_Name: Coffee_Default
   m_EditorClassIdentifier: 
+  GrindMode: 0
   GrindFillSeconds: 8
   PointerDegreesPerSecond: 60
-  ObstacleCount: 6
-  ObstacleArcDegrees: 24
-  ObstacleMinGapDegrees: 30
-  SpawnSafeDegrees: 30
+  ObstacleCount: 8
+  ObstacleArcDegrees: 16
+  ObstacleMinGapDegrees: 20
+  SpawnSafeDegrees: 25
   GrindMaxScore: 50
   HitScorePenalty: 10
   HitProgressPenalty: 0.15
   HitStunSeconds: 1
+  CrankTotalDegrees: 720
+  CrankBackwardFactor: 1
+  CrankDeadZoneFraction: 0.08
   PourFillSeconds: 15
   SpeedSampleSeconds: 0.05
   MinAverageSpeed: 0.1
