@@ -2917,3 +2917,267 @@ MonoBehaviour:
       cellHeight: 56
       offsetX: 50
       surfaceHeight: 146
+  - id: bed_side_01
+    nameKey: bed_01
+    displayName: "\u5355\u4EBA\u5E8A\xB701"
+    familyId: bed_side
+    category: "\u684C\u6905"
+    description: "\u8EBA\u4E0B\u53BB\u5C31\u4E0D\u60F3\u8D77\u6765\u7684\u5E8A\u3002"
+    surfaces: 00000000
+    stackable: 0
+    cols: 7
+    rows: 2
+    displayWidth: 270
+    displayHeight: 183
+    decorationScore: 40
+    sprite: {fileID: 21300000, guid: 995049f8b7391314a8dd967775e9319c, type: 3}
+    swatchColor: {r: 0.87058824, g: 0.8039216, b: 0.6862745, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: bed_side_02
+    nameKey: bed_02
+    displayName: "\u5355\u4EBA\u5E8A\xB702"
+    familyId: bed_side
+    category: "\u684C\u6905"
+    description: "\u8EBA\u4E0B\u53BB\u5C31\u4E0D\u60F3\u8D77\u6765\u7684\u5E8A\u3002"
+    surfaces: 00000000
+    stackable: 0
+    cols: 7
+    rows: 2
+    displayWidth: 270
+    displayHeight: 169
+    decorationScore: 40
+    sprite: {fileID: 21300000, guid: addfd928b57dc244a92715cb1accf46d, type: 3}
+    swatchColor: {r: 0.8392157, g: 0.7921569, b: 0.7058824, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: bed_side_03
+    nameKey: bed_03
+    displayName: "\u5355\u4EBA\u5E8A\xB703"
+    familyId: bed_side
+    category: "\u684C\u6905"
+    description: "\u8EBA\u4E0B\u53BB\u5C31\u4E0D\u60F3\u8D77\u6765\u7684\u5E8A\u3002"
+    surfaces: 00000000
+    stackable: 0
+    cols: 7
+    rows: 2
+    displayWidth: 270
+    displayHeight: 179
+    decorationScore: 40
+    sprite: {fileID: 21300000, guid: 5ba8af51561034e45a7880f2690f816f, type: 3}
+    swatchColor: {r: 0.827451, g: 0.73333335, b: 0.5882353, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: bed_side_04
+    nameKey: bed_04
+    displayName: "\u5355\u4EBA\u5E8A\xB704"
+    familyId: bed_side
+    category: "\u684C\u6905"
+    description: "\u8EBA\u4E0B\u53BB\u5C31\u4E0D\u60F3\u8D77\u6765\u7684\u5E8A\u3002"
+    surfaces: 00000000
+    stackable: 0
+    cols: 7
+    rows: 2
+    displayWidth: 270
+    displayHeight: 180
+    decorationScore: 40
+    sprite: {fileID: 21300000, guid: c29cae44dd7485b45b50e8677834d1de, type: 3}
+    swatchColor: {r: 0.7490196, g: 0.64705884, b: 0.4862745, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: bed_side_05
+    nameKey: bed_05
+    displayName: "\u5355\u4EBA\u5E8A\xB705"
+    familyId: bed_side
+    category: "\u684C\u6905"
+    description: "\u8EBA\u4E0B\u53BB\u5C31\u4E0D\u60F3\u8D77\u6765\u7684\u5E8A\u3002"
+    surfaces: 00000000
+    stackable: 0
+    cols: 7
+    rows: 2
+    displayWidth: 270
+    displayHeight: 164
+    decorationScore: 40
+    sprite: {fileID: 21300000, guid: b0c7573cbb0a2084c83ee96030b38da9, type: 3}
+    swatchColor: {r: 0.6862745, g: 0.7411765, b: 0.78039217, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: bed_front_01
+    nameKey: bed_06
+    displayName: "\u5E8A\u5934\u5E8A\xB701"
+    familyId: bed_front
+    category: "\u684C\u6905"
+    description: "\u5E8A\u5934\u662F\u5B83\u7684\u95E8\u9762\u3002"
+    surfaces: 00000000
+    stackable: 0
+    cols: 5
+    rows: 2
+    displayWidth: 190
+    displayHeight: 197
+    decorationScore: 40
+    sprite: {fileID: 21300000, guid: f7b3fb305df6ecd4c8c26f02bc35ac34, type: 3}
+    swatchColor: {r: 0.8901961, g: 0.8352941, b: 0.7921569, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: bed_front_02
+    nameKey: bed_07
+    displayName: "\u5E8A\u5934\u5E8A\xB702"
+    familyId: bed_front
+    category: "\u684C\u6905"
+    description: "\u5E8A\u5934\u662F\u5B83\u7684\u95E8\u9762\u3002"
+    surfaces: 00000000
+    stackable: 0
+    cols: 5
+    rows: 2
+    displayWidth: 190
+    displayHeight: 153
+    decorationScore: 40
+    sprite: {fileID: 21300000, guid: 32677129ebace1c46ad5e5a98a94875c, type: 3}
+    swatchColor: {r: 0.7490196, g: 0.67058825, b: 0.54901963, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: bed_front_03
+    nameKey: bed_08
+    displayName: "\u5E8A\u5934\u5E8A\xB703"
+    familyId: bed_front
+    category: "\u684C\u6905"
+    description: "\u5E8A\u5934\u662F\u5B83\u7684\u95E8\u9762\u3002"
+    surfaces: 00000000
+    stackable: 0
+    cols: 5
+    rows: 2
+    displayWidth: 190
+    displayHeight: 182
+    decorationScore: 40
+    sprite: {fileID: 21300000, guid: 8877caf3dab65314bbbacc2716d9fec5, type: 3}
+    swatchColor: {r: 0.7372549, g: 0.73333335, b: 0.72156864, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: bed_front_04
+    nameKey: bed_09
+    displayName: "\u5E8A\u5934\u5E8A\xB704"
+    familyId: bed_front
+    category: "\u684C\u6905"
+    description: "\u5E8A\u5934\u662F\u5B83\u7684\u95E8\u9762\u3002"
+    surfaces: 00000000
+    stackable: 0
+    cols: 5
+    rows: 2
+    displayWidth: 190
+    displayHeight: 137
+    decorationScore: 40
+    sprite: {fileID: 21300000, guid: 7e6bd59bdda60c7488dd99633ee9775a, type: 3}
+    swatchColor: {r: 0.7176471, g: 0.69803923, b: 0.6745098, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: bed_front_05
+    nameKey: bed_10
+    displayName: "\u5E8A\u5934\u5E8A\xB705"
+    familyId: bed_front
+    category: "\u684C\u6905"
+    description: "\u5E8A\u5934\u662F\u5B83\u7684\u95E8\u9762\u3002"
+    surfaces: 00000000
+    stackable: 0
+    cols: 5
+    rows: 2
+    displayWidth: 190
+    displayHeight: 181
+    decorationScore: 40
+    sprite: {fileID: 21300000, guid: 257811f4bd9fe8f44bc99e9760361d28, type: 3}
+    swatchColor: {r: 0.9137255, g: 0.627451, b: 0.5372549, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146
+  - id: bed_front_06
+    nameKey: bed_11
+    displayName: "\u5E8A\u5934\u5E8A\xB706"
+    familyId: bed_front
+    category: "\u684C\u6905"
+    description: "\u5E8A\u5934\u662F\u5B83\u7684\u95E8\u9762\u3002"
+    surfaces: 00000000
+    stackable: 0
+    cols: 5
+    rows: 2
+    displayWidth: 190
+    displayHeight: 185
+    decorationScore: 40
+    sprite: {fileID: 21300000, guid: 66ed3d5e27280bf428f4a123e5ffbfd4, type: 3}
+    swatchColor: {r: 0.78431374, g: 0.81960785, b: 0.8509804, a: 1}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
+    putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
+    tableSurface:
+      enabled: 0
+      cols: 3
+      cellWidth: 64
+      cellHeight: 56
+      offsetX: 50
+      surfaceHeight: 146

@@ -376,6 +376,39 @@ MonoBehaviour:
   - furnitureId: vintage_square_clock_11
     price: 120
     unlockReputation: 0
+  - furnitureId: bed_side_01
+    price: 420
+    unlockReputation: 0
+  - furnitureId: bed_side_02
+    price: 420
+    unlockReputation: 0
+  - furnitureId: bed_side_03
+    price: 420
+    unlockReputation: 0
+  - furnitureId: bed_side_04
+    price: 420
+    unlockReputation: 0
+  - furnitureId: bed_side_05
+    price: 420
+    unlockReputation: 0
+  - furnitureId: bed_front_01
+    price: 420
+    unlockReputation: 0
+  - furnitureId: bed_front_02
+    price: 420
+    unlockReputation: 0
+  - furnitureId: bed_front_03
+    price: 420
+    unlockReputation: 0
+  - furnitureId: bed_front_04
+    price: 420
+    unlockReputation: 0
+  - furnitureId: bed_front_05
+    price: 420
+    unlockReputation: 0
+  - furnitureId: bed_front_06
+    price: 420
+    unlockReputation: 0
   categories:
   - name: "\u76C6\u683D"
     desc: "\u7EFF\u610F\u662F\u5C4B\u5B50\u7684\u547C\u5438\uFF0C\u4E5F\u662F\u8BBF\u5BA2\u7684\u8BDD\u9898\u3002"

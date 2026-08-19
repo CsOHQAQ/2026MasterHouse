@@ -28,7 +28,10 @@ namespace MasterHouse
     [RequireComponent(typeof(CoffeeMinigameView))]
     public sealed class CoffeeMinigame : MonoBehaviour, IMinigame
     {
-        private enum EPhase { Grind, Pour, Settle }
+        private enum EPhase { Grind, Transition, Pour, Settle }
+
+        private const string GrindPhaseTitle = "① 磨豆子";
+        private const string PourPhaseTitle = "② 冲咖啡";
 
         private CoffeeMinigameView view;
         private CoffeeLevelDef level;
@@ -42,6 +45,9 @@ namespace MasterHouse
         private static readonly int WaterWobblePhaseId = Shader.PropertyToID("_WobblePhase");
         private static readonly int WaterWobbleAmpId = Shader.PropertyToID("_WobbleAmp");
         private static readonly int WaterRingsId = Shader.PropertyToID("_Rings");
+        private static readonly int WaterRingThicknessId = Shader.PropertyToID("_RingThickness");
+        private static readonly int WaterEdgeWobbleId = Shader.PropertyToID("_EdgeWobble");
+        private static readonly int WaterProgressId = Shader.PropertyToID("_Progress");
 
         /// <summary>与 shader 的 RING_SLOTS 一致；默认间隔 0.03s × 寿命 0.9s ≈ 30 个并存 + 水花，32 够用</summary>
         private const int WaterRingSlots = 32;
@@ -50,6 +56,10 @@ namespace MasterHouse
 
         /// <summary>暂停弹窗是否开着。开着 = 整局冻结（见 Update 的暂停闸）。</summary>
         private bool paused;
+
+        /// <summary>过场已经走了多久，以及环节根是否已经在幕布后面换过（见 TickTransition）。</summary>
+        private float transitionElapsed;
+        private bool transitionSwapped;
 
         private int grindScore;
         private float settleRemaining;
@@ -115,6 +125,8 @@ namespace MasterHouse
             view.escButton.onClick.AddListener(TogglePause);
             view.resumeButton.onClick.AddListener(ClosePause);
             view.pauseRoot.gameObject.SetActive(false);
+            view.transitionGroup.alpha = 0f;
+            view.transitionRoot.gameObject.SetActive(false);
 
             phase = EPhase.Grind;
             view.grindRoot.gameObject.SetActive(true);
@@ -160,7 +172,11 @@ namespace MasterHouse
                     if (!IsPointerOver(view.escButton)) grind.HandleInput();
                     grind.Tick(dt);
                     RefreshHud();
-                    if (grind.IsComplete) EnterPour();
+                    if (grind.IsComplete) EnterTransition();
+                    break;
+
+                case EPhase.Transition:
+                    TickTransition(dt);
                     break;
 
                 case EPhase.Pour:
@@ -175,8 +191,8 @@ namespace MasterHouse
                     break;
             }
 
-            // 水面是纯表现：磨豆阶段 pourRoot 未激活，不喂；结算展示期间余波继续
-            if (phase != EPhase.Grind) TickWater(dt);
+            // 水面是纯表现：磨豆与过场期间 pourRoot 还没上场，不喂；结算展示期间余波继续
+            if (phase == EPhase.Pour || phase == EPhase.Settle) TickWater(dt);
 
             // 放在环节切换之后：磨满的那一帧已经切到冲泡，研磨声当帧就停
             UpdateLoopSfx();
@@ -184,16 +200,78 @@ namespace MasterHouse
 
         // ══════════ 环节切换 ══════════
 
-        private void EnterPour()
+        /// <summary>
+        /// 磨豆磨满 → 进过场（2026-08-20 反馈「两个阶段之间没有切换过渡」后加）。
+        /// 得分在这一刻就定死：幕布后面磨盘已经不动了。环节根的互换留到幕布全满时做。
+        /// </summary>
+        private void EnterTransition()
         {
             grindScore = grind.Score;
-            phase = EPhase.Pour;
+            phase = EPhase.Transition;
+            transitionElapsed = 0f;
+            transitionSwapped = false;
             SfxManager.PlayOnce(view.stageClearClip, view.stageClearVolume); // ① 磨豆通关
-            view.grindRoot.gameObject.SetActive(false);
-            view.pourRoot.gameObject.SetActive(true);
-            messageResetRemaining = 0f;
-            ShowPhaseMessage();
-            RefreshHud();
+
+            view.transitionRoot.gameObject.SetActive(true);
+            view.transitionGroup.alpha = 0f;
+            if (view.transitionLabel != null) view.transitionLabel.text = PourPhaseTitle;
+        }
+
+        /// <summary>
+        /// 过场三段：淡入 → 停留 → 淡出。**环节根在幕布全满的那一帧才互换**，玩家看不到硬切。
+        /// 整段期间不读输入、不喂水面，两路循环音也都静（UpdateLoopSfx 只认 Grind / Pour）。
+        /// 时间走本组件的 dt，所以暂停时过场也跟着停。
+        /// </summary>
+        private void TickTransition(float dt)
+        {
+            transitionElapsed += dt;
+
+            float fadeIn = Mathf.Max(0.01f, view.transitionInSeconds);
+            float hold = Mathf.Max(0f, view.transitionHoldSeconds);
+            float fadeOut = Mathf.Max(0.01f, view.transitionOutSeconds);
+
+            if (transitionElapsed < fadeIn)
+            {
+                view.transitionGroup.alpha = transitionElapsed / fadeIn;
+                return;
+            }
+
+            if (!transitionSwapped)
+            {
+                transitionSwapped = true;
+                view.transitionGroup.alpha = 1f;
+                view.grindRoot.gameObject.SetActive(false);
+                view.pourRoot.gameObject.SetActive(true);
+                messageResetRemaining = 0f;
+                // 幕布还没退，但 HUD 与提示行当帧就换成冲泡的——两者都只看「不是磨豆」，
+                // 所以过场态天然读作冲泡态，幕布退开时底下已经是新环节的样子了
+                ShowPhaseMessage();
+                RefreshHud();
+            }
+
+            float since = transitionElapsed - fadeIn;
+            if (since < hold)
+            {
+                view.transitionGroup.alpha = 1f;
+                return;
+            }
+
+            float outT = (since - hold) / fadeOut;
+            if (outT < 1f)
+            {
+                view.transitionGroup.alpha = 1f - outT;
+                return;
+            }
+
+            EnterPour();
+        }
+
+        /// <summary>过场走完，正式交给冲泡环节接管输入。</summary>
+        private void EnterPour()
+        {
+            phase = EPhase.Pour;
+            view.transitionGroup.alpha = 0f;
+            view.transitionRoot.gameObject.SetActive(false);
         }
 
         private void EnterSettle()
@@ -271,6 +349,9 @@ namespace MasterHouse
                 return true;
             }
 
+            // 过场就一秒多，中途弹暂停既没必要、幕布半透时弹窗也难看。吞掉不处理
+            if (phase == EPhase.Transition) return true;
+
             OpenPause();
             return true;
         }
@@ -344,7 +425,7 @@ namespace MasterHouse
             view.progressFill.anchorMax = new Vector2(Mathf.Clamp01(progress), 1f);
 
             if (view.phaseLabel != null)
-                view.phaseLabel.text = phase == EPhase.Grind ? "① 磨豆子" : "② 冲咖啡";
+                view.phaseLabel.text = phase == EPhase.Grind ? GrindPhaseTitle : PourPhaseTitle;
 
             // 底卡只有 188 宽（素材原尺寸 ÷ 2.667），这两行都得短——长句放底部提示行
             if (view.scoreLabel != null)
@@ -423,6 +504,17 @@ namespace MasterHouse
             waterMaterial = new Material(shader);
             waterMaterial.SetColor("_WaterColor", view.waterColor);
             waterMaterial.SetColor("_RippleColor", view.waterRippleColor);
+            // 这两个原来只在 shader 里给默认值，调不了。2026-08-20 反馈「水波不够明显」后提到 View 上，
+            // 因为它们正是决定明显程度的两把尺（环带越厚越容易叠亮，边缘幅度越大晃得越看得见）
+            waterMaterial.SetFloat(WaterRingThicknessId, view.waterRingThickness);
+            waterMaterial.SetFloat(WaterEdgeWobbleId, view.waterEdgeWobble);
+
+            // 进度环：形状参数一次设定，进度值逐帧喂（见 TickWater）
+            waterMaterial.SetColor("_ProgressColor", view.waterProgressColor);
+            waterMaterial.SetFloat("_ProgressWidth", view.waterProgressWidth);
+            waterMaterial.SetFloat("_ProgressInset", view.waterProgressInset);
+            waterMaterial.SetFloat("_ProgressTrackAlpha", view.waterProgressTrackAlpha);
+            waterMaterial.SetFloat(WaterProgressId, 0f);
             // 满杯底图 + 液面常驻满（2026-08-20 拍板）：0.5 是 uv 半径的上限，设一次此后不再改。
             // 进度改由 HUD 的进度条表达；这一层只剩波纹与边缘晃动
             waterMaterial.SetFloat(WaterFillRadiusId, 0.5f);
@@ -494,7 +586,9 @@ namespace MasterHouse
                     ringCenter[i].x, ringCenter[i].y, ringAge[i] * view.waterWakeWaveSpeed, fade);
             }
 
-            // 液面半径不再喂：底图已是满杯，_FillRadius 在 SetupWater 里就设到上限了
+            // 液面半径不再喂：底图已是满杯，_FillRadius 在 SetupWater 里就设到上限了。
+            // 进度改由杯壁内侧那一圈进度环表达（结算展示期间进度已满，环是整圈的）
+            waterMaterial.SetFloat(WaterProgressId, Mathf.Clamp01(pour.Progress));
             waterMaterial.SetFloat(WaterWobblePhaseId, wobblePhase);
             waterMaterial.SetFloat(WaterWobbleAmpId, wobbleAmp);
             waterMaterial.SetVectorArray(WaterRingsId, ringUpload);
@@ -543,6 +637,8 @@ namespace MasterHouse
             if (view.escButton == null) missing.Add(nameof(view.escButton));
             if (view.pauseRoot == null) missing.Add(nameof(view.pauseRoot));
             if (view.resumeButton == null) missing.Add(nameof(view.resumeButton));
+            if (view.transitionRoot == null) missing.Add(nameof(view.transitionRoot));
+            if (view.transitionGroup == null) missing.Add(nameof(view.transitionGroup));
             if (view.abortButton == null) missing.Add(nameof(view.abortButton));
             if (missing.Count == 0) return true;
 
@@ -550,7 +646,8 @@ namespace MasterHouse
             // 所以这里直接指路重建，别再让人先去点一遍没用的菜单
             var is2point0 = view.pourBackground == null || view.grindBackground == null ||
                             view.obstacleBeadTemplate == null || view.escButton == null ||
-                            view.pauseRoot == null || view.resumeButton == null;
+                            view.pauseRoot == null || view.resumeButton == null ||
+                            view.transitionRoot == null;
             Debug.LogError($"[制作咖啡] Prefab 缺少必需的布局引用：{string.Join("、", missing)}。" +
                            (is2point0
                                ? "这些是 2.0 版式（整屏底图 / ESC 暂停 / 暂停弹窗）的新节点，" +

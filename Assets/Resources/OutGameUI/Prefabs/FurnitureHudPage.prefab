@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 3879859937010413303}
   - component: {fileID: 6828249091736705881}
   - component: {fileID: 8913884753604444835}
-  - component: {fileID: 3242124878876599117}
   m_Layer: 5
   m_Name: Tab0
   m_TagString: Untagged
@@ -137,21 +136,6 @@ MonoBehaviour:
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
   clickSfx: 1
---- !u!114 &3242124878876599117
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 75823319574878881}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3920466fe47c0c44080d61d3b3abc2b2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  normal: {fileID: 21300000, guid: 5759bc072cba0a24b9a52075c5a292d0, type: 3}
-  hover: {fileID: 21300000, guid: 9bcd2aef807fdb54cbf8df692aa6dc79, type: 3}
-  selected: {fileID: 21300000, guid: e361b026250d52a43a6ab970ed7766d6, type: 3}
 --- !u!1 &838638440477804708
 GameObject:
   m_ObjectHideFlags: 0
@@ -626,7 +610,6 @@ GameObject:
   - component: {fileID: 2365313568048405979}
   - component: {fileID: 4511239116451694404}
   - component: {fileID: 1358917733526916863}
-  - component: {fileID: 3050915096499082208}
   m_Layer: 5
   m_Name: Tab4
   m_TagString: Untagged
@@ -750,21 +733,6 @@ MonoBehaviour:
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
   clickSfx: 1
---- !u!114 &3050915096499082208
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1756126871206162677}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3920466fe47c0c44080d61d3b3abc2b2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  normal: {fileID: 21300000, guid: 1b3192d14a3c27547b35293d29485046, type: 3}
-  hover: {fileID: 21300000, guid: d5c1436c777c9ba4abe60a8f61c7942f, type: 3}
-  selected: {fileID: 21300000, guid: bc850703537361a4999514903ea87557, type: 3}
 --- !u!1 &2042737045898666250
 GameObject:
   m_ObjectHideFlags: 0
@@ -853,7 +821,6 @@ GameObject:
   - component: {fileID: 8113493524022122931}
   - component: {fileID: 4256651456024770763}
   - component: {fileID: 7382705629878318619}
-  - component: {fileID: 3252610806478067873}
   m_Layer: 5
   m_Name: Tab3
   m_TagString: Untagged
@@ -977,21 +944,6 @@ MonoBehaviour:
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
   clickSfx: 1
---- !u!114 &3252610806478067873
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2552178580776535043}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3920466fe47c0c44080d61d3b3abc2b2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  normal: {fileID: 21300000, guid: 69aefb1e0453c694d8025ff0d5e6ea94, type: 3}
-  hover: {fileID: 21300000, guid: 6a41ca336debc44439c9e1b2445c7c97, type: 3}
-  selected: {fileID: 21300000, guid: 97b0383262d2a114d8ae205c72ac47de, type: 3}
 --- !u!1 &2679693413235887747
 GameObject:
   m_ObjectHideFlags: 0
@@ -1476,7 +1428,6 @@ GameObject:
   - component: {fileID: 5693821672533455731}
   - component: {fileID: 4723673491394124383}
   - component: {fileID: 194589851642000446}
-  - component: {fileID: 9110956181203893021}
   m_Layer: 5
   m_Name: Tab1
   m_TagString: Untagged
@@ -1600,21 +1551,6 @@ MonoBehaviour:
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
   clickSfx: 1
---- !u!114 &9110956181203893021
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4519579737119929270}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3920466fe47c0c44080d61d3b3abc2b2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  normal: {fileID: 21300000, guid: 7f8858fed4cc40745810f7bad62efc5e, type: 3}
-  hover: {fileID: 21300000, guid: 335c4538c5e7d3446b2cf4cff3fbd85d, type: 3}
-  selected: {fileID: 21300000, guid: feecc27a9358d5f40ade2d831a613330, type: 3}
 --- !u!1 &4870706991843510738
 GameObject:
   m_ObjectHideFlags: 0
@@ -3324,7 +3260,6 @@ GameObject:
   - component: {fileID: 7139285882433606595}
   - component: {fileID: 3953231055293216736}
   - component: {fileID: 6958198143968878338}
-  - component: {fileID: 2762261303968626313}
   m_Layer: 5
   m_Name: Tab2
   m_TagString: Untagged
@@ -3448,21 +3383,6 @@ MonoBehaviour:
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
   clickSfx: 1
---- !u!114 &2762261303968626313
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7962709419574175040}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3920466fe47c0c44080d61d3b3abc2b2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  normal: {fileID: 21300000, guid: b8d4e4cf75ff9554487dc75b3891c261, type: 3}
-  hover: {fileID: 21300000, guid: 1d3a3bc83e1941c4d9c65421ab2bd420, type: 3}
-  selected: {fileID: 21300000, guid: 9dabdbbde1bc5334b9fa2af456c4fa9c, type: 3}
 --- !u!1 &8356162679449923109
 GameObject:
   m_ObjectHideFlags: 0
@@ -3827,7 +3747,6 @@ GameObject:
   - component: {fileID: 7179521027333187770}
   - component: {fileID: 717946501085326192}
   - component: {fileID: 106245638023298293}
-  - component: {fileID: 1685585126529947936}
   m_Layer: 5
   m_Name: Tab5
   m_TagString: Untagged
@@ -3951,21 +3870,6 @@ MonoBehaviour:
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
   clickSfx: 1
---- !u!114 &1685585126529947936
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8504444725116169096}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3920466fe47c0c44080d61d3b3abc2b2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  normal: {fileID: 21300000, guid: 12eb8fc1afec6c84abc75823875092fc, type: 3}
-  hover: {fileID: 21300000, guid: 948d39705a0b9c442b013bcf500aa7a2, type: 3}
-  selected: {fileID: 21300000, guid: 8b18429754d304940a9785489bba6cce, type: 3}
 --- !u!1 &8620879246040097257
 GameObject:
   m_ObjectHideFlags: 0

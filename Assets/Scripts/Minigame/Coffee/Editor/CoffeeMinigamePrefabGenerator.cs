@@ -222,6 +222,7 @@ namespace MasterHouse.EditorTools
             BuildHud(rootRect, view);
             BuildFooter(rootRect, view);
             BuildEscButton(rootRect, view);
+            BuildTransition(rootRect, view);
             BuildPause(rootRect, view);
             AssignAudioClips(view);
 
@@ -364,6 +365,30 @@ namespace MasterHouse.EditorTools
         }
 
         /// <summary>
+        /// 环节过场幕布（2026-08-20）：整屏纸色 + 居中的环节名，默认隐藏，换环节时放一次。
+        /// 建在 ESC 之后、暂停弹窗之前——过场要连 HUD 一起盖住才干净，但暂停弹窗得压在它上面。
+        /// 没用素材：纸色是纯色，环节名是文字，一张全屏贴图不值这份显存（同暂停遮罩的取舍）。
+        /// </summary>
+        private static void BuildTransition(RectTransform parent, CoffeeMinigameView view)
+        {
+            var root = Rect(parent, "TransitionRoot", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            view.transitionRoot = root;
+
+            var group = root.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 0f;
+            view.transitionGroup = group;
+
+            var sheet = ImageOn(root, Paper);
+            sheet.raycastTarget = true; // 幕布期间点不到底下的东西
+
+            view.transitionLabel = Label(root, "Title", "② 冲咖啡", 64, InkBlue,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(900, 110),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+
+            root.gameObject.SetActive(false); // Prefab 里就是关的，运行时由 CoffeeMinigame 开
+        }
+
+        /// <summary>
         /// 局内暂停弹窗（2026-08-20，素材 PC ui 2.0/局内暂停弹窗）：整屏遮罩 + 纸面板 + 两颗按钮。
         /// **页面级**——磨豆与冲泡共用这一个，不随环节切换重建。
         /// 建完即隐藏，打开由 CoffeeMinigame 负责（ESC 键经壳的 ConsumeEscape 传下来，或点左下角那颗）。
@@ -430,9 +455,10 @@ namespace MasterHouse.EditorTools
                 // 2.0 版式（整屏底图 / 左上底卡 / 左下 ESC / 暂停弹窗）是整页改版，补节点补不出来，
                 // 只提示、不擅自重建——重建会覆盖手调，那是要人显式点菜单的操作
                 if (view.pourBackground == null || view.grindBackground == null ||
-                    view.obstacleBeadTemplate == null || view.escButton == null || view.pauseRoot == null)
+                    view.obstacleBeadTemplate == null || view.escButton == null ||
+                    view.pauseRoot == null || view.transitionRoot == null)
                     Debug.LogWarning("[制作咖啡] 这份 Prefab 还是改版前的老版式" +
-                                     "（缺 两个环节的底图 / 红珠模板 / ESC 暂停 / 暂停弹窗）。" +
+                                     "（缺 两个环节的底图 / 红珠模板 / ESC 暂停 / 暂停弹窗 / 过场幕布）。" +
                                      "要换成 2.0 设计图的版式，请执行菜单 " +
                                      "MasterHouse → 小游戏 → 重建制作咖啡 Prefab（覆盖手调）");
 
