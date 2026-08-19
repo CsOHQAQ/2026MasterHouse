@@ -2493,7 +2493,8 @@ namespace MasterHouse
         /// </summary>
         private static readonly (string Race, string Art, string Portrait, string Avatar)[] CodexEntries =
         {
-            // 图片统一按访客种族表的 raceId 命名；顺序与表中行序一致。
+            // 先按访客种族表的 raceId 排序；豹酷酷/豹冲冲的美术文件名历史上是交叉的：
+            // cheetah 文件画的是冲冲，leopard 文件画的是酷酷。
             //  种族      图鉴卡面   详情页右页立绘  详情页证件照
             ("rabbit",  "rabbit",  "rabbit",  "rabbit"),
             ("goat",    "goat",    "goat",    "goat"),
