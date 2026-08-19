@@ -1761,7 +1761,7 @@ CanvasGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4870706991843510738}
   m_Enabled: 1
-  m_Alpha: 0
+  m_Alpha: 1
   m_Interactable: 0
   m_BlocksRaycasts: 0
   m_IgnoreParentGroups: 0
@@ -2115,7 +2115,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   topGroup: {fileID: 700140852772283830}
   creditLabel: {fileID: 8231336622114873277}
-  hideUiButton: {fileID: 5814482459957920151}
+  hideUiButton: {fileID: 6047576504646267776}
   gridToggleButton: {fileID: 8721314528652030224}
   gridToggleLabel: {fileID: 5731430963188841224}
   exitButton: {fileID: 8656444021065431342}

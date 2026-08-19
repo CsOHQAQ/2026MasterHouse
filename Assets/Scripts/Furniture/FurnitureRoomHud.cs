@@ -129,6 +129,16 @@ namespace MasterHouse
             HouseUIUtil.BindButton(view.gridToggleButton, () => GridToggleClicked?.Invoke());
             HouseUIUtil.BindButton(view.hideUiButton, () => SetChromeHidden(true));
             HouseUIUtil.BindButton(view.restoreButton, () => SetChromeHidden(false));
+            // 根级「收起」按钮初始必须可见（2026-08-20：复制 ShowUi 摆出来的节点会带着 alpha=0 的
+            // CanvasGroup，一进场就隐身）；显隐之后由 SetChromeHidden 统一接管
+            if (view.hideUiButton != null && view.topGroup != null &&
+                !view.hideUiButton.transform.IsChildOf(view.topGroup.transform))
+            {
+                var hideGroup = HouseUIUtil.Group(view.hideUiButton.gameObject);
+                hideGroup.alpha = 1f;
+                hideGroup.blocksRaycasts = true;
+                hideGroup.interactable = true;
+            }
             HouseUIUtil.BindButton(view.prevPageButton, () => TurnPage(-1));
             HouseUIUtil.BindButton(view.nextPageButton, () => TurnPage(1));
             for (var i = 0; i < view.tabButtons.Length && i < TabCategories.Length; i++)
