@@ -35,6 +35,12 @@ namespace MasterHouse
         private const float ZDayVeil = .05f;
         private const int OrderGhost = 400;
 
+        /// <summary>
+        /// 家具场景独占的层（Unity 内置的空闲层 3）：House UI 画布 2026-08-20 改成
+        /// ScreenSpaceCamera 之后，UI 相机与家具相机得各画各的，靠层分开。
+        /// </summary>
+        internal const int FurnitureSceneLayer = 3;
+
         // 分层 Z 偏移（只用于相机视差，绘制次序由 sortingOrder 决定）
         private const float ZBackground = .15f;
         private const float ZNightBackground = .145f;
@@ -118,7 +124,8 @@ namespace MasterHouse
                 Debug.LogWarning($"[Furniture] 房间配置为空（下标 {roomIndex}），无法进入家具模式。");
                 return false;
             }
-            var go = new GameObject("FurnitureRoomMode");
+            // 家具场景独占一层：UI 相机只画 UI 层，这层归家具相机（2026-08-20 画布转 Camera 模式）
+            var go = new GameObject("FurnitureRoomMode") { layer = FurnitureSceneLayer };
             active = go.AddComponent<FurnitureRoomController>();
             active.Init(furniture, roomEntry, resolvedIndex, onClosed, onStoreRequested);
             return true;
@@ -134,7 +141,7 @@ namespace MasterHouse
             // 把舞台放到远离节点玩法棋盘的位置，避免主相机内容互相穿帮。
             stageOrigin = new Vector3(500f, 0f, 0f);
 
-            stageRoot = new GameObject("FurnitureStage").transform;
+            stageRoot = new GameObject("FurnitureStage") { layer = FurnitureSceneLayer }.transform;
             stageRoot.position = stageOrigin;
 
             BuildBackground();
@@ -228,7 +235,7 @@ namespace MasterHouse
 
         private SpriteRenderer CreateLayer(string name, Sprite sprite, int order, float z, float alpha)
         {
-            var go = new GameObject(name);
+            var go = new GameObject(name) { layer = FurnitureSceneLayer };
             go.transform.SetParent(stageRoot, false);
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sortingOrder = order;
@@ -250,6 +257,12 @@ namespace MasterHouse
             var halfExtents = new Vector2(room.sceneWidth, room.sceneHeight) / PixelsPerUnit * .5f;
             rig = new GameObject("FurnitureCameraRig").AddComponent<FurnitureCameraRig>();
             rig.Init(pivot, halfExtents, CameraFov); // 初始完整显示背景；滚轮缩放 + 右键/中键平移在吊架内
+            // 背景 = Hub 的定格画面（2026-08-20：摆放时背景别变黑/变天空）。
+            // 调用方（HubPage）在进场前已把 UI 同步藏干净、拍完立刻整块关画布——
+            // 所以这里同步拍即可，拍到的一定是干净的场景
+            var houseUi = HouseUIManager.Instance;
+            if (houseUi != null && houseUi.Canvas != null)
+                rig.CaptureBackdrop(houseUi.Canvas.worldCamera);
         }
 
         private void BuildGrids()
@@ -283,6 +296,19 @@ namespace MasterHouse
             new Vector3(
                 scenePxWidth / PixelsPerUnit / Mathf.Max(1e-4f, sprite.bounds.size.x),
                 scenePxHeight / PixelsPerUnit / Mathf.Max(1e-4f, sprite.bounds.size.y), 1f);
+
+        /// <summary>
+        /// 等比版（2026-08-20 修家具变形）：按「装得进 displayWidth×displayHeight」的最大等比缩放，
+        /// 保持素材自身宽高比——表里的显示宽高和素材比例不一致时，硬拉伸会把家具压窄。
+        /// 房间背景仍用上面的拉伸版（必须精确铺满场景尺寸）。
+        /// </summary>
+        private static Vector3 SpriteScaleFit(Sprite sprite, float scenePxWidth, float scenePxHeight)
+        {
+            var uniform = Mathf.Min(
+                scenePxWidth / PixelsPerUnit / Mathf.Max(1e-4f, sprite.bounds.size.x),
+                scenePxHeight / PixelsPerUnit / Mathf.Max(1e-4f, sprite.bounds.size.y));
+            return new Vector3(uniform, uniform, 1f);
+        }
 
         /// <summary>场景像素（左上原点、Y 向下）→ 世界坐标。</summary>
         private Vector3 PxToWorld(float px, float py, float z)
@@ -363,7 +389,7 @@ namespace MasterHouse
         {
             var sprite = Resources.Load<Sprite>("OutGameUI/soft-shadow");
             if (sprite == null || item.Entry.sprite == null) return null;
-            var go = new GameObject("Shadow");
+            var go = new GameObject("Shadow") { layer = FurnitureSceneLayer };
             go.transform.SetParent(item.Root.transform, false);
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sprite = sprite;
@@ -403,13 +429,13 @@ namespace MasterHouse
                 Row = row,
                 Flipped = flipped,
             };
-            item.Root = new GameObject("Furniture_" + entry.id);
+            item.Root = new GameObject("Furniture_" + entry.id) { layer = FurnitureSceneLayer };
             item.Root.transform.SetParent(stageRoot, false);
             item.Renderer = item.Root.AddComponent<SpriteRenderer>();
             item.Renderer.sprite = entry.sprite;
             item.Renderer.flipX = flipped;
             if (entry.sprite != null)
-                item.Root.transform.localScale = SpriteScale(entry.sprite, entry.displayWidth, entry.displayHeight);
+                item.Root.transform.localScale = SpriteScaleFit(entry.sprite, entry.displayWidth, entry.displayHeight);
             // 光影：落地/桌面家具脚下垫柔和椭圆投影（壁挂与地毯类不投）
             if (!entry.stackable && grid.Surface != FurnitureSurfaceType.Wall)
                 item.Shadow = CreateShadow(item);
@@ -655,7 +681,7 @@ namespace MasterHouse
             SfxManager.PlayOverride(entry.pickupSound, ESfx.FurniturePickup);
             drag = new DragState { Entry = entry, Item = item, Flipped = item != null && item.Flipped };
             hud.SetDragDimming(true); // 布置中顶部 UI 淡出让位（收纳栏保留作拖回落点）
-            drag.Ghost = new GameObject("DragGhost");
+            drag.Ghost = new GameObject("DragGhost") { layer = FurnitureSceneLayer };
             drag.Ghost.transform.SetParent(stageRoot, false);
             drag.GhostRenderer = drag.Ghost.AddComponent<SpriteRenderer>();
             drag.GhostRenderer.sprite = entry.sprite;
@@ -663,7 +689,7 @@ namespace MasterHouse
             drag.GhostRenderer.sortingOrder = OrderGhost;
             drag.GhostRenderer.color = new Color(1f, 1f, 1f, .85f);
             if (entry.sprite != null)
-                drag.Ghost.transform.localScale = SpriteScale(entry.sprite, entry.displayWidth, entry.displayHeight);
+                drag.Ghost.transform.localScale = SpriteScaleFit(entry.sprite, entry.displayWidth, entry.displayHeight);
 
             if (item != null)
             {
@@ -674,7 +700,7 @@ namespace MasterHouse
                     foreach (var child in ChildrenOf(item))
                     {
                         AnchorOf(child, out var childLeft, out var childBottom, out _, out _);
-                        var childGhost = new GameObject("GhostChild_" + child.Entry.id);
+                        var childGhost = new GameObject("GhostChild_" + child.Entry.id) { layer = FurnitureSceneLayer };
                         childGhost.transform.SetParent(drag.Ghost.transform, false);
                         var renderer = childGhost.AddComponent<SpriteRenderer>();
                         renderer.sprite = child.Entry.sprite;
@@ -688,7 +714,7 @@ namespace MasterHouse
                             offsetX / PixelsPerUnit / hostScale.x, offsetY / PixelsPerUnit / hostScale.y, 0f);
                         if (child.Entry.sprite != null)
                         {
-                            var childScale = SpriteScale(child.Entry.sprite, child.Entry.displayWidth, child.Entry.displayHeight);
+                            var childScale = SpriteScaleFit(child.Entry.sprite, child.Entry.displayWidth, child.Entry.displayHeight);
                             childGhost.transform.localScale = new Vector3(
                                 childScale.x / hostScale.x, childScale.y / hostScale.y, 1f);
                         }

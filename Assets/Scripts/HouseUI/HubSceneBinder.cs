@@ -876,7 +876,7 @@ namespace MasterHouse
         private Vector2 PointerInViewport(out bool inside)
         {
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                sceneRoot, Input.mousePosition, null, out var local);
+                sceneRoot, Input.mousePosition, HouseUIUtil.CameraOf(sceneRoot), out var local);
             var rect = sceneRoot.rect;
             inside = rect.Contains(local);
             return new Vector2(local.x - rect.xMin, local.y - rect.yMin);

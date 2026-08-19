@@ -47,6 +47,19 @@ namespace MasterHouse
         /// 各类弹窗/面板/卡片统一经此换肤；素材缺失时保持原有底色不变。
         /// alpha 控制整体透明度；borderScale 越大边框越细（小按钮传 2~3，避免切片边框比按钮还厚）。
         /// </summary>
+        /// <summary>
+        /// 某个 UI 节点做屏幕坐标换算时该用的相机：Overlay 画布返回 null，
+        /// ScreenSpaceCamera 画布返回它挂的相机（2026-08-20 画布改 Camera 模式后必须传对）。
+        /// </summary>
+        public static Camera CameraOf(RectTransform rect)
+        {
+            if (rect == null) return null;
+            var canvas = rect.GetComponentInParent<Canvas>();
+            if (canvas == null) return null;
+            canvas = canvas.rootCanvas;
+            return canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+        }
+
         public static void ApplyPanelSkin(Image panel, float alpha = 1f, float borderScale = 1f)
         {
             if (panel == null) return;

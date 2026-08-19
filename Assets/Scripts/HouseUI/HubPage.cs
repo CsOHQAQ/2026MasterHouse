@@ -437,15 +437,23 @@ namespace MasterHouse
         }
 
         /// <summary>家具模式：世界空间独立舞台，打开期间禁用整个壳 Canvas，退出回调恢复并重烘焙背景。</summary>
+        /// <summary>进摆放模式前的收起态：退出时原样还原，不打断玩家自己收起界面的选择。</summary>
+        private bool immersiveBeforeFurniture;
+
         public void OpenFurnitureMode()
         {
             if (furnitureModeOpen) return;
             furnitureModeOpen = true;
-            UI.Canvas.enabled = false;
+            // 只收起四周 UI，Hub 的聚焦画面留着当背景（2026-08-20 反馈：别变黑）。
+            // 画布已改 ScreenSpaceCamera，家具相机会叠在它前面
+            immersiveBeforeFurniture = immersive;
+            SetImmersive(true);
+            SnapChromeHidden(); // 家具模式随后就要定格截屏当背景，淡出还没走完的 UI 会被拍进去
             var opened = FurnitureRoomController.Open(RoomIndex, () => // 家具模式随 Hub 当前房间动态加载
             {
                 furnitureModeOpen = false;
-                UI.Canvas.enabled = true;
+                UI.Canvas.enabled = true; // 画布在截完定格背景后被整块关闭（输入也一并回收）
+                SetImmersive(immersiveBeforeFurniture);
                 // 旧壳此处落档；存档功能移除（§16.5），仅重烘焙背景与热点
                 scene.RefreshAfterFurniture();
                 SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：退出家具模式
@@ -454,12 +462,37 @@ namespace MasterHouse
             {
                 furnitureModeOpen = false;
                 UI.Canvas.enabled = true;
+                SetImmersive(immersiveBeforeFurniture);
                 Toast("家具配置表缺失：请先执行菜单 MasterHouse → 家具系统 → 创建配置表");
             }
             else
             {
+                // 定格背景已拍好：整块关画布——Hub 的档位区块不再抢镜，
+                // GraphicRaycaster 也一并失效，家具拖拽的点击不会被 Hub 截走
+                UI.Canvas.enabled = false;
                 SfxManager.Play(ESfx.PageTransition); // 音效需求 #5：进入家具模式
             }
+        }
+
+        /// <summary>
+        /// 把四周 UI 立刻藏干净（不等淡出动画）：家具模式进场截屏前用。
+        /// 档位区块（顶栏/任务卡/导航）与「展开界面」按钮也一并压掉——只为这一帧截屏；
+        /// 拍完画布整块关闭，退出时 SetImmersive/tierUi 会把它们各自恢复。
+        /// 正在关闭中的叠加层（商店淡出）同样压掉，不然会被拍进背景。
+        /// </summary>
+        private void SnapChromeHidden()
+        {
+            foreach (Transform child in view.chromeRoot)
+            {
+                if (child == view.sceneRoot) continue;
+                HouseUIUtil.Group(child.gameObject).alpha = 0f;
+            }
+            Transform hubLayer = view.chromeRoot;
+            while (hubLayer.parent != null && hubLayer.parent != UI.PageRoot) hubLayer = hubLayer.parent;
+            foreach (Transform sibling in UI.PageRoot)
+                if (sibling != hubLayer)
+                    HouseUIUtil.Group(sibling.gameObject).alpha = 0f;
+            Canvas.ForceUpdateCanvases();
         }
 
         /// <summary>收起/展开四周 UI。收起后进入观景模式：拖拽平移背景、滚轮缩放。</summary>
