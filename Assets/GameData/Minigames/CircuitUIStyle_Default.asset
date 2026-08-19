@@ -51,3 +51,9 @@ MonoBehaviour:
   paletteCountDigitColor: {r: 1, g: 1, b: 1, a: 1}
   paletteCountDigitDisabledColor: {r: 0.75, g: 0.42, b: 0.42, a: 1}
   buttonBackgroundSprite: {fileID: 21300000, guid: 2076370049aadd24f89642e83fd986ca, type: 3}
+  finishButtonSprite: {fileID: 21300000, guid: ab711cb3a917a7f41ba17d816fe6e891, type: 3}
+  abortButtonSprite: {fileID: 0}
+  prevLessonButtonSprite: {fileID: 0}
+  retryLessonButtonSprite: {fileID: 0}
+  summaryContinueButtonSprite: {fileID: 0}
+  summaryStayButtonSprite: {fileID: 0}
