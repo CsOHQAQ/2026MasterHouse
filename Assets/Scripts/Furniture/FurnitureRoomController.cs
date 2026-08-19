@@ -295,10 +295,30 @@ namespace MasterHouse
         ///（2026-08-20 曾改等比、导致摆放模式和局外烘焙图大小不一致，已回退）。
         /// 家具比例不对去表里改 displayWidth/Height，别在这儿加等比。
         /// </summary>
-        private static Vector3 SpriteScale(Sprite sprite, float scenePxWidth, float scenePxHeight) =>
-            new Vector3(
-                scenePxWidth / PixelsPerUnit / Mathf.Max(1e-4f, sprite.bounds.size.x),
-                scenePxHeight / PixelsPerUnit / Mathf.Max(1e-4f, sprite.bounds.size.y), 1f);
+        private static Vector3 SpriteScale(Sprite sprite, float scenePxWidth, float scenePxHeight)
+        {
+            // 按**实际图形区**（网格顶点包络）填框，不按整张画布（2026-08-20 修「新家具缩窄」）：
+            // 新素材普遍放在 1024 大画布里、横向留白很多，按画布算会把留白也算进宽度。
+            // FullRect 网格的顶点包络就是整картина布，老素材行为不变。
+            var size = TightSize(sprite);
+            return new Vector3(
+                scenePxWidth / PixelsPerUnit / Mathf.Max(1e-4f, size.x),
+                scenePxHeight / PixelsPerUnit / Mathf.Max(1e-4f, size.y), 1f);
+        }
+
+        /// <summary>sprite 图形区的世界尺寸（顶点包络；导入降采样不影响，顶点保持设计尺寸）。</summary>
+        private static Vector2 TightSize(Sprite sprite)
+        {
+            var vertices = sprite.vertices;
+            if (vertices == null || vertices.Length == 0) return sprite.bounds.size;
+            Vector2 min = vertices[0], max = vertices[0];
+            foreach (var v in vertices)
+            {
+                min = Vector2.Min(min, v);
+                max = Vector2.Max(max, v);
+            }
+            return max - min;
+        }
 
         /// <summary>场景像素（左上原点、Y 向下）→ 世界坐标。</summary>
         private Vector3 PxToWorld(float px, float py, float z)
