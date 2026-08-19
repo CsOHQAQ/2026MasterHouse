@@ -2460,11 +2460,11 @@ namespace MasterHouse
         /// </summary>
         private static readonly (Vector2 Position, Vector2 Size, float Tilt)[] CodexSlots =
         {
-            (new Vector2(215, -600), new Vector2(574, 698), -9f),
-            (new Vector2(535, -505), new Vector2(574, 698), 3f),
+            (new Vector2(81, -600), new Vector2(574, 698), -9f),
+            (new Vector2(458, -505), new Vector2(574, 698), 3f),
             (new Vector2(937, -575), new Vector2(789, 946), -1.5f),
-            (new Vector2(1374, -585), new Vector2(574, 698), -5f),
-            (new Vector2(1694, -495), new Vector2(574, 698), 6f),
+            (new Vector2(1448, -585), new Vector2(574, 698), -5f),
+            (new Vector2(1826, -495), new Vector2(574, 698), 6f),
         };
 
         /// <summary>
@@ -2475,6 +2475,7 @@ namespace MasterHouse
             new Vector2(470, 572), // 初版：偏小、均匀
             new Vector2(620, 754), // 第二版：放大过头，侧卡比设计图大了快一半
             new Vector2(473, 576), // 第三版：尺寸对了，但按矩形算重叠，被透明边距吃光
+            // 第四版尺寸没变（574×698），靠位置判定：见 CodexSlotsAreStale 里对 x 的比对
         };
 
         private const string CodexDir = "Assets/PC ui 2.0/图鉴/";
@@ -2605,7 +2606,8 @@ namespace MasterHouse
             var size = side.rectTransform.sizeDelta;
             foreach (var stale in CodexStaleSideSizes)
                 if (Mathf.Abs(size.x - stale.x) < 1f && Mathf.Abs(size.y - stale.y) < 1f) return true;
-            return false;
+            // 尺寸没变但两端还没向外张开的（第四版之前 x=215），也要刷一次
+            return Mathf.Abs(side.rectTransform.anchoredPosition.x - 215f) < 1f;
         }
 
         /// <summary>把卡位换成新排布（放大 + 压边 + 错落）。只在命中初版值时调用，不覆盖手调。</summary>

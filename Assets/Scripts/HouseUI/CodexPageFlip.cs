@@ -12,7 +12,8 @@ namespace MasterHouse
     ///
     /// 关键是轴心在**书脊**而不是画面中心：右半页的 pivot 取在左边缘（正好压着书脊），
     /// 横向缩放 1 → 0 就是页面立起来的过程，0 → 1 是落到另一面。
-    /// 左半页只做淡出淡入——一次只翻一页，两边一起折就成了「合上书」。
+    /// 两半页都翻，但**错峰**：立起时右页先、左页晚一拍；落下时左页先、右页晚一拍。
+    /// 于是读到的是一页从右扫向左，而不是两边同时朝中间折（那是合上书）。
     ///
     /// 非布局件，运行时挂：两个半页容器是运行时建的，节点按 worldPositionStays 移进去，
     /// 位置尺寸一概不改，Prefab 不动（§16.2）。
@@ -23,9 +24,11 @@ namespace MasterHouse
         private const float FoldSeconds = .17f;
         private const float UnfoldSeconds = .22f;
 
+        /// <summary>左右两页的错峰：差这么一拍，才读得出「从右扫向左」。</summary>
+        private const float PageStagger = .06f;
+
         private RectTransform leftPage;
         private RectTransform rightPage;
-        private CanvasGroup leftGroup;
         private Sequence sequence;
 
         /// <summary>把这些节点之外的内容按左右半页收进两个以书脊为轴的容器。</summary>
@@ -35,7 +38,6 @@ namespace MasterHouse
             // 左半页：pivot 在右边缘；右半页：pivot 在左边缘。两者的轴心都落在书脊上
             leftPage = CreateHalf(root, "PageLeft", new Vector2(0f, 0f), new Vector2(.5f, 1f), new Vector2(1f, .5f));
             rightPage = CreateHalf(root, "PageRight", new Vector2(.5f, 0f), new Vector2(1f, 1f), new Vector2(0f, .5f));
-            leftGroup = leftPage.gameObject.AddComponent<CanvasGroup>();
 
             // 先记下来再搬：边遍历边改父级会漏
             var moving = new List<Transform>();
@@ -83,13 +85,17 @@ namespace MasterHouse
             if (rightPage == null) { swap?.Invoke(); return; }
             sequence?.Kill();
             rightPage.localScale = Vector3.one;
-            if (leftGroup != null) leftGroup.alpha = 1f;
+            leftPage.localScale = Vector3.one;
             sequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
+            // 立起：右页先、左页晚一拍
             sequence.Append(rightPage.DOScaleX(0f, FoldSeconds).SetEase(Ease.InQuad));
-            if (leftGroup != null) sequence.Join(leftGroup.DOFade(0f, FoldSeconds).SetEase(Ease.InQuad));
+            sequence.Insert(PageStagger, leftPage.DOScaleX(0f, FoldSeconds).SetEase(Ease.InQuad));
+            sequence.AppendInterval(PageStagger);
             sequence.AppendCallback(() => swap?.Invoke());
-            sequence.Append(rightPage.DOScaleX(1f, UnfoldSeconds).SetEase(Ease.OutQuad));
-            if (leftGroup != null) sequence.Join(leftGroup.DOFade(1f, UnfoldSeconds).SetEase(Ease.OutQuad));
+            // 落下：左页先、右页晚一拍（方向和立起时相反，才是「扫过去」）
+            var landAt = sequence.Duration();
+            sequence.Insert(landAt, leftPage.DOScaleX(1f, UnfoldSeconds).SetEase(Ease.OutQuad));
+            sequence.Insert(landAt + PageStagger, rightPage.DOScaleX(1f, UnfoldSeconds).SetEase(Ease.OutQuad));
         }
 
         private void OnDestroy() => sequence?.Kill();

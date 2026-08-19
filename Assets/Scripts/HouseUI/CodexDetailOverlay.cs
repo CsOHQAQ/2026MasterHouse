@@ -57,6 +57,7 @@ namespace MasterHouse
             overlay.flip = instance.AddComponent<CodexPageFlip>();
             overlay.flip.Bind(rect,
                 view.background != null ? view.background.transform : null,
+                view.shipDecor != null ? view.shipDecor.transform : null, // \u5e06\u8239\u662f\u538b\u5728\u4e66\u5916\u7684\u88c5\u9970\uff0c\u4e0d\u8ddf\u7740\u7ffb
                 view.backButton != null ? view.backButton.transform : null,
                 view.switchButton != null ? view.switchButton.transform : null);
             overlay.Bind();
