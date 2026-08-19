@@ -378,8 +378,8 @@ namespace MasterHouse.EditorTools
             rect.anchorMin = new Vector2(0, 1);
             rect.anchorMax = new Vector2(1, 1);
             rect.pivot = new Vector2(.5f, .5f);
-            rect.anchoredPosition = new Vector2(0, -52);
-            rect.sizeDelta = new Vector2(-160, 72);
+            rect.anchoredPosition = new Vector2(0, -80);
+            rect.sizeDelta = new Vector2(-160, 120);
 
             var bar = root.GetComponent<CircuitTopStatusBarView>();
             bar.background = root.GetComponent<Image>();
@@ -404,22 +404,38 @@ namespace MasterHouse.EditorTools
             bar.anchorMin = new Vector2(0, 1);
             bar.anchorMax = new Vector2(1, 1);
             bar.pivot = new Vector2(.5f, .5f);
-            bar.anchoredPosition = new Vector2(0, -52);
-            bar.sizeDelta = new Vector2(-160, 72);
+            bar.anchoredPosition = new Vector2(0, -80);
+            bar.sizeDelta = new Vector2(-160, 120);
             view.topStatusBar = instance.GetComponent<CircuitTopStatusBarView>();
         }
 
         private static void PopulateTopStatusBar(RectTransform bar, CircuitTopStatusBarView view)
         {
-            // 四等分：进度（课程包专用，单关时隐藏）/ 导线 / 中转件 / 已点亮
-            view.progressLabel = Label(bar, "Progress", "第 1/1 关", 28, Muted,
-                new Vector2(0, 0), new Vector2(.25f, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter);
-            view.linkBudgetLabel = Label(bar, "LinkBudget", "导线 0/0", 28, Ink,
-                new Vector2(.25f, 0), new Vector2(.5f, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter);
-            view.pieceBudgetLabel = Label(bar, "PieceBudget", "中转件 0/0", 28, Ink,
-                new Vector2(.5f, 0), new Vector2(.75f, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter);
-            view.litLabel = Label(bar, "Lit", "已点亮 0/0", 28, Ink,
-                new Vector2(.75f, 0), new Vector2(1, 1), Vector2.zero, Vector2.zero, TextAnchor.MiddleCenter);
+            // 左侧：图标 + 标题 + 副标题
+            var iconRect = Rect(bar, "Icon", new Vector2(0.02f, 0.15f), new Vector2(0.12f, 0.85f),
+                Vector2.zero, Vector2.zero);
+            view.icon = ImageOn(iconRect, new Color(0.35f, 0.72f, 0.85f, 1f));
+            view.icon.preserveAspect = true;
+
+            view.titleLabel = Label(bar, "Title", "修理电路", 32, Ink,
+                new Vector2(0.14f, 0.45f), new Vector2(0.40f, 0.80f), Vector2.zero, Vector2.zero, TextAnchor.MiddleLeft);
+
+            view.subtitleLabel = Label(bar, "Subtitle", "在有限的格子内连通电路！", 22, Muted,
+                new Vector2(0.14f, 0.15f), new Vector2(0.40f, 0.50f), Vector2.zero, Vector2.zero, TextAnchor.MiddleLeft);
+
+            // 课程包进度（左上角小字，单关时隐藏）
+            view.progressLabel = Label(bar, "Progress", "第 1/1 关", 22, Muted,
+                new Vector2(0.02f, 0.78f), new Vector2(0.25f, 0.95f), Vector2.zero, Vector2.zero, TextAnchor.MiddleLeft);
+
+            // 右侧状态信息
+            view.linkBudgetLabel = Label(bar, "LinkBudget", "已消耗格子数 (0/0)", 26, Ink,
+                new Vector2(0.55f, 0.52f), new Vector2(0.78f, 0.88f), Vector2.zero, Vector2.zero, TextAnchor.MiddleRight);
+
+            view.pieceBudgetLabel = Label(bar, "PieceBudget", "已使用中转件 (0/0)", 26, Ink,
+                new Vector2(0.55f, 0.12f), new Vector2(0.78f, 0.52f), Vector2.zero, Vector2.zero, TextAnchor.MiddleRight);
+
+            view.litLabel = Label(bar, "Lit", "已点亮 0/0", 24, Muted,
+                new Vector2(0.80f, 0.25f), new Vector2(0.96f, 0.75f), Vector2.zero, Vector2.zero, TextAnchor.MiddleRight);
         }
 
         private static void BuildPalette(RectTransform parent, CircuitMinigameView view, CircuitUIStyleConfig uiStyle)

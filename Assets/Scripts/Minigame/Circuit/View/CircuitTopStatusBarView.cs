@@ -7,6 +7,9 @@ namespace MasterHouse
     public sealed class CircuitTopStatusBarView : MonoBehaviour
     {
         public Image background;
+        public Image icon;
+        public Text titleLabel;
+        public Text subtitleLabel;
         public Text progressLabel;
         public Text linkBudgetLabel;
         public Text pieceBudgetLabel;
