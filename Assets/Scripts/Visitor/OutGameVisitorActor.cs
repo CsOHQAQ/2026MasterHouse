@@ -64,6 +64,13 @@ namespace MasterHouse
         /// <summary>上一次轮询到的判据；null = 还没轮询过（邻居恒为 null）。变了才重刷名牌文案。</summary>
         private VisitorManager.ENoTalkReason? talkReason;
 
+        /// <summary>
+        /// 「有需求」时静音气泡（2026-08-19 反馈）：头顶「！」一亮就只留这一个提示，
+        /// 情绪符号与闲逛台词一律不冒——两种提示挤同一块头顶，玩家分不清该看哪个。
+        /// 「等分房」不算有需求（头顶不亮标记），那边照常冒「…」气泡（内容见 ProvideEmote）。
+        /// </summary>
+        private bool BubbleMuted => !ambient && talkReason == VisitorManager.ENoTalkReason.None;
+
         private ActorState state = ActorState.Hidden;
         private bool spawnInside; // 常驻回填：不走进门流程，直接在屋内/前台淡入
         private Vector2 doorPoint;
@@ -249,15 +256,12 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 标记字形：需要玩家出手时才有内容，空串 = 不亮。
-        /// 只区分「点」和「拖」两种手势——**「等一会儿」不是手势，所以安顿中不亮**。
+        /// 标记字形：有话要说时才亮「！」，其余一律空串 = 不亮。
+        /// 「等分房」不再单给指路字形（2026-08-19 反馈）：黄色标记只代表「点我有对话」这一件事，
+        /// 不兼职提示手势；那一态头顶留给「…」气泡（见 ProvideEmote）。
         /// </summary>
-        private static string AttentionMarkOf(VisitorManager.ENoTalkReason? reason) => reason switch
-        {
-            VisitorManager.ENoTalkReason.None => "！",        // 有话要说 · 点击交谈
-            VisitorManager.ENoTalkReason.AwaitingRoom => "☞", // 等着被拖进一间空客房
-            _ => "",
-        };
+        private static string AttentionMarkOf(VisitorManager.ENoTalkReason? reason) =>
+            reason == VisitorManager.ENoTalkReason.None ? "！" : "";
 
         /// <summary>标记的显隐（内容变了才动画；空串 = 收起并停掉脉动）。</summary>
         private void SetAttentionMark(string mark)
@@ -292,6 +296,7 @@ namespace MasterHouse
             }
             // 还在进场/庆祝/离场的路上就先不召唤：那时点了也被 IsInteractable 拦下
             SetAttentionMark(IsInteractable && !Dragging ? AttentionMarkOf(reason) : "");
+            if (BubbleMuted && bubble != null) bubble.HideNow(); // 刚亮起「！」时把还挂着的气泡立刻收掉
         }
 
         private void OnClickSelf()
@@ -469,6 +474,7 @@ namespace MasterHouse
         /// <summary>闲逛台词冒泡（§9：扩展既有气泡显示句子，不新建第二套气泡）。</summary>
         public void ShowLine(string text, float holdSeconds)
         {
+            if (BubbleMuted) return; // 有需求时头顶只留感叹号，闲逛台词也让位
             if (bubble != null && !string.IsNullOrEmpty(text))
                 bubble.ShowSentence(text, holdSeconds);
         }
@@ -866,9 +872,10 @@ namespace MasterHouse
         /// 情绪气泡内容：随状态给出随机符号，返回空串表示当前不冒泡。
         ///
         /// **纯氛围，不承担「可以点我」的语义**——那是头顶注意标记的活（AttentionMarkOf）。
-        /// 所以业务访客这边不再出现「！」「☞」这类召唤字形：气泡挂的是自己的墙钟计时器
+        /// 所以业务访客这边不再出现「！」这类召唤字形：气泡挂的是自己的墙钟计时器
         /// （每几秒一冒，与业务 tick 无关），安顿中的客人照样冒，玩家却点不动他，
         /// 「有气泡却没有对话」的误导就是这么来的（2026-08-19 反馈）。
+        /// 反过来「有需求」时（头顶「！」）气泡整个静音（BubbleMuted）：头顶同一时刻只留一个提示。
         /// </summary>
         private string ProvideEmote()
         {
@@ -888,16 +895,15 @@ namespace MasterHouse
                 pool = businessState switch
                 {
                     (int)EVisitorState.FrontDesk => new[] { "？", "…" },
-                    (int)EVisitorState.AwaitingRoom => new[] { "？", "…" },
-                    // 安顿中哼着小曲收拾行李；等他开口示意，召唤玩家的是标记不是气泡
-                    (int)EVisitorState.Serving => talkReason == VisitorManager.ENoTalkReason.SettlingIn
-                        ? new[] { "…", "♪" }
-                        : new[] { "？", "…" },
+                    (int)EVisitorState.AwaitingRoom => new[] { "…" }, // 等分房：一言不发地等着被安排
+                    // 安顿中哼着小曲收拾行李；开口示意（NoTalkReason.None）后由 BubbleMuted 静音，只留头顶「！」
+                    (int)EVisitorState.Serving => new[] { "…", "♪" },
                     (int)EVisitorState.Wandering => new[] { "♥", "♪", "★" },
                     _ => state == ActorState.Leaving ? new[] { "…" } : null,
                 };
             }
-            if (pool == null || choiceOpen || state == ActorState.Hidden) return "";
+            // BubbleMuted：有需求（头顶「！」）时一律不冒，气泡不跟感叹号抢头顶
+            if (pool == null || choiceOpen || state == ActorState.Hidden || BubbleMuted) return "";
             return pool[UnityEngine.Random.Range(0, pool.Length)];
         }
 
