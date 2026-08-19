@@ -1568,7 +1568,7 @@ MonoBehaviour:
         - kind: 0
           line:
             speaker: 1
-            text: "\u73B0\u5728\u6709\u70B9\u5FD9\uFF0C\u665A\u70B9\u5E2E\u60A8\u770B\u3002"
+            text: "\u4E0D\u597D\u610F\u601D\u54A9\uFF0C\u73B0\u5728\u6709\u4E9B\u5FD9\u788C\uFF0C\u6682\u65F6\u6CA1\u6709\u529E\u6CD5\u6EE1\u8DB3\u60A8\u7684\u9700\u6C42\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
           sourceRow: 65
@@ -1723,7 +1723,7 @@ MonoBehaviour:
         - kind: 0
           line:
             speaker: 1
-            text: "\u73B0\u5728\u6709\u70B9\u5FD9\uFF0C\u665A\u70B9\u5E2E\u60A8\u770B\u3002"
+            text: "\u4E0D\u597D\u610F\u601D\u54A9\uFF0C\u73B0\u5728\u6709\u4E9B\u5FD9\u788C\uFF0C\u6682\u65F6\u6CA1\u6709\u529E\u6CD5\u6EE1\u8DB3\u60A8\u7684\u9700\u6C42\u54A9\u3002"
             portraitId: "goat_\u5E73\u9759"
           actions: []
           sourceRow: 147
