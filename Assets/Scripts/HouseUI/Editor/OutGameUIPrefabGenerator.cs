@@ -372,7 +372,7 @@ namespace MasterHouse
             // 只重填数组引用，**不碰任何位置尺寸**；上一版生成时还叫旧名的那几张
             // 当时没找到、存成了 null，改名并不会把 null 变回来。
             repaired |= RepairPrefab<OutGameCodexDetailView>(CodexDetailPath, RebindCodexDetailArt,
-                view => view.lockedHint == null ||
+                view => view.lockedHint == null || view.pageBackPaper == null ||
                         CodexArtNeedsRebind(view.races, view.portraits, view.avatars));
             // 档案面板：补「访客图鉴」入口按钮（2026-08-18）
             repaired |= RepairPrefab<OutGameArchivePanelView>(ArchivePanelPath,
@@ -2673,6 +2673,7 @@ namespace MasterHouse
             view.portrait = Raw(root.transform, "Portrait", new Vector2(0, 1), new Vector2(0, 1),
                 new Vector2(1435, -595), new Vector2(950, 885));
             view.lockedHint = AppendCodexLockedHint(root.transform);
+            view.pageBackPaper = AssetDatabase.LoadAssetAtPath<Texture2D>(CodexDetailDir + "纸背.png");
             var ship = Image(root.transform, "ShipDecor", new Vector2(0, 1), new Vector2(0, 1),
                 new Vector2(1790, -941), new Vector2(240, 212), Color.white);
             ship.sprite = Detail("船");
@@ -2807,6 +2808,7 @@ namespace MasterHouse
         private static void RebindCodexDetailArt(GameObject root, OutGameCodexDetailView view)
         {
             view.lockedHint = AppendCodexLockedHint(root.transform);
+            view.pageBackPaper = AssetDatabase.LoadAssetAtPath<Texture2D>(CodexDetailDir + "纸背.png");
             var races = new System.Collections.Generic.List<VisitorRaceDef>();
             var portraits = new System.Collections.Generic.List<Texture2D>();
             var avatars = new System.Collections.Generic.List<Texture2D>();

@@ -22,30 +22,30 @@ namespace MasterHouse
     public sealed class CodexPageFlip : MonoBehaviour
     {
         /// <summary>立起来与落下的时长；立起略快、落下略慢，像纸被掀过去再铺平。</summary>
-        private const float FoldSeconds = .17f;
-        private const float UnfoldSeconds = .22f;
+        private const float FoldSeconds = .24f;
+        private const float UnfoldSeconds = .3f;
+        /// <summary>翻起来时纸面略微鼓一点（纸被掀起会拱），比纯横向压扁柔和。</summary>
+        private const float CurlBulge = 1.035f;
 
         /// <summary>左右两页的错峰：差这么一拍，才读得出「从右扫向左」。</summary>
         private const float PageStagger = .06f;
 
-        /// <summary>整屏底图（那本摊开的书）：纸背直接切它的左右半幅，翻起来就是书页本身。</summary>
-        private RawImage source;
-
         private RectTransform leftPage;
         private RectTransform rightPage;
         /// <summary>两页各自的纸背：翻起来的时候盖在内容上，落下时撤掉露出新内容。</summary>
+        private Texture2D paper;
         private RawImage leftBack;
         private RawImage rightBack;
         private Sequence sequence;
 
         /// <summary>
         /// 把这些节点之外的内容按左右半页收进两个以书脊为轴的容器。
-        /// <paramref name="background"/> 是整屏底图，纸背切它的左右半幅用。
         /// </summary>
-        public void Bind(RectTransform root, RawImage background, params Transform[] excluded)
+        /// <param name="paperBack">纸背贴图（从书页底图裁出的干净纸面，烘在 Prefab 上）。</param>
+        public void Bind(RectTransform root, Texture2D paperBack, params Transform[] excluded)
         {
             if (rightPage != null) return;
-            source = background;
+            paper = paperBack;
             // 左半页：pivot 在右边缘；右半页：pivot 在左边缘。两者的轴心都落在书脊上
             leftPage = CreateHalf(root, "PageLeft", new Vector2(0f, 0f), new Vector2(.5f, 1f), new Vector2(1f, .5f));
             rightPage = CreateHalf(root, "PageRight", new Vector2(.5f, 0f), new Vector2(1f, 1f), new Vector2(0f, .5f));
@@ -71,48 +71,13 @@ namespace MasterHouse
             // 纸背要盖住本页全部内容，所以最后建（画在最上），默认不显示
             leftBack = CreatePaperBack(leftPage);
             rightBack = CreatePaperBack(rightPage);
+            // 不参与翻页的（帆船、键位条）压到最上：两个半页容器是后建的，
+            // 不提上来的话翻页层会盖住它们（2026-08-19 反馈：船不能被盖住）
+            foreach (var keep in excluded)
+                if (keep != null && keep.parent == root && keep != leftPage && keep != rightPage)
+                    keep.SetAsLastSibling();
         }
 
-        /// <summary>
-        /// 纸背：直接切整屏底图的对应半幅。半页容器正好占屏幕一半，切出来的半幅与底下那本书
-        /// **严丝合缝**——所以翻起来看到的就是这一页的空白纸面，而不是一块糊上去的色板。
-        /// 翻的过程盖在内容上，落下时撤掉，新内容就「露」出来了。
-        /// </summary>
-        private RawImage CreatePaperBack(RectTransform page)
-        {
-            var go = new GameObject("PageBack", typeof(RectTransform)) { layer = page.gameObject.layer };
-            var rect = (RectTransform)go.transform;
-            rect.SetParent(page, false);
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = rect.offsetMax = Vector2.zero;
-            var image = go.AddComponent<RawImage>();
-            image.texture = source != null ? source.texture : null;
-            image.raycastTarget = false;
-            go.SetActive(false);
-            return image;
-        }
-
-        /// <summary>
-        /// 取底图当前的 uvRect 切一半喂给纸背。之所以每次翻页现算：非 16:9 屏上
-        /// HouseUIBackgroundFit 会改底图的 uvRect（铺满不变形），切死了就对不上。
-        /// </summary>
-        private void SyncBackUv()
-        {
-            if (source == null) return;
-            var uv = source.uvRect;
-            var half = uv.width * .5f;
-            if (leftBack != null)
-            {
-                leftBack.texture = source.texture;
-                leftBack.uvRect = new Rect(uv.x, uv.y, half, uv.height);
-            }
-            if (rightBack != null)
-            {
-                rightBack.texture = source.texture;
-                rightBack.uvRect = new Rect(uv.x + half, uv.y, half, uv.height);
-            }
-        }
 
         private static RectTransform CreateHalf(RectTransform root, string name,
             Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot)
@@ -134,6 +99,26 @@ namespace MasterHouse
             return root.InverseTransformPoint(world).x + root.rect.width * .5f;
         }
 
+        /// <summary>
+        /// 纸背：整页铺一张纸面贴图（从书页底图裁出的干净纸，左右两页共用）。
+        /// 翻的过程盖在内容上——看到的是一张空白的纸立起来，而不是内容被横向压扁；
+        /// 落下时撤掉，新内容就「露」出来了。
+        /// </summary>
+        private RawImage CreatePaperBack(RectTransform page)
+        {
+            var go = new GameObject("PageBack", typeof(RectTransform)) { layer = page.gameObject.layer };
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(page, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            var image = go.AddComponent<RawImage>();
+            image.texture = paper;
+            image.raycastTarget = false;
+            go.SetActive(false);
+            return image;
+        }
+
         /// <summary>翻一页：右页立起 → 在立直那一帧执行 swap → 落下。未绑定时直接执行 swap。</summary>
         public void Play(Action swap)
         {
@@ -141,22 +126,25 @@ namespace MasterHouse
             sequence?.Kill();
             rightPage.localScale = Vector3.one;
             leftPage.localScale = Vector3.one;
-            SyncBackUv();
             sequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
             // 立起：翻的那一面先亮出纸背，于是看到的是空白纸在翻，而不是内容被压扁
             sequence.AppendCallback(() => SetBack(rightBack, true));
-            sequence.Append(rightPage.DOScaleX(0f, FoldSeconds).SetEase(Ease.InQuad));
+            sequence.Append(rightPage.DOScaleX(0f, FoldSeconds).SetEase(Ease.InOutSine));
+            sequence.Join(rightPage.DOScaleY(CurlBulge, FoldSeconds).SetEase(Ease.OutSine));
             sequence.InsertCallback(PageStagger, () => SetBack(leftBack, true));
-            sequence.Insert(PageStagger, leftPage.DOScaleX(0f, FoldSeconds).SetEase(Ease.InQuad));
+            sequence.Insert(PageStagger, leftPage.DOScaleX(0f, FoldSeconds).SetEase(Ease.InOutSine));
+            sequence.Insert(PageStagger, leftPage.DOScaleY(CurlBulge, FoldSeconds).SetEase(Ease.OutSine));
             sequence.AppendInterval(PageStagger);
             sequence.AppendCallback(() => swap?.Invoke());
             // 落下：左页先、右页晚一拍（方向和立起时相反，才是「扫过去」）；
             // 纸背在这一页立直（宽度为 0，看不见）时撤掉，落下的过程就是新内容露出来
             var landAt = sequence.Duration();
             sequence.InsertCallback(landAt, () => SetBack(leftBack, false));
-            sequence.Insert(landAt, leftPage.DOScaleX(1f, UnfoldSeconds).SetEase(Ease.OutQuad));
+            sequence.Insert(landAt, leftPage.DOScaleX(1f, UnfoldSeconds).SetEase(Ease.InOutSine));
+            sequence.Insert(landAt, leftPage.DOScaleY(1f, UnfoldSeconds).SetEase(Ease.InOutSine));
             sequence.InsertCallback(landAt + PageStagger, () => SetBack(rightBack, false));
-            sequence.Insert(landAt + PageStagger, rightPage.DOScaleX(1f, UnfoldSeconds).SetEase(Ease.OutQuad));
+            sequence.Insert(landAt + PageStagger, rightPage.DOScaleX(1f, UnfoldSeconds).SetEase(Ease.InOutSine));
+            sequence.Insert(landAt + PageStagger, rightPage.DOScaleY(1f, UnfoldSeconds).SetEase(Ease.InOutSine));
         }
 
         private static void SetBack(RawImage back, bool on)
