@@ -15,3 +15,4 @@ MonoBehaviour:
   needId: coffee
   description: "\u60F3\u559D\u4E00\u676F\u73B0\u78E8\u7684\u624B\u51B2\u5496\u5561\uFF0C\u62DC\u6258\u4F60\u4E86"
   minigame: {fileID: 11400000, guid: 317a87eb125711a4d9a46b83ace63668, type: 2}
+  level: {fileID: 11400000, guid: 021048af95f9bdc499bfc615fb11778e, type: 2}
