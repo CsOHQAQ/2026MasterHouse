@@ -7,13 +7,12 @@ using UnityEngine.UI;
 namespace MasterHouse
 {
     /// <summary>
-    /// 图鉴详情页的翻书动效（2026-08-19 重做）：一张纸从右页扫向书脊，**纸底下就是新内容**。
+    /// 图鉴详情页的翻书动效（2026-08-19）：翻页时整幅底图**播美术那圈翻书分帧**——
+    /// 纸的卷曲、投影、落页全是手绘的，比代码模拟的缩放像得多。往后翻正放、往前翻倒放。
     ///
-    /// 与前一版的区别（反馈「太大、太僵硬、翻的时候看不到第二页」）：
-    /// ① 内容本身不再参与动画——换页在纸盖住的那一瞬完成，纸扫过去时新内容已经在下面，
-    ///    于是「翻开的过程」就是新页一点点露出来，而不是旧内容被横向压扁；
-    /// ② 一次只有**一张**纸在动（右页那张），不再左右两块一起折，画面中央那条苍白的大板子没了；
-    /// ③ 纸的前缘带一道柔和投影、纸面本身有极轻微的鼓与偏转，读起来是纸被掀起的弧，不是硬压。
+    /// 内容在纸盖住目标页的时刻（进度 55%）替换，纸扫开的过程就是新页露出来。
+    /// 分帧那圈画的是空白书页，所以翻页期间把内容整体藏起来，否则两层打架。
+    /// 素材缺失时退回代码模拟的纸片（见 PlayFallback），不至于完全没有动效。
     ///
     /// 非布局件，运行时挂：容器与纸都是运行时建的，内容节点按 worldPositionStays 移进去，
     /// 位置尺寸一概不改，Prefab 不动（§16.2）。
@@ -38,9 +37,15 @@ namespace MasterHouse
         private const float PageBottom = .119f;
         private const float PageTop = .8295f;
 
+        /// <summary>翻页期间内容替换的时机（进度 0~1）：此刻纸已经盖住目标页。</summary>
+        private const float ContentSwapAt = .55f;
+
         private RectTransform leftPage;
         private RectTransform rightPage;
         private CanvasGroup leftGroup;
+        private CanvasGroup rightGroup;
+        /// <summary>整幅底图：翻页时它来播分帧。</summary>
+        private RawImage background;
         /// <summary>翻动的那张纸；pivot 在书脊上，横向缩放 1 → 0 就是被掀过去。</summary>
         private RectTransform sheet;
         private Sequence sequence;
@@ -52,15 +57,18 @@ namespace MasterHouse
         /// 把内容按左右半页收进两个容器，并在右页上方备好那张翻动的纸。
         /// </summary>
         /// <param name="paperBack">纸面贴图（书页纸，烘在 Prefab 上）。</param>
-        /// <param name="background">整屏底图：不参与翻页，且必须留在最底。</param>
+        /// <param name="backdrop">整屏底图：不参与翻页、留在最底，翻页时由它来播分帧。</param>
         /// <param name="topmost">不参与翻页、且要压在翻页层之上的（帆船、键位条）。</param>
-        public void Bind(RectTransform root, Texture2D paperBack, Transform background, params Transform[] topmost)
+        public void Bind(RectTransform root, Texture2D paperBack, RawImage backdrop, params Transform[] topmost)
         {
             if (sheet != null) return;
-            var excluded = new List<Transform>(topmost) { background };
+            background = backdrop;
+            var backdropTransform = backdrop != null ? backdrop.transform : null;
+            var excluded = new List<Transform>(topmost) { backdropTransform };
             leftPage = CreateHalf(root, "PageLeft", new Vector2(0f, 0f), new Vector2(.5f, 1f), new Vector2(.5f, .5f));
             rightPage = CreateHalf(root, "PageRight", new Vector2(.5f, 0f), new Vector2(1f, 1f), new Vector2(.5f, .5f));
             leftGroup = leftPage.gameObject.AddComponent<CanvasGroup>();
+            rightGroup = rightPage.gameObject.AddComponent<CanvasGroup>();
 
             var moving = new List<Transform>();
             foreach (Transform child in root)
@@ -99,7 +107,7 @@ namespace MasterHouse
             sheet.gameObject.SetActive(false);
 
             // 底图压回最底（提上去整本书就盖住内容了）；帆船与键位条压到最上
-            if (background != null && background.parent == root) background.SetAsFirstSibling();
+            if (backdropTransform != null && backdropTransform.parent == root) backdropTransform.SetAsFirstSibling();
             foreach (var keep in topmost)
                 if (keep != null && keep.parent == root) keep.SetAsLastSibling();
         }
@@ -139,26 +147,59 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 翻一页：纸先整张盖住右页 → **立刻换内容**（此刻被纸挡着，看不见）→
-        /// 纸向书脊扫过去，新内容一点点露出来。左页同时柔和地淡入新内容。
+        /// 翻一页。素材就位时**整幅底图播美术那圈翻书分帧**——纸的卷曲、投影、落页都是手绘的；
+        /// 往后翻正放、往前翻倒放。内容在纸盖住目标页的时刻替换，纸扫开就是新页露出来。
+        /// 分帧缺失时退回代码模拟的纸片（不至于没有动效）。
         /// </summary>
-        public void Play(Action swap)
+        /// <param name="reversed">true = 往前翻一页（倒放）。</param>
+        public void Play(Action swap, bool reversed = false)
+        {
+            if (background == null || CodexPageTurnFrames.Count == 0) { PlayFallback(swap); return; }
+            sequence?.Kill();
+            var restore = background.texture;
+            // 翻页期间内容整体藏起来：那圈帧本身画的就是空白书页，露着内容会两层打架
+            SetContentVisible(false);
+            var swapped = false;
+            sequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
+            sequence.Append(DOTween.To(() => 0f, t =>
+            {
+                var frame = CodexPageTurnFrames.Sample(t, reversed);
+                if (frame != null) background.texture = frame;
+                // 纸盖住目标页之后再换内容，玩家看不到替换的那一下
+                if (!swapped && t >= ContentSwapAt) { swapped = true; swap?.Invoke(); }
+            }, 1f, TurnSeconds).SetEase(Ease.Linear));
+            sequence.OnComplete(() =>
+            {
+                if (!swapped) swap?.Invoke();
+                background.texture = restore;
+                SetContentVisible(true);
+            });
+            sequence.OnKill(() =>
+            {
+                if (background != null) background.texture = restore;
+                SetContentVisible(true);
+            });
+        }
+
+        private void SetContentVisible(bool on)
+        {
+            if (leftGroup != null) leftGroup.alpha = on ? 1f : 0f;
+            if (rightGroup != null) rightGroup.alpha = on ? 1f : 0f;
+        }
+
+        /// <summary>分帧缺失时的兜底：还是那张代码模拟的纸扫过去。</summary>
+        private void PlayFallback(Action swap)
         {
             if (sheet == null) { swap?.Invoke(); return; }
             sequence?.Kill();
             sheet.gameObject.SetActive(true);
             sheet.localScale = Vector3.one;
             sheet.localEulerAngles = Vector3.zero;
-
-            swap?.Invoke(); // 纸此刻盖着右页，换内容看不见；纸扫开的过程就是新页露出来
-
+            swap?.Invoke();
             sequence = DOTween.Sequence().SetUpdate(true).SetLink(gameObject);
             sequence.Append(sheet.DOScaleX(0f, TurnSeconds).SetEase(Ease.InOutSine));
-            // 纸被掀起来会先拱一点再落平，配一点点偏转，弧度就出来了
             sequence.Join(sheet.DOScaleY(CurlBulge, TurnSeconds * .45f).SetEase(Ease.OutSine));
             sequence.Insert(TurnSeconds * .45f, sheet.DOScaleY(1f, TurnSeconds * .55f).SetEase(Ease.InSine));
-            sequence.Join(sheet.DOLocalRotate(new Vector3(0, 0, CurlTilt), TurnSeconds * .5f).SetEase(Ease.OutSine));
-            sequence.Insert(TurnSeconds * .5f, sheet.DOLocalRotate(Vector3.zero, TurnSeconds * .5f).SetEase(Ease.InSine));
             if (leftGroup != null)
             {
                 leftGroup.alpha = 0f;
