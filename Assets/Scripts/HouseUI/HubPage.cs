@@ -417,8 +417,18 @@ namespace MasterHouse
             taskCard.Refresh();
             // 结算并入过场（2026-08-14）：入夜 → 夜幕结算 → 点击破晓开启新一天。
             // 日程最后一天则在过场播完后接 demo 结局页（家具库存说明 §6.5）
+            // 背景 = 整个房子从晚上到早上（2026-08-20）：拉回总览、收起四周 UI，
+            // 过场层透明露出真实房子，破晓时用分钟覆盖把整晚扫过去
+            scene.FocusOverview();
+            SetImmersive(true);
             DayTransitionFx.PlayEndDay(UI, endedDay, summary,
-                isFinalDay ? () => UI.ShowPage(new ThanksForPlayingPage()) : (System.Action)null);
+                () =>
+                {
+                    scene.ClearCycleOverride(); // 兜底：中途被销毁也不能把覆盖留在场上
+                    SetImmersive(false);
+                    if (isFinalDay) UI.ShowPage(new ThanksForPlayingPage());
+                },
+                scene.SetCycleOverride, scene.ClearCycleOverride);
         }
 
         /// <summary>点击场景中的访客 NPC（观景模式下先展开界面）。</summary>
