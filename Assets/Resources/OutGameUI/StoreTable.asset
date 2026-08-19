@@ -409,6 +409,42 @@ MonoBehaviour:
   - furnitureId: bed_front_06
     price: 420
     unlockReputation: 0
+  - furnitureId: vanity_01
+    price: 100
+    unlockReputation: 0
+  - furnitureId: retro_radio_01
+    price: 100
+    unlockReputation: 0
+  - furnitureId: music_player_01
+    price: 100
+    unlockReputation: 0
+  - furnitureId: piano_01
+    price: 100
+    unlockReputation: 0
+  - furnitureId: flashlight_01
+    price: 100
+    unlockReputation: 0
+  - furnitureId: iron_01
+    price: 100
+    unlockReputation: 0
+  - furnitureId: telescope_01
+    price: 100
+    unlockReputation: 0
+  - furnitureId: colorful_cabinet_01
+    price: 100
+    unlockReputation: 0
+  - furnitureId: floor_lamp_01
+    price: 100
+    unlockReputation: 0
+  - furnitureId: chalkboard_01
+    price: 100
+    unlockReputation: 0
+  - furnitureId: macaron_sofa_01
+    price: 100
+    unlockReputation: 0
+  - furnitureId: metronome_01
+    price: 100
+    unlockReputation: 0
   categories:
   - name: "\u76C6\u683D"
     desc: "\u7EFF\u610F\u662F\u5C4B\u5B50\u7684\u547C\u5438\uFF0C\u4E5F\u662F\u8BBF\u5BA2\u7684\u8BDD\u9898\u3002"

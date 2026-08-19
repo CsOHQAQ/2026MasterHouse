@@ -3186,8 +3186,8 @@ MonoBehaviour:
     displayName: "\u5F69\u8272\u68B3\u5986\u53F0\u00B701"
     familyId: vanity
     category: "\u684C\u6905"
-    description: ""
-    surfaces: 00000001
+    description: 
+    surfaces: 00000000
     stackable: 0
     cols: 8
     rows: 2
@@ -3210,8 +3210,8 @@ MonoBehaviour:
     displayName: "\u590D\u53E4\u6536\u97F3\u673A\u00B701"
     familyId: retro_radio
     category: "\u6446\u4EF6"
-    description: ""
-    surfaces: 00000002
+    description: 
+    surfaces: 01000000
     stackable: 0
     cols: 2
     rows: 2
@@ -3234,8 +3234,8 @@ MonoBehaviour:
     displayName: "\u97F3\u4E50\u64AD\u653E\u5668\u00B701"
     familyId: music_player
     category: "\u6446\u4EF6"
-    description: ""
-    surfaces: 00000001
+    description: 
+    surfaces: 00000000
     stackable: 0
     cols: 6
     rows: 2
@@ -3258,8 +3258,8 @@ MonoBehaviour:
     displayName: "\u5976\u6CB9\u94A2\u7434\u00B701"
     familyId: piano
     category: "\u684C\u6905"
-    description: ""
-    surfaces: 00000001
+    description: 
+    surfaces: 00000000
     stackable: 0
     cols: 10
     rows: 2
@@ -3282,8 +3282,8 @@ MonoBehaviour:
     displayName: "\u624B\u7535\u7B52\u00B701"
     familyId: flashlight
     category: "\u6446\u4EF6"
-    description: ""
-    surfaces: 00000002
+    description: 
+    surfaces: 01000000
     stackable: 0
     cols: 2
     rows: 2
@@ -3306,8 +3306,8 @@ MonoBehaviour:
     displayName: "\u590D\u53E4\u71A8\u6597\u00B701"
     familyId: iron
     category: "\u6446\u4EF6"
-    description: ""
-    surfaces: 00000002
+    description: 
+    surfaces: 01000000
     stackable: 0
     cols: 2
     rows: 2
@@ -3330,8 +3330,8 @@ MonoBehaviour:
     displayName: "\u590D\u53E4\u671B\u8FDC\u955C\u00B701"
     familyId: telescope
     category: "\u6446\u4EF6"
-    description: ""
-    surfaces: 00000002
+    description: 
+    surfaces: 01000000
     stackable: 0
     cols: 2
     rows: 2
@@ -3354,8 +3354,8 @@ MonoBehaviour:
     displayName: "\u5F69\u8272\u67DC\u5B50\u00B701"
     familyId: colorful_cabinet
     category: "\u684C\u6905"
-    description: ""
-    surfaces: 00000001
+    description: 
+    surfaces: 00000000
     stackable: 0
     cols: 8
     rows: 2
@@ -3378,8 +3378,8 @@ MonoBehaviour:
     displayName: "\u827A\u672F\u843D\u5730\u706F\u00B701"
     familyId: floor_lamp
     category: "\u706F\u5177"
-    description: ""
-    surfaces: 00000001
+    description: 
+    surfaces: 00000000
     stackable: 0
     cols: 2
     rows: 2
@@ -3402,8 +3402,8 @@ MonoBehaviour:
     displayName: "\u590D\u53E4\u9ED1\u677F\u00B701"
     familyId: chalkboard
     category: "\u6446\u4EF6"
-    description: ""
-    surfaces: 00000001
+    description: 
+    surfaces: 00000000
     stackable: 0
     cols: 4
     rows: 3
@@ -3426,8 +3426,8 @@ MonoBehaviour:
     displayName: "\u9A6C\u5361\u9F99\u6C99\u53D1\u00B701"
     familyId: macaron_sofa
     category: "\u684C\u6905"
-    description: ""
-    surfaces: 00000001
+    description: 
+    surfaces: 00000000
     stackable: 0
     cols: 8
     rows: 2
@@ -3450,8 +3450,8 @@ MonoBehaviour:
     displayName: "\u8282\u62CD\u5668\u00B701"
     familyId: metronome
     category: "\u6446\u4EF6"
-    description: ""
-    surfaces: 00000002
+    description: 
+    surfaces: 01000000
     stackable: 0
     cols: 2
     rows: 2
