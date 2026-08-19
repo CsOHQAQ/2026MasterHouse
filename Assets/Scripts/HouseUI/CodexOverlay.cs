@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
@@ -22,17 +23,20 @@ namespace MasterHouse
         private int focusIndex;
         private bool closing;
 
-        /// <summary>卡片层（翻页时整条横移做出滑动感；卡位本身仍按 Prefab 摆）。</summary>
+        /// <summary>卡片层（卡位布局仍以 Prefab 为准，这里只在卡位之间插值）。</summary>
         private RectTransform cardsRoot;
         private CanvasGroup cardsGroup;
         private Tween slideTween;
 
-        /// <summary>相邻卡位的平均间距（滑动幅度的基准）。</summary>
-        private float slideDistance = 370f;
-        /// <summary>实际只挪这么一小段：整格位移读起来是「甩」，半格才是「推了一下」。</summary>
-        private const float SlideRatio = .34f;
-        /// <summary>连着翻时位移可以叠加，但不超过这个上限，免得越滚越远变成大幅横扫。</summary>
-        private const float SlideMaxRatio = .55f;
+        /// <summary>各卡位在 Prefab 上的权威布局（位置/尺寸/倾角），动画在它们之间插值。</summary>
+        private Vector2[] slotPositions;
+        private Vector2[] slotSizes;
+        private float[] slotTilts;
+        /// <summary>翻页进度：刚翻完是 ±1（卡还在上一格的位置），缓动到 0 = 落位。</summary>
+        private float slideDelta;
+
+        /// <summary>连着翻时最多落后几格（再多就追不上了，看着像卡）。</summary>
+        private const float SlideMaxSteps = 1.6f;
         private const float SlideSeconds = .34f;
 
         private CodexOverlay(RectTransform root, OutGameCodexPageView view, HouseUIManager ui)
@@ -113,7 +117,7 @@ namespace MasterHouse
             Refresh();
         }
 
-        /// <summary>取卡片层与相邻卡位的平均间距（滑动动画用；卡位本身仍以 Prefab 为准）。</summary>
+        /// <summary>缓存卡片层与各卡位的权威布局（动画在卡位之间插值；布局本身仍以 Prefab 为准）。</summary>
         private void CacheCardsRoot()
         {
             if (view.cardSlots == null || view.cardSlots.Length < 2 || view.cardSlots[0] == null) return;
@@ -121,16 +125,73 @@ namespace MasterHouse
             if (cardsRoot == null) return;
             cardsGroup = cardsRoot.GetComponent<CanvasGroup>();
             if (cardsGroup == null) cardsGroup = cardsRoot.gameObject.AddComponent<CanvasGroup>();
-            var span = 0f;
-            var pairs = 0;
-            for (var i = 1; i < view.cardSlots.Length; i++)
+            // 记下每个卡位的权威布局：翻页时在相邻卡位之间插值，
+            // 卡片就是「滑过去 + 慢慢长大/缩小」，而不是瞬间跳到下一格（2026-08-19 反馈）
+            var count = view.cardSlots.Length;
+            slotPositions = new Vector2[count];
+            slotSizes = new Vector2[count];
+            slotTilts = new float[count];
+            for (var i = 0; i < count; i++)
             {
-                if (view.cardSlots[i] == null || view.cardSlots[i - 1] == null) continue;
-                span += Mathf.Abs(view.cardSlots[i].rectTransform.anchoredPosition.x -
-                                  view.cardSlots[i - 1].rectTransform.anchoredPosition.x);
-                pairs++;
+                if (view.cardSlots[i] == null) continue;
+                var slotRect = view.cardSlots[i].rectTransform;
+                slotPositions[i] = slotRect.anchoredPosition;
+                slotSizes[i] = slotRect.sizeDelta;
+                slotTilts[i] = slotRect.localEulerAngles.z;
             }
-            if (pairs > 0) slideDistance = span / pairs;
+        }
+
+        /// <summary>
+        /// 按翻页进度摆卡：delta 不为 0 时，每张卡落在两个卡位之间
+        /// （位置、尺寸、倾角一起插值）。于是翻一页看到的是整排一起挪、
+        /// 正中那张慢慢长大，而不是各自跳格。
+        /// </summary>
+        private void ApplySlide(float delta)
+        {
+            slideDelta = delta;
+            if (view.cardSlots == null || slotPositions == null) return;
+            for (var i = 0; i < view.cardSlots.Length; i++)
+            {
+                var slot = view.cardSlots[i];
+                if (slot == null) continue;
+                var at = i + delta;                 // 这张卡此刻落在第几个卡位上
+                var lo = Mathf.FloorToInt(at);
+                var t = at - lo;
+                var rect = slot.rectTransform;
+                rect.anchoredPosition = Vector2.Lerp(Sample(slotPositions, lo), Sample(slotPositions, lo + 1), t);
+                rect.sizeDelta = Vector2.Lerp(Sample(slotSizes, lo), Sample(slotSizes, lo + 1), t);
+                rect.localEulerAngles = new Vector3(0, 0,
+                    Mathf.LerpAngle(SampleTilt(lo), SampleTilt(lo + 1), t));
+            }
+            ReorderByCenter(delta);
+        }
+
+        /// <summary>按「离正中的远近」重排层序：远的沉底、正中那张压最上。</summary>
+        private void ReorderByCenter(float delta)
+        {
+            var center = view.cardSlots.Length / 2;
+            var order = new List<int>();
+            for (var i = 0; i < view.cardSlots.Length; i++)
+                if (view.cardSlots[i] != null) order.Add(i);
+            order.Sort((a, b) => Mathf.Abs(b + delta - center).CompareTo(Mathf.Abs(a + delta - center)));
+            foreach (var i in order) view.cardSlots[i].rectTransform.SetAsLastSibling();
+        }
+
+        private float SampleTilt(int i) =>
+            slotTilts == null || slotTilts.Length == 0 ? 0f : slotTilts[Mathf.Clamp(i, 0, slotTilts.Length - 1)];
+
+        /// <summary>
+        /// 越界的卡位按边缘那两格的差值外推——翻页时新进场/退场的卡要落在屏幕外，
+        /// 直接钳到边缘会让它们贴着边挤成一堆。
+        /// </summary>
+        private static Vector2 Sample(Vector2[] set, int i)
+        {
+            if (set == null || set.Length == 0) return Vector2.zero;
+            if (i >= 0 && i < set.Length) return set[i];
+            if (set.Length == 1) return set[0];
+            return i < 0
+                ? set[0] + (set[0] - set[1]) * -i
+                : set[set.Length - 1] + (set[set.Length - 1] - set[set.Length - 2]) * (i - set.Length + 1);
         }
 
         /// <summary>切换焦点（循环）：转到正中就直接翻开，不用再点一下（2026-08-18 反馈）。</summary>
@@ -143,28 +204,22 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 翻页滑动（2026-08-18 反馈）：换图是瞬时的，把整条卡片层往回推一小段再缓动归位，
-        /// 眼睛读到的就是滑过去而不是跳过去。
-        ///
-        /// 两处克制（第一版整格位移 + 深淡入，用户反馈「有点晕」）：
-        /// ①只推 1/3 格——整格位移视觉上是「甩」，一小段才是「推了一下」；
-        /// ②连着翻时从**当前位移**继续叠加（不是每次重置到满偏移），并设上限，
-        ///   所以快速滚是一条连续的缓动，不会一顿一顿地来回抽。
+        /// 翻页动画（2026-08-19 重做）：刚翻完把进度置为 ±1（卡还在上一格的位置与尺寸），
+        /// 再缓动到 0。于是整排卡沿着各自的卡位滑过去，正中那张一路长大、
+        /// 退出正中的一路缩小，不再是换图式的跳变。
+        /// 连着滚时从当前进度接着累加（并限幅），是一条连续缓动而不是一顿一顿地抽。
         /// </summary>
         private void PlaySlide(int direction)
         {
-            if (cardsRoot == null) return;
+            if (view.cardSlots == null || slotPositions == null) return;
             slideTween?.Kill();
-            var max = slideDistance * SlideMaxRatio;
-            var offset = Mathf.Clamp(cardsRoot.anchoredPosition.x + direction * slideDistance * SlideRatio,
-                -max, max);
-            cardsRoot.anchoredPosition = new Vector2(offset, 0f);
-            slideTween = cardsRoot.DOAnchorPos(Vector2.zero, SlideSeconds)
+            var from = Mathf.Clamp(slideDelta + direction, -SlideMaxSteps, SlideMaxSteps);
+            ApplySlide(from);
+            slideTween = DOTween.To(() => slideDelta, ApplySlide, 0f, SlideSeconds)
                 .SetEase(Ease.OutCubic).SetUpdate(true).SetLink(cardsRoot.gameObject);
             if (cardsGroup == null) return;
-            // 焦点卡的尺寸是瞬间变的，配一点很淡的淡入柔化那一下突变（深了会闪，反而更晕）
             cardsGroup.DOKill();
-            cardsGroup.alpha = .82f;
+            cardsGroup.alpha = .88f;
             cardsGroup.DOFade(1f, SlideSeconds).SetUpdate(true).SetLink(cardsRoot.gameObject);
         }
 
