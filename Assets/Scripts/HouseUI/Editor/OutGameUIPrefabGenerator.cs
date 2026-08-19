@@ -47,6 +47,8 @@ namespace MasterHouse
         private const string ArchivePagePath = Folder + "/ArchivePage.prefab";
         // 访客图鉴（2026-08-18 按 2.0 设计图）：整屏 Illustrated Guide 页，从档案页进入
         private const string CodexPagePath = Folder + "/CodexPage.prefab";
+        // ESC 系统菜单（2026-08-19 按 2.0 设计图）
+        private const string EscMenuPath = Folder + "/EscMenu.prefab";
         // 3.5c：动态列表项模板（§16.2 列表项 = Prefab 模板 + 运行时实例化），供重写版 HouseUI 面板使用
         private const string DeviceCardPath = Folder + "/DeviceCard.prefab";
         private const string ArchiveCardPath = Folder + "/ArchiveCard.prefab";
@@ -180,6 +182,7 @@ namespace MasterHouse
                 }
             }
             if (!File.Exists(CodexPagePath)) { BuildCodexPage(CodexPagePath); changed = true; }
+            if (!File.Exists(EscMenuPath)) { BuildEscMenu(EscMenuPath); changed = true; }
             if (!File.Exists(ExitPagePath)) { BuildExitPage(ExitPagePath); changed = true; }
             if (!File.Exists(HubGuestCardPath)) { BuildHubGuestCard(HubGuestCardPath); changed = true; }
             if (!File.Exists(HubDockButtonPath)) { BuildHubDockButton(HubDockButtonPath); changed = true; }
@@ -2692,6 +2695,83 @@ namespace MasterHouse
                 TextAnchor.MiddleCenter, FontStyle.Normal);
             label.raycastTarget = false;
             return root;
+        }
+
+        private const string EscDir = "Assets/PC ui 2.0/ESC/";
+
+        private static Sprite Esc(string name) =>
+            AssetDatabase.LoadAssetAtPath<Sprite>(EscDir + name + ".png");
+
+        /// <summary>
+        /// ESC 系统菜单（2026-08-19 按 2.0 设计图）：整屏遮罩 + 纸面板 + 六个条目。
+        /// 面板与条目都按素材原比例摆（底板 1968×2120、条目 1114×217），条目文案由绑定层写。
+        /// 坐标按 1920×1080 口径。
+        /// </summary>
+        private static void BuildEscMenu(string path)
+        {
+            var root = Root("EscMenu");
+            var view = root.AddComponent<OutGameEscMenuView>();
+
+            view.scrim = Image(root.transform, "Scrim", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+                new Color(0f, 0f, 0f, .6f)); // 与素材「遮罩」同浓度（alpha 153/255）
+            view.scrim.raycastTarget = true;
+
+            // 纸面板：素材 1968×2120（比例 0.928），取屏高的 80%
+            var panelHeight = 864f;
+            var panelWidth = panelHeight * 1968f / 2120f;
+            view.panel = Image(root.transform, "Panel", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                Vector2.zero, new Vector2(panelWidth, panelHeight), Color.white);
+            view.panel.sprite = Esc("ESC底板");
+            view.panel.raycastTarget = true; // 面板内的空白不穿透到遮罩（免得点边框就退出）
+
+            view.itemNormal = Esc("默认");
+            view.itemHover = Esc("悬停");
+
+            // 六个条目：宽 = 面板宽的 60%，高按条目素材比例（1114×217）
+            var itemWidth = panelWidth * .6f;
+            var itemHeight = itemWidth * 217f / 1114f;
+            var gap = itemHeight * .16f;
+            var pitch = itemHeight + gap;
+            var top = (pitch * 6f - gap) * .5f; // 六条整体在面板内垂直居中
+            view.buttons = new Button[6];
+            view.buttonFrames = new Image[6];
+            view.buttonLabels = new Text[6];
+            for (var i = 0; i < 6; i++)
+            {
+                var frame = Image(view.panel.transform, "Item" + i, new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                    new Vector2(0f, top - itemHeight * .5f - i * pitch), new Vector2(itemWidth, itemHeight),
+                    Color.white);
+                frame.sprite = view.itemNormal;
+                var button = frame.gameObject.AddComponent<Button>();
+                button.targetGraphic = frame;
+                button.transition = Selectable.Transition.SpriteSwap;
+                button.spriteState = new SpriteState
+                {
+                    highlightedSprite = view.itemHover,
+                    pressedSprite = view.itemHover,
+                    selectedSprite = view.itemNormal,
+                };
+                var label = Label(frame.transform, "Label", string.Empty, 30, Hex("4A6FA5"),
+                    new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero,
+                    new Vector2(itemWidth * .9f, itemHeight * .8f), TextAnchor.MiddleCenter, FontStyle.Bold);
+                label.raycastTarget = false;
+                view.buttons[i] = button;
+                view.buttonFrames[i] = frame;
+                view.buttonLabels[i] = label;
+            }
+            Save(root, path);
+        }
+
+        [MenuItem("Tools/MasterHouse/OutGame UI/重建 ESC 菜单（2.0 设计图）")]
+        private static void RebuildEscMenu()
+        {
+            if (!EditorUtility.DisplayDialog("按 2.0 设计图重建 ESC 菜单",
+                    "会覆盖 EscMenu 的现有布局（包括手动调整）。确定继续吗？", "覆盖重建", "取消")) return;
+            EnsureFolder();
+            BuildEscMenu(EscMenuPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[OutGameUI] ESC 菜单已按 2.0 设计图重建。");
         }
 
         [MenuItem("Tools/MasterHouse/OutGame UI/重建图鉴页（2.0 设计图）")]

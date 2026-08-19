@@ -50,5 +50,7 @@ namespace MasterHouse
         public const string ArchivePage = "OutGameUI/Prefabs/ArchivePage";
         /// <summary>访客图鉴（Illustrated Guide）：从档案页进入的整屏页。</summary>
         public const string CodexPage = "OutGameUI/Prefabs/CodexPage";
+        /// <summary>ESC 系统菜单：Hub 里按 ESC 弹出的那一页。</summary>
+        public const string EscMenu = "OutGameUI/Prefabs/EscMenu";
     }
 }

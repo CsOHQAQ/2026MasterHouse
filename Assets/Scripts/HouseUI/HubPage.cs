@@ -161,7 +161,9 @@ namespace MasterHouse
                 SetImmersive(false);
                 return true;
             }
-            BackToTitle(); // 旧壳此处先写档；存档功能移除（§16.5 豁免）
+            // ESC 改为开系统菜单（2026-08-19）：原来直接弹「退出到主菜单」确认框，
+            // 等于把一个高危动作绑在最常按的键上。去哪由玩家在菜单里选，再按一次 ESC 就是继续游戏。
+            EscMenuOverlay.Open(UI, this);
             return true;
         }
 
