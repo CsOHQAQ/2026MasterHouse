@@ -65,7 +65,7 @@ namespace MasterHouse
             hotkeys.Bind(() => overlay.Step(-1), () => overlay.Step(1), () => { });
             HouseUIUtil.ApplyFallbackFont(instance.transform);
             HouseUIBackgroundFit.Apply(view.background);
-            HouseDayLightTint.Attach(instance.transform, view.background);
+            // 图鉴详情不随时钟变色（2026-08-19 反馈，与图鉴一致；翻书分帧也不用再担心被染色）
             var group = HouseUIUtil.Group(rect.gameObject, 0);
             group.DOFade(1, .22f).SetUpdate(true);
             ui.PushOverlay(overlay);

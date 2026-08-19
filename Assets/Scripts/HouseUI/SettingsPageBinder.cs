@@ -58,7 +58,7 @@ namespace MasterHouse
             ShowTab(0);
             HouseUIUtil.ApplyFallbackFont(view.transform);
             HouseUIBackgroundFit.Apply(view.background); // 非 16:9 屏上底图铺满不变形
-            HouseDayLightTint.Attach(view.transform, view.background); // 底图随时钟慢慢变天色
+            // 设置页不随时钟变色（2026-08-19 反馈：商店/设置/图鉴关闭变色功能）
         }
 
         /// <summary>Q/E 翻页 + R 重置 / 空格应用（页面 HandleInput 或叠加层 SettingsHotkeys 每帧转发；都先过确认弹窗）。</summary>
