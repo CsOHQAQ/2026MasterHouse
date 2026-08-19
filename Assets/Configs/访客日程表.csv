@@ -1,8 +1,8 @@
 ﻿天,出现时刻(分钟),种族id,需求,具名覆写
 1,480,cat,Need_修理电路_01,
 1,500,leopard,Need_要蓝色椅子,
-1,520,cheetah,Need_修理电路_02,
-1,540,yak,Need_制作咖啡,
+1,530,cheetah,Need_修理电路_02,
+1,560,yak,Need_制作咖啡,
 2,560,rabbit,Need_兔-化妆台,
 2,580,wolf,Need_修理电路_03,
 2,600,ox,Need_顿-收音机,
