@@ -26,7 +26,14 @@ namespace MasterHouse
         /// ⚠ 下面两条 Prefab/视图缺失的早退路径**也必须回调**：报错归报错（§16.2 不回退**布局**），
         /// 但业务路由不能被表现件缺失吞掉，否则玩家永远走不到结局、且再也结束不了 demo。
         /// </summary>
-        public static void PlayEndDay(HouseUIManager ui, int endedDay, VisitorDaySummary summary, Action onFinished)
+        /// <summary>夜色扫描的起点/终点（分钟）：21:30 入夜 → 次日 6:00 破晓。</summary>
+        private const float SweepFrom = 21.5f * 60f;
+        private const float SweepTo = 24f * 60f + 6f * 60f;
+        /// <summary>破晓时整晚扫过去的时长（秒）。</summary>
+        private const float SweepSeconds = 3.2f;
+
+        public static void PlayEndDay(HouseUIManager ui, int endedDay, VisitorDaySummary summary, Action onFinished,
+            Action<float> cycleDriver = null, Action cycleRelease = null)
         {
             var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.DayTransition);
             if (prefab == null)
@@ -48,22 +55,39 @@ namespace MasterHouse
             ((RectTransform)instance.transform).SetAsLastSibling();
             HouseUIUtil.ApplyFallbackFont(instance.transform);
 
-            // 结算信息板套用通用面板皮肤（2026-08-16：与 Hub 各卡片同一套 common 框，替掉纯黑底）
+            // 结算信息板套用通用面板皮肤（旧版式）；2.0 底板自带外观，别再盖
             var settleScrim = view.transform.Find("SettleScrim");
             if (settleScrim != null)
             {
                 var scrimImage = settleScrim.GetComponent<UnityEngine.UI.Image>();
-                if (scrimImage != null) HouseUIUtil.ApplyPanelSkin(scrimImage, .92f, 2.5f);
+                if (scrimImage != null && scrimImage.sprite == null) HouseUIUtil.ApplyPanelSkin(scrimImage, .92f, 2.5f);
             }
 
-            SetText(view.dayLabel, $"DAY {endedDay:00} 结算");
+            SetText(view.dayLabel, $"DAY {endedDay:00}　结算");
             SetText(view.subLabel, "新的一天，开门迎客");
             SetText(view.bodyLabel, summary != null ? BuildBody(summary) : string.Empty);
             SetText(view.hintLabel, "点击任意处 · 开始新的一天");
+            // 结算板 2.0 的三项（2026-08-20 设计图）：客人小费 / 声望值 / 装饰分。
+            // 前两项是当日累计；装饰分是全局展示值（当日增量没有单独口径，见 §6.1）
+            if (view.tipValue != null && summary != null)
+                view.tipValue.text = $"+{summary.TipEarned + summary.CurrencyEarned + summary.DialogueCurrencyEarned:N0}";
+            if (view.reputationValue != null && summary != null)
+                view.reputationValue.text = $"+{summary.ReputationEarned + summary.DialogueReputationEarned}";
+            if (view.decorationValue != null)
+                view.decorationValue.text = GameManager.Instance != null
+                    ? GameManager.Instance.EconomyManager.DecorationScore.ToString("N0") : "0";
 
-            // 日夜交替分帧背景（2026-08-14）：有帧素材就循环播放绘本动画，纯色夜空/光晕退场；
-            // 无素材（尚未导入）时回落到原来的纯色入夜表现
-            var frames = LoadCycleFrames();
+            // 背景三选一（2026-08-20 用户定案：整个房子的昼夜）：
+            // ① cycleDriver 非空 → 过场层透明，底下就是真实的 Hub 房子，
+            //    夜里定格在 21:30，破晓时把整晚扫到次日 6:00；
+            // ② 有分帧素材 → 播绘本动画；③ 都没有 → 纯色入夜。
+            if (cycleDriver != null)
+            {
+                cycleDriver(SweepFrom);
+                view.sky.color = Color.clear;   // 留着挡输入 + 当「点击任意处」的点击面
+                view.glow.enabled = false;
+            }
+            var frames = cycleDriver == null ? LoadCycleFrames() : null;
             var useFrames = frames != null && view.cycleFrames != null;
             if (useFrames)
             {
@@ -99,14 +123,16 @@ namespace MasterHouse
             clickButton.transition = UnityEngine.UI.Selectable.Transition.None;
             clickButton.targetGraphic = clickGraphic;
             var started = false;
-            clickButton.onClick.AddListener(() =>
+            void Advance()
             {
                 if (started || instance == null) return;
                 started = true;
                 SfxManager.Play(ESfx.UiClick);
                 nightIn.Kill(true); // 入场段若未播完，快进到位再接收尾
-                PlayDawn(instance, view, group, useFrames, onFinished);
-            });
+                PlayDawn(instance, view, group, useFrames, onFinished, cycleDriver, cycleRelease);
+            }
+            clickButton.onClick.AddListener(Advance);
+            if (view.settleConfirm != null) view.settleConfirm.onClick.AddListener(Advance); // 2.0 确定按钮
         }
 
         /// <summary>分帧序列播放帧率（分帧脚本按 12fps 抽帧，同步改）。</summary>
@@ -127,10 +153,22 @@ namespace MasterHouse
 
         /// <summary>第二段：结算收起，标题切成新一天，破晓后整层淡出。分帧背景继续循环，只在纯色回落时推天色。</summary>
         private static void PlayDawn(GameObject instance, OutGameDayTransitionView view, CanvasGroup group,
-            bool useFrames, Action onFinished)
+            bool useFrames, Action onFinished, Action<float> cycleDriver = null, Action cycleRelease = null)
         {
             var newDay = GameManager.Instance.HouseClockManager.Data.Day; // EndDay 之后时钟已在次日
             var seq = DOTween.Sequence().SetUpdate(true).SetLink(instance);
+            if (cycleDriver != null)
+            {
+                // 整晚扫过去：21:30 → 次日 6:00，天色循环把日月星辰窗灯都带上
+                seq.Insert(0f, DOTween.To(() => SweepFrom, v => cycleDriver(v), SweepTo, SweepSeconds)
+                    .SetEase(Ease.InOutSine));
+                seq.InsertCallback(SweepSeconds, () => cycleRelease?.Invoke());
+            }
+            if (view.settleBoard != null)
+            {
+                var boardGroup = HouseUIUtil.Group(view.settleBoard.gameObject);
+                seq.Join(boardGroup.DOFade(0, .3f)); // 2.0 结算板整块退场（dayLabel 在板上，一起走）
+            }
             if (view.bodyLabel != null) seq.Join(view.bodyLabel.DOFade(0, .3f));
             if (view.hintLabel != null) seq.Join(view.hintLabel.DOFade(0, .25f));
             if (view.dayLabel != null)

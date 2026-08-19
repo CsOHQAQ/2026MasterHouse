@@ -431,7 +431,7 @@ namespace MasterHouse
             world = default;
             if (worldRoot == null) return false;
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    worldRoot, screenPosition, null, out var local)) return false;
+                    worldRoot, screenPosition, HouseUIUtil.CameraOf(worldRoot), out var local)) return false;
             var rect = worldRoot.rect;
             world = new Vector2(
                 Mathf.Clamp01((local.x - rect.xMin) / Mathf.Max(rect.width, 1f)),

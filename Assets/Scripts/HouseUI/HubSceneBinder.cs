@@ -502,9 +502,20 @@ namespace MasterHouse
         /// 相邻两帧交叉淡化——日月升落、云层、星空、窗灯、室内光影都在帧里，随时间平滑推进。
         /// 「昼夜交替」关闭时定格在正午。
         /// </summary>
+        /// <summary>天色分钟覆盖（-1 = 不覆盖）：结算过场用它把整个房子从晚上推到早上。</summary>
+        private float cycleOverrideMinute = -1f;
+
+        public void SetCycleOverride(float minute) => cycleOverrideMinute = minute;
+
+        public void ClearCycleOverride() => cycleOverrideMinute = -1f;
+
+        /// <summary>镜头平滑拉回整栋房子的总览（结算过场要看全楼）。</summary>
+        public void FocusOverview() => FocusWorldPoint(new Vector2(.5f, .5f), OverviewZoom);
+
         private void UpdateSceneCycle()
         {
-            var minute = HouseSettings.Data.dayNightEnabled
+            var minute = cycleOverrideMinute >= 0f ? cycleOverrideMinute
+                : HouseSettings.Data.dayNightEnabled
                 ? GameManager.Instance.HouseClockManager.Data.MinuteOfDayF
                 : 12f * 60f;
             PlayCycle(SkyCycle.Exterior, minute, exteriorBackdrop, exteriorCycle);
@@ -886,7 +897,7 @@ namespace MasterHouse
         private Vector2 PointerInViewport(out bool inside)
         {
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                sceneRoot, Input.mousePosition, null, out var local);
+                sceneRoot, Input.mousePosition, HouseUIUtil.CameraOf(sceneRoot), out var local);
             var rect = sceneRoot.rect;
             inside = rect.Contains(local);
             return new Vector2(local.x - rect.xMin, local.y - rect.yMin);

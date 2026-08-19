@@ -27,6 +27,10 @@ namespace MasterHouse
         private RectTransform toastRoot;
         private Tween toastTween;
 
+        /// <summary>UI 相机到画布平面的距离：正交相机，取多少都行，留够 near/far 余量即可。</summary>
+        private const float UiCameraDistance = 100f;
+        private const int UiLayer = 5; // Unity 内置 UI 层
+
         public static HouseUIManager Build()
         {
             var existing = FindObjectOfType<HouseUIManager>();
@@ -34,9 +38,30 @@ namespace MasterHouse
 
             var go = new GameObject("HouseUI", typeof(RectTransform), typeof(Canvas),
                 typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(HouseUIManager));
+            go.layer = UiLayer;   // UI 相机只画 UI 层；漏了这句整块画布就不进相机 → 全黑
             DontDestroyOnLoad(go);
+            // ScreenSpaceCamera 而不是 Overlay（2026-08-20）：Overlay 永远画在所有相机之上，
+            // 摆放模式的家具相机就没法画在 Hub 画面前面，只能把 Hub 整块关掉、背景变黑。
+            // 挂到一台专用低 depth 的 UI 相机上之后，家具相机（depth 60）自然叠在它前面。
+            var uiCameraGo = new GameObject("HouseUICamera", typeof(Camera));
+            DontDestroyOnLoad(uiCameraGo);
+            uiCameraGo.transform.position = new Vector3(0f, 0f, -UiCameraDistance);
+            var uiCamera = uiCameraGo.GetComponent<Camera>();
+            uiCamera.orthographic = true;
+            uiCamera.orthographicSize = 5f;
+            uiCamera.nearClipPlane = .1f;
+            uiCamera.farClipPlane = UiCameraDistance * 2f;
+            uiCamera.depth = 0f;
+            uiCamera.clearFlags = CameraClearFlags.SolidColor;
+            uiCamera.backgroundColor = new Color(.06f, .07f, .10f, 1f);
+            // 画除家具层外的一切：Hub 运行时动态建的节点不一定在 UI 层（SkyOnly 等在 Default），
+            // 按 UI 层白名单会漏画；只要把家具场景那层排掉就互不打架
+            uiCamera.cullingMask = ~(1 << 3); // 3 = FurnitureScene（FurnitureRoomController.FurnitureSceneLayer）
+
             var canvas = go.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = uiCamera;
+            canvas.planeDistance = UiCameraDistance;
             canvas.sortingOrder = 500;
             var scaler = go.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;

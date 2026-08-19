@@ -4,21 +4,21 @@ using UnityEngine.EventSystems;
 namespace MasterHouse
 {
     /// <summary>
-    /// 家具模式相机：透视相机围绕画面中心做鼠标视差微转 + 缓慢呼吸漂移；
+    /// 家具模式相机：正对场景、**不做鼠标视差倾斜**（2026-08-20 反馈：背景跟着鼠标歪很晕）；
     /// 支持滚轮缩放（朝鼠标位置，1~3.5 倍）与右键/中键拖拽平移，视野钳制在场景图范围内。
     /// 初始视角 = 完整显示整幅背景（宽高同时装下，不放大）。
     /// 场景内容全部位于同一平面附近，只有相机在动，因此背景像素对齐不受影响。
     /// </summary>
     public sealed class FurnitureCameraRig : MonoBehaviour
     {
-        private const float MaxYawDegrees = 2.2f;
-        private const float MaxPitchDegrees = 1.5f;
-        private const float FollowSpeed = 4f;
         private const float MinZoom = 1f;
         private const float MaxZoom = 3.5f;
         private const float ZoomStep = .16f;
 
         public Camera Camera { get; private set; }
+
+        private RenderTexture backdropTexture;
+        private Transform backdropQuad;
 
         private Vector3 pivot;          // 场景中心（世界坐标）
         private float baseDistance;     // zoom=1 时完整装下整幅背景的距离
@@ -26,7 +26,6 @@ namespace MasterHouse
         private float halfHeight;       // 场景半高（世界单位）
         private float zoom = 1f;
         private Vector3 panOffset;
-        private Vector2 current;
         private Vector3 lastPanMouse;
         private bool panning;
 
@@ -36,8 +35,12 @@ namespace MasterHouse
             halfWidth = sceneHalfExtents.x;
             halfHeight = sceneHalfExtents.y;
             Camera = gameObject.AddComponent<Camera>();
-            Camera.clearFlags = CameraClearFlags.SolidColor;
-            Camera.backgroundColor = new Color(.014f, .014f, .022f, 1f);
+            // 只清深度、不涂底色（2026-08-20 反馈：摆放时背景别变黑）——
+            // 房间图之外的地方就透出底下 Hub 的画面
+            Camera.clearFlags = CameraClearFlags.Depth;
+            // 只画家具层：ScreenSpaceCamera 画布上的元素也是按层被相机挑选的，
+            // 家具相机若画 Default 层，会把 Hub 运行时建的天空层等画到房间前面（蓝屏的根因）
+            Camera.cullingMask = 1 << FurnitureRoomController.FurnitureSceneLayer;
             Camera.fieldOfView = fieldOfView;
             Camera.nearClipPlane = .5f;
             Camera.farClipPlane = 220f;
@@ -50,6 +53,41 @@ namespace MasterHouse
             transform.position = pivot + new Vector3(0f, 0f, -baseDistance);
         }
 
+        /// <summary>
+        /// 把 UI 相机此刻的画面定格成一张纹理，贴在本相机远处当背景（2026-08-20）。
+        /// 玩家进摆放模式前看到什么，背景就是什么——不用去猜 Hub 的缩放/LOD 状态。
+        /// квад挂在相机身上、始终铺满视野，缩放平移时它稳稳不动。
+        /// </summary>
+        public void CaptureBackdrop(Camera uiCamera)
+        {
+            if (uiCamera == null || Camera == null) return;
+            backdropTexture = new RenderTexture(Screen.width, Screen.height, 0);
+            var previous = uiCamera.targetTexture;
+            uiCamera.targetTexture = backdropTexture;
+            uiCamera.Render();
+            uiCamera.targetTexture = previous;
+
+            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            quad.name = "FrozenBackdrop";
+            quad.layer = FurnitureRoomController.FurnitureSceneLayer;
+            Object.Destroy(quad.GetComponent<Collider>());
+            var distance = Camera.farClipPlane * .9f;
+            var height = 2f * Mathf.Tan(Camera.fieldOfView * .5f * Mathf.Deg2Rad) * distance;
+            quad.transform.SetParent(Camera.transform, false);
+            quad.transform.localPosition = new Vector3(0f, 0f, distance);
+            quad.transform.localScale = new Vector3(height * Camera.aspect, height, 1f);
+            var material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            material.mainTexture = backdropTexture;
+            quad.GetComponent<MeshRenderer>().material = material;
+            backdropQuad = quad.transform;
+        }
+
+        private void OnDestroy()
+        {
+            if (backdropQuad != null) Object.Destroy(backdropQuad.gameObject);
+            if (backdropTexture != null) backdropTexture.Release();
+        }
+
         private void LateUpdate()
         {
             if (Camera == null) return;
@@ -57,15 +95,9 @@ namespace MasterHouse
             HandlePan();
             ClampPan();
 
-            var mouseX = Screen.width > 0 ? Mathf.Clamp(Input.mousePosition.x / Screen.width - .5f, -.5f, .5f) * 2f : 0f;
-            var mouseY = Screen.height > 0 ? Mathf.Clamp(Input.mousePosition.y / Screen.height - .5f, -.5f, .5f) * 2f : 0f;
-            var idleYaw = Mathf.Sin(Time.time * .22f) * .35f;
-            var idlePitch = Mathf.Cos(Time.time * .17f) * .25f;
-            var target = new Vector2(-mouseY * MaxPitchDegrees + idlePitch, mouseX * MaxYawDegrees + idleYaw);
-            current = Vector2.Lerp(current, target, Time.deltaTime * FollowSpeed);
-            var rotation = Quaternion.Euler(current.x, current.y, 0f);
-            transform.position = pivot + panOffset + rotation * new Vector3(0f, 0f, -baseDistance / zoom);
-            transform.rotation = rotation;
+            // 正对场景：不跟鼠标转、也不做呼吸漂移，背景老老实实待着
+            transform.position = pivot + panOffset + new Vector3(0f, 0f, -baseDistance / zoom);
+            transform.rotation = Quaternion.identity;
         }
 
         /// <summary>滚轮缩放：朝鼠标下的场景点靠近/远离，缩到 1 倍时回正平移。</summary>

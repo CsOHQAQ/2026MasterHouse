@@ -19,5 +19,13 @@ namespace MasterHouse
         public Text hintLabel;
         /// <summary>日夜交替分帧画布（2026-08-14）：过场期间循环播放绘本风分帧序列；无帧素材时保持隐藏走纯色夜空。</summary>
         public RawImage cycleFrames;
+
+        // ── 今日结算 2.0（2026-08-20 设计图）：底板 + 三项奖励 + 确定 ──
+        [Tooltip("结算底板（DAY XX 结算 / 营业奖励 / 三项数值 / 确定 都在它身上）")]
+        public RectTransform settleBoard;
+        public Text tipValue;
+        public Text reputationValue;
+        public Text decorationValue;
+        public Button settleConfirm;
     }
 }

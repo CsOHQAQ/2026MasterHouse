@@ -48,10 +48,14 @@ namespace MasterHouse
         private const int SlotsPerPage = 12;
         private const float SlotGap = 8f;
 
-        /// <summary>页签顺序（下标对应 Prefab 的 tabButtons）。</summary>
-        private static readonly FurnitureSurfaceType[] TabSurfaces =
+        /// <summary>
+        /// 页签顺序（下标对应 Prefab 的 tabButtons，与生成器里的图标一一对齐）。
+        /// 取家具表的 category 值；表里没有的那一格会被 RefreshInventory 自动隐藏并左移，
+        /// 所以「椅子」在策划把它加进表之前不占位（§16.6 加内容不改代码）。
+        /// </summary>
+        internal static readonly string[] TabCategories =
         {
-            FurnitureSurfaceType.Floor, FurnitureSurfaceType.Table, FurnitureSurfaceType.Wall,
+            "摆件", "壁挂", "桌椅", "椅子", "灯具", "盆栽",
         };
 
         private GameObject root;
@@ -69,7 +73,7 @@ namespace MasterHouse
         private Func<FurnitureEntry, int> sellbackGetter;
         /// <summary>页签槽位（Prefab 里的三个位置）：有页签隐藏时后面的自动往前补位，不留空洞。</summary>
         private Vector2[] tabSlotPositions;
-        private FurnitureSurfaceType currentTab = FurnitureSurfaceType.Floor;
+        private string currentTab = TabCategories[0];
         private int page;
         private bool chromeHidden;
         private Tween toastTween;
@@ -125,13 +129,25 @@ namespace MasterHouse
             HouseUIUtil.BindButton(view.gridToggleButton, () => GridToggleClicked?.Invoke());
             HouseUIUtil.BindButton(view.hideUiButton, () => SetChromeHidden(true));
             HouseUIUtil.BindButton(view.restoreButton, () => SetChromeHidden(false));
+            // 根级「收起」按钮初始必须可见（2026-08-20：复制 ShowUi 摆出来的节点会带着 alpha=0 的
+            // CanvasGroup，一进场就隐身）；显隐之后由 SetChromeHidden 统一接管
+            if (view.hideUiButton != null && view.topGroup != null &&
+                !view.hideUiButton.transform.IsChildOf(view.topGroup.transform))
+            {
+                var hideGroup = HouseUIUtil.Group(view.hideUiButton.gameObject);
+                hideGroup.alpha = 1f;
+                hideGroup.blocksRaycasts = true;
+                hideGroup.interactable = true;
+            }
             HouseUIUtil.BindButton(view.prevPageButton, () => TurnPage(-1));
             HouseUIUtil.BindButton(view.nextPageButton, () => TurnPage(1));
-            for (var i = 0; i < view.tabButtons.Length && i < TabSurfaces.Length; i++)
+            for (var i = 0; i < view.tabButtons.Length && i < TabCategories.Length; i++)
             {
-                var surface = TabSurfaces[i];
-                HouseUIUtil.BindButton(view.tabButtons[i], () => SelectTab(surface));
+                var category = TabCategories[i];
+                HouseUIUtil.BindButton(view.tabButtons[i], () => SelectTab(category));
             }
+            if (view.backButton != null)                        // 左下「ESC 返回」＝也退出摆放模式
+                HouseUIUtil.BindButton(view.backButton, () => ExitClicked?.Invoke());
             if (view.purchaseScrimButton != null)
             {
                 view.purchaseScrimButton.onClick.RemoveAllListeners();
@@ -147,9 +163,13 @@ namespace MasterHouse
                 if (sell) SellConfirmed?.Invoke(id);
                 else PurchaseConfirmed?.Invoke(id);
             });
-            // 购买弹窗面板换全局底图（Secondary-bg，9 宫格）
+            // 购买弹窗面板换全局底图（Secondary-bg，9 宫格）。
+            // 2.0 二次确认底板自带外观，别再往上盖（2026-08-20：盖了会变成黑底洋红）
             if (view.purchaseConfirmButton != null)
-                HouseUIUtil.ApplyPanelSkin(view.purchaseConfirmButton.transform.parent.GetComponent<Image>());
+            {
+                var confirmBoard = view.purchaseConfirmButton.transform.parent.GetComponent<Image>();
+                if (confirmBoard != null && confirmBoard.sprite == null) HouseUIUtil.ApplyPanelSkin(confirmBoard);
+            }
 
             EnsureTabAvailable();
             RefreshInventory();
@@ -157,12 +177,12 @@ namespace MasterHouse
 
         // ── 页签与分页 ──
 
-        private List<FurnitureEntry> EntriesOf(FurnitureSurfaceType surface)
+        private List<FurnitureEntry> EntriesOf(string category)
         {
             var result = new List<FurnitureEntry>();
             foreach (var entry in table.entries)
             {
-                if (entry == null || !entry.Supports(surface)) continue; // 多选表面：同一家具可出现在多个页签
+                if (entry == null || entry.category != category) continue; // 按商店分类分页签（2026-08-20 设计图）
                 // 仓库只展示已拥有的家具（2026-08-14）：购买一律走商店（家具模式里的「购买家具」按钮）
                 var state = stateGetter(entry.id);
                 if (state == FurnitureSlotState.Locked || state == FurnitureSlotState.Unknown) continue;
@@ -174,19 +194,25 @@ namespace MasterHouse
         private void EnsureTabAvailable()
         {
             if (EntriesOf(currentTab).Count > 0) return;
-            foreach (var surface in TabSurfaces)
-                if (EntriesOf(surface).Count > 0) { currentTab = surface; return; }
+            foreach (var category in TabCategories)
+                if (EntriesOf(category).Count > 0) { currentTab = category; return; }
         }
 
-        private void SelectTab(FurnitureSurfaceType surface)
+        private void SelectTab(string category)
         {
-            if (currentTab == surface) return;
-            currentTab = surface;
+            if (currentTab == category) return;
+            currentTab = category;
             page = 0;
             RefreshInventory();
         }
 
-        private int PageCount => Mathf.Max(1, Mathf.CeilToInt(EntriesOf(currentTab).Count / (float)SlotsPerPage));
+        /// <summary>列表由 GridLayoutGroup 排版时（2.0 版式）一次铺完，不分页。</summary>
+        private bool Scrolling => view != null && view.slotsRoot != null
+                                  && view.slotsRoot.GetComponent<LayoutGroup>() != null;
+
+        private int PageCount => Scrolling
+            ? 1
+            : Mathf.Max(1, Mathf.CeilToInt(EntriesOf(currentTab).Count / (float)SlotsPerPage));
 
         private void TurnPage(int direction)
         {
@@ -212,10 +238,10 @@ namespace MasterHouse
                         tabSlotPositions[i] = ((RectTransform)view.tabButtons[i].transform).anchoredPosition;
             }
             var visibleSlot = 0;
-            for (var i = 0; i < view.tabButtons.Length && i < TabSurfaces.Length; i++)
+            for (var i = 0; i < view.tabButtons.Length && i < TabCategories.Length; i++)
             {
-                var surface = TabSurfaces[i];
-                var hasAny = EntriesOf(surface).Count > 0;
+                var category = TabCategories[i];
+                var hasAny = EntriesOf(category).Count > 0;
                 if (view.tabButtons[i] != null)
                 {
                     view.tabButtons[i].gameObject.SetActive(hasAny);
@@ -223,9 +249,14 @@ namespace MasterHouse
                         ((RectTransform)view.tabButtons[i].transform).anchoredPosition =
                             tabSlotPositions[Mathf.Min(visibleSlot++, tabSlotPositions.Length - 1)];
                 }
-                var selected = surface == currentTab;
-                if (view.tabBackgrounds[i] != null)
-                    view.tabBackgrounds[i].color = selected ? new Color(.32f, .06f, .18f, .95f) : new Color(.025f, .025f, .04f, .92f);
+                var selected = category == currentTab;
+                // 图标页签：换图不涂色（涂色会把美术图整个染掉）；没有图标组件的老版式仍走配色
+                var icon = view.tabButtons[i] != null
+                    ? view.tabButtons[i].GetComponent<OutGameFurnitureTabIcon>() : null;
+                if (icon != null) icon.SetSelected(selected);
+                else if (view.tabBackgrounds[i] != null)
+                    view.tabBackgrounds[i].color = selected
+                        ? new Color(.32f, .06f, .18f, .95f) : new Color(.025f, .025f, .04f, .92f);
                 if (view.tabLabels[i] != null)
                     view.tabLabels[i].color = selected ? HouseUIUtil.White : new Color(1, 1, 1, .55f);
             }
@@ -236,9 +267,10 @@ namespace MasterHouse
             if (view.pageLabel != null) view.pageLabel.text = $"{page + 1} / {pageCount}";
 
             var slotSize = ((RectTransform)slotTemplate.transform).sizeDelta;
-            var start = page * SlotsPerPage;
+            var perPage = Scrolling ? entries.Count : SlotsPerPage;
+            var start = Scrolling ? 0 : page * SlotsPerPage;
             var cursor = 16f;
-            for (var i = start; i < entries.Count && i < start + SlotsPerPage; i++)
+            for (var i = start; i < entries.Count && i < start + perPage; i++)
             {
                 BuildSlot(entries[i], cursor, slotSize);
                 cursor += slotSize.x + SlotGap;
@@ -250,9 +282,12 @@ namespace MasterHouse
             var go = UnityEngine.Object.Instantiate(slotTemplate, view.slotsRoot, false);
             go.name = "Slot_" + entry.id;
             slotInstances.Add(go);
-            var rect = (RectTransform)go.transform;
-            rect.anchorMin = rect.anchorMax = Vector2.zero;
-            rect.anchoredPosition = new Vector2(x + slotSize.x / 2f, 14 + slotSize.y / 2f);
+            if (!Scrolling)                                   // 网格版式下位置归 GridLayoutGroup 管
+            {
+                var rect = (RectTransform)go.transform;
+                rect.anchorMin = rect.anchorMax = Vector2.zero;
+                rect.anchoredPosition = new Vector2(x + slotSize.x / 2f, 14 + slotSize.y / 2f);
+            }
             var slot = go.GetComponent<OutGameFurnitureSlotView>();
             if (slot == null) return;
             HouseUIUtil.ApplyFallbackFont(go.transform);
@@ -267,8 +302,10 @@ namespace MasterHouse
                     : Color.white;
             }
             if (slot.nameLabel != null) slot.nameLabel.text = entry.displayName;
-            if (slot.background != null && state == FurnitureSlotState.Placed)
-                slot.background.color = new Color(1, 1, 1, .02f);
+            // 已摆完的卡略微压淡即可——纸卡皮肤下压到近乎透明会让整张卡消失（2026-08-20）
+            if (slot.background != null)
+                slot.background.color = state == FurnitureSlotState.Placed
+                    ? new Color(1, 1, 1, .55f) : Color.white;
             // 余量角标：复用原来的「已摆放」节点（家具库存说明 §5.6，零 Prefab 改动）。
             // 有余量报数字、没余量说明白，两态都显示——留空的话玩家看不出自己到底有几件
             if (slot.placedLabel != null)
@@ -370,6 +407,11 @@ namespace MasterHouse
             FadeGroup(view.topGroup, hidden ? 0f : 1f, !hidden);
             FadeGroup(view.inventoryGroup, hidden ? 0f : 1f, !hidden);
             FadeGroup(view.restoreGroup, hidden ? 1f : 0f, hidden);
+            // 「收起」按钮摆在根级（不归 topGroup 管，2026-08-20 用户手摆）：
+            // 显隐跟 topGroup 同步，收起后别和「显示界面」叠在一起
+            if (view.hideUiButton != null && view.topGroup != null &&
+                !view.hideUiButton.transform.IsChildOf(view.topGroup.transform))
+                FadeGroup(HouseUIUtil.Group(view.hideUiButton.gameObject), hidden ? 0f : 1f, !hidden);
         }
 
         private static void FadeGroup(CanvasGroup group, float alpha, bool interactable)

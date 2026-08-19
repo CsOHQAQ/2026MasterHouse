@@ -306,6 +306,15 @@ namespace MasterHouse
             // 主页面：2.0 起旧壳六槽位为空是**正常态**，不能再拿它当「引用掉了」触发 RepairHub 回填——
             // 那会把撤下的 1.0 HUD 全部重新塞回去。结构性升级由上面 EnsureMissingPrefabs 的旧结构检测负责
             repaired |= RepairPrefab<OutGameSystemPanelView>(PanelPath, RepairSystemPanel);
+            // 家具摆放页：补一个可见的「收起」按钮（2026-08-20 用户要求：只加按钮，不动其他布局）。
+            // 现在的 hideUiButton 藏在 LegacyHidden 里点不到；补一枚放在「完成放置」左侧并重绑引用
+            repaired |= RepairPrefab<OutGameFurnitureHudView>(FurnitureHudPath,
+                (root, view) => AppendFurnitureHudHideButton(view),
+                view => view.hideUiButton == null || !view.hideUiButton.gameObject.activeInHierarchy ||
+                        // 用户手摆的根级 HideUi/ShowUi 还没被认领时也要跑一次修补
+                        view.transform.Find("HideUi") != null &&
+                        view.hideUiButton.transform != view.transform.Find("HideUi"));
+
             // 右侧 dock：把运行时生成的「家具摆放/结束今天」按钮收编进 Prefab（只补缺失节点，不动既有布局）
             repaired |= RepairPrefab<OutGameHubRightDockView>(HubRightDockPath,
                 (root, view) => AppendDockActionButtons(root, view),
@@ -2025,34 +2034,111 @@ namespace MasterHouse
         }
 
         /// <summary>通用确认弹窗（首用例：结束今天，2026-08-14）。文本由 ConfirmOverlay 运行时绑定。</summary>
+        /// <summary>二次确认弹窗 2.0 素材目录（2026-08-20 按新设计图重做）。</summary>
+        private const string Confirm2Dir = "Assets/PC ui 2.0/二次确认弹窗/";
+
+        private static Sprite Confirm2(string file)
+            => AssetDatabase.LoadAssetAtPath<Sprite>(Confirm2Dir + file + ".png");
+
+        // 版式常量（设计图 1920×1080 口径）：底板 2000×1126 按 720×405 展示
+        private const float ConfirmPanelW = 720f, ConfirmPanelH = 405f;
+        private const float ConfirmBtnY = 74f;                     // 两键距面板底边
+        private const float ConfirmOkX = -118f, ConfirmOkW = 232f, ConfirmOkH = 72f;
+        private const float ConfirmEscX = 128f, ConfirmEscW = 200f, ConfirmEscH = 72f;
+
+
+        /// <summary>
+        /// 页内嵌的二次确认弹窗（2026-08-20 统一到 2.0 素材）：半透遮罩 + 手绘底板 +
+        /// 标题/正文 + 「空格 确定 / ESC 取消」两枚美术按钮。
+        /// 底板上画着「提示」，所以标题落在分隔线下方、正文再往下一段。
+        /// </summary>
+        private static (CanvasGroup group, Button scrimButton, Text title, Text body,
+            Button confirm, Button cancel) BuildInlineConfirm(Transform parent, string name)
+        {
+            var scrim = Image(parent, name, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+                new Color(.02f, .03f, .06f, .55f));
+            var group = scrim.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 0f;
+            group.blocksRaycasts = false;
+            group.interactable = false;
+            var scrimButton = scrim.gameObject.AddComponent<Button>();
+            scrimButton.transition = Selectable.Transition.None;
+
+            var panel = Rect(scrim.transform, "Panel", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                Vector2.zero, new Vector2(ConfirmPanelW, ConfirmPanelH));
+            var board = ImageOn(panel, Color.white);
+            board.sprite = Confirm2("底板");
+
+            var title = Label(panel, "Title", string.Empty, 26, Hex("3E6FA8"),
+                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -132), new Vector2(560, 38),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            var body = Label(panel, "Body", string.Empty, 22, new Color(.28f, .34f, .44f, .95f),
+                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -186), new Vector2(560, 96),
+                TextAnchor.UpperCenter, FontStyle.Normal);
+
+            var confirm = SpriteButton(panel, "Confirm", Confirm2("确认-默认"), Confirm2("确认-hover"),
+                new Vector2(.5f, 0), new Vector2(ConfirmOkX, ConfirmBtnY), new Vector2(ConfirmOkW, ConfirmOkH));
+            var cancel = SpriteButton(panel, "Cancel", Confirm2("ESC-默认"), Confirm2("ESC-hover"),
+                new Vector2(.5f, 0), new Vector2(ConfirmEscX, ConfirmBtnY), new Vector2(ConfirmEscW, ConfirmEscH));
+            return (group, scrimButton, title, body, confirm, cancel);
+        }
+
+        /// <summary>
+        /// 通用确认弹窗（2026-08-20 按新设计图重做）：手绘底板 + 正文 + 「空格 确定 / ESC 取消」两枚美术按钮。
+        /// 标题「提示」与分隔线已经画在底板上，所以 title 挂在面板外的隐藏节点里——
+        /// ConfirmOverlay 仍会给它赋值，只是不上屏，调用方一行都不用改。
+        /// </summary>
         private static void BuildConfirmPopup(string path)
         {
             var root = Root("ConfirmPopup");
             var view = root.AddComponent<OutGameConfirmPopupView>();
             view.scrim = Image(root.transform, "Scrim", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-                new Color(.005f, .008f, .02f, .72f));
+                new Color(.02f, .03f, .06f, .55f));
+
             view.panel = Rect(root.transform, "Panel", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
-                Vector2.zero, new Vector2(560, 300));
-            ImageOn(view.panel, new Color(.035f, .025f, .045f, .96f));
-            view.title = Label(view.panel, "Title", "确认", 28, Hex("E22D76"),
-                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -52), new Vector2(480, 44),
-                TextAnchor.MiddleCenter, FontStyle.Bold);
-            view.body = Label(view.panel, "Body", string.Empty, 20, Hex("F3E8DD"),
-                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 12), new Vector2(460, 110),
+                Vector2.zero, new Vector2(ConfirmPanelW, ConfirmPanelH));
+            var board = ImageOn(view.panel, Color.white);
+            board.sprite = Confirm2("底板");
+
+            // 正文：底板上半部是「提示」标题与花纹，正文落在中段留白里
+            view.body = Label(view.panel, "Body", string.Empty, 24, Hex("3E6FA8"),
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 16), new Vector2(560, 132),
                 TextAnchor.MiddleCenter, FontStyle.Normal);
-            view.cancelButton = PageButton(view.panel, "Cancel", "再想想", new Vector2(-125, 48),
-                new Vector2(210, 58), new Color(1, 1, 1, .08f), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
-            view.cancelLabel = view.cancelButton.GetComponentInChildren<Text>();
-            view.confirmButton = PageButton(view.panel, "Confirm", "确认", new Vector2(125, 48),
-                new Vector2(210, 58), Hex("6E243E"), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
-            view.confirmLabel = view.confirmButton.GetComponentInChildren<Text>();
-            AppendConfirmKeycaps(view); // ESC/空格键帽（2026-08-17）
+
+            // 两枚按钮：键帽与「确定/取消」字样都画在素材里，不再叠文字层
+            view.confirmButton = SpriteButton(view.panel, "Confirm",
+                Confirm2("确认-默认"), Confirm2("确认-hover"),
+                new Vector2(.5f, 0), new Vector2(ConfirmOkX, ConfirmBtnY), new Vector2(ConfirmOkW, ConfirmOkH));
+            view.cancelButton = SpriteButton(view.panel, "Cancel",
+                Confirm2("ESC-默认"), Confirm2("ESC-hover"),
+                new Vector2(.5f, 0), new Vector2(ConfirmEscX, ConfirmBtnY), new Vector2(ConfirmEscW, ConfirmEscH));
+
+            // 标题与两个按钮文字：素材里已有，留成隐藏节点只为让 ConfirmOverlay 的赋值有处可去
+            var stash = Rect(root.transform, "LegacyHidden", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(-4000, 0), new Vector2(320, 160));
+            stash.gameObject.SetActive(false);
+            view.title = Label(stash, "Title", "提示", 28, Hex("3E6FA8"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -30), new Vector2(300, 44),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            view.confirmLabel = Label(stash, "ConfirmLabel", "确定", 20, Hex("3E6FA8"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -80), new Vector2(300, 32),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
+            view.cancelLabel = Label(stash, "CancelLabel", "取消", 20, Hex("3E6FA8"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -120), new Vector2(300, 32),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
             Save(root, path);
         }
 
-        /// <summary>确认弹窗增量（2026-08-17 键位可视化）：取消钮左侧补 ESC 键帽、确认钮左侧补空格键帽，只补缺失。</summary>
+        /// <summary>
+        /// 确认弹窗增量（2026-08-17 键位可视化）：取消钮左侧补 ESC 键帽、确认钮左侧补空格键帽，只补缺失。
+        /// 2026-08-20 起 2.0 素材自带键帽，检测到就直接跳过（用按钮有没有 sprite 判断）。
+        /// </summary>
         private static void AppendConfirmKeycaps(OutGameConfirmPopupView view)
         {
+            var art = view.confirmButton != null
+                      && view.confirmButton.targetGraphic is UnityEngine.UI.Image artImage
+                      && artImage.sprite != null;
+            if (art) return;
             if (view.cancelButton != null && view.cancelButton.transform.Find("EscCap") == null)
             {
                 var cap = Image(view.cancelButton.transform, "EscCap", new Vector2(0, .5f), new Vector2(0, .5f),
@@ -2090,8 +2176,80 @@ namespace MasterHouse
             view.subLabel = Label(root.transform, "SubLabel", "新的一天，开门迎客", 21, Hex("F3E8DD", .8f),
                 new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -12), new Vector2(600, 40),
                 TextAnchor.MiddleCenter, FontStyle.Normal);
-            AppendDayTransitionSettleNodes(view); // 结算并入过场（2026-08-14）
+            AppendDaySettleBoard2(view); // 结算板 2.0（2026-08-20 设计图）
             Save(root, path);
+        }
+
+        /// <summary>今日结算 2.0 素材目录。</summary>
+        private const string Settle2Dir = "Assets/PC ui 2.0/今日结算/";
+
+        private static Sprite Settle2(string file)
+            => AssetDatabase.LoadAssetAtPath<Sprite>(Settle2Dir + file + ".png");
+
+        /// <summary>
+        /// 今日结算板 2.0（2026-08-20 设计图）：手绘底板（分隔线/绶带/三个图标/花纹都画在素材里），
+        /// 我们只补「DAY XX 结算」标题、三项数值与名目、确定按钮。
+        /// dayLabel 挪到板上：结算段显示「DAY XX 结算」，破晓段整板淡出后由 subLabel 报新一天。
+        /// 旧的正文/提示两条留成隐藏节点，DayTransitionFx 的赋值不落空。
+        /// </summary>
+        private static void AppendDaySettleBoard2(OutGameDayTransitionView view)
+        {
+            // 分帧背景画布（保持原语义：过场期间挡输入 + 充当点击面；默认隐藏）
+            var raw = Raw(view.transform, "CycleFrames", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            raw.raycastTarget = true;
+            view.cycleFrames = raw;
+            if (view.glow != null) raw.transform.SetSiblingIndex(view.glow.transform.GetSiblingIndex() + 1);
+            raw.gameObject.SetActive(false);
+
+            var board = Image(view.transform, "SettleBoard", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                new Vector2(0, 24), new Vector2(760, 428), Color.white);
+            board.sprite = Settle2("底板");
+            board.raycastTarget = false;
+            view.settleBoard = board.rectTransform;
+
+            // 标题压在顶部分隔线中段（素材里花饰在两侧）
+            if (view.dayLabel != null)
+            {
+                view.dayLabel.transform.SetParent(board.transform, false);
+                var dayRect = (RectTransform)view.dayLabel.transform;
+                dayRect.anchorMin = dayRect.anchorMax = new Vector2(.5f, 1f);
+                dayRect.anchoredPosition = new Vector2(0, -52);
+                dayRect.sizeDelta = new Vector2(420, 44);
+                view.dayLabel.fontSize = 30;
+                view.dayLabel.color = Hex("3E6FA8");
+            }
+
+            // 三项奖励：图标画在底板上，这里只放数值与名目（列位按素材比例目测，进 Unity 可微调）
+            var columns = new[] { -212f, -12f, 148f };
+            var captions = new[] { "客人小费", "声望值", "装饰分" };
+            var values = new Text[3];
+            for (var i = 0; i < 3; i++)
+            {
+                values[i] = Label(board.transform, "Value" + i, "+0", 26, Hex("3E6FA8"),
+                    new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(columns[i] + 52, 34),
+                    new Vector2(120, 36), TextAnchor.MiddleLeft, FontStyle.Bold);
+                Label(board.transform, "Caption" + i, captions[i], 16, new Color(.35f, .45f, .58f, .9f),
+                    new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(columns[i] + 34, -14),
+                    new Vector2(140, 26), TextAnchor.MiddleLeft, FontStyle.Normal);
+            }
+            view.tipValue = values[0];
+            view.reputationValue = values[1];
+            view.decorationValue = values[2];
+
+            view.settleConfirm = SpriteButton(board.transform, "Confirm",
+                Settle2("Group 140"), Settle2("确认-hover"),
+                new Vector2(.5f, 0), new Vector2(0, 46), new Vector2(200, 62));
+
+            // 旧的正文/提示：素材版式不需要了，留隐藏节点接住 DayTransitionFx 的赋值
+            var stash = Rect(view.transform, "LegacyHidden", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(-4000, 0), new Vector2(320, 120));
+            stash.gameObject.SetActive(false);
+            view.bodyLabel = Label(stash, "SettleBody", string.Empty, 20, Hex("F3E8DD"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -30), new Vector2(300, 60),
+                TextAnchor.UpperCenter, FontStyle.Normal);
+            view.hintLabel = Label(stash, "SettleHint", string.Empty, 18, Hex("F3E8DD", .65f),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -90), new Vector2(300, 26),
+                TextAnchor.MiddleCenter, FontStyle.Normal);
         }
 
         /// <summary>日出过场增量（2026-08-14 结算并入过场）：夜幕结算正文 + 「点击任意处」提示，只补缺失节点。</summary>
@@ -2415,133 +2573,255 @@ namespace MasterHouse
             Save(root, path);
         }
 
+        /// <summary>
+        /// 收纳格模板（2026-08-20 按放置页设计图重做）：纸卡底板三态 + 居中缩略图 + 底部名称。
+        /// 卡片按 176×152 展示（设计图 1920×1080 口径），底板素材 506×452。
+        /// </summary>
         private static void BuildFurnitureSlot(string path)
         {
-            var root = ComponentRoot("FurnitureSlot", new Vector2(104, 122));
+            var root = ComponentRoot("FurnitureSlot", new Vector2(CardW, CardH));
             var slot = root.AddComponent<OutGameFurnitureSlotView>();
-            slot.background = ImageOn((RectTransform)root.transform, new Color(1, 1, 1, .05f));
-            var outline = root.AddComponent<Outline>();
-            outline.effectColor = new Color(1, 1, 1, .14f);
-            outline.effectDistance = new Vector2(1, -1);
+            slot.background = ImageOn((RectTransform)root.transform, Color.white);
+            slot.background.sprite = Place2("默认");
+            slot.background.type = UnityEngine.UI.Image.Type.Sliced;
+            // 悬停换图由 FurnitureRoomHud 运行时挂（槽位靠 EventTrigger 起手拖拽，不是 Button）
+            var hover = root.AddComponent<OutGameFurnitureSlotHover>();
+            hover.normal = Place2("默认");
+            hover.hover = Place2("hover");
+
             slot.thumb = Image(root.transform, "Thumb", new Vector2(.5f, 1), new Vector2(.5f, 1),
-                new Vector2(0, -46), new Vector2(84, 76), Color.white);
+                new Vector2(0, -62), new Vector2(120, 92), Color.white);
             slot.thumb.preserveAspect = true;
             slot.thumb.raycastTarget = false;
-            slot.nameLabel = Label(root.transform, "Name", "家具名", 15, Hex("F3E8DD"),
-                new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 18), new Vector2(96, 24),
+            slot.nameLabel = Label(root.transform, "Name", "家具名", 16, Hex("3E6FA8"),
+                new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 22), new Vector2(160, 24),
                 TextAnchor.MiddleCenter, FontStyle.Normal);
-            slot.placedLabel = Label(root.transform, "Placed", "已摆放", 13, new Color(1, 1, 1, .5f),
-                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -12), new Vector2(96, 20),
+            slot.placedLabel = Label(root.transform, "Placed", "已摆放", 13, new Color(.35f, .45f, .58f, .85f),
+                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -14), new Vector2(140, 20),
                 TextAnchor.MiddleCenter, FontStyle.Normal);
             slot.placedLabel.gameObject.SetActive(false);
 
+            // 仓库只展示已拥有的家具，锁定/未知两层留着走商店那条线时才会亮
             var lockMask = Image(root.transform, "LockMask", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-                new Color(.05f, .03f, .06f, .45f));
+                new Color(.92f, .93f, .95f, .55f));
             lockMask.raycastTarget = false;
             slot.lockMask = lockMask.gameObject;
-            slot.priceLabel = Label(lockMask.transform, "Price", "可购买\n<color=#D4A46B>◈ 100</color>", 15, Hex("F3E8DD"),
-                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 10), new Vector2(96, 48),
+            slot.priceLabel = Label(lockMask.transform, "Price", "可购买\n<color=#C08A3E>◈ 100</color>", 15, Hex("3E6FA8"),
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 10), new Vector2(150, 48),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
             slot.lockMask.SetActive(false);
 
             var unknownMask = Image(root.transform, "UnknownMask", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-                new Color(.05f, .03f, .06f, .6f));
+                new Color(.90f, .91f, .94f, .75f));
             unknownMask.raycastTarget = false;
             slot.unknownMask = unknownMask.gameObject;
-            slot.unknownMark = Label(unknownMask.transform, "Mark", "？", 38, new Color(1, 1, 1, .55f),
-                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -44), new Vector2(96, 52),
+            slot.unknownMark = Label(unknownMask.transform, "Mark", "？", 38, new Color(.45f, .52f, .62f, .8f),
+                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -56), new Vector2(150, 52),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
-            slot.unknownRequirement = Label(unknownMask.transform, "Req", "声望 0 解禁", 13, new Color(1, 1, 1, .55f),
-                new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 40), new Vector2(98, 20),
+            slot.unknownRequirement = Label(unknownMask.transform, "Req", "声望 0 解禁", 13,
+                new Color(.45f, .52f, .62f, .8f),
+                new Vector2(.5f, 0), new Vector2(.5f, 0), new Vector2(0, 40), new Vector2(160, 20),
                 TextAnchor.MiddleCenter, FontStyle.Normal);
             slot.unknownMask.SetActive(false);
+
             Save(root, path);
         }
 
         /// <summary>家具模式 HUD（原型期运行时 uGUI 固化）：顶栏 + 收纳栏（页签/翻页/槽位容器）+ 提示条 + 购买弹窗。</summary>
+        /// <summary>
+        /// 增量修补（2026-08-20）：让「收起」按钮可见可点。
+        /// 用户在 Prefab 根级手摆了 HideUi/ShowUi 两个节点（与 Toast 同级）——优先认领它们：
+        /// hideUiButton 绑根级 HideUi、restoreButton 绑根级 ShowUi，不再新建节点；
+        /// 早先补的 TopChrome/HideUiVisible 若存在则移除（避免双份）。
+        /// 都找不到才回退到「在完成放置左侧补一枚」。幂等，其余布局一概不动。
+        /// </summary>
+        private static void AppendFurnitureHudHideButton(OutGameFurnitureHudView view)
+        {
+            if (view == null) return;
+            var root = view.transform;
+            var rootHide = root.Find("HideUi");
+            var rootShow = root.Find("ShowUi");
+            if (rootShow != null && rootShow.GetComponent<Button>() != null)
+                view.restoreButton = rootShow.GetComponent<Button>();
+            if (rootHide != null && rootHide.GetComponent<Button>() != null)
+            {
+                view.hideUiButton = rootHide.GetComponent<Button>();
+                var stale = view.topGroup != null ? view.topGroup.transform.Find("HideUiVisible") : null;
+                if (stale != null) Object.DestroyImmediate(stale.gameObject);
+                return;
+            }
+            if (view.topGroup == null) return;
+            var chrome = view.topGroup.transform;
+            var existing = chrome.Find("HideUiVisible");
+            if (existing != null)
+            {
+                view.hideUiButton = existing.GetComponent<Button>();
+                return;
+            }
+            var button = PageButton(chrome, "HideUiVisible", "收起", new Vector2(-338, 118),
+                new Vector2(150, 62), new Color(.97f, .96f, .92f, .95f), Hex("3E6FA8"), 20,
+                TextAnchor.MiddleCenter, new Vector2(1, 0));
+            var outline = button.gameObject.AddComponent<Outline>();
+            outline.effectColor = new Color(.42f, .55f, .72f, .5f);
+            outline.effectDistance = new Vector2(1, -1);
+            view.hideUiButton = button;
+        }
+
+        /// <summary>房间放置 2.0 素材目录（2026-08-20 按新设计图重做）。</summary>
+        private const string Place2Dir = "Assets/PC ui 2.0/房间放置/";
+
+        // 版式常量（设计图 1920×1080 量得）：左面板锚在左上，三个按钮各锚一角
+        private const float PanelX = 295f, PanelY = -519f, PanelW = 408f, PanelH = 788f;
+        private const float TabX = 47f, TabY = -101f, TabStride = 57f, TabW = 50f, TabH = 41f;
+        private const float ListX = 200f, ListY = -462f, ListW = 366f, ListH = 626f;
+        private const float CardW = 176f, CardH = 152f, CardGapX = 10f, CardGapY = 8f;
+        private const float BarX = 390f, BarW = 8f;
+        private const float StoreX = -165f, StoreY = -175f, StoreW = 200f, StoreH = 86f;
+        private const float BackX = 172f, DoneX = -163f, BtnY = 118f, BtnW = 176f, BtnH = 72f;
+
+        private static Sprite Place2(string file)
+            => AssetDatabase.LoadAssetAtPath<Sprite>(Place2Dir + file + ".png");
+
+        /// <summary>
+        /// 放置页六个分类图标：图标素材名 → 家具表 category 值。
+        /// 表里没有对应 category 的那一格会被 FurnitureRoomHud 自动隐藏、其余左移，
+        /// 所以「椅子」在策划把它加进表之前不会占位（§16.6 内容进表不改代码）。
+        /// </summary>
+        private static readonly (string icon, string category)[] PlaceTabs =
+        {
+            ("书柜", "摆件"), ("挂饰", "壁挂"), ("桌子", "桌椅"),
+            ("椅子", "椅子"), ("灯", "灯具"), ("盆栽", "盆栽"),
+        };
+
+        /// <summary>
+        /// 家具摆放页（2026-08-20 按新设计图重做）：左侧一整块竖排纸面板
+        /// —— FURNITURE 标题 + 六个分类图标 + 两列滚动列表；右上「商店」、
+        /// 左下「ESC 返回」、右下「完成放置」都用美术三态图。
+        /// 设计图口径 1920×1080。
+        /// </summary>
         private static void BuildFurnitureHudPage(string path)
         {
             var root = Root("FurnitureHudPage");
             var view = root.AddComponent<OutGameFurnitureHudView>();
 
-            // ── 顶部容器（拖拽时淡出 / 隐藏界面时隐藏）──
+            // ── 顶部容器（拖拽时淡出 / 隐藏界面时隐藏）：整套 HUD 都挂在它下面 ──
             var chrome = Rect(root.transform, "TopChrome", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             view.topGroup = chrome.gameObject.AddComponent<CanvasGroup>();
 
-            var title = Image(chrome, "Title", new Vector2(0, 1), new Vector2(0, 1),
-                new Vector2(280, -74), new Vector2(500, 104), new Color(.03f, .03f, .05f, .8f));
-            var titleOutline = title.gameObject.AddComponent<Outline>();
-            titleOutline.effectColor = new Color(.85f, .15f, .45f, .4f);
-            titleOutline.effectDistance = new Vector2(1, -1);
-            Label(title.transform, "Eyebrow", "FURNITURE MODE", 13, Hex("E22D76"),
-                new Vector2(0, 1), new Vector2(0, 1), new Vector2(150, -22), new Vector2(280, 24),
-                TextAnchor.MiddleCenter, FontStyle.Normal);
-            Label(title.transform, "Name", "家具摆放", 27, Hex("F3E8DD"),
-                new Vector2(0, 1), new Vector2(0, 1), new Vector2(150, -52), new Vector2(280, 36),
+            // ── 左侧纸面板 ──
+            var panel = Image(chrome, "Panel", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(PanelX, PanelY), new Vector2(PanelW, PanelH), Color.white);
+            panel.sprite = Place2("手绘风家具商品底板-1 1");
+            panel.type = UnityEngine.UI.Image.Type.Sliced;
+            view.inventoryRect = panel.rectTransform;      // 拖回收纳的命中区域 = 整块面板
+            view.inventoryGroup = panel.gameObject.AddComponent<CanvasGroup>();
+            view.dropHint = Image(panel.transform, "DropHint", Vector2.zero, Vector2.one,
+                Vector2.zero, Vector2.zero, new Color(.36f, .55f, .78f, 0f));
+            view.dropHint.raycastTarget = false;
+
+            Label(panel.transform, "Title", "FURNITURE", 34, Hex("3E6FA8"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(150, -46), new Vector2(260, 44),
                 TextAnchor.MiddleLeft, FontStyle.Bold);
-            Label(title.transform, "Hint", "拖拽摆放 · F 左右翻转 · 双击收纳 · 滚轮缩放 · 右键平移 · ESC 退出", 14,
-                new Color(1, 1, 1, .55f), new Vector2(0, 1), new Vector2(0, 1), new Vector2(245, -84),
-                new Vector2(470, 24), TextAnchor.MiddleCenter, FontStyle.Normal);
 
-            var economy = Image(chrome, "Economy", new Vector2(1, 1), new Vector2(1, 1),
-                new Vector2(-680, -60), new Vector2(460, 64), new Color(.03f, .03f, .05f, .8f));
-            view.creditLabel = Label(economy.transform, "Value", string.Empty, 20, Hex("F3E8DD"),
-                TextAnchor.MiddleCenter, FontStyle.Bold);
+            // ── 六个分类图标（三态图；表里没有该分类的会被运行时隐藏并左移）──
+            view.tabButtons = new Button[PlaceTabs.Length];
+            view.tabBackgrounds = new Image[PlaceTabs.Length];
+            view.tabLabels = new Text[PlaceTabs.Length];
+            for (var i = 0; i < PlaceTabs.Length; i++)
+            {
+                var tab = SpriteButton(panel.transform, "Tab" + i,
+                    Place2(PlaceTabs[i].icon + "-默认"), Place2(PlaceTabs[i].icon + "-hover"),
+                    new Vector2(0, 1), new Vector2(TabX + i * TabStride, TabY), new Vector2(TabW, TabH));
+                // 三态交给专门的组件：Button 的 SpriteSwap 只认指针状态，认不出「当前是哪个页签」
+                tab.transition = Selectable.Transition.None;
+                var icon = tab.gameObject.AddComponent<OutGameFurnitureTabIcon>();
+                icon.normal = Place2(PlaceTabs[i].icon + "-默认");
+                icon.hover = Place2(PlaceTabs[i].icon + "-hover");
+                icon.selected = Place2(PlaceTabs[i].icon + "-选中");
+                view.tabButtons[i] = tab;
+                view.tabBackgrounds[i] = tab.targetGraphic as Image;
+                view.tabLabels[i] = null; // 图标页签没有文字
+            }
 
-            // 购买家具：仓库只展示已拥有（2026-08-14），购买入口在这里 → 退出摆放模式并打开商店
-            view.storeButton = PageButton(chrome, "Store", "购买家具", new Vector2(-950, -60),
-                new Vector2(160, 64), new Color(.32f, .06f, .18f, .9f), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(1, 1));
-            view.hideUiButton = PageButton(chrome, "HideUi", "隐藏界面", new Vector2(-560, -60),
-                new Vector2(160, 64), new Color(.025f, .025f, .04f, .8f), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(1, 1));
-            view.gridToggleButton = PageButton(chrome, "GridToggle", "显示网格", new Vector2(-360, -60),
-                new Vector2(160, 64), new Color(.025f, .025f, .04f, .8f), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(1, 1));
+            // ── 两列滚动列表：视口 + 内容（GridLayout 排版）+ 右侧滚动条 ──
+            var viewport = Rect(panel.transform, "Viewport", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(ListX, ListY), new Vector2(ListW, ListH));
+            // 用 RectMask2D 而不是 Mask：Mask 按图的 alpha 裁剪，配全透明图会把内容整个裁没
+            viewport.gameObject.AddComponent<RectMask2D>();
+
+            var content = Rect(viewport, "Slots", new Vector2(0, 1), new Vector2(1, 1),
+                Vector2.zero, new Vector2(0, ListH));
+            content.pivot = new Vector2(.5f, 1f);
+            var grid = content.gameObject.AddComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(CardW, CardH);
+            grid.spacing = new Vector2(CardGapX, CardGapY);
+            grid.padding = new RectOffset(2, 2, 2, 2);
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = 2;
+            content.gameObject.AddComponent<ContentSizeFitter>().verticalFit =
+                ContentSizeFitter.FitMode.PreferredSize;
+            view.slotsRoot = content;
+
+            var scroll = viewport.gameObject.AddComponent<ScrollRect>();
+            scroll.content = content;
+            scroll.viewport = viewport;
+            scroll.horizontal = false;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.scrollSensitivity = 32f;
+
+            var barRect = Rect(panel.transform, "ScrollBar", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(BarX, ListY), new Vector2(BarW, ListH));
+            var barBg = barRect.gameObject.AddComponent<UnityEngine.UI.Image>();
+            barBg.color = new Color(.62f, .70f, .80f, .18f);
+            var bar = barRect.gameObject.AddComponent<Scrollbar>();
+            var handle = Image(barRect, "Handle", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+                new Color(.42f, .55f, .72f, .85f));
+            bar.targetGraphic = handle;
+            bar.handleRect = handle.rectTransform;
+            bar.direction = Scrollbar.Direction.BottomToTop;
+            scroll.verticalScrollbar = bar;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+
+            // ── 三个美术按钮：右上商店、左下 ESC 返回、右下完成放置 ──
+            view.storeButton = SpriteButton(chrome, "Store", Place2("商店"), Place2("商店-hover"),
+                new Vector2(1, 1), new Vector2(StoreX, StoreY), new Vector2(StoreW, StoreH));
+            view.backButton = SpriteButton(chrome, "Back", Place2("Group 121"), Place2("ESC-hover"),
+                new Vector2(0, 0), new Vector2(BackX, BtnY), new Vector2(BtnW, BtnH));
+            view.exitButton = SpriteButton(chrome, "Done", Place2("完成放置-默认"), Place2("完成放置-hover"),
+                new Vector2(1, 0), new Vector2(DoneX, BtnY), new Vector2(BtnW, BtnH));
+
+            // ── 设计图里没有的旧控件：留在 Prefab 里但关掉，代码绑定仍然安全 ──
+            var stash = Rect(chrome, "LegacyHidden", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(-4000, 0), new Vector2(320, 200));
+            stash.gameObject.SetActive(false);
+            view.hideUiButton = PageButton(stash, "HideUi", "隐藏界面", new Vector2(0, -220),
+                new Vector2(160, 56), new Color(.90f, .93f, .97f, .95f), Hex("3E6FA8"), 20,
+                TextAnchor.MiddleCenter, new Vector2(0, 1));
+            view.gridToggleButton = PageButton(stash, "GridToggle", "显示网格", new Vector2(0, -40),
+                new Vector2(160, 56), new Color(.90f, .93f, .97f, .95f), Hex("3E6FA8"), 20,
+                TextAnchor.MiddleCenter, new Vector2(0, 1));
             view.gridToggleLabel = view.gridToggleButton.GetComponentInChildren<Text>();
-            view.exitButton = PageButton(chrome, "Exit", "完成 · ESC", new Vector2(-160, -60),
-                new Vector2(200, 64), new Color(.32f, .06f, .18f, .9f), Hex("F3E8DD"), 20, TextAnchor.MiddleCenter, new Vector2(1, 1));
+            view.prevPageButton = PageButton(stash, "PrevPage", "◀", new Vector2(0, -100),
+                new Vector2(56, 56), new Color(1, 1, 1, .2f), Hex("3E6FA8"), 22,
+                TextAnchor.MiddleCenter, new Vector2(0, 1));
+            view.nextPageButton = PageButton(stash, "NextPage", "▶", new Vector2(70, -100),
+                new Vector2(56, 56), new Color(1, 1, 1, .2f), Hex("3E6FA8"), 22,
+                TextAnchor.MiddleCenter, new Vector2(0, 1));
+            view.pageLabel = Label(stash, "PageLabel", "1 / 1", 14, new Color(0, 0, 0, .5f),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -150), new Vector2(120, 22),
+                TextAnchor.MiddleLeft, FontStyle.Normal);
+            view.creditLabel = Label(stash, "Credit", string.Empty, 20, Hex("3E6FA8"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(0, -180), new Vector2(220, 28),
+                TextAnchor.MiddleLeft, FontStyle.Bold);
 
             // ── 「显示界面」小按钮（隐藏态唯一入口）──
             view.restoreButton = PageButton(root.transform, "ShowUi", "显示界面", new Vector2(-100, -46),
-                new Vector2(140, 52), new Color(.03f, .03f, .05f, .72f), new Color(1, 1, 1, .85f), 17,
+                new Vector2(140, 52), new Color(.96f, .97f, .99f, .92f), Hex("3E6FA8"), 17,
                 TextAnchor.MiddleCenter, new Vector2(1, 1));
             view.restoreGroup = view.restoreButton.gameObject.AddComponent<CanvasGroup>();
             view.restoreGroup.alpha = 0f;
             view.restoreGroup.blocksRaycasts = false;
             view.restoreGroup.interactable = false;
-
-            // ── 收纳栏（12 槽/页 + 页签 + 翻页）──
-            var inventory = Image(root.transform, "Inventory", new Vector2(.5f, 0), new Vector2(.5f, 0),
-                new Vector2(0, 96), new Vector2(1476, 168), new Color(.03f, .03f, .05f, .84f));
-            var inventoryOutline = inventory.gameObject.AddComponent<Outline>();
-            inventoryOutline.effectColor = new Color(1, 1, 1, .12f);
-            inventoryOutline.effectDistance = new Vector2(1, -1);
-            view.inventoryRect = inventory.rectTransform;
-            view.inventoryGroup = inventory.gameObject.AddComponent<CanvasGroup>();
-            view.dropHint = Image(inventory.transform, "DropHint", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-                new Color(.89f, .4f, .56f, 0f));
-            view.dropHint.raycastTarget = false;
-
-            var tabCaptions = new[] { "地面家具", "桌面家具", "壁挂家具" };
-            view.tabButtons = new Button[3];
-            view.tabBackgrounds = new Image[3];
-            view.tabLabels = new Text[3];
-            for (var i = 0; i < 3; i++)
-            {
-                var tab = PageButton(inventory.transform, "Tab" + i, tabCaptions[i],
-                    new Vector2(90 + i * 138, 15), new Vector2(132, 38),
-                    new Color(.025f, .025f, .04f, .92f), Hex("F3E8DD"), 16, TextAnchor.MiddleCenter, new Vector2(0, 1));
-                view.tabButtons[i] = tab;
-                view.tabBackgrounds[i] = tab.targetGraphic as Image;
-                view.tabLabels[i] = tab.GetComponentInChildren<Text>();
-            }
-            view.prevPageButton = PageButton(inventory.transform, "PrevPage", "◀", new Vector2(28, 0),
-                new Vector2(40, 96), new Color(1, 1, 1, .07f), Hex("F3E8DD"), 22, TextAnchor.MiddleCenter, new Vector2(0, .5f));
-            view.nextPageButton = PageButton(inventory.transform, "NextPage", "▶", new Vector2(-28, 0),
-                new Vector2(40, 96), new Color(1, 1, 1, .07f), Hex("F3E8DD"), 22, TextAnchor.MiddleCenter, new Vector2(1, .5f));
-            view.pageLabel = Label(inventory.transform, "PageLabel", "1 / 1", 14, new Color(1, 1, 1, .6f),
-                new Vector2(1, 1), new Vector2(1, 1), new Vector2(-64, -16), new Vector2(120, 22),
-                TextAnchor.MiddleRight, FontStyle.Normal);
-            view.slotsRoot = Rect(inventory.transform, "Slots", new Vector2(.5f, 0), new Vector2(.5f, 0),
-                new Vector2(0, 84), new Vector2(1368, 168));
 
             // ── 提示条（Toast 皮肤）──
             var toast = Image(root.transform, "Toast", new Vector2(.5f, 0), new Vector2(.5f, 0),
@@ -2555,30 +2835,14 @@ namespace MasterHouse
             view.toastGroup = toast.gameObject.AddComponent<CanvasGroup>();
             view.toastGroup.alpha = 0f;
 
-            // ── 购买确认弹窗（默认隐藏）──
-            var scrim = Image(root.transform, "PurchasePopup", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-                new Color(0, 0, 0, .45f));
-            view.purchaseGroup = scrim.gameObject.AddComponent<CanvasGroup>();
-            view.purchaseGroup.alpha = 0f;
-            view.purchaseGroup.blocksRaycasts = false;
-            view.purchaseGroup.interactable = false;
-            view.purchaseScrimButton = scrim.gameObject.AddComponent<Button>();
-            view.purchaseScrimButton.transition = Selectable.Transition.None;
-            var popup = Image(scrim.transform, "Panel", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
-                new Vector2(0, 40), new Vector2(430, 240), new Color(.06f, .045f, .08f, .97f));
-            var popupOutline = popup.gameObject.AddComponent<Outline>();
-            popupOutline.effectColor = new Color(.85f, .15f, .45f, .55f);
-            popupOutline.effectDistance = new Vector2(1, -1);
-            view.purchaseTitle = Label(popup.transform, "Name", "购买「」", 24, Hex("F3E8DD"),
-                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -46), new Vector2(390, 36),
-                TextAnchor.MiddleCenter, FontStyle.Bold);
-            view.purchaseDesc = Label(popup.transform, "Desc", string.Empty, 18, new Color(1, 1, 1, .72f),
-                new Vector2(.5f, 1), new Vector2(.5f, 1), new Vector2(0, -96), new Vector2(390, 34),
-                TextAnchor.MiddleCenter, FontStyle.Normal);
-            view.purchaseConfirmButton = PageButton(popup.transform, "Confirm", "购买", new Vector2(-95, 52),
-                new Vector2(160, 58), new Color(.32f, .06f, .18f, .95f), Hex("F3E8DD"), 21, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
-            view.purchaseCancelButton = PageButton(popup.transform, "Cancel", "取消", new Vector2(95, 52),
-                new Vector2(160, 58), new Color(1, 1, 1, .08f), Hex("F3E8DD"), 21, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
+            // ── 购买确认弹窗（2.0 二次确认素材，默认隐藏）──
+            var confirm = BuildInlineConfirm(root.transform, "PurchasePopup");
+            view.purchaseGroup = confirm.group;
+            view.purchaseScrimButton = confirm.scrimButton;
+            view.purchaseTitle = confirm.title;
+            view.purchaseDesc = confirm.body;
+            view.purchaseConfirmButton = confirm.confirm;
+            view.purchaseCancelButton = confirm.cancel;
             Save(root, path);
         }
 
@@ -3081,6 +3345,44 @@ namespace MasterHouse
             Debug.Log("[OutGameUI] ESC 菜单已按 2.0 设计图重建。");
         }
 
+        [MenuItem("Tools/MasterHouse/OutGame UI/重建今日结算过场（2.0 设计图）")]
+        private static void RebuildDayTransition2()
+        {
+            if (!EditorUtility.DisplayDialog("按 2.0 设计图重建今日结算过场",
+                    "会覆盖 DayTransition 的现有布局（包括手动调整）。确定继续吗？", "覆盖重建", "取消")) return;
+            EnsureFolder();
+            BuildDayTransition(DayTransitionPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[OutGameUI] 今日结算过场已按 2.0 设计图重建。");
+        }
+
+        [MenuItem("Tools/MasterHouse/OutGame UI/重建二次确认弹窗（2.0 设计图）")]
+        private static void RebuildConfirmPopup2()
+        {
+            if (!EditorUtility.DisplayDialog("按 2.0 设计图重建二次确认弹窗",
+                    "会覆盖 ConfirmPopup 的现有布局（包括手动调整）。确定继续吗？", "覆盖重建", "取消")) return;
+            EnsureFolder();
+            BuildConfirmPopup(ConfirmPopupPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[OutGameUI] 二次确认弹窗已按 2.0 设计图重建。");
+        }
+
+        [MenuItem("Tools/MasterHouse/OutGame UI/重建家具摆放页（2.0 设计图）")]
+        private static void RebuildFurnitureHud2()
+        {
+            if (!EditorUtility.DisplayDialog("按 2.0 设计图重建家具摆放页",
+                    "会覆盖 FurnitureHudPage 与 FurnitureSlot 的现有布局（包括手动调整）。确定继续吗？",
+                    "覆盖重建", "取消")) return;
+            EnsureFolder();
+            BuildFurnitureSlot(FurnitureSlotPath);   // 卡片模板换纸卡皮肤，得跟着一起重建
+            BuildFurnitureHudPage(FurnitureHudPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[OutGameUI] 家具摆放页已按 2.0 设计图重建。");
+        }
+
         [MenuItem("Tools/MasterHouse/OutGame UI/重建图鉴页（2.0 设计图）")]
         private static void RebuildCodex2()
         {
@@ -3346,24 +3648,24 @@ namespace MasterHouse
             view.obtainedGroup.alpha = 0f;
             view.obtainedGroup.blocksRaycasts = false;
             view.obtainedGroup.interactable = false;
+            // 换 2.0 二次确认底板（2026-08-20）：这个弹窗就是商店的购买确认，空格按下才扣钱
             var popupPanel = Image(popupScrim.transform, "Panel", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
-                new Vector2(0, 20), new Vector2(940, 320), Color.white);
-            popupPanel.sprite = popupSprite;
-            view.obtainedThumb = Raw(popupPanel.transform, "Thumb", new Vector2(0, .5f), new Vector2(0, .5f),
-                new Vector2(170, 10), new Vector2(180, 180));
+                Vector2.zero, new Vector2(ConfirmPanelW, ConfirmPanelH), Color.white);
+            popupPanel.sprite = Confirm2("底板");
+            view.obtainedThumb = Raw(popupPanel.transform, "Thumb", new Vector2(0, 1), new Vector2(0, 1),
+                new Vector2(178, -222), new Vector2(150, 150));
             var obtainedFitter = view.obtainedThumb.gameObject.AddComponent<AspectRatioFitter>();
             obtainedFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-            Label(popupPanel.transform, "Header", "NEW ITEM OBTAINED", 30, Hex("E22D76"),
-                new Vector2(0, 1), new Vector2(0, 1), new Vector2(620, -70), new Vector2(560, 44),
-                TextAnchor.MiddleLeft, FontStyle.BoldAndItalic);
-            view.obtainedName = Label(popupPanel.transform, "Name", string.Empty, 22, Hex("E22D76"),
-                new Vector2(0, 1), new Vector2(0, 1), new Vector2(620, -118), new Vector2(560, 34),
+            view.obtainedName = Label(popupPanel.transform, "Name", string.Empty, 24, Hex("3E6FA8"),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(470, -168), new Vector2(380, 34),
                 TextAnchor.MiddleLeft, FontStyle.Bold);
-            view.obtainedDesc = Label(popupPanel.transform, "Desc", string.Empty, 16, new Color(1, 1, 1, .8f),
-                new Vector2(0, 1), new Vector2(0, 1), new Vector2(620, -178), new Vector2(560, 80),
+            view.obtainedDesc = Label(popupPanel.transform, "Desc", string.Empty, 18,
+                new Color(.28f, .34f, .44f, .95f),
+                new Vector2(0, 1), new Vector2(0, 1), new Vector2(470, -238), new Vector2(380, 92),
                 TextAnchor.UpperLeft, FontStyle.Normal);
-            view.obtainedClose = PageButton(popupPanel.transform, "CloseObtained", "收下了", new Vector2(0, 44),
-                new Vector2(180, 52), Hex("6E243E"), Hex("F3E8DD"), 19, TextAnchor.MiddleCenter, new Vector2(.5f, 0));
+            view.obtainedClose = SpriteButton(popupPanel.transform, "CloseObtained",
+                Confirm2("确认-默认"), Confirm2("确认-hover"),
+                new Vector2(.5f, 0), new Vector2(0, ConfirmBtnY), new Vector2(ConfirmOkW, ConfirmOkH));
             Save(root, path);
         }
 

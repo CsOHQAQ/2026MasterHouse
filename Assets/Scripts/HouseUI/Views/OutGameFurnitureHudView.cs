@@ -16,6 +16,8 @@ namespace MasterHouse
         public Button gridToggleButton;
         public Text gridToggleLabel;
         public Button exitButton;
+        [Tooltip("左下「ESC 返回」：和「完成放置」同样退出摆放模式（2026-08-20 设计图）")]
+        public Button backButton;
         [Tooltip("购买家具：退出摆放模式并打开商店（仓库只展示已拥有，购买一律走商店）")]
         public Button storeButton;
 
@@ -27,10 +29,10 @@ namespace MasterHouse
         [Tooltip("收纳栏面板（拖回收纳的命中区域）")] public RectTransform inventoryRect;
         public CanvasGroup inventoryGroup;
         [Tooltip("拖拽悬停时的落点高亮层")] public Image dropHint;
-        [Tooltip("三个类型页签（地面/桌面/壁挂；无内容的类型运行时隐藏）")]
-        public Button[] tabButtons = new Button[3];
-        public Image[] tabBackgrounds = new Image[3];
-        public Text[] tabLabels = new Text[3];
+        [Tooltip("分类页签：图标三态图，下标对应 FurnitureRoomHud.TabCategories；表里没有的分类运行时隐藏")]
+        public Button[] tabButtons = new Button[6];
+        public Image[] tabBackgrounds = new Image[6];
+        public Text[] tabLabels = new Text[6];
         public Button prevPageButton;
         public Button nextPageButton;
         public Text pageLabel;
