@@ -620,9 +620,9 @@ MonoBehaviour:
         steps:
         - kind: 0
           line:
-            speaker: 1
+            speaker: 0
             text: "\u60A8\u7A0D\u7B49\u4E0B\uFF0C\u6211\u8FD8\u5728\u627E\u5408\u9002\u7684\u623F\u95F4\u3002"
-            portraitId: "goat_\u5E73\u9759"
+            portraitId: "rabbit_\u5E73\u9759"
           actions: []
           sourceRow: 369
         - kind: 0
@@ -1090,6 +1090,15 @@ MonoBehaviour:
             portraitId: "cheetah_\u5E73\u9759"
           actions: []
           sourceRow: 190
+        - kind: 1
+          line:
+            speaker: 0
+            text: Accept
+            portraitId: 
+          actions:
+          - func: Accept
+            args: []
+          sourceRow: 191
         sourceRow: 188
       - text: "\u6682\u4E0D\u63A5\u5F85"
         conditions: []
@@ -1108,6 +1117,15 @@ MonoBehaviour:
             portraitId: "cheetah_\u5E73\u9759"
           actions: []
           sourceRow: 194
+        - kind: 1
+          line:
+            speaker: 0
+            text: Reject
+            portraitId: 
+          actions:
+          - func: Reject
+            args: []
+          sourceRow: 195
         sourceRow: 192
       - text: "\uFF08\u518D\u60F3\u4E00\u4F1A\uFF09"
         conditions: []
@@ -1165,6 +1183,15 @@ MonoBehaviour:
             portraitId: "yak_\u5E73\u9759"
           actions: []
           sourceRow: 282
+        - kind: 1
+          line:
+            speaker: 0
+            text: Accept
+            portraitId: 
+          actions:
+          - func: Accept
+            args: []
+          sourceRow: 283
         sourceRow: 280
       - text: "\u6682\u4E0D\u63A5\u5F85"
         conditions: []
@@ -1183,6 +1210,15 @@ MonoBehaviour:
             portraitId: "yak_\u5E73\u9759"
           actions: []
           sourceRow: 286
+        - kind: 1
+          line:
+            speaker: 0
+            text: Reject
+            portraitId: 
+          actions:
+          - func: Reject
+            args: []
+          sourceRow: 287
         sourceRow: 284
       - text: "\uFF08\u518D\u60F3\u4E00\u4F1A\uFF09"
         conditions: []
@@ -1240,6 +1276,15 @@ MonoBehaviour:
             portraitId: "rabbit_\u5E73\u9759"
           actions: []
           sourceRow: 376
+        - kind: 1
+          line:
+            speaker: 0
+            text: Accept
+            portraitId: 
+          actions:
+          - func: Accept
+            args: []
+          sourceRow: 377
         sourceRow: 374
       - text: "\u6682\u4E0D\u63A5\u5F85"
         conditions: []
@@ -1258,6 +1303,15 @@ MonoBehaviour:
             portraitId: "rabbit_\u5E73\u9759"
           actions: []
           sourceRow: 380
+        - kind: 1
+          line:
+            speaker: 0
+            text: Reject
+            portraitId: 
+          actions:
+          - func: Reject
+            args: []
+          sourceRow: 381
         sourceRow: 378
       - text: "\uFF08\u518D\u60F3\u4E00\u4F1A\uFF09"
         conditions: []
@@ -1315,6 +1369,15 @@ MonoBehaviour:
             portraitId: "wolf_\u5E73\u9759"
           actions: []
           sourceRow: 466
+        - kind: 1
+          line:
+            speaker: 0
+            text: Accept
+            portraitId: 
+          actions:
+          - func: Accept
+            args: []
+          sourceRow: 467
         sourceRow: 464
       - text: "\u6682\u4E0D\u63A5\u5F85"
         conditions: []
@@ -1333,6 +1396,15 @@ MonoBehaviour:
             portraitId: "wolf_\u5E73\u9759"
           actions: []
           sourceRow: 471
+        - kind: 1
+          line:
+            speaker: 0
+            text: Reject
+            portraitId: 
+          actions:
+          - func: Reject
+            args: []
+          sourceRow: 472
         sourceRow: 469
       - text: "\uFF08\u518D\u60F3\u4E00\u4F1A\uFF09"
         conditions: []
@@ -1390,6 +1462,15 @@ MonoBehaviour:
             portraitId: "ox_\u5E73\u9759"
           actions: []
           sourceRow: 557
+        - kind: 1
+          line:
+            speaker: 0
+            text: Accept
+            portraitId: 
+          actions:
+          - func: Accept
+            args: []
+          sourceRow: 558
         sourceRow: 555
       - text: "\u6682\u4E0D\u63A5\u5F85"
         conditions: []
@@ -1408,6 +1489,15 @@ MonoBehaviour:
             portraitId: "ox_\u5E73\u9759"
           actions: []
           sourceRow: 561
+        - kind: 1
+          line:
+            speaker: 0
+            text: Reject
+            portraitId: 
+          actions:
+          - func: Reject
+            args: []
+          sourceRow: 562
         sourceRow: 559
       - text: "\uFF08\u518D\u60F3\u4E00\u4F1A\uFF09"
         conditions: []
@@ -3164,6 +3254,41 @@ MonoBehaviour:
       options: []
       sourceRow: 80
     sourceRow: 80
+  - id: 50004
+    steps:
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u6211\u8981\u79BB\u5F00\u8FD9\u91CC\u56DE\u53BB\u5DE5\u4F5C\u4E86\uFF0C\u8FD9\u51E0\u5929\u4F4F\u7684\u5F88\u8212\u9002\u3002"
+        portraitId: "cat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 624
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u563F\u563F\uFF0C\u80FD\u8BA9\u8B66\u957F\u4F4F\u5F97\u5B89\u5FC3\u5C31\u592A\u597D\u54A9\u3002"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 625
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u55EF\u3002\u73AF\u5883\u5B89\u9759\uFF0C\u670D\u52A1\u89C4\u8303\u3002\u4E0B\u6B21\u6765\u8FD9\u91CC\uFF0C\u6211\u4F1A\u4F18\u5148\u8003\u8651\u8FD9\u91CC\u3002"
+        portraitId: "cat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 626
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u6B22\u8FCE\u60A8\u968F\u65F6\u518D\u6765\u54A9\uFF01"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 627
+    sourceRow: 624
   - id: 50101
     steps:
     - kind: 0
@@ -3197,6 +3322,49 @@ MonoBehaviour:
       options: []
       sourceRow: 162
     sourceRow: 162
+  - id: 50104
+    steps:
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u8001\u677F\u8001\u677F\uFF01\u6211\u4F11\u606F\u5F97\u8D85\u597D\uFF01\u4ECA\u5929\u8BAD\u7EC3\u611F\u89C9\u90FD\u80FD\u591A\u8DD1\u4E24\u5708\uFF01"
+        portraitId: "leopard_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 630
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u592A\u597D\u5566\uFF0C\u8C79\u51B2\u51B2\u6062\u590D\u7CBE\u795E\u4E86\u54A9\u3002"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 631
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u623F\u95F4\u4E5F\u4EAE\u4EAE\u7684\uFF0C\u5E8A\u4E5F\u8212\u670D\uFF0C\u8FDE\u505A\u68A6\u90FD\u68A6\u89C1\u81EA\u5DF1\u6253\u51FA\u5168\u5792\u6253\uFF01"
+        portraitId: "leopard_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 632
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u90A3\u4E00\u5B9A\u662F\u597D\u5146\u5934\u54A9\uFF01"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 633
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u563F\u563F\uFF0C\u4E0B\u6B21\u6BD4\u8D5B\u524D\u6211\u8FD8\u8981\u6765\u8FD9\u91CC\u4F4F\uFF01\u6211\u5148\u8D70\u5566\uFF0C\u62DC\u62DC\uFF01"
+        portraitId: "leopard_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 634
+    sourceRow: 630
   - id: 50201
     steps:
     - kind: 0
@@ -3230,6 +3398,49 @@ MonoBehaviour:
       options: []
       sourceRow: 252
     sourceRow: 252
+  - id: 50204
+    steps:
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u8001\u677F\uFF0C\u8C22\u8C22\u60A8\u8FD9\u51E0\u5929\u7684\u7167\u987E\u3002"
+        portraitId: "cheetah_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 638
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u4E0D\u5BA2\u6C14\u54A9\uFF0C\u961F\u957F\u4F4F\u5F97\u8FD8\u8212\u670D\u5417\uFF1F"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 639
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u5F88\u5B89\u9759\uFF0C\u4E5F\u6CA1\u6709\u88AB\u8C79\u51B2\u51B2\u6253\u6270\u3002\u4F11\u606F\u8D28\u91CF\u6BD4\u6211\u9884\u671F\u66F4\u597D\u3002"
+        portraitId: "cheetah_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 640
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u80FD\u5E2E\u4E0A\u5FD9\u5C31\u592A\u597D\u54A9\u3002"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 641
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u4E4B\u540E\u5982\u679C\u6709\u6BD4\u8D5B\u5B89\u6392\u5728\u9644\u8FD1\uFF0C\u6211\u4F1A\u518D\u8054\u7CFB\u60A8\u3002\u518D\u89C1\u3002"
+        portraitId: "cheetah_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 642
+    sourceRow: 638
   - id: 50301
     steps:
     - kind: 0
@@ -3263,6 +3474,57 @@ MonoBehaviour:
       options: []
       sourceRow: 348
     sourceRow: 348
+  - id: 50304
+    steps:
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u60A8\u597D\uFF0C\u6211\u6765\u9000\u623F\u3002"
+        portraitId: "yak_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 645
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u597D\u7684\u54A9\uFF0C\u725B\u83B1\u8001\u5E08\u4F4F\u5F97\u8FD8\u6EE1\u610F\u5417\uFF1F"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 646
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u5F88\u6EE1\u610F\u3002\u8FD9\u91CC\u5F88\u8212\u9002\uFF0C\u50CF\u4E00\u6BB5\u5904\u7406\u5F97\u6070\u5230\u597D\u5904\u7684\u4F11\u6B62\u7B26\u3002"
+        portraitId: "yak_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 647
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u54C7\uFF0C\u542C\u8D77\u6765\u5F88\u4F18\u96C5\u54A9\u3002"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 648
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u670D\u52A1\u4E5F\u5F88\u5F97\u4F53\u3002\u4F60\u6CA1\u6709\u8BF4\u591A\u4F59\u7684\u8BDD\uFF0C\u8FD9\u70B9\u5C24\u5176\u503C\u5F97\u79F0\u8D5E\u3002"
+        portraitId: "yak_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 649
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u8C22\u8C22\u8001\u5E08\u8BA4\u53EF\u54A9\uFF01"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 650
+    sourceRow: 645
   - id: 50401
     steps:
     - kind: 0
@@ -3296,6 +3558,49 @@ MonoBehaviour:
       options: []
       sourceRow: 437
     sourceRow: 437
+  - id: 50404
+    steps:
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u8001\u677F\uFF0C\u6211\u6765\u9000\u623F\u5566~\u8FD9\u91CC\u5F88\u5B89\u9759\uFF0C\u4F11\u606F\u5F97\u5F88\u8212\u670D~"
+        portraitId: "rabbit_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 653
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u563F\u563F\uFF0C\u80FD\u8BA9\u5076\u50CF\u6EE1\u610F\u592A\u5F00\u5FC3\u54A9\u3002"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 654
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u8C22\u8C22\u4F60\uFF0C\u4E0B\u6B21\u884C\u7A0B\u7ECF\u8FC7\u8FD9\u91CC\uFF0C\u6211\u4F1A\u5077\u5077\u518D\u6765\u7684\u3002"
+        portraitId: "rabbit_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 655
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u6211\u4F1A\u6B22\u8FCE\u4F60\u7684\u54A9\uFF01\uFF08\u5C0F\u58F0\uFF09"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 656
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u90A3\u6211\u5148\u8D70\u5566\uFF0C\u62DC\u62DC~"
+        portraitId: "rabbit_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 657
+    sourceRow: 653
   - id: 50501
     steps:
     - kind: 0
@@ -3329,6 +3634,57 @@ MonoBehaviour:
       options: []
       sourceRow: 530
     sourceRow: 530
+  - id: 50504
+    steps:
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u5C0F\u7F8A\u8001\u677F\uFF0C\u6211\u6765\u9000\u623F\u3002"
+        portraitId: "wolf_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 660
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u597D\u7684\u54A9\uFF0C\u603B\u88C1\u8FD9\u6B21\u5165\u4F4F\u8FD8\u6EE1\u610F\u5417\uFF1F"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 661
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u52C9\u5F3A\u8D85\u8FC7\u4E86\u6211\u7684\u9884\u671F\u3002\u623F\u95F4\u6574\u6D01\uFF0C\u54CD\u5E94\u4E5F\u7B97\u53CA\u65F6\u3002"
+        portraitId: "wolf_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 662
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u8C22\u8C22\u60A8\u7684\u8BA4\u53EF\u54A9\uFF01"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 663
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u7EE7\u7EED\u4FDD\u6301\u8FD9\u4E2A\u6807\u51C6\u3002\u4E0B\u6B21\u6211\u6765\uFF0C\u5E0C\u671B\u4F60\u4EEC\u5DF2\u7ECF\u51C6\u5907\u597D\u4E86\u7684\u603B\u88C1\u5957\u623F\u3002"
+        portraitId: "wolf_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 664
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u6211\u4F1A\u52AA\u529B\u51C6\u5907\u54A9\uFF01"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 665
+    sourceRow: 660
   - id: 50601
     steps:
     - kind: 0
@@ -3362,6 +3718,49 @@ MonoBehaviour:
       options: []
       sourceRow: 620
     sourceRow: 620
+  - id: 50604
+    steps:
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u60A8\u597D\uFF0C\u6211\u6765\u529E\u7406\u9000\u623F\u3002"
+        portraitId: "ox_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 668
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u597D\u7684\u54A9\uFF0C\u725B\u5C0F\u987F\u5148\u751F\u8FD9\u6B21\u4F4F\u5F97\u600E\u4E48\u6837\uFF1F"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 669
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u5F88\u5B89\u9759\uFF0C\u5E03\u5C40\u4E5F\u5408\u7406\u3002\u6628\u665A\u6211\u6574\u7406\u7EBF\u7D22\u65F6\uFF0C\u601D\u8DEF\u987A\u4E86\u5F88\u591A\u54DE\u3002"
+        portraitId: "ox_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 670
+    - kind: 0
+      line:
+        speaker: 1
+        text: "\u90A3\u771F\u662F\u592A\u597D\u5566\u54A9\uFF0C\u968F\u65F6\u6B22\u8FCE\u60A8\u518D\u6765~"
+        portraitId: "goat_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 671
+    - kind: 0
+      line:
+        speaker: 0
+        text: "\u55EF\uFF0C\u6211\u5148\u7EE7\u7EED\u53BB\u8FFD\u67E5\u4E0B\u4E00\u6761\u7EBF\u7D22\u4E86\u3002"
+        portraitId: "ox_\u5E73\u9759"
+      actions: []
+      options: []
+      sourceRow: 672
+    sourceRow: 668
   entries:
   - groupId: 10001
     raceId: cat
@@ -3429,429 +3828,471 @@ MonoBehaviour:
     category: 7
     conditions: []
     sourceRow: 13
+  - groupId: 50004
+    raceId: cat
+    needId: 
+    category: 8
+    conditions: []
+    sourceRow: 14
   - groupId: 10101
     raceId: leopard
     needId: 
     category: 0
     conditions: []
-    sourceRow: 15
+    sourceRow: 16
   - groupId: 20101
     raceId: leopard
     needId: 
     category: 1
     conditions: []
-    sourceRow: 16
+    sourceRow: 17
   - groupId: 30102
     raceId: leopard
     needId: "Need_\u4FEE\u7406\u7535\u8DEF_01"
     category: 2
     conditions: []
-    sourceRow: 17
+    sourceRow: 18
   - groupId: 30101
     raceId: leopard
     needId: "Need_\u8981\u84DD\u8272\u6905\u5B50"
     category: 2
     conditions: []
-    sourceRow: 18
+    sourceRow: 19
   - groupId: 40101
     raceId: leopard
     needId: 
     category: 3
     conditions: []
-    sourceRow: 19
+    sourceRow: 20
   - groupId: 40102
     raceId: leopard
     needId: 
     category: 4
     conditions: []
-    sourceRow: 20
+    sourceRow: 21
   - groupId: 40103
     raceId: leopard
     needId: 
     category: 5
     conditions: []
-    sourceRow: 21
+    sourceRow: 22
   - groupId: 40104
     raceId: leopard
     needId: 
     category: 6
     conditions: []
-    sourceRow: 22
+    sourceRow: 23
   - groupId: 50101
     raceId: leopard
     needId: 
     category: 7
     conditions: []
-    sourceRow: 23
+    sourceRow: 24
   - groupId: 50102
     raceId: leopard
     needId: 
     category: 7
     conditions: []
-    sourceRow: 24
+    sourceRow: 25
   - groupId: 50103
     raceId: leopard
     needId: 
     category: 7
     conditions: []
-    sourceRow: 25
+    sourceRow: 26
+  - groupId: 50104
+    raceId: leopard
+    needId: 
+    category: 8
+    conditions: []
+    sourceRow: 27
   - groupId: 10201
     raceId: cheetah
     needId: 
     category: 0
     conditions: []
-    sourceRow: 27
+    sourceRow: 29
   - groupId: 20201
     raceId: cheetah
     needId: 
     category: 1
     conditions: []
-    sourceRow: 28
+    sourceRow: 30
   - groupId: 30202
     raceId: cheetah
     needId: "Need_\u4FEE\u7406\u7535\u8DEF_01"
     category: 2
     conditions: []
-    sourceRow: 29
+    sourceRow: 31
   - groupId: 30203
     raceId: cheetah
     needId: "Need_\u4FEE\u7406\u7535\u8DEF_02"
     category: 2
     conditions: []
-    sourceRow: 30
+    sourceRow: 32
   - groupId: 30201
     raceId: cheetah
     needId: "Need_\u8981\u84DD\u8272\u6905\u5B50"
     category: 2
     conditions: []
-    sourceRow: 31
+    sourceRow: 33
   - groupId: 40201
     raceId: cheetah
     needId: 
     category: 3
     conditions: []
-    sourceRow: 32
+    sourceRow: 34
   - groupId: 40202
     raceId: cheetah
     needId: 
     category: 4
     conditions: []
-    sourceRow: 33
+    sourceRow: 35
   - groupId: 40203
     raceId: cheetah
     needId: 
     category: 5
     conditions: []
-    sourceRow: 34
+    sourceRow: 36
   - groupId: 40204
     raceId: cheetah
     needId: 
     category: 6
     conditions: []
-    sourceRow: 35
+    sourceRow: 37
   - groupId: 50201
     raceId: cheetah
     needId: 
     category: 7
     conditions: []
-    sourceRow: 36
+    sourceRow: 38
   - groupId: 50202
     raceId: cheetah
     needId: 
     category: 7
     conditions: []
-    sourceRow: 37
+    sourceRow: 39
   - groupId: 50203
     raceId: cheetah
     needId: 
     category: 7
     conditions: []
-    sourceRow: 38
+    sourceRow: 40
+  - groupId: 50204
+    raceId: cheetah
+    needId: 
+    category: 8
+    conditions: []
+    sourceRow: 41
   - groupId: 10301
     raceId: yak
     needId: 
     category: 0
     conditions: []
-    sourceRow: 40
+    sourceRow: 43
   - groupId: 20301
     raceId: yak
     needId: 
     category: 1
     conditions: []
-    sourceRow: 41
+    sourceRow: 44
   - groupId: 30302
     raceId: yak
     needId: "Need_\u4FEE\u7406\u7535\u8DEF_01"
     category: 2
     conditions: []
-    sourceRow: 42
+    sourceRow: 45
   - groupId: 30303
     raceId: yak
     needId: "Need_\u4FEE\u7406\u7535\u8DEF_02"
     category: 2
     conditions: []
-    sourceRow: 43
+    sourceRow: 46
   - groupId: 30301
     raceId: yak
     needId: "Need_\u8981\u84DD\u8272\u6905\u5B50"
     category: 2
     conditions: []
-    sourceRow: 44
+    sourceRow: 47
   - groupId: 40301
     raceId: yak
     needId: 
     category: 3
     conditions: []
-    sourceRow: 45
+    sourceRow: 48
   - groupId: 40302
     raceId: yak
     needId: 
     category: 4
     conditions: []
-    sourceRow: 46
+    sourceRow: 49
   - groupId: 40303
     raceId: yak
     needId: 
     category: 5
     conditions: []
-    sourceRow: 47
+    sourceRow: 50
   - groupId: 40304
     raceId: yak
     needId: 
     category: 6
     conditions: []
-    sourceRow: 48
+    sourceRow: 51
   - groupId: 50301
     raceId: yak
     needId: 
     category: 7
     conditions: []
-    sourceRow: 49
+    sourceRow: 52
   - groupId: 50302
     raceId: yak
     needId: 
     category: 7
     conditions: []
-    sourceRow: 50
+    sourceRow: 53
   - groupId: 50303
     raceId: yak
     needId: 
     category: 7
     conditions: []
-    sourceRow: 51
+    sourceRow: 54
+  - groupId: 50304
+    raceId: yak
+    needId: 
+    category: 8
+    conditions: []
+    sourceRow: 55
   - groupId: 10401
     raceId: rabbit
     needId: 
     category: 0
     conditions: []
-    sourceRow: 53
+    sourceRow: 57
   - groupId: 20401
     raceId: rabbit
     needId: 
     category: 1
     conditions: []
-    sourceRow: 54
+    sourceRow: 58
   - groupId: 30402
     raceId: rabbit
     needId: "Need_\u4FEE\u7406\u7535\u8DEF_01"
     category: 2
     conditions: []
-    sourceRow: 55
+    sourceRow: 59
   - groupId: 30403
     raceId: rabbit
     needId: "Need_\u4FEE\u7406\u7535\u8DEF_02"
     category: 2
     conditions: []
-    sourceRow: 56
+    sourceRow: 60
   - groupId: 30401
     raceId: rabbit
     needId: "Need_\u8981\u84DD\u8272\u6905\u5B50"
     category: 2
     conditions: []
-    sourceRow: 57
+    sourceRow: 61
   - groupId: 40401
     raceId: rabbit
     needId: 
     category: 3
     conditions: []
-    sourceRow: 58
+    sourceRow: 62
   - groupId: 40402
     raceId: rabbit
     needId: 
     category: 4
     conditions: []
-    sourceRow: 59
+    sourceRow: 63
   - groupId: 40403
     raceId: rabbit
     needId: 
     category: 5
     conditions: []
-    sourceRow: 60
+    sourceRow: 64
   - groupId: 40404
     raceId: rabbit
     needId: 
     category: 6
     conditions: []
-    sourceRow: 61
+    sourceRow: 65
   - groupId: 50401
     raceId: rabbit
     needId: 
     category: 7
     conditions: []
-    sourceRow: 62
+    sourceRow: 66
   - groupId: 50402
     raceId: rabbit
     needId: 
     category: 7
     conditions: []
-    sourceRow: 63
+    sourceRow: 67
   - groupId: 50403
     raceId: rabbit
     needId: 
     category: 7
     conditions: []
-    sourceRow: 64
+    sourceRow: 68
+  - groupId: 50404
+    raceId: rabbit
+    needId: 
+    category: 8
+    conditions: []
+    sourceRow: 69
   - groupId: 10501
     raceId: wolf
     needId: 
     category: 0
     conditions: []
-    sourceRow: 66
+    sourceRow: 71
   - groupId: 20501
     raceId: wolf
     needId: 
     category: 1
     conditions: []
-    sourceRow: 67
+    sourceRow: 72
   - groupId: 30502
     raceId: wolf
     needId: "Need_\u4FEE\u7406\u7535\u8DEF_01"
     category: 2
     conditions: []
-    sourceRow: 68
+    sourceRow: 73
   - groupId: 30503
     raceId: wolf
     needId: "Need_\u4FEE\u7406\u7535\u8DEF_02"
     category: 2
     conditions: []
-    sourceRow: 69
+    sourceRow: 74
   - groupId: 30501
     raceId: wolf
     needId: "Need_\u8981\u84DD\u8272\u6905\u5B50"
     category: 2
     conditions: []
-    sourceRow: 70
+    sourceRow: 75
   - groupId: 40501
     raceId: wolf
     needId: 
     category: 3
     conditions: []
-    sourceRow: 71
+    sourceRow: 76
   - groupId: 40502
     raceId: wolf
     needId: 
     category: 4
     conditions: []
-    sourceRow: 72
+    sourceRow: 77
   - groupId: 40503
     raceId: wolf
     needId: 
     category: 5
     conditions: []
-    sourceRow: 73
+    sourceRow: 78
   - groupId: 40504
     raceId: wolf
     needId: 
     category: 6
     conditions: []
-    sourceRow: 74
+    sourceRow: 79
   - groupId: 50501
     raceId: wolf
     needId: 
     category: 7
     conditions: []
-    sourceRow: 75
+    sourceRow: 80
   - groupId: 50502
     raceId: wolf
     needId: 
     category: 7
     conditions: []
-    sourceRow: 76
+    sourceRow: 81
   - groupId: 50503
     raceId: wolf
     needId: 
     category: 7
     conditions: []
-    sourceRow: 77
+    sourceRow: 82
+  - groupId: 50504
+    raceId: wolf
+    needId: 
+    category: 8
+    conditions: []
+    sourceRow: 83
   - groupId: 10601
     raceId: ox
     needId: 
     category: 0
     conditions: []
-    sourceRow: 79
+    sourceRow: 85
   - groupId: 20601
     raceId: ox
     needId: 
     category: 1
     conditions: []
-    sourceRow: 80
+    sourceRow: 86
   - groupId: 30602
     raceId: ox
     needId: "Need_\u4FEE\u7406\u7535\u8DEF_01"
     category: 2
     conditions: []
-    sourceRow: 81
+    sourceRow: 87
   - groupId: 30603
     raceId: ox
     needId: "Need_\u4FEE\u7406\u7535\u8DEF_02"
     category: 2
     conditions: []
-    sourceRow: 82
+    sourceRow: 88
   - groupId: 30601
     raceId: ox
     needId: "Need_\u8981\u84DD\u8272\u6905\u5B50"
     category: 2
     conditions: []
-    sourceRow: 83
+    sourceRow: 89
   - groupId: 40601
     raceId: ox
     needId: 
     category: 3
     conditions: []
-    sourceRow: 84
+    sourceRow: 90
   - groupId: 40602
     raceId: ox
     needId: 
     category: 4
     conditions: []
-    sourceRow: 85
+    sourceRow: 91
   - groupId: 40603
     raceId: ox
     needId: 
     category: 5
     conditions: []
-    sourceRow: 86
+    sourceRow: 92
   - groupId: 40604
     raceId: ox
     needId: 
     category: 6
     conditions: []
-    sourceRow: 87
+    sourceRow: 93
   - groupId: 50601
     raceId: ox
     needId: 
     category: 7
     conditions: []
-    sourceRow: 88
+    sourceRow: 94
   - groupId: 50602
     raceId: ox
     needId: 
     category: 7
     conditions: []
-    sourceRow: 89
+    sourceRow: 95
   - groupId: 50603
     raceId: ox
     needId: 
     category: 7
     conditions: []
-    sourceRow: 90
+    sourceRow: 96
+  - groupId: 50604
+    raceId: ox
+    needId: 
+    category: 8
+    conditions: []
+    sourceRow: 97
