@@ -40,7 +40,9 @@ namespace MasterHouse
             rect.SetAsLastSibling();
             var overlay = new ConfirmOverlay(rect);
 
-            if (view.panel != null) HouseUIUtil.ApplyPanelSkin(view.panel.GetComponent<UnityEngine.UI.Image>());
+            // 2.0 底板自带完整外观：只有还没换皮的旧 Prefab（面板没有 sprite）才套通用面板皮肤
+            var board = view.panel != null ? view.panel.GetComponent<UnityEngine.UI.Image>() : null;
+            if (board != null && board.sprite == null) HouseUIUtil.ApplyPanelSkin(board);
             if (view.title != null) view.title.text = title;
             if (view.body != null) view.body.text = body;
             if (view.confirmLabel != null) view.confirmLabel.text = confirmText;
@@ -52,7 +54,8 @@ namespace MasterHouse
             });
             if (view.cancelButton != null) HouseUIUtil.BindButton(view.cancelButton, ui.PopOverlay, ESfx.None);
             HouseUIUtil.ApplyFallbackFont(instance.transform);
-            HouseDayLightTint.Attach(instance.transform); // 面板底色随时钟慢慢变天色
+            // 2.0 底板是手绘素材，不跟时钟变色（与商店/设置/图鉴一致，2026-08-19~20）
+            if (board != null && board.sprite == null) HouseDayLightTint.Attach(instance.transform);
 
             // 键位（2026-08-17）：空格确认；ESC 取消走壳的叠加层弹栈
             instance.AddComponent<ConfirmHotkeys>().Init(view.confirmButton, () => ui.IsTopOverlay(overlay));

@@ -161,8 +161,10 @@ namespace MasterHouse
             if (view.buyButton != null) HouseUIUtil.BindButton(view.buyButton, BuySelected);
             if (view.obtainedClose != null) HouseUIUtil.BindButton(view.obtainedClose, ConfirmPurchase);
             // 获得弹窗面板统一走全局底图（9 宫格切片，避免不同宽高比拉伸变形）
-            if (view.obtainedName != null)
-                HouseUIUtil.ApplyPanelSkin(view.obtainedName.transform.parent.GetComponent<Image>());
+            // 2.0 底板自带外观：只有还没换皮的旧 Prefab（面板没 sprite）才套通用面板皮肤
+            var obtainedBoard = view.obtainedName != null
+                ? view.obtainedName.transform.parent.GetComponent<Image>() : null;
+            if (obtainedBoard != null && obtainedBoard.sprite == null) HouseUIUtil.ApplyPanelSkin(obtainedBoard);
             // 色块条（共用模板与交互，见 ColorSwatchStrip）：右侧选色行可点可悬停，获得弹窗那列只展示
             swatchStrip.Build(view.swatchRoot, new Vector2(26, 26), 34f);
             swatchStrip.Selected += index =>
