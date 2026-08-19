@@ -680,18 +680,29 @@ namespace MasterHouse
                 if (bar.pieceBudgetLabel != null) bar.pieceBudgetLabel.color = style.topBarTextColor;
                 if (bar.litLabel != null) bar.litLabel.color = style.topBarTextColor;
             }
-            if (view.palettePanelBackground == null) return;
-
-            view.palettePanelBackground.sprite = style.palettePanelBackgroundSprite;
-            view.palettePanelBackground.type = style.palettePanelBackgroundSprite != null
-                ? Image.Type.Sliced
-                : Image.Type.Simple;
-            view.palettePanelBackground.preserveAspect = false;
-            view.palettePanelBackground.color = style.palettePanelColor;
+            if (view.palettePanelBackground != null)
+            {
+                view.palettePanelBackground.sprite = style.palettePanelBackgroundSprite;
+                view.palettePanelBackground.type = style.palettePanelBackgroundSprite != null
+                    ? Image.Type.Sliced
+                    : Image.Type.Simple;
+                view.palettePanelBackground.preserveAspect = false;
+                view.palettePanelBackground.color = style.palettePanelColor;
+            }
 
             var palettePosition = view.paletteRoot.anchoredPosition;
             palettePosition.y = -style.paletteContentTopPadding;
             view.paletteRoot.anchoredPosition = palettePosition;
+
+            if (view.lessonPanelBackground != null)
+            {
+                view.lessonPanelBackground.sprite = style.lessonPanelBackgroundSprite;
+                view.lessonPanelBackground.type = style.lessonPanelBackgroundSprite != null
+                    ? Image.Type.Sliced
+                    : Image.Type.Simple;
+                view.lessonPanelBackground.preserveAspect = false;
+                view.lessonPanelBackground.color = style.lessonPanelColor;
+            }
 
             ApplyButtonStyle(view.finishButton, style);
             ApplyButtonStyle(view.abortButton, style);

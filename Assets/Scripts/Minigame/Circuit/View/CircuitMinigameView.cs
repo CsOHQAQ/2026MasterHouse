@@ -69,6 +69,9 @@ namespace MasterHouse
         [Tooltip("整条教学栏的根节点。单关模式下整体隐藏")]
         public GameObject lessonPanel;
 
+        [Tooltip("教学栏整体背景。Sprite 与染色由 uiStyle 驱动。")]
+        public Image lessonPanelBackground;
+
         [Tooltip("课程标题")]
         public Text lessonTitleLabel;
 

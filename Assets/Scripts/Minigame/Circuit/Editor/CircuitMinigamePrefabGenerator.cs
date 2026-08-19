@@ -53,6 +53,8 @@ namespace MasterHouse.EditorTools
         private static readonly Color ButtonPrimary = new Color(0.24f, 0.62f, 0.44f, 0.95f);
         private static readonly Color ButtonGhost = new Color(1f, 1f, 1f, 0.12f);
 
+        private const string NodeFrameGreyPath = "Assets/Developers/taslopece/ArtTest/NodeFrameGrey.png";
+
         [MenuItem("MasterHouse/小游戏/创建修理电路资产（补齐缺失）")]
         public static void CreateIfMissing() => Generate(false);
 
@@ -509,7 +511,9 @@ namespace MasterHouse.EditorTools
         {
             var panel = Rect(parent, "LessonPanel", new Vector2(1, 0), new Vector2(1, 1),
                 new Vector2(-200, 10), new Vector2(360, -220));
-            ImageOn(panel, PanelTint);
+            view.lessonPanelBackground = ImageOn(panel, PanelTint);
+            var nodeFrameGrey = AssetDatabase.LoadAssetAtPath<Sprite>(NodeFrameGreyPath);
+            ApplySlicedSprite(view.lessonPanelBackground, nodeFrameGrey);
             view.lessonPanel = panel.gameObject;
 
             view.lessonTitleLabel = Label(panel, "Title", "课程标题", 30, Ink,
