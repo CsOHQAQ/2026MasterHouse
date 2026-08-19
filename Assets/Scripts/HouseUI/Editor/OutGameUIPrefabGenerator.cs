@@ -2498,8 +2498,8 @@ namespace MasterHouse
             ("rabbit",  "rabbit",  "rabbit",  "rabbit"),
             ("goat",    "goat",    "goat",    "goat"),
             ("wolf",    "wolf",    "wolf",    "wolf"),
-            ("cheetah", "cheetah", "cheetah", "cheetah"),
-            ("leopard", "leopard", "leopard", "leopard"),
+            ("cheetah", "leopard", "leopard", "leopard"),
+            ("leopard", "cheetah", "cheetah", "cheetah"),
             ("ox",      "ox",      "ox",      "ox"),
             ("cat",     "cat",     "cat",     "cat"),
         };
