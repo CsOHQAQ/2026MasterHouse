@@ -620,9 +620,9 @@ MonoBehaviour:
         steps:
         - kind: 0
           line:
-            speaker: 0
+            speaker: 1
             text: "\u60A8\u7A0D\u7B49\u4E0B\uFF0C\u6211\u8FD8\u5728\u627E\u5408\u9002\u7684\u623F\u95F4\u3002"
-            portraitId: "rabbit_\u5E73\u9759"
+            portraitId: "goat_\u5E73\u9759"
           actions: []
           sourceRow: 369
         - kind: 0
