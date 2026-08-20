@@ -170,9 +170,6 @@ namespace MasterHouse
         [Tooltip("小结面板上的主按钮：进入下一关 / 交卷")]
         public Button summaryContinueButton;
 
-        [Tooltip("主按钮的文案。会被改写成「下一关」/「交卷」")]
-        public Text summaryContinueLabel;
-
         [Tooltip("关掉小结、留在本关继续调整")]
         public Button summaryStayButton;
 

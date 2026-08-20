@@ -714,11 +714,6 @@ namespace MasterHouse.EditorTools
                 new Vector2(.5f, 0), new Vector2(-140, 135));
             view.summaryContinueButton = ResultButton(panel, "NextButton", "下一关-默认", "下一关-悬停",
                 new Vector2(.5f, 0), new Vector2(140, 135));
-            // 正式「下一关」按钮的文字已经烘在美术里，保留隐藏 Text 仅为了兼容现有字段与课程标题刷新。
-            view.summaryContinueLabel = Label(view.summaryContinueButton.transform, "Caption", "下一关", 1,
-                new Color(1f, 1f, 1f, 0f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-                TextAnchor.MiddleCenter);
-            view.summaryContinueLabel.gameObject.SetActive(false);
 
             panel.gameObject.SetActive(false);
         }

@@ -145,6 +145,14 @@ namespace MasterHouse
         {
             if (!running) return;
 
+            // Play Mode 中脚本重编译 / Revert 后，Unity 可能保留 running，却丢失非序列化的 CircuitBoard。
+            // 直接继续轮询会在每帧 board.HandleInput() 处刷 NullReference；停止这次不完整的局，等待宿主重新启动。
+            if (view == null || board == null)
+            {
+                running = false;
+                return;
+            }
+
             // 分辨率/窗口变化时重算格子大小。比每帧无脑重排便宜，也不需要监听事件
             var size = view.boardArea.rect.size;
             if ((size - lastBoardAreaSize).sqrMagnitude > 1f)
@@ -273,7 +281,6 @@ namespace MasterHouse
 
             var caption = IsLastLesson ? "交卷" : "下一关";
             view.finishButtonLabel.text = caption;
-            view.summaryContinueLabel.text = caption;
         }
 
         // ══════════ 结束 / 推进 ══════════
@@ -1083,7 +1090,6 @@ namespace MasterHouse
             if (view.summaryTitleLabel == null) missing.Add(nameof(view.summaryTitleLabel));
             if (view.summaryBodyLabel == null) missing.Add(nameof(view.summaryBodyLabel));
             if (view.summaryContinueButton == null) missing.Add(nameof(view.summaryContinueButton));
-            if (view.summaryContinueLabel == null) missing.Add(nameof(view.summaryContinueLabel));
             if (view.summaryStayButton == null) missing.Add(nameof(view.summaryStayButton));
             if (view.finishButtonLabel == null) missing.Add(nameof(view.finishButtonLabel));
             return ReportMissing(missing);
