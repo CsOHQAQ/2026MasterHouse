@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rooms:
   - id: living
-    displayName: "\u5367\u5BA4\u00B7\u4E00"
+    displayName: "\u5367\u5BA4\xB7\u4E00"
     sceneWidth: 1672
     sceneHeight: 630
     background: {fileID: 21300000, guid: 0db2009c3c0dde44dbcbcdb8c19649d5, type: 3}
@@ -91,7 +91,7 @@ MonoBehaviour:
       row: 3
       flipped: 0
   - id: bedroom
-    displayName: "\u5367\u5BA4\u00B7\u4E8C"
+    displayName: "\u5367\u5BA4\xB7\u4E8C"
     sceneWidth: 1672
     sceneHeight: 635
     background: {fileID: 21300000, guid: d8ae190b6ff5a764ea525793053c4ac1, type: 3}
@@ -168,7 +168,7 @@ MonoBehaviour:
       row: 2
       flipped: 0
   - id: kitchen
-    displayName: "\u5367\u5BA4\u00B7\u4E09"
+    displayName: "\u5367\u5BA4\xB7\u4E09"
     sceneWidth: 1672
     sceneHeight: 627
     background: {fileID: 21300000, guid: 9097d71638002674eb2e834ddc66d3b2, type: 3}
@@ -245,7 +245,7 @@ MonoBehaviour:
       row: 3
       flipped: 0
   - id: study
-    displayName: "\u5367\u5BA4\u00B7\u56DB"
+    displayName: "\u5367\u5BA4\xB7\u56DB"
     sceneWidth: 1672
     sceneHeight: 623
     background: {fileID: 21300000, guid: 3822a90d495a7e74584941ee5b1e36cf, type: 3}

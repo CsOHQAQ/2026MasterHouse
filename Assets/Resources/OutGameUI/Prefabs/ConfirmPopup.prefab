@@ -188,8 +188,8 @@ MonoBehaviour:
   m_SpriteState:
     m_HighlightedSprite: {fileID: 21300000, guid: 2074efc6c0a3ccc42960d728474d8d05, type: 3}
     m_PressedSprite: {fileID: 21300000, guid: 2074efc6c0a3ccc42960d728474d8d05, type: 3}
-    m_SelectedSprite: {fileID: 21300000, guid: e7885ae71f8f48941927a3fa674740e4, type: 3}
-    m_DisabledSprite: {fileID: 21300000, guid: e7885ae71f8f48941927a3fa674740e4, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: f0d61b4c7ec19224d95f32cffcf89398, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: f0d61b4c7ec19224d95f32cffcf89398, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted
@@ -632,8 +632,8 @@ MonoBehaviour:
   m_SpriteState:
     m_HighlightedSprite: {fileID: 21300000, guid: f265f7e994c340d4fb7f1e3d398bc2a5, type: 3}
     m_PressedSprite: {fileID: 21300000, guid: f265f7e994c340d4fb7f1e3d398bc2a5, type: 3}
-    m_SelectedSprite: {fileID: 21300000, guid: 24bb9384c90cbae438a017bdc22143e8, type: 3}
-    m_DisabledSprite: {fileID: 21300000, guid: 24bb9384c90cbae438a017bdc22143e8, type: 3}
+    m_SelectedSprite: {fileID: 21300000, guid: caa85fc11428edc4da1b26a47c8918a5, type: 3}
+    m_DisabledSprite: {fileID: 21300000, guid: caa85fc11428edc4da1b26a47c8918a5, type: 3}
   m_AnimationTriggers:
     m_NormalTrigger: Normal
     m_HighlightedTrigger: Highlighted

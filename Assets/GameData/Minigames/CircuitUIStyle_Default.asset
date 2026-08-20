@@ -23,7 +23,7 @@ MonoBehaviour:
   lessonPanelBackgroundSprite: {fileID: 21300000, guid: 2076370049aadd24f89642e83fd986ca, type: 3}
   lessonPanelColor: {r: 1, g: 1, b: 1, a: 1}
   paletteContentTopPadding: 78
-  palettePieceBackgroundSprite: {fileID: 21300000, guid: 969f3bf9789d871498ea338e337ce121, type: 3}
+  palettePieceBackgroundSprite: {fileID: 21300000, guid: 2076370049aadd24f89642e83fd986ca, type: 3}
   palettePieceNormalColor: {r: 1, g: 1, b: 1, a: 1}
   palettePieceSelectedColor: {r: 0.55, g: 1, b: 0.62, a: 1}
   palettePieceDisabledColor: {r: 0.42, g: 0.42, b: 0.46, a: 0.8}
@@ -53,7 +53,7 @@ MonoBehaviour:
   buttonBackgroundSprite: {fileID: 21300000, guid: 2076370049aadd24f89642e83fd986ca, type: 3}
   finishButtonSprite: {fileID: 21300000, guid: b0525b177a447e84692d0854ca380c8d, type: 3}
   abortButtonSprite: {fileID: 21300000, guid: 0164e1afc488e664ba6738efa26238c0, type: 3}
-  prevLessonButtonSprite: {fileID: 21300000, guid: e2fdca05f358d2946a2f2db90763a7d3, type: 3}
+  prevLessonButtonSprite: {fileID: 21300000, guid: 0b832d904867133469a48accfd3d8d35, type: 3}
   retryLessonButtonSprite: {fileID: 21300000, guid: 7a3881d0fe89141488ffe41fd0682483, type: 3}
-  summaryContinueButtonSprite: {fileID: 21300000, guid: e2fdca05f358d2946a2f2db90763a7d3, type: 3}
-  summaryStayButtonSprite: {fileID: 21300000, guid: e2fdca05f358d2946a2f2db90763a7d3, type: 3}
+  summaryContinueButtonSprite: {fileID: 21300000, guid: 0b832d904867133469a48accfd3d8d35, type: 3}
+  summaryStayButtonSprite: {fileID: 21300000, guid: 0b832d904867133469a48accfd3d8d35, type: 3}

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Cond_2x2_3_DeviceIntro03
   m_EditorClassIdentifier: 
   DisplayName: DeviceIntro03
-  BackgroundSprite: {fileID: 21300000, guid: 969f3bf9789d871498ea338e337ce121, type: 3}
+  BackgroundSprite: {fileID: 21300000, guid: 2076370049aadd24f89642e83fd986ca, type: 3}
   FunctionIconSprite: {fileID: 21300000, guid: 8a881c5a41904829959080649c24488b, type: 3}
   BackgroundColor: {r: 0.7196765, g: 0.7154495, b: 0.6896091, a: 1}
   IconColor: {r: 1, g: 1, b: 1, a: 1}
