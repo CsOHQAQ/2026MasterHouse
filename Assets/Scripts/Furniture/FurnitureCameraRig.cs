@@ -67,19 +67,29 @@ namespace MasterHouse
             uiCamera.Render();
             uiCamera.targetTexture = previous;
 
-            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            quad.name = "FrozenBackdrop";
-            quad.layer = FurnitureRoomController.FurnitureSceneLayer;
-            Object.Destroy(quad.GetComponent<Collider>());
+            // SpriteRenderer 而不是 Quad+Shader.Find（2026-08-20 打包修复）：
+            // 运行时 Find 的 shader 打包会被裁剪，整屏渲染成洋红；精灵默认材质永远在包里
+            var pixels = new Texture2D(backdropTexture.width, backdropTexture.height, TextureFormat.RGB24, false);
+            var previousActive = RenderTexture.active;
+            RenderTexture.active = backdropTexture;
+            pixels.ReadPixels(new Rect(0, 0, backdropTexture.width, backdropTexture.height), 0, 0);
+            pixels.Apply(false, true);
+            RenderTexture.active = previousActive;
+            backdropTexture.Release();
+            backdropTexture = null;
+
+            var go = new GameObject("FrozenBackdrop") { layer = FurnitureRoomController.FurnitureSceneLayer };
+            var renderer = go.AddComponent<SpriteRenderer>();
+            renderer.sprite = Sprite.Create(pixels, new Rect(0, 0, pixels.width, pixels.height),
+                new Vector2(.5f, .5f), 100f);
+            renderer.sortingOrder = short.MinValue; // 永远垫底
             var distance = Camera.farClipPlane * .9f;
             var height = 2f * Mathf.Tan(Camera.fieldOfView * .5f * Mathf.Deg2Rad) * distance;
-            quad.transform.SetParent(Camera.transform, false);
-            quad.transform.localPosition = new Vector3(0f, 0f, distance);
-            quad.transform.localScale = new Vector3(height * Camera.aspect, height, 1f);
-            var material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-            material.mainTexture = backdropTexture;
-            quad.GetComponent<MeshRenderer>().material = material;
-            backdropQuad = quad.transform;
+            go.transform.SetParent(Camera.transform, false);
+            go.transform.localPosition = new Vector3(0f, 0f, distance);
+            var scale = height / (pixels.height / 100f);
+            go.transform.localScale = new Vector3(scale, scale, 1f);
+            backdropQuad = go.transform;
         }
 
         private void OnDestroy()
