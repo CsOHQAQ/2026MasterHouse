@@ -98,3 +98,6 @@ crashlytics-build.properties
 # 编辑器工作区配置（各人环境不同，不入库）
 .vscode/
 .idea/
+
+# Unity 的 .meta 必须入库（GUID 的唯一权威）；2026-08-20 曾被整类忽略酿成大面积断链
+# *.meta  ←这行历史错误勿再打开
