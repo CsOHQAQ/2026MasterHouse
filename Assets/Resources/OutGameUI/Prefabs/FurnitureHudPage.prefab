@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 3879859937010413303}
   - component: {fileID: 6828249091736705881}
   - component: {fileID: 8913884753604444835}
+  - component: {fileID: 3242124878876599117}
   m_Layer: 5
   m_Name: Tab0
   m_TagString: Untagged
@@ -136,6 +137,21 @@ MonoBehaviour:
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
   clickSfx: 1
+--- !u!114 &3242124878876599117
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 75823319574878881}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3920466fe47c0c44080d61d3b3abc2b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  normal: {fileID: 21300000, guid: 0533accd35c5a7b459104af763f75253, type: 3}
+  hover: {fileID: 21300000, guid: 3c87c247711ba0945bd685983e244751, type: 3}
+  selected: {fileID: 21300000, guid: 10018dfef9566eb4d970d60c983e7afa, type: 3}
 --- !u!1 &838638440477804708
 GameObject:
   m_ObjectHideFlags: 0
@@ -610,6 +626,7 @@ GameObject:
   - component: {fileID: 2365313568048405979}
   - component: {fileID: 4511239116451694404}
   - component: {fileID: 1358917733526916863}
+  - component: {fileID: 3050915096499082208}
   m_Layer: 5
   m_Name: Tab4
   m_TagString: Untagged
@@ -733,6 +750,21 @@ MonoBehaviour:
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
   clickSfx: 1
+--- !u!114 &3050915096499082208
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1756126871206162677}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3920466fe47c0c44080d61d3b3abc2b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  normal: {fileID: 21300000, guid: d6f3a5488b07b0c47890c45f9f1cc067, type: 3}
+  hover: {fileID: 21300000, guid: 2d3ff47c813d5f1468bf6389670e058e, type: 3}
+  selected: {fileID: 21300000, guid: 622f5965eb7b40040919d4d943e224c0, type: 3}
 --- !u!1 &2042737045898666250
 GameObject:
   m_ObjectHideFlags: 0
@@ -821,6 +853,7 @@ GameObject:
   - component: {fileID: 8113493524022122931}
   - component: {fileID: 4256651456024770763}
   - component: {fileID: 7382705629878318619}
+  - component: {fileID: 3252610806478067873}
   m_Layer: 5
   m_Name: Tab3
   m_TagString: Untagged
@@ -944,6 +977,21 @@ MonoBehaviour:
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
   clickSfx: 1
+--- !u!114 &3252610806478067873
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2552178580776535043}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3920466fe47c0c44080d61d3b3abc2b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  normal: {fileID: 21300000, guid: 3f4b0d6274ee2d04d82f3d9a563d2b57, type: 3}
+  hover: {fileID: 21300000, guid: ded65c271ec44cf43a63c4aa93c0fd59, type: 3}
+  selected: {fileID: 21300000, guid: d06480f7002119b4c80dbe5898151857, type: 3}
 --- !u!1 &2679693413235887747
 GameObject:
   m_ObjectHideFlags: 0
@@ -1228,7 +1276,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: c02c6ace1aa01ca41ba1e7084aa24234, type: 3}
+  m_Sprite: {fileID: 21300000, guid: fa7676c5d983a4240b2ff8e6f5ac6b1d, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1394,7 +1442,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_Sprite: {fileID: 21300000, guid: fa7676c5d983a4240b2ff8e6f5ac6b1d, type: 3}
-  m_Type: 1
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -1428,6 +1476,7 @@ GameObject:
   - component: {fileID: 5693821672533455731}
   - component: {fileID: 4723673491394124383}
   - component: {fileID: 194589851642000446}
+  - component: {fileID: 9110956181203893021}
   m_Layer: 5
   m_Name: Tab1
   m_TagString: Untagged
@@ -1551,6 +1600,21 @@ MonoBehaviour:
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
   clickSfx: 1
+--- !u!114 &9110956181203893021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4519579737119929270}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3920466fe47c0c44080d61d3b3abc2b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  normal: {fileID: 21300000, guid: 8e38a1c5b5a5a694bb114f21ade66352, type: 3}
+  hover: {fileID: 21300000, guid: 75b65f8b487ead546b52a5a2435cfa50, type: 3}
+  selected: {fileID: 21300000, guid: 9666403f82f04da459d124a450c3a7f1, type: 3}
 --- !u!1 &4870706991843510738
 GameObject:
   m_ObjectHideFlags: 0
@@ -3260,6 +3324,7 @@ GameObject:
   - component: {fileID: 7139285882433606595}
   - component: {fileID: 3953231055293216736}
   - component: {fileID: 6958198143968878338}
+  - component: {fileID: 2762261303968626313}
   m_Layer: 5
   m_Name: Tab2
   m_TagString: Untagged
@@ -3383,6 +3448,21 @@ MonoBehaviour:
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
   clickSfx: 1
+--- !u!114 &2762261303968626313
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7962709419574175040}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3920466fe47c0c44080d61d3b3abc2b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  normal: {fileID: 21300000, guid: 9983577f52c436743ad6d6e465ec0912, type: 3}
+  hover: {fileID: 21300000, guid: a7f9a6c888de6ee46a51cb39ce5f2f31, type: 3}
+  selected: {fileID: 21300000, guid: e526035eba5fb464c9450b81726bca91, type: 3}
 --- !u!1 &8356162679449923109
 GameObject:
   m_ObjectHideFlags: 0
@@ -3747,6 +3827,7 @@ GameObject:
   - component: {fileID: 7179521027333187770}
   - component: {fileID: 717946501085326192}
   - component: {fileID: 106245638023298293}
+  - component: {fileID: 1685585126529947936}
   m_Layer: 5
   m_Name: Tab5
   m_TagString: Untagged
@@ -3870,6 +3951,21 @@ MonoBehaviour:
   hoverScale: 1.025
   hoverGraphic: {fileID: 0}
   clickSfx: 1
+--- !u!114 &1685585126529947936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8504444725116169096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3920466fe47c0c44080d61d3b3abc2b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  normal: {fileID: 21300000, guid: 3bf7205335182714d9adfe484b1d2b9b, type: 3}
+  hover: {fileID: 21300000, guid: 900340b8effa01f48b3af518dd88cd80, type: 3}
+  selected: {fileID: 21300000, guid: 671b11e9423568449988128528acb50f, type: 3}
 --- !u!1 &8620879246040097257
 GameObject:
   m_ObjectHideFlags: 0
