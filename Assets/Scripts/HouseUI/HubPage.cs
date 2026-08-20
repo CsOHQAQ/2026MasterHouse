@@ -422,7 +422,7 @@ namespace MasterHouse
             }
             // 先弹确认（2026-08-14）：真正的日结在玩家点「结束今天」后才执行
             ConfirmOverlay.Open(UI, $"结束 DAY {gm.HouseClockManager.Data.Day:00}",
-                "确定要结束今天吗？\n前台还在排队的客人会自动清场，已入住的客人明天继续。",
+                "确定要结束今天吗？\n前台还在排队的客人会自动清场；已入住的客人留下过夜，夜里的时间照常计入他们的等待与停留。",
                 "结束今天", EndDayConfirmed);
         }
 
