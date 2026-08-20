@@ -53,7 +53,7 @@ MonoBehaviour:
   buttonBackgroundSprite: {fileID: 21300000, guid: 2076370049aadd24f89642e83fd986ca, type: 3}
   finishButtonSprite: {fileID: 21300000, guid: b0525b177a447e84692d0854ca380c8d, type: 3}
   abortButtonSprite: {fileID: 21300000, guid: 0164e1afc488e664ba6738efa26238c0, type: 3}
-  prevLessonButtonSprite: {fileID: 21300000, guid: 02cb0a7532a40424c9715ae9317b30da, type: 3}
+  prevLessonButtonSprite: {fileID: 21300000, guid: 0b832d904867133469a48accfd3d8d35, type: 3}
   retryLessonButtonSprite: {fileID: 21300000, guid: 7a3881d0fe89141488ffe41fd0682483, type: 3}
-  summaryContinueButtonSprite: {fileID: 21300000, guid: 02cb0a7532a40424c9715ae9317b30da, type: 3}
-  summaryStayButtonSprite: {fileID: 21300000, guid: 02cb0a7532a40424c9715ae9317b30da, type: 3}
+  summaryContinueButtonSprite: {fileID: 21300000, guid: 0b832d904867133469a48accfd3d8d35, type: 3}
+  summaryStayButtonSprite: {fileID: 21300000, guid: 0b832d904867133469a48accfd3d8d35, type: 3}
