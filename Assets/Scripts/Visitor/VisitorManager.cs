@@ -47,7 +47,8 @@ namespace MasterHouse
         // ── tick 内的收集缓冲 ──
         // 存在的理由是同一条：**遍历 Data.Instances 期间不做任何对外广播、不改集合**。
         // 广播是同步调用链，对话事件（Accept/Reject/CompleteNeed）会改在场列表。
-        // departBuffer 有两个消费点（TickStates 与 EndDay），各自 Clear 后即用即弃、**不可重入**。
+        // departBuffer 有两个消费点（TickStates 与 EndDay），timeoutBuffer 也有两个
+        //（TickStates 与 CreditSkippedNight），各自 Clear 后即用即弃、**不可重入**。
 
         /// <summary>离场。</summary>
         private readonly List<VisitorInstance> departBuffer = new List<VisitorInstance>();
@@ -673,7 +674,8 @@ namespace MasterHouse
         ///
         /// 打烊后时钟停走、所有超时一并停表，所以「阻塞」意味着玩家必须有办法亲手解开它：
         ///   前台等待 → 不阻塞：EndDay 里自动清场（从没答应过他们什么，店打烊了自然就散了）
-        ///   服务中   → 不阻塞：原样跨天，次日续算延迟与超时，玩家可以选择今天办还是明天办
+        ///   服务中   → 不阻塞：可以跨天，但**夜间时长计入超时**（2026-08-20）——过夜没交付的
+        ///              会在日结时静默转失望停留，见 CreditSkippedNight
         ///   待告别   → 不阻塞：没道别不是欠着的事，原样跨天等玩家哪天想起来点他（2026-08-20）
         ///   等待分房 → **阻塞**：他是你已经点头答应的客人，而 CanAcceptGuest 保证了一定有空房，
         ///              拖进去就解开了，不会死锁
@@ -692,8 +694,8 @@ namespace MasterHouse
         public bool CanEndDay => !HasBlockingVisitors;
 
         /// <summary>
-        /// 结束今天（§7）：前台访客自动离场 → 生成当日结算快照 → 时钟跳次日开门时刻并解冻。
-        /// 场上还有待分房访客时不可用（返回 null）。
+        /// 结束今天（§7）：前台访客自动离场 → 夜间时间计入在场访客计时 → 生成当日结算快照
+        /// → 时钟跳次日开门时刻并解冻。场上还有待分房访客时不可用（返回 null）。
         /// 日结只展示不惩罚——惩罚已在拒绝当时结清，这里不重复扣。
         ///
         /// 闲逛访客的「跨天留宿 roll」已于 2026-08-14 删除：服务中/待分房都无条件跨天了，
@@ -713,14 +715,67 @@ namespace MasterHouse
                 Data.Today.RefusedCount++;
                 Depart(instance);
             }
+            // 夜间时间计入（2026-08-20）。必须在 clock.NextDay() 之前：跳过时长依赖今天此刻的 TickOfDay
+            CreditSkippedNight();
             // 清完前台后场上剩下的都过夜（服务中/闲逛/待告别无条件跨天，待分房已被 CanEndDay 挡住）——
             // 这就是注释里说的「实际留宿人数」，在快照前一次性点数，不在状态机里逐处 ++
+            //（夜间计入不改变这个口径：夜里没有人离场，到点的转态发生在次日开门后的第一个 tick）
             Data.Today.StayOvernightCount = Data.Instances.Count;
             var summary = Data.Today.Clone();
             clock.NextDay(); // Day+1，时间跳次日开门时刻（解冻打烊闸门）
             Data.Today.Reset();
             DayEnded?.Invoke(summary);
             return summary;
+        }
+
+        /// <summary>
+        /// 夜间时间计入（2026-08-20 定案）：【结束今天】跳过的时长（此刻 → 次日开门，**实际跳过**口径，
+        /// 提前结束跳得更多）也要算进在场访客的计时。实现是**平移各实例的时间戳**而不是推大
+        /// BusinessTick——后者会跳过 NeedPromptTick 的等值示意判定（TickStates 用 ==），
+        /// 安顿中的访客将永远不开口。
+        ///
+        ///   停留          → StateEnterTick 前移。夜里到点的**不在这里转态**：次日开门后第一个 tick
+        ///                   由 TickStates 现成的 farewellBuffer 路径转【待告别】（无台词、只亮提示）。
+        ///   服务中·已示意 → 夜里超时的**静默**记失望转停留：不走 SettleNeedResult——那会请求模态
+        ///                   【需求反馈·失望】，弹在日结过场上（多人超时还会排队连播）；夜里抱怨也
+        ///                   没人听见。记账口径与白天超时一路相同（countAsServed=false，本无入账）。
+        ///                   超时后剩余的夜间时长继续吃停留时长。没超时的把 NeedPromptTick 前移。
+        ///   服务中·未示意 → 不计入：服务超时从示意那一刻起算（他夜里不会开口），安顿计时照旧冻结过夜。
+        ///   待告别        → 无计时，不动。前台已在调用前清场，待分房被 CanEndDay 挡住。
+        /// </summary>
+        private void CreditSkippedNight()
+        {
+            var skipped = (long)(HouseClockData.DayTicks - clock.Data.TickOfDay)
+                          + (long)clock.OpenMinute * HouseClockData.TicksPerMinute;
+            if (skipped <= 0) return;
+            timeoutBuffer.Clear();
+            foreach (var instance in Data.Instances)
+            {
+                switch (instance.State)
+                {
+                    case EVisitorState.Wandering:
+                        instance.StateEnterTick -= skipped; // 允许为负：所有消费方都是差值比较（§11.3）
+                        break;
+                    case EVisitorState.Serving when IsNeedPrompted(instance):
+                        var remain = instance.Race.waitDeliverTimeoutTicks
+                                     - (Data.BusinessTick - instance.NeedPromptTick);
+                        if (skipped >= remain) timeoutBuffer.Add(instance); // 夜里超时：循环外转态（遍历中不广播）
+                        // NeedPromptTick 是「已排程」的哨兵（>0 才算数，见 IsNeedPrompted），不许压到 0 以下——
+                        // 极端情形（超时配得比一夜还长且当天刚示意）会少计入一点夜间时长，可接受
+                        else instance.NeedPromptTick = Math.Max(1, instance.NeedPromptTick - skipped);
+                        break;
+                }
+            }
+            foreach (var instance in timeoutBuffer)
+            {
+                instance.Satisfaction = EServeSatisfaction.Mismatch;
+                var leftover = skipped - (instance.Race.waitDeliverTimeoutTicks
+                                          - (Data.BusinessTick - instance.NeedPromptTick));
+                // 转停留，并把超时之后剩余的夜间时长折进停留计时（进入时刻回拨）；
+                // 折完就到点的同样留给次日 TickStates 转【待告别】，这里一律不做二段转态
+                SetState(instance, EVisitorState.Wandering, Data.BusinessTick - leftover);
+                ScheduleNextBubble(instance);
+            }
         }
 
         /// <summary>
@@ -810,10 +865,17 @@ namespace MasterHouse
 
         // ── 内部结算 ──
 
-        private void SetState(VisitorInstance instance, EVisitorState state)
+        private void SetState(VisitorInstance instance, EVisitorState state) =>
+            SetState(instance, state, Data.BusinessTick);
+
+        /// <summary>
+        /// 指定进入时刻的转态（夜间计入用：把夜里已流逝的时长折进新状态的计时里）。
+        /// 广播前时间戳必须已是终值——订阅方读到的不能是「先按现在、回头再改」的中间态。
+        /// </summary>
+        private void SetState(VisitorInstance instance, EVisitorState state, long enterTick)
         {
             instance.State = state;
-            instance.StateEnterTick = Data.BusinessTick;
+            instance.StateEnterTick = enterTick;
             InstanceChanged?.Invoke(instance);
         }
 
