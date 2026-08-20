@@ -2871,9 +2871,12 @@ namespace MasterHouse
                 new Vector2(0, 20), new Vector2(760, 564), Color.white);
             board.sprite = Obtain2("Group 139");
 
-            // 物品图：光辉中心（素材量得约横向居中、纵向 42% 高处）
-            view.obtainedThumb = Raw(board.transform, "Thumb", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
-                new Vector2(-8, 48), new Vector2(170, 170));
+            // 物品图：光辉中心偏上（2026-08-20 反馈：整体再往上）。
+            // AspectRatioFitter.FitInParent 是按父节点撑的——必须先套一个固定尺寸的容器，
+            // 直接挂在纸板下会被撑成半个板子大、压住文字
+            var thumbBox = Rect(board.transform, "ThumbBox", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                new Vector2(-8, 92), new Vector2(170, 170));
+            view.obtainedThumb = Raw(thumbBox, "Thumb", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             var fitter = view.obtainedThumb.gameObject.AddComponent<AspectRatioFitter>();
             fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
 
