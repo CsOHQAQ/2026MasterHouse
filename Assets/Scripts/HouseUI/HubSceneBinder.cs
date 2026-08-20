@@ -672,13 +672,9 @@ namespace MasterHouse
                 lastGroundClickTime = 0f;
                 return;
             }
-            // 点的是当前聚焦房间：家具热点开详情，空地走双击缩回总览
-            if (hotspot != null)
-            {
-                page.OpenFurnitureDetail(hotspot.RoomIndex, hotspot.FurnitureId);
-                lastGroundClickTime = 0f; // 家具上的点击不算进双击序列
-                return;
-            }
+            // 点击家具不再弹设备图鉴（2026-08-20 用户定案）：热点点击当普通地面点击，
+            // 参与双击缩回总览。入口和 OpenFurnitureDetail 都保留，想恢复删掉这行注释即可。
+            // if (hotspot != null) { page.OpenFurnitureDetail(hotspot.RoomIndex, hotspot.FurnitureId); return; }
             var now = Time.unscaledTime;
             var isDouble = now - lastGroundClickTime < DoubleClickSeconds &&
                            (pointerLocal - lastGroundClickPointer).sqrMagnitude < ClickThresholdSq;

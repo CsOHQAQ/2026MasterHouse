@@ -18,6 +18,17 @@ namespace MasterHouse
             for (var i = 0; i < dock.entries.Length && i < labels.Length; i++)
             {
                 var panel = panels[i];
+                if (panel == EHousePanel.Device)
+                {
+                    // 设备（家具）图鉴入口隐藏（2026-08-20 用户定案）：位置留空不挪其他按钮，
+                    // 想恢复删掉这个分支即可
+                    if (dock.entries[i].background != null)
+                        dock.entries[i].background.gameObject.SetActive(false);
+                    dock.entries[i].button.gameObject.SetActive(false);
+                    if (dock.entries[i].icon != null) dock.entries[i].icon.gameObject.SetActive(false);
+                    if (dock.entries[i].label != null) dock.entries[i].label.gameObject.SetActive(false);
+                    continue;
+                }
                 var locked = developing[i];
                 var toCodex = panel == EHousePanel.Archive;
                 dock.entries[i].icon.text = icons[i];
