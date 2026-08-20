@@ -86,6 +86,50 @@ namespace MasterHouse
                  "页面上不再单独摆一颗放弃按钮——设计图里只有左下角那颗 ESC（2026-08-20）")]
         public Button abortButton;
 
+        [Header("通关结算弹窗（2026-08-20，版式见 Docs/待办工作流/小游戏结算参考.png）")]
+        [Tooltip("结算弹窗根：默认隐藏。冲泡灌满当帧由代码打开（带入场动画），\n" +
+                 "点【ESC 返回】或按 ESC 键才真正 onFinish——通关不再自动退出")]
+        public RectTransform settleRoot;
+
+        [Tooltip("结算弹窗整体的 CanvasGroup（挂在弹窗根上）：入场淡入用，代码只推 alpha")]
+        public CanvasGroup settleGroup;
+
+        [Tooltip("结算底板节点：入场时连同【ESC 返回】一起从下方浮上来")]
+        public RectTransform settleBoard;
+
+        [Tooltip("入场动画时长（秒）：整体淡入 + 底板与按钮上浮，与二次确认弹窗同观感")]
+        public float settleIntroSeconds = 0.3f;
+
+        [Tooltip("入场上浮的距离（px）")]
+        public float settleIntroRise = 28f;
+
+        [Tooltip("弹窗底部的【ESC 返回】：分已到手，点击 = 结算退出（走 onFinish，不是放弃）")]
+        public Button settleReturnButton;
+
+        [Tooltip("标题下那行得分明细（研磨 X ＋ 冲泡 Y ＝ Z 分），文案由代码写")]
+        public Text settleDetailLabel;
+
+        [Tooltip("统计面板三栏之一：研磨得分")]
+        public Text settleGrindValue;
+
+        [Tooltip("统计面板三栏之二：冲泡得分")]
+        public Text settlePourValue;
+
+        [Tooltip("统计面板三栏之三：评级（冲泡档位名：优秀/良好/普通）")]
+        public Text settleGradeValue;
+
+        [Tooltip("三颗星，从左到右。素材只有亮星没有灰星——没点亮的用同一张图按 settleStarDimColor 压暗占位")]
+        public Image[] settleStars;
+
+        [Tooltip("总分 ≥ 这个值亮 3 颗星")]
+        public int settleThreeStarScore = 90;
+
+        [Tooltip("总分 ≥ 这个值亮 2 颗星；不足也给 1 颗——没有失败条件，通关就至少一颗")]
+        public int settleTwoStarScore = 60;
+
+        [Tooltip("没点亮的星的乘法染色（同一张亮星素材压暗）")]
+        public Color settleStarDimColor = new Color(0.55f, 0.52f, 0.48f, 0.85f);
+
         [Header("音效（剪辑直配在这里，不进音效表）")]
         [Tooltip("阶段通关音（一次性）：磨豆磨满、冲泡灌满时各响一次。\n" +
                  "默认复用全局的正向提示音 4_ScoreGain；留空 = 不响")]
@@ -133,9 +177,6 @@ namespace MasterHouse
 
         [Tooltip("撞击提示在提示栏停留的秒数，之后恢复环节说明")]
         public float hitMessageSeconds = 1.2f;
-
-        [Tooltip("结算展示（研磨 X + 冲泡 Y = Z 分）停留秒数，之后才真正 onFinish")]
-        public float settleShowSeconds = 1.6f;
 
         [Header("环节过场（磨豆 → 冲泡）")]
         [Tooltip("过场幕布根：整屏米白纸色 + 居中的环节名。默认隐藏，只在换环节那一下放。\n" +
