@@ -20,8 +20,8 @@ MonoBehaviour:
   hobbies: "\u6536\u96C6\u4EAE\u6676\u6676\u53D1\u5361\u3001\u7814\u7A76\u996D\u6492\u59FF\u52BF\u3001\u8BFB\u7C89\u4E1D\u5BC4\u6765\u7684\u624B\u5199\u4FE1"
   intro: "\u4EBA\u6C14\u4E0A\u5347\u4E2D\u7684\u5730\u4E0Bidol\uFF0C\u8425\u4E1A\u65F6\u751C\u7F8E\u53C8\u5143\u6C14\uFF0C\u79C1\u4E0B\u5176\u5B9E\u5F88\u73CD\u60DC\u5B89\u9759\u4F11\u606F\u7684\u65F6\u95F4\u3002"
   quote: "\u4ECA\u5929\u4E5F\u8981\u95EA\u95EA\u53D1\u5149\uFF0C\u4F46\u53EA\u95EA\u5230\u4E0B\u73ED\u4E3A\u6B62~"
-  waitTalkTimeoutTicks: 4200
-  waitDeliverTimeoutTicks: 7200
-  wanderMaxTicks: 6000
+  waitTalkTimeoutTicks: 840
+  waitDeliverTimeoutTicks: 1440
+  wanderMaxTicks: 1200
   defaultPortraitId: "rabbit_\u5E73\u9759"
   sheetPath: OutGameUI/Visitors/rabbit

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rooms:
   - id: living
-    displayName: "\u5367\u5BA4\xB7\u4E00"
+    displayName: "\u8D77\u5C45\u5BA4"
     sceneWidth: 1672
     sceneHeight: 630
     background: {fileID: 21300000, guid: 0db2009c3c0dde44dbcbcdb8c19649d5, type: 3}
@@ -58,14 +58,6 @@ MonoBehaviour:
       farWidthScale: 0.65
     blockedCells: []
     initialPlacements:
-    - furnitureId: bed_front_01
-      gridId: floor
-      hostGridId: 
-      hostCol: 0
-      hostRow: 0
-      col: 24
-      row: 0
-      flipped: 0
     - furnitureId: landscape_poster_02
       gridId: wall
       hostGridId: 
@@ -82,16 +74,24 @@ MonoBehaviour:
       col: 25
       row: 3
       flipped: 0
+    - furnitureId: armchair_01
+      gridId: floor
+      hostGridId: 
+      hostCol: 0
+      hostRow: 0
+      col: 17
+      row: 3
+      flipped: 0
     - furnitureId: round_table_01
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 38
+      col: 25
       row: 3
       flipped: 0
   - id: bedroom
-    displayName: "\u5367\u5BA4\xB7\u4E8C"
+    displayName: "\u5367\u5BA4"
     sceneWidth: 1672
     sceneHeight: 635
     background: {fileID: 21300000, guid: d8ae190b6ff5a764ea525793053c4ac1, type: 3}
@@ -135,20 +135,20 @@ MonoBehaviour:
       farWidthScale: 0.74
     blockedCells: []
     initialPlacements:
-    - furnitureId: bed_front_02
-      gridId: floor
-      hostGridId: 
-      hostCol: 0
-      hostRow: 0
-      col: 24
-      row: 0
-      flipped: 0
     - furnitureId: landscape_poster_03
       gridId: wall
       hostGridId: 
       hostCol: 0
       hostRow: 0
       col: 16
+      row: 2
+      flipped: 0
+    - furnitureId: single_sofa_02
+      gridId: floor
+      hostGridId: 
+      hostCol: 0
+      hostRow: 0
+      col: 9
       row: 2
       flipped: 0
     - furnitureId: cat_sofa_01
@@ -168,7 +168,7 @@ MonoBehaviour:
       row: 2
       flipped: 0
   - id: kitchen
-    displayName: "\u5367\u5BA4\xB7\u4E09"
+    displayName: "\u53A8\u623F"
     sceneWidth: 1672
     sceneHeight: 627
     background: {fileID: 21300000, guid: 9097d71638002674eb2e834ddc66d3b2, type: 3}
@@ -212,14 +212,6 @@ MonoBehaviour:
       farWidthScale: 0.65
     blockedCells: []
     initialPlacements:
-    - furnitureId: bed_front_03
-      gridId: floor
-      hostGridId: 
-      hostCol: 0
-      hostRow: 0
-      col: 24
-      row: 0
-      flipped: 0
     - furnitureId: vintage_square_clock_02
       gridId: wall
       hostGridId: 
@@ -245,7 +237,7 @@ MonoBehaviour:
       row: 3
       flipped: 0
   - id: study
-    displayName: "\u5367\u5BA4\xB7\u56DB"
+    displayName: "\u4E66\u623F"
     sceneWidth: 1672
     sceneHeight: 623
     background: {fileID: 21300000, guid: 3822a90d495a7e74584941ee5b1e36cf, type: 3}
@@ -289,14 +281,6 @@ MonoBehaviour:
       farWidthScale: 0.88
     blockedCells: []
     initialPlacements:
-    - furnitureId: bed_front_04
-      gridId: floor
-      hostGridId: 
-      hostCol: 0
-      hostRow: 0
-      col: 24
-      row: 0
-      flipped: 0
     - furnitureId: round_table_03
       gridId: floor
       hostGridId: 
