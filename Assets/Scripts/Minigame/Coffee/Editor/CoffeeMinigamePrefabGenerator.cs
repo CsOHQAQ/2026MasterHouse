@@ -478,7 +478,9 @@ namespace MasterHouse.EditorTools
             ArtImage(board.transform, "Divider", Art(SettleArtDir, "装饰线条"),
                 new Vector2(.5f, .5f), new Vector2(0, -11)).raycastTarget = false;
 
-            view.settleDetailLabel = Label(board.transform, "Detail", "研磨 50 ＋ 冲泡 30 ＝ 80 分",
+            // 占位文字只是编辑器里好认——运行时这行由 CoffeeMinigame 按总分从
+            // view.settleFlavorLines（文案表，默认值写在 CoffeeMinigameView 上）里挑一档填
+            view.settleDetailLabel = Label(board.transform, "Detail", "香得理直气壮，今天这杯有底气。",
                 24, InkBlueMuted, new Vector2(.5f, .5f), new Vector2(.5f, .5f),
                 new Vector2(0, -60), new Vector2(600, 36), TextAnchor.MiddleCenter);
 

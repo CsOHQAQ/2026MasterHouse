@@ -314,14 +314,14 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 打开通关结算弹窗（2026-08-20 按设计图接入）：填得分明细与三栏统计（研磨/冲泡/评级）、
+        /// 打开通关结算弹窗（2026-08-20 按设计图接入）：填按总分挑的点评与三栏统计（研磨/冲泡/评级）、
         /// 按总分阈值点星，并从头播入场动画（整体淡入 + 底板与按钮上浮，见 TickSettleIntro）。
         /// 弹窗一开就等玩家：点【ESC 返回】或按 ESC 键才真正 Finish，通关不再自动退出。
         /// </summary>
         private void OpenSettlePopup()
         {
             int total = TotalScore();
-            view.settleDetailLabel.text = $"研磨 {grindScore} ＋ 冲泡 {pour.Score} ＝ {total} 分";
+            view.settleDetailLabel.text = SettleFlavorText(total);
             view.settleGrindValue.text = grindScore.ToString();
             view.settlePourValue.text = pour.Score.ToString();
             view.settleGradeValue.text = pour.GradeName;
@@ -340,6 +340,30 @@ namespace MasterHouse
             view.settleGroup.alpha = 0f;
             view.settleRoot.gameObject.SetActive(true);
             TickSettleIntro(0f);
+        }
+
+        /// <summary>
+        /// 挑结算那行点评：在 view.settleFlavorLines 里取「下限 ≤ 总分」中下限最大的一条。
+        /// 表的顺序不作数（策划随手插一行也不会挑错），文案本身全在 Inspector 上改。
+        /// 表空着 / 全都够不着（最低那档没填 0）时退回老的得分明细，那行不至于空白。
+        /// </summary>
+        private string SettleFlavorText(int total)
+        {
+            CoffeeSettleFlavor best = null;
+            var lines = view.settleFlavorLines;
+            if (lines != null)
+            {
+                foreach (var line in lines)
+                {
+                    if (line == null || string.IsNullOrEmpty(line.text)) continue;
+                    if (line.minScore > total) continue;
+                    if (best == null || line.minScore > best.minScore) best = line;
+                }
+            }
+
+            return best != null
+                ? best.text
+                : $"研磨 {grindScore} ＋ 冲泡 {pour.Score} ＝ {total} 分";
         }
 
         /// <summary>

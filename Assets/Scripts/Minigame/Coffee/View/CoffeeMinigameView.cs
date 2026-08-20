@@ -106,8 +106,22 @@ namespace MasterHouse
         [Tooltip("弹窗底部的【ESC 返回】：分已到手，点击 = 结算退出（走 onFinish，不是放弃）")]
         public Button settleReturnButton;
 
-        [Tooltip("标题下那行得分明细（研磨 X ＋ 冲泡 Y ＝ Z 分），文案由代码写")]
+        [Tooltip("标题下那行结算点评：按总分从 settleFlavorLines 里挑一档，文案由代码填。\n" +
+                 "得分明细在下面三栏统计里已经有了，这行只放调侃")]
         public Text settleDetailLabel;
+
+        [Tooltip("结算点评文案表（按总分分档，改文案 = 改这里，不用碰代码，见架构 §16.6）：\n" +
+                 "每次取「下限 ≤ 总分」里下限最大的一条，顺序随便填，代码自己挑。\n" +
+                 "表空着或全都够不着 = 那行退回显示「研磨 X ＋ 冲泡 Y ＝ Z 分」。\n" +
+                 "单行不换行（Detail 宽 600px、字号 24），一条控制在 20 个汉字以内")]
+        public CoffeeSettleFlavor[] settleFlavorLines =
+        {
+            new CoffeeSettleFlavor { minScore = 90, text = "香得理直气壮，今天这杯有底气。" },
+            new CoffeeSettleFlavor { minScore = 75, text = "挑不出毛病的一杯，就是有点太乖。" },
+            new CoffeeSettleFlavor { minScore = 60, text = "味道还行，客人应该不会说什么。" },
+            new CoffeeSettleFlavor { minScore = 40, text = "有点涩，配块饼干应该没人发现。" },
+            new CoffeeSettleFlavor { minScore = 0,  text = "你冲泡出了一杯苦苦的咖啡，提神管够。" },
+        };
 
         [Tooltip("统计面板三栏之一：研磨得分")]
         public Text settleGrindValue;
@@ -284,5 +298,22 @@ namespace MasterHouse
 
         [Tooltip("撞障碍时的警示色")]
         public Color messageWarnColor = new Color(0.72f, 0.35f, 0.30f, 1f);
+    }
+
+    /// <summary>
+    /// 结算弹窗那行点评的一档：总分下限 + 文案（CoffeeMinigameView.settleFlavorLines 的表行）。
+    ///
+    /// 内容进资产、不进代码（架构 §16.6）：加档 = 加一行，改口吻 = 改 Inspector。
+    /// 判定用的是**总分**（研磨 0~50 ＋ 冲泡 20/30/50，封顶 100），与星数阈值各算各的——
+    /// 想让点评跟着星走，把下限填成 settleTwoStarScore / settleThreeStarScore 一样的值即可。
+    /// </summary>
+    [System.Serializable]
+    public sealed class CoffeeSettleFlavor
+    {
+        [Tooltip("总分下限（含）。挑的是「够得着的档里下限最大的那条」，所以最低那档填 0 兜底")]
+        public int minScore;
+
+        [Tooltip("这一档显示的点评文案")]
+        public string text;
     }
 }
