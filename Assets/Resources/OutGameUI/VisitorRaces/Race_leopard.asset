@@ -24,4 +24,4 @@ MonoBehaviour:
   waitDeliverTimeoutTicks: 4200
   wanderMaxTicks: 2700
   defaultPortraitId: "leopard_\u5E73\u9759"
-  sheetPath: OutGameUI/Visitors/cheetah
+  sheetPath: OutGameUI/Visitors/leopard
