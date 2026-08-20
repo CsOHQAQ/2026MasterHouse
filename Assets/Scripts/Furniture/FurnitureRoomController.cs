@@ -596,7 +596,7 @@ namespace MasterHouse
 
             if (drag != null)
             {
-                if (Input.GetKeyDown(KeyCode.F)) // 拖拽中 F 翻转幽灵
+                if (Input.GetKeyDown(KeyCode.F) && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift)) // 拖拽中 F 翻转幽灵
                 {
                     drag.Flipped = !drag.Flipped;
                     if (drag.GhostRenderer != null) drag.GhostRenderer.flipX = drag.Flipped;
@@ -606,7 +606,7 @@ namespace MasterHouse
                 return;
             }
 
-            if (Input.GetKeyDown(KeyCode.F) && !hud.PopupOpen)
+            if (Input.GetKeyDown(KeyCode.F) && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift) && !hud.PopupOpen)
             {
                 // 非拖拽态：F 翻转鼠标下的已摆放家具，立即落会话
                 var hover = HitItem(MouseScenePx());

@@ -87,6 +87,7 @@ namespace MasterHouse
         /// </summary>
         private void RunTick()
         {
+            if (HouseClockManager == null || VisitorManager == null) return;
             HouseClockManager.Tick();
             VisitorManager.Tick();
         }

@@ -8,4 +8,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/OutGameTest.unity
     guid: 3fb23e771dd54d54a8767273080fc267
+  - enabled: 1
+    path: Assets/Scenes/GameTest_Electric.unity
+    guid: 387e7fbeea283c44d87c6303924fd276
+  - enabled: 1
+    path: Assets/Scenes/GameTest_Coffee.unity
+    guid: 1f122f5004700d84f8942f75f267c2b4
   m_configObjects: {}
