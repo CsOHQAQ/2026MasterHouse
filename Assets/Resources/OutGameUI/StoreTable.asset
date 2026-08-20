@@ -15,22 +15,22 @@ MonoBehaviour:
   entries:
   - furnitureId: table_lamp_01
     price: 150
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: table_lamp_02
     price: 150
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: table_lamp_03
     price: 150
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: table_lamp_04
     price: 150
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: table_lamp_05
     price: 150
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: table_lamp_06
     price: 150
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: round_table_01
     price: 300
     unlockReputation: 0
@@ -57,16 +57,16 @@ MonoBehaviour:
     unlockReputation: 0
   - furnitureId: crescent_aquarium_01
     price: 380
-    unlockReputation: 230
+    unlockReputation: 0
   - furnitureId: crescent_aquarium_04
     price: 380
-    unlockReputation: 230
+    unlockReputation: 0
   - furnitureId: crescent_aquarium_05
     price: 380
-    unlockReputation: 230
+    unlockReputation: 0
   - furnitureId: crescent_aquarium_07
     price: 380
-    unlockReputation: 230
+    unlockReputation: 0
   - furnitureId: cat_sofa_01
     price: 260
     unlockReputation: 0
@@ -129,19 +129,19 @@ MonoBehaviour:
     unlockReputation: 0
   - furnitureId: cactus_lamp_04
     price: 180
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: cactus_lamp_05
     price: 180
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: cactus_lamp_06
     price: 180
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: cactus_lamp_07
     price: 180
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: cactus_lamp_08
     price: 180
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: hanging_plant_01
     price: 140
     unlockReputation: 0
@@ -234,28 +234,28 @@ MonoBehaviour:
     unlockReputation: 0
   - furnitureId: lava_lamp_01
     price: 180
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: lava_lamp_02
     price: 180
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: lava_lamp_03
     price: 180
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: lava_lamp_04
     price: 180
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: lava_lamp_05
     price: 180
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: lava_lamp_06
     price: 180
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: lava_lamp_07
     price: 180
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: lava_lamp_08
     price: 180
-    unlockReputation: 140
+    unlockReputation: 0
   - furnitureId: monstera_01
     price: 200
     unlockReputation: 0
@@ -279,31 +279,31 @@ MonoBehaviour:
     unlockReputation: 0
   - furnitureId: orb_decoration_01
     price: 140
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: orb_decoration_02
     price: 140
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: orb_decoration_03
     price: 140
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: orb_decoration_04
     price: 140
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: orb_decoration_05
     price: 140
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: orb_decoration_06
     price: 140
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: orb_decoration_07
     price: 140
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: orb_decoration_08
     price: 140
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: orb_decoration_09
     price: 150
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: potted_plant_01
     price: 150
     unlockReputation: 0
@@ -321,34 +321,34 @@ MonoBehaviour:
     unlockReputation: 0
   - furnitureId: round_rug_01
     price: 160
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: round_rug_02
     price: 160
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: round_rug_03
     price: 160
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: round_rug_04
     price: 160
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: round_rug_05
     price: 160
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: round_rug_06
     price: 160
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: round_rug_07
     price: 160
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: round_rug_08
     price: 160
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: round_rug_09
     price: 160
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: round_rug_10
     price: 160
-    unlockReputation: 70
+    unlockReputation: 0
   - furnitureId: vintage_square_clock_02
     price: 120
     unlockReputation: 0

@@ -74,5 +74,31 @@ namespace MasterHouse
         [Min(0f)]
         [Tooltip("图标离节点右边和上边的内缩距离，以单格边长为单位")]
         public float mobilityIconPaddingInCells = 0.12f;
+
+        [Header("节点 Caption 数字角标")]
+        [Tooltip("电源/电池右上角 Caption 数字的 0-9 Sprite。电源显示供电量、电池显示 received/required。" +
+                 "留空时继续使用文本渲染。")]
+        public Sprite[] captionDigits;
+
+        [Min(0f)]
+        [Tooltip("Caption 数字的边长，以单格边长为单位")]
+        public float captionDigitSize = 0.4f;
+
+        [Min(0f)]
+        [Tooltip("Caption 数字之间的间距，以单格边长为单位")]
+        public float captionDigitSpacing = 0.05f;
+
+        [Tooltip("Caption 数字染色。保持白色表示不额外染色。")]
+        public Color captionDigitColor = Color.white;
+
+        [Tooltip("斜杠 '/' 分隔符 Sprite。电池 Caption 格式为 received/required；留空时跳过斜杠字符。")]
+        public Sprite captionSlashSprite;
+
+        [Tooltip("电源节点 Caption 左侧的小闪电/电力图标。留空时不显示。")]
+        public Sprite captionPowerIcon;
+
+        [Min(0f)]
+        [Tooltip("电池图标的边长，以单格边长为单位")]
+        public float captionPowerIconSize = 0.45f;
     }
 }

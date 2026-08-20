@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 194b3197d51ff7b419751bff3d1ce26c, type: 3}
-  m_Name: "Need_\u8981\u84DD\u8272\u6905\u5B50"
+  m_Name: "Need_\u987F-\u671B\u8FDC\u955C"
   m_EditorClassIdentifier: 
-  needId: "\u84DD\u8272\u6905\u5B50"
-  description: "\u60F3\u8981\u4E00\u4E2A\u80FD\u4F11\u606F\u7684\u84DD\u8272\u6C99\u53D1\uFF0C\u53EF\u4EE5\u5417\uFF1F"
+  needId: 顿-望远镜
+  description: "\u63A2\u7D22\u4E16\u754C\u4ECE\u89C2\u5BDF\u5F00\u59CB\uFF0C\u6709\u4E86\u671B\u8FDC\u955C\u6211\u5C31\u80FD\u53D1\u73B0\u66F4\u591A\u79D8\u5BC6\uFF01"
   familyIds: []
   furnitureIds:
-  - single_sofa_02
+  - telescope_01

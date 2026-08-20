@@ -15,17 +15,17 @@ MonoBehaviour:
   startCurrency: 2480
   startReputation: 40
   rewardMismatch:
-    currency: 80
-    reputation: 0
+    currency: 300
+    reputation: 10
   rewardPlain:
-    currency: 200
+    currency: 300
     reputation: 10
   rewardSatisfied:
-    currency: 320
-    reputation: 25
+    currency: 300
+    reputation: 10
   rewardPerfect:
-    currency: 480
-    reputation: 45
+    currency: 300
+    reputation: 10
   satisfactionThresholdPercent: 60
   refuseReputationPenalty: 15
   decorScorePerRoom: 50

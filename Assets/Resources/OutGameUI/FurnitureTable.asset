@@ -2927,10 +2927,10 @@ MonoBehaviour:
     stackable: 0
     cols: 7
     rows: 2
-    displayWidth: 270
-    displayHeight: 183
+    displayWidth: 405
+    displayHeight: 274
     decorationScore: 40
-    sprite: {fileID: 21300000, guid: 995049f8b7391314a8dd967775e9319c, type: 3}
+    sprite: {fileID: 21300000, guid: 2e87132b504b1004085fcd743462fbc5, type: 3}
     swatchColor: {r: 0.87058824, g: 0.8039216, b: 0.6862745, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -2951,10 +2951,10 @@ MonoBehaviour:
     stackable: 0
     cols: 7
     rows: 2
-    displayWidth: 270
-    displayHeight: 169
+    displayWidth: 405
+    displayHeight: 254
     decorationScore: 40
-    sprite: {fileID: 21300000, guid: addfd928b57dc244a92715cb1accf46d, type: 3}
+    sprite: {fileID: 21300000, guid: 0c58f5883ffa0dd4691eb0d470e99e94, type: 3}
     swatchColor: {r: 0.8392157, g: 0.7921569, b: 0.7058824, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -2975,10 +2975,10 @@ MonoBehaviour:
     stackable: 0
     cols: 7
     rows: 2
-    displayWidth: 270
-    displayHeight: 179
+    displayWidth: 405
+    displayHeight: 268
     decorationScore: 40
-    sprite: {fileID: 21300000, guid: 5ba8af51561034e45a7880f2690f816f, type: 3}
+    sprite: {fileID: 21300000, guid: 75a13e6dd827f7d41a8454c5637dbafa, type: 3}
     swatchColor: {r: 0.827451, g: 0.73333335, b: 0.5882353, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -2999,10 +2999,10 @@ MonoBehaviour:
     stackable: 0
     cols: 7
     rows: 2
-    displayWidth: 270
-    displayHeight: 180
+    displayWidth: 405
+    displayHeight: 270
     decorationScore: 40
-    sprite: {fileID: 21300000, guid: c29cae44dd7485b45b50e8677834d1de, type: 3}
+    sprite: {fileID: 21300000, guid: b7dca26a330be204da33666a051153c5, type: 3}
     swatchColor: {r: 0.7490196, g: 0.64705884, b: 0.4862745, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3023,10 +3023,10 @@ MonoBehaviour:
     stackable: 0
     cols: 7
     rows: 2
-    displayWidth: 270
-    displayHeight: 164
+    displayWidth: 405
+    displayHeight: 246
     decorationScore: 40
-    sprite: {fileID: 21300000, guid: b0c7573cbb0a2084c83ee96030b38da9, type: 3}
+    sprite: {fileID: 21300000, guid: 0bad4a0b1ecdb554d8b0e14fc4050430, type: 3}
     swatchColor: {r: 0.6862745, g: 0.7411765, b: 0.78039217, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3047,10 +3047,10 @@ MonoBehaviour:
     stackable: 0
     cols: 5
     rows: 2
-    displayWidth: 190
-    displayHeight: 197
+    displayWidth: 285
+    displayHeight: 296
     decorationScore: 40
-    sprite: {fileID: 21300000, guid: f7b3fb305df6ecd4c8c26f02bc35ac34, type: 3}
+    sprite: {fileID: 21300000, guid: 217082364f218fe429e817f1a93564d9, type: 3}
     swatchColor: {r: 0.8901961, g: 0.8352941, b: 0.7921569, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3071,10 +3071,10 @@ MonoBehaviour:
     stackable: 0
     cols: 5
     rows: 2
-    displayWidth: 190
-    displayHeight: 153
+    displayWidth: 285
+    displayHeight: 230
     decorationScore: 40
-    sprite: {fileID: 21300000, guid: 32677129ebace1c46ad5e5a98a94875c, type: 3}
+    sprite: {fileID: 21300000, guid: 0d25f15345fe01c4e95c130af5b12ce4, type: 3}
     swatchColor: {r: 0.7490196, g: 0.67058825, b: 0.54901963, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3095,10 +3095,10 @@ MonoBehaviour:
     stackable: 0
     cols: 5
     rows: 2
-    displayWidth: 190
-    displayHeight: 182
+    displayWidth: 285
+    displayHeight: 273
     decorationScore: 40
-    sprite: {fileID: 21300000, guid: 8877caf3dab65314bbbacc2716d9fec5, type: 3}
+    sprite: {fileID: 21300000, guid: b5f6d7228c8aac849b890b3a9baf25c8, type: 3}
     swatchColor: {r: 0.7372549, g: 0.73333335, b: 0.72156864, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3119,10 +3119,10 @@ MonoBehaviour:
     stackable: 0
     cols: 5
     rows: 2
-    displayWidth: 190
-    displayHeight: 137
+    displayWidth: 285
+    displayHeight: 206
     decorationScore: 40
-    sprite: {fileID: 21300000, guid: 7e6bd59bdda60c7488dd99633ee9775a, type: 3}
+    sprite: {fileID: 21300000, guid: ba50f73bdff640746b8b7ab6f70bc295, type: 3}
     swatchColor: {r: 0.7176471, g: 0.69803923, b: 0.6745098, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3143,10 +3143,10 @@ MonoBehaviour:
     stackable: 0
     cols: 5
     rows: 2
-    displayWidth: 190
-    displayHeight: 181
+    displayWidth: 285
+    displayHeight: 272
     decorationScore: 40
-    sprite: {fileID: 21300000, guid: 257811f4bd9fe8f44bc99e9760361d28, type: 3}
+    sprite: {fileID: 21300000, guid: 5503badc339f20d439c584ce1f244da5, type: 3}
     swatchColor: {r: 0.9137255, g: 0.627451, b: 0.5372549, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3167,10 +3167,10 @@ MonoBehaviour:
     stackable: 0
     cols: 5
     rows: 2
-    displayWidth: 190
-    displayHeight: 185
+    displayWidth: 285
+    displayHeight: 278
     decorationScore: 40
-    sprite: {fileID: 21300000, guid: 66ed3d5e27280bf428f4a123e5ffbfd4, type: 3}
+    sprite: {fileID: 21300000, guid: 4af98f738ced17d42a9bf42df5b2a5f2, type: 3}
     swatchColor: {r: 0.78431374, g: 0.81960785, b: 0.8509804, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3194,7 +3194,7 @@ MonoBehaviour:
     displayWidth: 240
     displayHeight: 306
     decorationScore: 35
-    sprite: {fileID: 21300000, guid: dbd26de0ef979ea4a9f3c532556a81f4, type: 3}
+    sprite: {fileID: 21300000, guid: 7836d1024fcf6fd408f9869fe7941713, type: 3}
     swatchColor: {r: 0.85882354, g: 0.7490196, b: 0.61960787, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3218,7 +3218,7 @@ MonoBehaviour:
     displayWidth: 60
     displayHeight: 43
     decorationScore: 12
-    sprite: {fileID: 21300000, guid: 8328948b8f752774a821c83ffb111779, type: 3}
+    sprite: {fileID: 21300000, guid: b06558452320c7e44b211caf5631f184, type: 3}
     swatchColor: {r: 0.5529412, g: 0.627451, b: 0.57254905, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3242,7 +3242,7 @@ MonoBehaviour:
     displayWidth: 180
     displayHeight: 140
     decorationScore: 20
-    sprite: {fileID: 21300000, guid: 70c444ef5e0b7374bb9091cffefde336, type: 3}
+    sprite: {fileID: 21300000, guid: 181b943a9f501f146aaa600f4ce822c0, type: 3}
     swatchColor: {r: 0.7294118, g: 0.6039216, b: 0.5529412, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3266,7 +3266,7 @@ MonoBehaviour:
     displayWidth: 300
     displayHeight: 291
     decorationScore: 40
-    sprite: {fileID: 21300000, guid: e26ed3b8546b8894cb5a112d9012bc23, type: 3}
+    sprite: {fileID: 21300000, guid: 24253a62ab21ec14fbacf703ddaf632d, type: 3}
     swatchColor: {r: 0.52156866, g: 0.54509807, b: 0.59607846, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3290,7 +3290,7 @@ MonoBehaviour:
     displayWidth: 60
     displayHeight: 31
     decorationScore: 8
-    sprite: {fileID: 21300000, guid: e821a4ea274543143b180f2b6d4d4c9f, type: 3}
+    sprite: {fileID: 21300000, guid: 7f93e4d18eb0171498eb1482697020f5, type: 3}
     swatchColor: {r: 0.5019608, g: 0.6509804, b: 0.7294118, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3314,7 +3314,7 @@ MonoBehaviour:
     displayWidth: 60
     displayHeight: 46
     decorationScore: 8
-    sprite: {fileID: 21300000, guid: e0aa7276f68768d4ab76d1bbf19e1a3b, type: 3}
+    sprite: {fileID: 21300000, guid: 3469f149e2b3ba14abdb8792b2b1ae7a, type: 3}
     swatchColor: {r: 0.69803923, g: 0.7921569, b: 0.85882354, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3338,7 +3338,7 @@ MonoBehaviour:
     displayWidth: 60
     displayHeight: 74
     decorationScore: 10
-    sprite: {fileID: 21300000, guid: 4e337d321e5224c4295e14d63b4f3564, type: 3}
+    sprite: {fileID: 21300000, guid: 177409c3d99c44f45ade0304f01fe14f, type: 3}
     swatchColor: {r: 0.74509805, g: 0.6431373, b: 0.5254902, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3362,7 +3362,7 @@ MonoBehaviour:
     displayWidth: 240
     displayHeight: 130
     decorationScore: 28
-    sprite: {fileID: 21300000, guid: fa45780cff1233d48956633845df9b9a, type: 3}
+    sprite: {fileID: 21300000, guid: 3b314eb97d66b1941ba10a0662a7f6a9, type: 3}
     swatchColor: {r: 0.8156863, g: 0.78431374, b: 0.6745098, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3386,7 +3386,7 @@ MonoBehaviour:
     displayWidth: 60
     displayHeight: 131
     decorationScore: 18
-    sprite: {fileID: 21300000, guid: 1ca5ad00207b1834eb9d2611161b7306, type: 3}
+    sprite: {fileID: 21300000, guid: 911be811507fe2748aa05d301ad208b8, type: 3}
     swatchColor: {r: 0.69411767, g: 0.56078434, b: 0.37254903, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3410,7 +3410,7 @@ MonoBehaviour:
     displayWidth: 120
     displayHeight: 88
     decorationScore: 15
-    sprite: {fileID: 21300000, guid: 5d03746694a06424caca64fb8fbcbb80, type: 3}
+    sprite: {fileID: 21300000, guid: c402ce67d0ed85d418929f6baeb4e79c, type: 3}
     swatchColor: {r: 0.76862746, g: 0.5647059, b: 0.36078432, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3434,7 +3434,7 @@ MonoBehaviour:
     displayWidth: 240
     displayHeight: 106
     decorationScore: 30
-    sprite: {fileID: 21300000, guid: 7195a820c8e51da4a93e81c5236294c2, type: 3}
+    sprite: {fileID: 21300000, guid: b0dc52a600686fa4e99bc73701385220, type: 3}
     swatchColor: {r: 0.7411765, g: 0.80784315, b: 0.80784315, a: 1}
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -3458,7 +3458,7 @@ MonoBehaviour:
     displayWidth: 60
     displayHeight: 92
     decorationScore: 10
-    sprite: {fileID: 21300000, guid: 96e9b6bc13b8a2245b3f47c9e56302c4, type: 3}
+    sprite: {fileID: 21300000, guid: 3f5ef6e7f8f9a784b86a922985fcdb13, type: 3}
     swatchColor: {r: 0.5372549, g: 0.6313726, b: 0.7137255, a: 1}
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}

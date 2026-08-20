@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 194b3197d51ff7b419751bff3d1ce26c, type: 3}
-  m_Name: "Need_\u8981\u84DD\u8272\u6905\u5B50"
+  m_Name: "Need_\u5154-\u64AD\u653E\u5668"
   m_EditorClassIdentifier: 
-  needId: "\u84DD\u8272\u6905\u5B50"
-  description: "\u60F3\u8981\u4E00\u4E2A\u80FD\u4F11\u606F\u7684\u84DD\u8272\u6C99\u53D1\uFF0C\u53EF\u4EE5\u5417\uFF1F"
+  needId: 兔-播放器
+  description: "\u6211\u6BCF\u5929\u90FD\u8981\u542C\u97F3\u4E50\u70ED\u8EAB\uFF0C\u623F\u95F4\u91CC\u8981\u662F\u6709\u97F3\u4E50\u64AD\u653E\u5668\u5C31\u592A\u597D\u554A\uFF01"
   familyIds: []
   furnitureIds:
-  - single_sofa_02
+  - music_player_01

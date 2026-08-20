@@ -14,52 +14,52 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - day: 1
-    appearMinute: 510
+    appearMinute: 480
     race: {fileID: 11400000, guid: 5cf4e4c538f191846ba8574f8982a761, type: 2}
     need: {fileID: 11400000, guid: ac7d645a104978c4e885c61c95ffc121, type: 2}
     namedOverride: {fileID: 0}
   - day: 1
-    appearMinute: 550
+    appearMinute: 500
     race: {fileID: 11400000, guid: 315fabaf61fe09b44a364f9f7c369942, type: 2}
     need: {fileID: 11400000, guid: 3360d4e6bcd8df6478210e33a71c2a70, type: 2}
     namedOverride: {fileID: 0}
   - day: 1
-    appearMinute: 600
+    appearMinute: 530
     race: {fileID: 11400000, guid: 12eead56fec2c0a49ba59bd537eced5d, type: 2}
-    need: {fileID: 11400000, guid: ac7d645a104978c4e885c61c95ffc121, type: 2}
+    need: {fileID: 11400000, guid: 87fd44765a7ff224cb4084d79cc0d1d2, type: 2}
     namedOverride: {fileID: 0}
   - day: 1
-    appearMinute: 840
+    appearMinute: 560
     race: {fileID: 11400000, guid: 0ac5b936e85c85b49a1a58ca15d46d46, type: 2}
-    need: {fileID: 11400000, guid: 3360d4e6bcd8df6478210e33a71c2a70, type: 2}
-    namedOverride: {fileID: 0}
-  - day: 2
-    appearMinute: 520
-    race: {fileID: 11400000, guid: baca918edc19fa54a89959d88b512972, type: 2}
-    need: {fileID: 11400000, guid: ac7d645a104978c4e885c61c95ffc121, type: 2}
-    namedOverride: {fileID: 0}
-  - day: 2
-    appearMinute: 570
-    race: {fileID: 11400000, guid: 589984ea362f6864d9bcb55059d0e6b1, type: 2}
     need: {fileID: 11400000, guid: b10ca7f05de91914296fc5f7ca760e39, type: 2}
     namedOverride: {fileID: 0}
   - day: 2
-    appearMinute: 780
+    appearMinute: 560
+    race: {fileID: 11400000, guid: baca918edc19fa54a89959d88b512972, type: 2}
+    need: {fileID: 11400000, guid: e8607be8c6dd4745bc679824628ce2c5, type: 2}
+    namedOverride: {fileID: 0}
+  - day: 2
+    appearMinute: 580
+    race: {fileID: 11400000, guid: 589984ea362f6864d9bcb55059d0e6b1, type: 2}
+    need: {fileID: 11400000, guid: 14a6f0f7966dc5b4d9cc658c99fa5671, type: 2}
+    namedOverride: {fileID: 0}
+  - day: 2
+    appearMinute: 600
     race: {fileID: 11400000, guid: 3cb1424212638f647beed12ae06e7bc0, type: 2}
-    need: {fileID: 11400000, guid: 3360d4e6bcd8df6478210e33a71c2a70, type: 2}
+    need: {fileID: 11400000, guid: 4965cbfa90ea4795ba11d72946cb9952, type: 2}
     namedOverride: {fileID: 0}
   - day: 3
-    appearMinute: 540
+    appearMinute: 620
     race: {fileID: 11400000, guid: 5cf4e4c538f191846ba8574f8982a761, type: 2}
-    need: {fileID: 11400000, guid: b10ca7f05de91914296fc5f7ca760e39, type: 2}
+    need: {fileID: 11400000, guid: 87fd44765a7ff224cb4084d79cc0d1d2, type: 2}
+    namedOverride: {fileID: 0}
+  - day: 3
+    appearMinute: 640
+    race: {fileID: 11400000, guid: 0ac5b936e85c85b49a1a58ca15d46d46, type: 2}
+    need: {fileID: 11400000, guid: 7bfdb10815a44aebbe3c808a8403c6f3, type: 2}
     namedOverride: {fileID: 0}
   - day: 3
     appearMinute: 660
-    race: {fileID: 11400000, guid: 5cf4e4c538f191846ba8574f8982a761, type: 2}
-    need: {fileID: 11400000, guid: ac7d645a104978c4e885c61c95ffc121, type: 2}
-    namedOverride: {fileID: 0}
-  - day: 3
-    appearMinute: 750
-    race: {fileID: 11400000, guid: 5cf4e4c538f191846ba8574f8982a761, type: 2}
-    need: {fileID: 11400000, guid: 3360d4e6bcd8df6478210e33a71c2a70, type: 2}
+    race: {fileID: 11400000, guid: baca918edc19fa54a89959d88b512972, type: 2}
+    need: {fileID: 11400000, guid: e8607be8c6dd4745bc679824628ce2c5, type: 2}
     namedOverride: {fileID: 0}
