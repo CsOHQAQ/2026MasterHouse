@@ -24,14 +24,14 @@ MonoBehaviour:
     need: {fileID: 11400000, guid: 3360d4e6bcd8df6478210e33a71c2a70, type: 2}
     namedOverride: {fileID: 0}
   - day: 1
-    appearMinute: 520
+    appearMinute: 530
     race: {fileID: 11400000, guid: 12eead56fec2c0a49ba59bd537eced5d, type: 2}
-    need: {fileID: 11400000, guid: b10ca7f05de91914296fc5f7ca760e39, type: 2}
+    need: {fileID: 11400000, guid: 87fd44765a7ff224cb4084d79cc0d1d2, type: 2}
     namedOverride: {fileID: 0}
   - day: 1
-    appearMinute: 540
+    appearMinute: 560
     race: {fileID: 11400000, guid: 0ac5b936e85c85b49a1a58ca15d46d46, type: 2}
-    need: {fileID: 11400000, guid: 87fd44765a7ff224cb4084d79cc0d1d2, type: 2}
+    need: {fileID: 11400000, guid: b10ca7f05de91914296fc5f7ca760e39, type: 2}
     namedOverride: {fileID: 0}
   - day: 2
     appearMinute: 560
@@ -56,7 +56,7 @@ MonoBehaviour:
   - day: 3
     appearMinute: 640
     race: {fileID: 11400000, guid: 0ac5b936e85c85b49a1a58ca15d46d46, type: 2}
-    need: {fileID: 0}
+    need: {fileID: 11400000, guid: 7bfdb10815a44aebbe3c808a8403c6f3, type: 2}
     namedOverride: {fileID: 0}
   - day: 3
     appearMinute: 660
