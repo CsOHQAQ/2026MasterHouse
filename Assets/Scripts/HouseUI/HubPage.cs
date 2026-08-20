@@ -29,6 +29,15 @@ namespace MasterHouse
         private bool immersive;
         private bool furnitureModeOpen;
 
+        /// <summary>
+        /// 推镜后触发 TalkTo 的延迟补间（防连点重复对话 bug：同一访客被快速点击两次时，
+        /// 第二次点击会在第一次对话已经开始后再把该访客塞进待播队列；
+        /// 接待完成后对话队列立刻续播同一访客的第二段，此时 CanAcceptGuest 已为 false
+        /// ——「接待」按钮置灰，玩家看到的就是「选完暂不接待后接待按钮失效」的现象）。
+        /// Kill 旧补间再新建即可保证同一时刻只有一次 TalkTo 在路上。
+        /// </summary>
+        private Tween pendingSelectTween;
+
         /// <summary>当前房间下标（四宫格：由场景相机的视口中心决定，见 HubSceneBinder.DetectCurrentRoom）。</summary>
         public int RoomIndex { get; private set; }
 
@@ -120,6 +129,8 @@ namespace MasterHouse
             HouseGmConsole.FullResetRequested -= OnGmFullReset;
             // 离开 Hub 时丢弃未消化的小游戏请求，免得下次进来冷不丁弹一局出来
             MinigameOverlay.DiscardPending();
+            pendingSelectTween?.Kill();
+            pendingSelectTween = null;
             GameManager.Instance.HouseClockManager.SetStopReason(EClockStopReason.OffHubPage, true);
             chrome.Dispose();
             topBar.Dispose();
@@ -352,7 +363,11 @@ namespace MasterHouse
 
             // 先把镜头移动到访客站位并放大、再弹对话（2026-08-16 用户定案）
             scene.FocusVisitor(instanceId);
-            DG.Tweening.DOVirtual.DelayedCall(.6f, () => // 与推镜时长（.55s）衔接
+            // Kill 旧补间：玩家连点同一访客（或同帧触发场景 NPC + 轨道卡两条路径）会生成多个延迟调用，
+            // 第二个调用在第一段对话已经开始时走 RequestVisitorDialogue → pending 入队，
+            // 第一段接待完毕后队列续播同一访客、CanAcceptGuest 此时为 false → 「接待」按钮置灰。
+            pendingSelectTween?.Kill();
+            pendingSelectTween = DG.Tweening.DOVirtual.DelayedCall(.6f, () => // 与推镜时长（.55s）衔接
             {
                 if (view == null || furnitureModeOpen) return; // 页面已退出/进了摆放模式就不再弹
                 TalkTo(instanceId);
