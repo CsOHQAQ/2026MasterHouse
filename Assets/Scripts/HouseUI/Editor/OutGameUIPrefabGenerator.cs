@@ -3006,9 +3006,11 @@ namespace MasterHouse
             ("wolf",    "wolf",    "wolf",    "wolf"),
             ("cheetah", "leopard", "leopard", "leopard"),
             ("leopard", "cheetah", "cheetah", "cheetah"),
-            ("ox",      "ox",      "ox",      "ox"),
+            // 牛家两位的卡面文件名历史上也是交叉的（同豹家）：ox 卡画的是牛莱老师(yak)，
+            // 牛来卡画的是牛小顿(ox)；详情立绘/头像的文件名是对的
+            ("ox",      "牛来",     "ox",      "ox"),
             ("cat",     "cat",     "cat",     "cat"),
-            ("yak",     "牛来",     "yak",     "yak"),
+            ("yak",     "ox",      "yak",     "yak"),
         };
 
         /// <summary>
