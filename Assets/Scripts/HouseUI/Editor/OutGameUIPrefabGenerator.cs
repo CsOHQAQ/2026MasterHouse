@@ -393,8 +393,7 @@ namespace MasterHouse
             // 只重填数组引用，**不碰任何位置尺寸**；上一版生成时还叫旧名的那几张
             // 当时没找到、存成了 null，改名并不会把 null 变回来。
             repaired |= RepairPrefab<OutGameCodexPageView>(CodexPagePath, RebindCodexPageArt,
-                view => view.races == null || view.races.Length != CodexEntries.Length ||
-                        view.revealedCards == null || view.revealedCards.Length != CodexEntries.Length);
+                CodexPageArtNeedsRebind);
             repaired |= RepairPrefab<OutGameCodexDetailView>(CodexDetailPath, RebindCodexDetailArt,
                 view => view.lockedHint == null || view.pageBackPaper == null ||
                         CodexArtNeedsRebind(view.races, view.portraits, view.avatars));
@@ -3307,6 +3306,29 @@ namespace MasterHouse
                 TextAnchor.MiddleCenter, FontStyle.Bold);
             label.raycastTarget = false;
             return label;
+        }
+
+        /// <summary>图鉴页数组是否需要重绑：逐项与条目表比对（数量、种族、两张卡面任一不符即重绑）。</summary>
+        private static bool CodexPageArtNeedsRebind(OutGameCodexPageView view)
+        {
+            if (view.races == null || view.revealedCards == null || view.hiddenCards == null) return true;
+            var index = 0;
+            foreach (var entry in CodexEntries)
+            {
+                var race = AssetDatabase.LoadAssetAtPath<VisitorRaceDef>(
+                    "Assets/Resources/OutGameUI/VisitorRaces/Race_" + entry.Race + ".asset");
+                var on = Codex(entry.Art + "-显示");
+                if (on == null) on = Codex(entry.Art + "-显示-1");
+                var off = Codex(entry.Art + "-不显示");
+                if (race == null || off == null) continue; // 素材不全的条目按构建口径跳过
+                if (on == null) on = off;
+                if (index >= view.races.Length) return true;
+                if (view.races[index] != race) return true;
+                if (view.revealedCards[index] != on) return true;
+                if (view.hiddenCards[index] != off) return true;
+                index++;
+            }
+            return index != view.races.Length;
         }
 
         /// <summary>图鉴页条目数组重绑（加种族时用）：只重取种族/两张卡面，不碰任何布局。</summary>
