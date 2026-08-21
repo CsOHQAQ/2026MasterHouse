@@ -3005,11 +3005,11 @@ namespace MasterHouse
             ("wolf",    "wolf",    "wolf",    "wolf"),
             ("cheetah", "leopard", "leopard", "leopard"),
             ("leopard", "cheetah", "cheetah", "cheetah"),
-            // 牛家两位的卡面文件名历史上也是交叉的（同豹家）：ox 卡画的是牛莱老师(yak)，
-            // 牛来卡画的是牛小顿(ox)；详情立绘/头像的文件名是对的
-            ("ox",      "牛来",     "ox",      "ox"),
+            // 牛家定案（2026-08-21 用户定案）：牛莱老师(yak)=白牛=牛来卡；牛小顿(ox)=棕牛=ox卡。
+            // 详情立绘/头像的文件名是交叉的：详情 ox.png 画的是白牛(yak)、详情 yak.png 画的是棕牛(ox)
+            ("ox",      "ox",      "yak",     "yak"),
             ("cat",     "cat",     "cat",     "cat"),
-            ("yak",     "ox",      "yak",     "yak"),
+            ("yak",     "牛来",     "ox",      "ox"),
         };
 
         /// <summary>
@@ -3354,14 +3354,17 @@ namespace MasterHouse
             view.hiddenCards = hidden.ToArray();
         }
 
-        /// <summary>条目数对不上、或者哪张图是空的，就该重绑。</summary>
+        /// <summary>条目数对不上、图为空、或与条目表逐项不符（映射改动），就该重绑。</summary>
         private static bool CodexArtNeedsRebind(VisitorRaceDef[] races, Texture2D[] portraits, Texture2D[] avatars)
         {
             if (races == null || races.Length != CodexEntries.Length) return true;
             if (portraits == null || portraits.Length != CodexEntries.Length) return true;
             if (avatars == null || avatars.Length != CodexEntries.Length) return true;
-            foreach (var texture in portraits) if (texture == null) return true;
-            foreach (var texture in avatars) if (texture == null) return true;
+            for (var i = 0; i < CodexEntries.Length; i++)
+            {
+                if (portraits[i] == null || portraits[i] != DetailTex("右侧立绘", CodexEntries[i].Portrait)) return true;
+                if (avatars[i] == null || avatars[i] != DetailTex("头像", CodexEntries[i].Avatar)) return true;
+            }
             return false;
         }
 
