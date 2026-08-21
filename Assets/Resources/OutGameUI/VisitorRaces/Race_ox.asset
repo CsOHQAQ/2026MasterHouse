@@ -20,8 +20,8 @@ MonoBehaviour:
   hobbies: "\u89C2\u5BDF\u3001\u63A8\u7406\u3001\u8BB0\u5F55"
   intro: "\u7EC6\u5FC3\u4F4E\u8C03\u7684\u79C1\u5BB6\u4FA6\u63A2\uFF0C\u4E60\u60EF\u628A\u81EA\u5DF1\u4F2A\u88C5\u6210\u8DEF\u4EBA\uFF0C\u5728\u5B89\u9759\u5904\u6355\u6349\u7EBF\u7D22\u3002"
   quote: "\u7EBF\u7D22\u5F80\u5F80\u85CF\u4E8E\u5E73\u9759\u4E4B\u4E0B\u2026..."
-  waitTalkTimeoutTicks: 4800
-  waitDeliverTimeoutTicks: 8400
-  wanderMaxTicks: 6600
+  waitTalkTimeoutTicks: 960
+  waitDeliverTimeoutTicks: 1680
+  wanderMaxTicks: 1320
   defaultPortraitId: "ox_\u5E73\u9759"
   sheetPath: OutGameUI/Visitors/ox

@@ -63,8 +63,40 @@ namespace MasterHouse.EditorTools
         private const string BatteryLitClipPath = "Assets/Resources/SoundEffect/4_ScoreGain_260812.mp3";
         private const string BatteryUnlitClipPath = "Assets/Resources/SoundEffect/4_ScoreLose_260813_1.mp3";
 
+        // ── 通关结算正式美术（与咖啡结算同样的层级与入场时序，但使用电路专属资产）──
+        private const string ResultArtDir = "Assets/PC ui 2.0/通关结算/";
+        private const float ResultArtScale = 1920f / 5120f;
+        // 底板文件是带大面积透明留白的横向画布，实际可见的竖向卡只占中段；
+        // 因此不能和统计条共用导入像素缩放。底板整体放大，统计条反向缩小，才和参考稿比例一致。
+        private const float ResultBoardScale = 1.5f;
+        private const float ResultStatsLocalScale = 0.45f;
+        private const float ResultStarLocalScale = 0.55f;
+        private static readonly Color ResultScrim = new Color(0.04f, 0.03f, 0.06f, 0.68f);
+        private static readonly Color ResultInk = new Color(0.22f, 0.34f, 0.55f, 1f);
+        private static readonly Color ResultMuted = new Color(0.38f, 0.47f, 0.60f, 1f);
+
         [MenuItem("MasterHouse/小游戏/创建修理电路资产（补齐缺失）")]
         public static void CreateIfMissing() => Generate(false);
+
+        /// <summary>
+        /// 旧 Prefab 的深色小结没有新版结算层需要的序列化引用；只改脚本不会让它凭空长出节点。
+        /// 这一段是一次性迁移：域重载后若发现缺新版结算节点，自动调用「补齐缺失」写入 Prefab。
+        /// 已迁移的项目不会再保存资产，也不会覆盖旧小结节点或任何手调内容。
+        /// </summary>
+        [InitializeOnLoadMethod]
+        private static void UpgradeResultPopupAfterDomainReload()
+        {
+            EditorApplication.delayCall += () =>
+            {
+                // 正在 Play Mode 时 Unity 不应碰资产；退出运行、脚本重载后会自然再执行一次。
+                if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+                var view = prefab != null ? prefab.GetComponent<CircuitMinigameView>() : null;
+                if (view != null && NeedsResultPopupUpgrade(view))
+                    Generate(false);
+            };
+        }
 
         [MenuItem("MasterHouse/小游戏/重建修理电路 Prefab（覆盖手调）")]
         public static void Rebuild()
@@ -112,7 +144,8 @@ namespace MasterHouse.EditorTools
                 created.Add(PrefabPath + (overwritePrefab ? "（重建）" : string.Empty));
             }
             else if (prefab.GetComponent<CircuitMinigameView>() is { } prefabView &&
-                     (prefabView.visualStyle == null || prefabView.uiStyle == null || NeedsAudioFill(prefabView)))
+                     (prefabView.visualStyle == null || prefabView.uiStyle == null || NeedsAudioFill(prefabView) ||
+                      NeedsResultPopupUpgrade(prefabView)))
             {
                 // 「补齐缺失」不能为了补一个引用覆盖整份手调 Prefab；只改字段袋里的空引用。
                 var contents = PrefabUtility.LoadPrefabContents(PrefabPath);
@@ -122,8 +155,12 @@ namespace MasterHouse.EditorTools
                     if (view.visualStyle == null) view.visualStyle = visualStyle;
                     if (view.uiStyle == null) view.uiStyle = uiStyle;
                     var audioFilled = AssignAudioClips(view);
+                    var resultFilled = EnsureResultPopup(view, (RectTransform)contents.transform);
                     prefab = PrefabUtility.SaveAsPrefabAsset(contents, PrefabPath);
-                    created.Add(PrefabPath + (audioFilled ? "（补样式/音效引用）" : "（补样式引用）"));
+                    var notes = new List<string> { "补样式引用" };
+                    if (audioFilled) notes.Add("音效引用");
+                    if (resultFilled) notes.Add("通关结算弹窗");
+                    created.Add(PrefabPath + "（" + string.Join("/", notes) + "）");
                 }
                 finally
                 {
@@ -385,6 +422,23 @@ namespace MasterHouse.EditorTools
             view.batteryLitClip == null || view.batteryUnlitClip == null;
 
         /// <summary>
+        /// 旧 Prefab 的小结是深色占位卡；新版多了 CanvasGroup、正式底板、统计与星级等引用。
+        /// 缺任一项时在旧节点旁新建 ResultPopup 并改写 View 引用，旧节点不删，避免覆盖任何手调。
+        /// </summary>
+        private static bool NeedsResultPopupUpgrade(CircuitMinigameView view) =>
+            view.summaryGroup == null || view.summaryBoard == null || view.summaryLitValue == null ||
+            view.summaryWireValue == null || view.summaryScoreValue == null || view.summaryStars == null ||
+            view.summaryStars.Length != 3 || view.summaryStars[0] == null || view.summaryStars[1] == null ||
+            view.summaryStars[2] == null;
+
+        private static bool EnsureResultPopup(CircuitMinigameView view, RectTransform parent)
+        {
+            if (!NeedsResultPopupUpgrade(view)) return false;
+            BuildSummaryPanel(parent, view);
+            return true;
+        }
+
+        /// <summary>
         /// 补本小游戏的五个音效剪辑（2026-08-20）：**只补空的**，已手动换过的不动。
         /// 剪辑不进音效表——这些是本小游戏的专属表现，配在自己的 Prefab 上更就近（换音 = 换这里的引用）。
         /// </summary>
@@ -602,37 +656,115 @@ namespace MasterHouse.EditorTools
         }
 
         /// <summary>
-        /// 过关小结（课程包专用）：全屏压黑 + 居中卡片。默认关闭，由 CircuitMinigame 开合。
-        ///
-        /// 背板的 raycastTarget 开着只是挡 UGUI 的点击；**棋盘挡不住**——它的命中判定走
-        /// 「鼠标屏幕坐标 → 棋盘局部坐标」一条路，不靠 raycast。所以面板开着时棋盘输入
-        /// 是由 CircuitMinigame 主动跳过的，不是靠这层背板。
+        /// 通关结算（单关 / 课程包共用）：复用咖啡结算的全屏遮罩、淡入上浮结构，
+        /// 但只引用 PC ui 2.0/通关结算 下的电路正式资产。中间课程关保留「下一关」和 ESC
+        /// 继续调整；最后一关和单关只显示 ESC，由运行时把它解释为确认结算并返回。
         /// </summary>
         private static void BuildSummaryPanel(RectTransform parent, CircuitMinigameView view)
         {
-            var panel = Rect(parent, "SummaryPanel", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            ImageOn(panel, new Color(0.04f, 0.03f, 0.06f, 0.78f)).raycastTarget = true;
+            var panel = Rect(parent, "ResultPopup", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            ImageOn(panel, ResultScrim).raycastTarget = true;
             view.summaryPanel = panel.gameObject;
+            view.summaryGroup = panel.gameObject.AddComponent<CanvasGroup>();
 
-            var card = Rect(panel, "Card", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
-                Vector2.zero, new Vector2(640, 360));
-            ImageOn(card, new Color(0.13f, 0.12f, 0.17f, 0.98f));
+            var board = ResultArtImage(panel, "Board", ResultArt("游戏结算"),
+                new Vector2(.5f, .5f), new Vector2(0, 30));
+            board.raycastTarget = true;
+            board.rectTransform.localScale = Vector3.one * ResultBoardScale;
+            view.summaryBoard = (RectTransform)board.transform;
 
-            view.summaryTitleLabel = Label(card, "Title", "第 1/7 关 完成", 36, Ink,
-                new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -66), new Vector2(-48, 64), TextAnchor.MiddleCenter);
+            var ribbon = ResultArtImage(board.transform, "Ribbon", ResultArt("蓝色缎带"),
+                new Vector2(.5f, .5f), new Vector2(0, 104));
+            ribbon.raycastTarget = false;
+            Label(ribbon.transform, "RibbonTitle", "修理电路", 30, Color.white,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 10), new Vector2(420, 44),
+                TextAnchor.MiddleCenter);
 
-            view.summaryBodyLabel = Label(card, "Body", "已点亮 0/0", 26, Muted,
-                new Vector2(0, 0), new Vector2(1, 1), new Vector2(0, 10), new Vector2(-72, -220), TextAnchor.UpperCenter);
-            view.summaryBodyLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
+            view.summaryTitleLabel = Label(board.transform, "Title", "第 1/7 关完成！", 40, ResultInk,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 29), new Vector2(560, 56),
+                TextAnchor.MiddleCenter);
 
-            Text continueCaption;
-            view.summaryContinueButton = ButtonAt(card, "ContinueButton", "下一关", ButtonPrimary,
-                new Vector2(.5f, 0), new Vector2(110, 58), new Vector2(220, 68), out continueCaption);
-            view.summaryContinueLabel = continueCaption;
-            view.summaryStayButton = ButtonAt(card, "StayButton", "继续调整", ButtonGhost,
-                new Vector2(.5f, 0), new Vector2(-110, 58), new Vector2(220, 68));
+            ResultArtImage(board.transform, "Divider", ResultArt("装饰线条"),
+                new Vector2(.5f, .5f), new Vector2(0, -11)).raycastTarget = false;
+
+            view.summaryBodyLabel = Label(board.transform, "Detail", "本关电路已全部点亮", 24, ResultMuted,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -60), new Vector2(600, 36),
+                TextAnchor.MiddleCenter);
+
+            var stats = ResultArtImage(board.transform, "StatsPanel", ResultArt("游戏数据统计面板去底处理-3 1"),
+                new Vector2(.5f, .5f), new Vector2(0, -145));
+            stats.raycastTarget = false;
+            stats.rectTransform.localScale = Vector3.one * ResultStatsLocalScale;
+            view.summaryLitValue = ResultStat(stats.transform, "Lit", "点亮", -155f);
+            view.summaryWireValue = ResultStat(stats.transform, "Wire", "导线", 15f);
+            view.summaryScoreValue = ResultStat(stats.transform, "Score", "得分", 205f);
+
+            var starSprite = ResultArt("星星-单颗");
+            view.summaryStars = new Image[3];
+            for (int i = 0; i < view.summaryStars.Length; i++)
+            {
+                var star = ResultArtImage(board.transform, "Star" + i, starSprite,
+                    new Vector2(.5f, .5f), new Vector2((i - 1) * 129f, -180f));
+                star.raycastTarget = false;
+                star.rectTransform.localScale = Vector3.one * ResultStarLocalScale;
+                view.summaryStars[i] = star;
+            }
+
+            view.summaryStayButton = ResultButton(panel, "EscapeButton", "ESC-默认", "ESC-hover",
+                new Vector2(.5f, 0), new Vector2(-140, 135));
+            view.summaryContinueButton = ResultButton(panel, "NextButton", "下一关-默认", "下一关-悬停",
+                new Vector2(.5f, 0), new Vector2(140, 135));
 
             panel.gameObject.SetActive(false);
+        }
+
+        private static Text ResultStat(Transform parent, string name, string caption, float x)
+        {
+            Label(parent, name + "Label", caption, 26, ResultMuted,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(x, 60), new Vector2(150, 28),
+                TextAnchor.MiddleCenter);
+            return Label(parent, name + "Value", "—", 34, ResultInk,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(x, -16), new Vector2(150, 34),
+                TextAnchor.MiddleCenter);
+        }
+
+        private static Sprite ResultArt(string name)
+        {
+            var path = ResultArtDir + name + ".png";
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (sprite == null)
+                Debug.LogError("[修理电路] 缺通关结算素材：" + path);
+            return sprite;
+        }
+
+        private static Image ResultArtImage(Transform parent, string name, Sprite sprite, Vector2 anchor,
+            Vector2 position)
+        {
+            var size = sprite != null
+                ? new Vector2(sprite.rect.width, sprite.rect.height) * ResultArtScale
+                : new Vector2(160f, 60f);
+            var image = ImageOn(Rect(parent, name, anchor, anchor, position, size), Color.white);
+            image.sprite = sprite;
+            image.preserveAspect = true;
+            return image;
+        }
+
+        private static Button ResultButton(Transform parent, string name, string normalName, string hoverName,
+            Vector2 anchor, Vector2 position)
+        {
+            var normal = ResultArt(normalName);
+            var hover = ResultArt(hoverName);
+            var image = ResultArtImage(parent, name, normal, anchor, position);
+            var button = image.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            button.transition = Selectable.Transition.SpriteSwap;
+            button.spriteState = new SpriteState
+            {
+                highlightedSprite = hover,
+                pressedSprite = hover,
+                selectedSprite = normal,
+            };
+            return button;
         }
 
         // ══════════ 绘制原语 ══════════

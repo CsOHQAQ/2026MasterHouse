@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   GridSize: 1
   TicksPerSecond: 10
-  HouseTicksPerGameMinute: 10
+  HouseTicksPerGameMinute: 2
   DefaultLinkBeatTicks: 10
   DefaultLinkTransitTicks: 10
   TransitTicksByLength: 0

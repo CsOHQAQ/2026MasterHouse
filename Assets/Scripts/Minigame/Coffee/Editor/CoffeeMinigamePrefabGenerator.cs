@@ -34,6 +34,7 @@ namespace MasterHouse.EditorTools
         private const string PourArtDir = "Assets/PC ui 2.0/咖啡/";
         private const string GrindArtDir = "Assets/PC ui 2.0/咖啡研磨/";
         private const string PauseArtDir = "Assets/PC ui 2.0/局内暂停弹窗/";
+        private const string SettleArtDir = "Assets/PC ui 2.0/通关结算/";
 
         /// <summary>
         /// 全页唯一的素材缩放规则：**显示尺寸 = 素材原始像素 × ArtScale**。
@@ -223,6 +224,7 @@ namespace MasterHouse.EditorTools
             BuildFooter(rootRect, view);
             BuildEscButton(rootRect, view);
             BuildTransition(rootRect, view);
+            BuildSettle(rootRect, view);
             BuildPause(rootRect, view);
             AssignAudioClips(view);
 
@@ -432,6 +434,98 @@ namespace MasterHouse.EditorTools
         }
 
         /// <summary>
+        /// 通关结算弹窗（2026-08-20，素材 PC ui 2.0/通关结算，版式量自 Docs/待办工作流/小游戏结算参考.png）：
+        /// 整屏遮罩 + 结算底板（顶部徽章与花环都烘在底板里）+ 缎带标题 + 得分明细
+        /// + 三栏统计（研磨/冲泡/评级）+ 三颗星 + 底下一颗【ESC 返回】。
+        /// 建在过场幕布之后、暂停弹窗之前——它出现时局已结束，不会与暂停弹窗同屏，
+        /// 但规矩上暂停弹窗仍是全页最顶。默认隐藏，冲泡灌满当帧由 CoffeeMinigame 打开，
+        /// 入场动画（根上的 CanvasGroup 淡入 + 底板与按钮上浮）也由它手推。
+        /// 星星用裁出来的「星星-单颗」（原图三颗连一张，没法按总分单独压暗）。
+        /// 素材与页面其他件同一套 2.667× 导出（ESC 内容 507×169 ≈ 页面 ESC 的 503×165，已验证），
+        /// 所以尺寸照旧走 ArtScale 规则。
+        /// </summary>
+        private static void BuildSettle(RectTransform parent, CoffeeMinigameView view)
+        {
+            var settleRoot = Rect(parent, "SettleRoot", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            view.settleRoot = settleRoot;
+
+            // 入场动画（淡入 + 上浮）只推这一个 alpha；位移由代码挪底板与按钮的 anchoredPosition
+            view.settleGroup = settleRoot.gameObject.AddComponent<CanvasGroup>();
+
+            var scrim = ImageOn(
+                Rect(settleRoot, "Scrim", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero), Scrim);
+            scrim.raycastTarget = true; // 结算期间底下的页面不该还能点
+
+            // 底板画布 3752×2110、板面内容约 2063×2054 居中——照 ArtScale 缩完板面约 774×770，
+            // 中心略抬 30 给底下的【ESC 返回】留位（参考图里弹窗整体也在中线偏上）
+            var board = ArtImage(settleRoot, "Board", Art(SettleArtDir, "游戏结算"),
+                new Vector2(.5f, .5f), new Vector2(0, 30));
+            board.raycastTarget = true; // 面板内的空白不穿透
+            view.settleBoard = (RectTransform)board.transform;
+
+            var ribbon = ArtImage(board.transform, "Ribbon", Art(SettleArtDir, "蓝色缎带"),
+                new Vector2(.5f, .5f), new Vector2(0, 104));
+            ribbon.raycastTarget = false;
+            // 缎带内容在画布里偏上 ~11px，标题往上挪同样的量才落在带面正中
+            Label(ribbon.transform, "Caption", "制作咖啡", 30, Color.white,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 10), new Vector2(420, 44),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+
+            Label(board.transform, "Title", "成功！", 40, InkBlue,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, 29), new Vector2(400, 56),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+
+            ArtImage(board.transform, "Divider", Art(SettleArtDir, "装饰线条"),
+                new Vector2(.5f, .5f), new Vector2(0, -11)).raycastTarget = false;
+
+            // 占位文字只是编辑器里好认——运行时这行由 CoffeeMinigame 按总分从
+            // view.settleFlavorLines（文案表，默认值写在 CoffeeMinigameView 上）里挑一档填
+            view.settleDetailLabel = Label(board.transform, "Detail", "香得理直气壮，今天这杯有底气。",
+                24, InkBlueMuted, new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                new Vector2(0, -60), new Vector2(600, 36), TextAnchor.MiddleCenter);
+
+            var stats = ArtImage(board.transform, "StatsPanel",
+                Art(SettleArtDir, "游戏数据统计面板去底处理-3 1"),
+                new Vector2(.5f, .5f), new Vector2(0, -178));
+            stats.raycastTarget = false;
+
+            // 三栏：图标烘在面板素材左侧，文字压在各格右侧的留白上（栏心 x 量自素材的分隔线）
+            view.settleGrindValue = SettleStat(stats.transform, "Grind", "研磨", -155f);
+            view.settlePourValue = SettleStat(stats.transform, "Pour", "冲泡", 15f);
+            view.settleGradeValue = SettleStat(stats.transform, "Grade", "评级", 205f);
+
+            var starSprite = Art(SettleArtDir, "星星-单颗");
+            view.settleStars = new Image[3];
+            for (int i = 0; i < 3; i++)
+            {
+                var star = ArtImage(board.transform, "Star" + i, starSprite,
+                    new Vector2(.5f, .5f), new Vector2((i - 1) * 129f, -296f));
+                star.raycastTarget = false;
+                view.settleStars[i] = star;
+            }
+
+            // 【ESC 返回】居中放在底板下面（2026-08-20 拍板：咖啡没有「下一关」，只放这一颗）
+            var normal = Art(SettleArtDir, "ESC-默认");
+            var hover = Art(SettleArtDir, "ESC-hover");
+            var button = ArtImage(settleRoot, "ReturnButton", normal,
+                new Vector2(.5f, 0f), new Vector2(0, 135));
+            view.settleReturnButton = SpriteSwapButton(button, normal, hover);
+
+            settleRoot.gameObject.SetActive(false); // Prefab 里就是关的，运行时由 CoffeeMinigame 开
+        }
+
+        /// <summary>统计面板的一栏：栏名在上（小、淡），数值在下（大、深）。数值由代码写。</summary>
+        private static Text SettleStat(Transform parent, string name, string caption, float x)
+        {
+            Label(parent, name + "Label", caption, 20, InkBlueMuted,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(x, 26), new Vector2(150, 28),
+                TextAnchor.MiddleCenter);
+            return Label(parent, name + "Value", "—", 26, InkBlue,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(x, -16), new Vector2(150, 34),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+        }
+
+        /// <summary>
         /// 节点/引用粒度的「补缺失」：给已存在的 Prefab 补后加的水面节点与循环音剪辑，
         /// 不动其他手调内容。以后再加新节点，照这个模式往 patched 里追一条即可。
         /// </summary>
@@ -449,6 +543,23 @@ namespace MasterHouse.EditorTools
                 {
                     AddWaterImage(view);
                     notes.Add("水面节点");
+                }
+                if (view.settleRoot == null)
+                {
+                    BuildSettle((RectTransform)root.transform, view);
+                    // 新节点被追加到末尾，插回暂停弹窗前面——暂停弹窗永远是全页最顶
+                    if (view.pauseRoot != null)
+                        view.settleRoot.SetSiblingIndex(view.pauseRoot.GetSiblingIndex());
+                    notes.Add("通关结算弹窗");
+                }
+                else if (view.settleGroup == null)
+                {
+                    // 弹窗节点是早一版补出来的，缺后加的入场动画件：CanvasGroup 挂上、
+                    // 底板引用照结构找回（得分明细行是底板的直接子节点，手调也不会挪出去）
+                    view.settleGroup = view.settleRoot.gameObject.AddComponent<CanvasGroup>();
+                    if (view.settleBoard == null && view.settleDetailLabel != null)
+                        view.settleBoard = (RectTransform)view.settleDetailLabel.transform.parent;
+                    notes.Add("结算弹窗入场动画件（CanvasGroup 与底板引用）");
                 }
                 if (AssignAudioClips(view)) notes.Add("音效剪辑");
 

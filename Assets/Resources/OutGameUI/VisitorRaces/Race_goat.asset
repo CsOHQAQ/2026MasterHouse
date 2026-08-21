@@ -20,8 +20,8 @@ MonoBehaviour:
   hobbies: "\u56ED\u827A\u3001\u5199\u624B\u8D26\u3001\u8DDF\u5BA2\u4EBA\u95F2\u804A\u3001\u53BB\u6D77\u8FB9\u6563\u6B65"
   intro: "\u6E29\u6696\u53EF\u9760\u7684\u6C11\u5BBF\u5E97\u4E3B\uFF0C\u64C5\u957F\u7167\u987E\u5BA2\u4EBA\uFF0C\u4E5F\u603B\u80FD\u5728\u5FD9\u4E71\u4E2D\u628A\u4E8B\u60C5\u5B89\u6392\u59A5\u5F53\u3002"
   quote: "\u597D\u7684\uFF0C\u6211\u9A6C\u4E0A\u4E3A\u60A8\u5B89\u6392\u54A9\u3002"
-  waitTalkTimeoutTicks: 3600
-  waitDeliverTimeoutTicks: 6600
-  wanderMaxTicks: 5400
+  waitTalkTimeoutTicks: 720
+  waitDeliverTimeoutTicks: 1320
+  wanderMaxTicks: 1080
   defaultPortraitId: "goat_\u5E73\u9759"
   sheetPath: OutGameUI/Visitors/goat

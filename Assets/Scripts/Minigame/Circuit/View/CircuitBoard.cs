@@ -647,7 +647,11 @@ namespace MasterHouse
             }
 
             nodePool.End();
+            // nodePool 与 iconPool 共用 nodeRoot。跨关复用时，新借出的节点底板可能位于旧图标之后，
+            // 使大尺寸节点把 FunctionIconSprite 盖住；每次重绘都明确恢复「底板/Pin → 图标 → 文本」层级。
+            iconPool.BringUsedToFront();
             iconPool.End();
+            labelPool.BringUsedToFront();
             labelPool.End();
         }
 
@@ -912,8 +916,15 @@ namespace MasterHouse
                 foreach (var cell in ghostDef.Shape.CellsAt(ghostOrigin))
                 {
                     var image = previewPool.Next();
+                    // 与描线预览共用对象池：必须清掉上一帧遗留的导线 Sprite / 旋转 / 镜像，
+                    // 否则完整矩形节点会被错误画成几段绿色导线。
+                    image.sprite = null;
+                    image.type = Image.Type.Simple;
+                    image.preserveAspect = false;
                     image.color = color;
                     var rect = image.rectTransform;
+                    rect.localRotation = Quaternion.identity;
+                    rect.localScale = Vector3.one;
                     rect.sizeDelta = new Vector2(cellSize - CellGap, cellSize - CellGap);
                     rect.anchoredPosition = CellToLocal(cell);
                 }
@@ -1235,6 +1246,13 @@ namespace MasterHouse
                 for (int i = used; i < items.Count; i++)
                     if (items[i].gameObject.activeSelf)
                         items[i].gameObject.SetActive(false);
+            }
+
+            /// <summary>将本轮实际使用的元素置于同一父节点的最上层，供共享 Root 的渲染层恢复顺序。</summary>
+            public void BringUsedToFront()
+            {
+                for (int i = 0; i < used; i++)
+                    items[i].transform.SetAsLastSibling();
             }
         }
 

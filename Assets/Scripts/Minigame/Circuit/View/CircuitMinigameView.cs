@@ -132,18 +132,43 @@ namespace MasterHouse
         public Button prevLessonButton;
         public Button retryLessonButton;
 
-        [Header("课程包·过关小结")]
-        [Tooltip("小结面板根节点，默认关闭。开着时棋盘不接受输入")]
+        [Header("通关结算弹窗")]
+        [Tooltip("结算弹窗根节点，默认关闭。开着时棋盘不接受输入；单关与课程包共用。")]
         public GameObject summaryPanel;
+
+        [Tooltip("结算弹窗整体的 CanvasGroup：入场时淡入。")]
+        public CanvasGroup summaryGroup;
+
+        [Tooltip("结算底板：入场时从下方轻微上浮。")]
+        public RectTransform summaryBoard;
 
         public Text summaryTitleLabel;
         public Text summaryBodyLabel;
 
+        [Tooltip("统计面板三栏：点亮数、导线使用、得分。")]
+        public Text summaryLitValue;
+        public Text summaryWireValue;
+        public Text summaryScoreValue;
+
+        [Tooltip("三颗星，从左到右；未点亮的星沿用同一素材压暗。")]
+        public Image[] summaryStars;
+
+        [Tooltip("分数达到此值亮三颗星。")]
+        public int summaryThreeStarScore = 90;
+
+        [Tooltip("分数达到此值亮两颗星；完成至少亮一颗。")]
+        public int summaryTwoStarScore = 60;
+
+        public Color summaryStarDimColor = new Color(0.55f, 0.52f, 0.48f, 0.85f);
+
+        [Tooltip("结算入场动画的时长（秒）：整体淡入，底板和按钮同步上浮。")]
+        public float summaryIntroSeconds = 0.3f;
+
+        [Tooltip("结算入场的上浮距离（px）。")]
+        public float summaryIntroRise = 28f;
+
         [Tooltip("小结面板上的主按钮：进入下一关 / 交卷")]
         public Button summaryContinueButton;
-
-        [Tooltip("主按钮的文案。会被改写成「下一关」/「交卷」")]
-        public Text summaryContinueLabel;
 
         [Tooltip("关掉小结、留在本关继续调整")]
         public Button summaryStayButton;

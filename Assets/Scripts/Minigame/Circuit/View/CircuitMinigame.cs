@@ -54,6 +54,10 @@ namespace MasterHouse
         private int currentIndex;
         private bool isLessonPack;
         private bool summaryOpen;
+        private float summaryIntroElapsed;
+        private Vector2 summaryBoardBasePos;
+        private Vector2 summaryContinueBasePos;
+        private Vector2 summaryStayBasePos;
 
         /// <summary>件库条目：运行时由模板克隆（§16.2 动态列表项）。</summary>
         private readonly List<CircuitPaletteItemView> paletteItems = new List<CircuitPaletteItemView>();
@@ -72,6 +76,11 @@ namespace MasterHouse
         private Color defaultDecorativeBackgroundColor;
 
         private bool IsLastLesson => currentIndex >= levels.Count - 1;
+        private bool HasFormalResultPopup =>
+            view.summaryGroup != null && view.summaryBoard != null && view.summaryLitValue != null &&
+            view.summaryWireValue != null && view.summaryScoreValue != null && view.summaryStars != null &&
+            view.summaryStars.Length == 3 && view.summaryStars[0] != null && view.summaryStars[1] != null &&
+            view.summaryStars[2] != null;
 
         // ══════════ IMinigame ══════════
 
@@ -136,6 +145,14 @@ namespace MasterHouse
         {
             if (!running) return;
 
+            // Play Mode 中脚本重编译 / Revert 后，Unity 可能保留 running，却丢失非序列化的 CircuitBoard。
+            // 直接继续轮询会在每帧 board.HandleInput() 处刷 NullReference；停止这次不完整的局，等待宿主重新启动。
+            if (view == null || board == null)
+            {
+                running = false;
+                return;
+            }
+
             // 分辨率/窗口变化时重算格子大小。比每帧无脑重排便宜，也不需要监听事件
             var size = view.boardArea.rect.size;
             if ((size - lastBoardAreaSize).sqrMagnitude > 1f)
@@ -160,7 +177,12 @@ namespace MasterHouse
 
             // 小结面板开着时不接受棋盘操作。**面板挡不住棋盘**——棋盘的命中判定走
             // 「鼠标屏幕坐标 → 棋盘局部坐标」一条路，不靠 raycast，全屏面板对它是透明的
-            if (summaryOpen) return;
+            if (summaryOpen)
+            {
+                if (HasFormalResultPopup)
+                    TickSummaryIntro(Time.deltaTime);
+                return;
+            }
 
             board.HandleInput();
         }
@@ -259,7 +281,6 @@ namespace MasterHouse
 
             var caption = IsLastLesson ? "交卷" : "下一关";
             view.finishButtonLabel.text = caption;
-            view.summaryContinueLabel.text = caption;
         }
 
         // ══════════ 结束 / 推进 ══════════
@@ -277,7 +298,10 @@ namespace MasterHouse
 
             if (!isLessonPack)
             {
-                Settle();
+                if (HasFormalResultPopup)
+                    OpenSummary(CircuitSolver.CountLit(level), CircuitSolver.CountBatteries(level));
+                else
+                    Settle(); // 旧 Prefab 尚未升级时维持原本的单关即时结算，不能让玩法卡死。
                 return;
             }
 
@@ -311,6 +335,13 @@ namespace MasterHouse
         {
             if (!running) return;
             CloseSummary();
+
+            // 尚未升级的旧 Prefab 仍是原来的「继续调整」小结，语义不能被新代码改变。
+            if (!HasFormalResultPopup) return;
+
+            // 单关与课程包最后一关的 ESC 都是「确认结算并返回」；中间关才是继续调整。
+            if (!isLessonPack || IsLastLesson)
+                Settle();
         }
 
         /// <summary>回上一关。局面不重建，之前的布线原样还在（可看可改）。</summary>
@@ -392,24 +423,84 @@ namespace MasterHouse
 
         private void OpenSummary(int lit, int total)
         {
+            // 升级前的旧 Prefab 继续走它原有的小结；这里不创建任何运行时布局，
+            // 只保证脚本与尚未重存的 Prefab 可以安全共存。执行生成器补齐后自动切到正式结算层。
+            if (!HasFormalResultPopup)
+            {
+                summaryOpen = true;
+                view.summaryTitleLabel.text = IsLastLesson
+                    ? "全部完成"
+                    : $"第 {currentIndex + 1}/{lessons.Count} 关 完成";
+                var legacyBudget = level.LinkCellBudget;
+                var legacyWire = legacyBudget > 0
+                    ? $"导线 {level.UsedLinkCells}/{legacyBudget}"
+                    : $"导线 {level.UsedLinkCells}";
+                view.summaryBodyLabel.text = IsLastLesson
+                    ? $"已点亮 {lit}/{total}　{legacyWire}\n交卷后本次教程结束。"
+                    : $"已点亮 {lit}/{total}　{legacyWire}";
+                view.summaryContinueButton.gameObject.SetActive(true);
+                view.summaryPanel.SetActive(true);
+                return;
+            }
+
+            CircuitSolver.Solve(level);
+            int score = CircuitSolver.Score(level);
+            int budget = level.LinkCellBudget;
+
             summaryOpen = true;
-            view.summaryPanel.SetActive(true);
+            view.summaryTitleLabel.text = !isLessonPack
+                ? "电路修理完成！"
+                : IsLastLesson ? "全部课程完成！" : $"第 {currentIndex + 1}/{levels.Count} 关完成！";
 
-            view.summaryTitleLabel.text = IsLastLesson
-                ? "全部完成"
-                : $"第 {currentIndex + 1}/{lessons.Count} 关 完成";
-
-            var budget = level.LinkCellBudget;
             var wire = budget > 0 ? $"导线 {level.UsedLinkCells}/{budget}" : $"导线 {level.UsedLinkCells}";
-            view.summaryBodyLabel.text = IsLastLesson
-                ? $"已点亮 {lit}/{total}　{wire}\n交卷后本次教程结束。"
-                : $"已点亮 {lit}/{total}　{wire}";
+            view.summaryBodyLabel.text = !isLessonPack
+                ? $"已完成本关电路修复　{wire}"
+                : IsLastLesson
+                    ? $"所有课程已完成　{wire}"
+                    : $"本关电路已全部点亮　{wire}";
+            view.summaryLitValue.text = $"{lit}/{total}";
+            view.summaryWireValue.text = budget > 0
+                ? $"{level.UsedLinkCells}/{budget}"
+                : level.UsedLinkCells.ToString();
+            view.summaryScoreValue.text = score.ToString();
+
+            int stars = score >= view.summaryThreeStarScore ? 3
+                : score >= view.summaryTwoStarScore ? 2 : 1;
+            for (int i = 0; i < view.summaryStars.Length; i++)
+                view.summaryStars[i].color = i < stars ? Color.white : view.summaryStarDimColor;
+
+            // 单关和最后一关只需 ESC 返回并结算；中间关才提供「下一关」。
+            view.summaryContinueButton.gameObject.SetActive(isLessonPack && !IsLastLesson);
+
+            // 入场动画按 Prefab 当前落点计算，手调位置不会被代码覆盖。
+            summaryIntroElapsed = 0f;
+            summaryBoardBasePos = view.summaryBoard.anchoredPosition;
+            summaryStayBasePos = ((RectTransform)view.summaryStayButton.transform).anchoredPosition;
+            if (view.summaryContinueButton.gameObject.activeSelf)
+                summaryContinueBasePos = ((RectTransform)view.summaryContinueButton.transform).anchoredPosition;
+            view.summaryGroup.alpha = 0f;
+            view.summaryPanel.SetActive(true);
+            TickSummaryIntro(0f);
         }
 
         private void CloseSummary()
         {
             summaryOpen = false;
             if (view.summaryPanel != null) view.summaryPanel.SetActive(false);
+        }
+
+        /// <summary>结算入场：与咖啡小游戏一致，淡入并让底板、按钮从下方轻微上浮。</summary>
+        private void TickSummaryIntro(float dt)
+        {
+            summaryIntroElapsed += dt;
+            float t = Mathf.Clamp01(summaryIntroElapsed / Mathf.Max(0.01f, view.summaryIntroSeconds));
+            float ease = 1f - (1f - t) * (1f - t) * (1f - t);
+            var lift = new Vector2(0f, view.summaryIntroRise * (1f - ease));
+            view.summaryGroup.alpha = ease;
+            view.summaryBoard.anchoredPosition = summaryBoardBasePos - lift;
+            ((RectTransform)view.summaryStayButton.transform).anchoredPosition = summaryStayBasePos - lift;
+            if (view.summaryContinueButton.gameObject.activeSelf)
+                ((RectTransform)view.summaryContinueButton.transform).anchoredPosition = summaryContinueBasePos - lift;
         }
 
         // ══════════ 界面刷新 ══════════
@@ -845,8 +936,7 @@ namespace MasterHouse
             ApplyButtonStyle(view.abortButton, style, style.abortButtonSprite);
             ApplyButtonStyle(view.prevLessonButton, style, style.prevLessonButtonSprite);
             ApplyButtonStyle(view.retryLessonButton, style, style.retryLessonButtonSprite);
-            ApplyButtonStyle(view.summaryContinueButton, style, style.summaryContinueButtonSprite);
-            ApplyButtonStyle(view.summaryStayButton, style, style.summaryStayButtonSprite);
+            // 结算层使用 PC ui 2.0/通关结算 的整图两态按钮，不受常规 UI 主题覆盖。
         }
 
         /// <summary>把主题中的按钮底图覆盖到 Button 的 TargetGraphic 上；缺图则保持 Prefab 原样。</summary>
@@ -1000,7 +1090,6 @@ namespace MasterHouse
             if (view.summaryTitleLabel == null) missing.Add(nameof(view.summaryTitleLabel));
             if (view.summaryBodyLabel == null) missing.Add(nameof(view.summaryBodyLabel));
             if (view.summaryContinueButton == null) missing.Add(nameof(view.summaryContinueButton));
-            if (view.summaryContinueLabel == null) missing.Add(nameof(view.summaryContinueLabel));
             if (view.summaryStayButton == null) missing.Add(nameof(view.summaryStayButton));
             if (view.finishButtonLabel == null) missing.Add(nameof(view.finishButtonLabel));
             return ReportMissing(missing);

@@ -392,6 +392,8 @@ namespace MasterHouse
             // 图鉴与详情页：重新绑按种族烘的图（2026-08-19 素材改名后补录）。
             // 只重填数组引用，**不碰任何位置尺寸**；上一版生成时还叫旧名的那几张
             // 当时没找到、存成了 null，改名并不会把 null 变回来。
+            repaired |= RepairPrefab<OutGameCodexPageView>(CodexPagePath, RebindCodexPageArt,
+                CodexPageArtNeedsRebind);
             repaired |= RepairPrefab<OutGameCodexDetailView>(CodexDetailPath, RebindCodexDetailArt,
                 view => view.lockedHint == null || view.pageBackPaper == null ||
                         CodexArtNeedsRebind(view.races, view.portraits, view.avatars));
@@ -2846,6 +2848,82 @@ namespace MasterHouse
             Save(root, path);
         }
 
+
+        /// <summary>获得物品弹窗 2.0 素材目录。</summary>
+        private const string Obtain2Dir = "Assets/PC ui 2.0/获得物品弹窗/";
+
+        private static Sprite Obtain2(string file)
+            => AssetDatabase.LoadAssetAtPath<Sprite>(Obtain2Dir + file + ".png");
+
+        /// <summary>
+        /// 获得物品弹窗（2026-08-20 设计图）：纸板自带「获得新物品」标题与光辉花环，
+        /// 物品图落在光辉中心，名称/描述在花环下方，「空格 确定」用美术两态图。
+        /// 这个弹窗就是商店的购买确认（空格按下才扣钱，见 StoreOverlay）。
+        /// </summary>
+        private static void BuildStoreObtainedPopup(OutGameStorePageView view, Transform parent)
+        {
+            var popupScrim = Image(parent, "ObtainedPopup", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+                new Color(.02f, .03f, .06f, .55f));
+            view.obtainedGroup = popupScrim.gameObject.AddComponent<CanvasGroup>();
+            view.obtainedGroup.alpha = 0f;
+            view.obtainedGroup.blocksRaycasts = false;
+            view.obtainedGroup.interactable = false;
+
+            var board = Image(popupScrim.transform, "Panel", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                new Vector2(0, 20), new Vector2(760, 564), Color.white);
+            board.sprite = Obtain2("Group 139");
+
+            // 物品图：光辉中心偏上（2026-08-20 反馈：整体再往上）。
+            // AspectRatioFitter.FitInParent 是按父节点撑的——必须先套一个固定尺寸的容器，
+            // 直接挂在纸板下会被撑成半个板子大、压住文字
+            var thumbBox = Rect(board.transform, "ThumbBox", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
+                new Vector2(-8, 92), new Vector2(170, 170));
+            view.obtainedThumb = Raw(thumbBox, "Thumb", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            var fitter = view.obtainedThumb.gameObject.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+
+            view.obtainedName = Label(board.transform, "Name", string.Empty, 26, Hex("3E6FA8"),
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -92), new Vector2(480, 36),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+            view.obtainedDesc = Label(board.transform, "Desc", string.Empty, 18,
+                new Color(.32f, .40f, .50f, .95f),
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), new Vector2(0, -146), new Vector2(520, 64),
+                TextAnchor.UpperCenter, FontStyle.Normal);
+
+            view.obtainedClose = SpriteButton(board.transform, "CloseObtained",
+                Obtain2("默认"), Obtain2("悬浮"),
+                new Vector2(.5f, 0), new Vector2(0, 52), new Vector2(210, 64));
+
+            // 选色块列：新设计图没画它，但功能在（多色变体购前选色），靠右竖排放着
+            view.obtainedSwatchRoot = Rect(board.transform, "SwatchColumn", new Vector2(1, .5f), new Vector2(1, .5f),
+                new Vector2(-52, 40), new Vector2(44, 320));
+        }
+
+        [MenuItem("Tools/MasterHouse/OutGame UI/重建获得物品弹窗（2.0 设计图，只动弹窗）")]
+        private static void RebuildObtainedPopup2()
+        {
+            if (!EditorUtility.DisplayDialog("按 2.0 设计图重建获得物品弹窗",
+                    "只重建 StorePage 里的 ObtainedPopup 子树并重绑引用，商店页其余布局不动。确定继续吗？",
+                    "重建弹窗", "取消")) return;
+            var root = PrefabUtility.LoadPrefabContents(StorePagePath);
+            try
+            {
+                var view = root.GetComponent<OutGameStorePageView>();
+                if (view == null) { Debug.LogError("[OutGameUI] StorePage 缺少视图组件"); return; }
+                var existing = root.transform.Find("ObtainedPopup");
+                if (existing != null) Object.DestroyImmediate(existing.gameObject);
+                BuildStoreObtainedPopup(view, root.transform);
+                ((RectTransform)view.obtainedGroup.transform).SetAsLastSibling(); // 弹窗永远压在页顶
+                PrefabUtility.SaveAsPrefabAsset(root, StorePagePath);
+                AssetDatabase.SaveAssets();
+                Debug.Log("[OutGameUI] 获得物品弹窗已按 2.0 设计图重建（其余布局未动）。");
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
         /// <summary>商店卡片模板（美术三态框：默认 defaul / 悬停 hover / 选中 selected）。</summary>
         /// <summary>商店 2.0 素材目录（2026-08-18 按新设计图重做）。</summary>
         private const string Store2Dir = "Assets/PC ui 2.0/store/";
@@ -2914,7 +2992,8 @@ namespace MasterHouse
 
         /// <summary>
         /// 图鉴条目：种族资产 ↔ 卡面素材名。顺序即翻页顺序（跟访客种族表行序）。
-        /// 牦牛（yak）暂无卡面素材，故不收录——素材补齐后在这里加一行即可。
+        /// 牛来（yak）的解锁彩卡（牛来-显示.png）美术还没给，先用剪影卡顶着（见构建处回退）；
+        /// 素材补齐后重跑「重建图鉴页」或等重绑修复即可换上。
         /// </summary>
         private static readonly (string Race, string Art, string Portrait, string Avatar)[] CodexEntries =
         {
@@ -2926,8 +3005,11 @@ namespace MasterHouse
             ("wolf",    "wolf",    "wolf",    "wolf"),
             ("cheetah", "leopard", "leopard", "leopard"),
             ("leopard", "cheetah", "cheetah", "cheetah"),
-            ("ox",      "ox",      "ox",      "ox"),
+            // 牛家定案（2026-08-21 用户定案）：牛莱老师(yak)=白牛=牛来卡；牛小顿(ox)=棕牛=ox卡。
+            // 详情立绘/头像的文件名是交叉的：详情 ox.png 画的是白牛(yak)、详情 yak.png 画的是棕牛(ox)
+            ("ox",      "ox",      "yak",     "yak"),
             ("cat",     "cat",     "cat",     "cat"),
+            ("yak",     "牛来",     "ox",      "ox"),
         };
 
         /// <summary>
@@ -2983,10 +3065,17 @@ namespace MasterHouse
                     "Assets/Resources/OutGameUI/VisitorRaces/Race_" + entry.Race + ".asset");
                 var on = Codex(entry.Art + "-显示");
                 var off = Codex(entry.Art + "-不显示");
-                if (race == null || on == null || off == null)
+                if (race == null || off == null)
                 {
                     Debug.LogWarning($"[OutGameUI] 图鉴条目素材不全，已跳过：{entry.Race}/{entry.Art}");
                     continue;
+                }
+                if (on == null) on = Codex(entry.Art + "-显示-1"); // 狼的彩卡历史文件名带 -1
+                if (on == null)
+                {
+                    // 解锁彩卡缺失：先用剪影卡顶着，素材补齐后重绑即可
+                    Debug.LogWarning($"[OutGameUI] 缺解锁卡面 {entry.Art}-显示，暂用剪影卡顶替");
+                    on = off;
                 }
                 races.Add(race);
                 revealed.Add(on);
@@ -3219,14 +3308,63 @@ namespace MasterHouse
             return label;
         }
 
-        /// <summary>条目数对不上、或者哪张图是空的，就该重绑。</summary>
+        /// <summary>图鉴页数组是否需要重绑：逐项与条目表比对（数量、种族、两张卡面任一不符即重绑）。</summary>
+        private static bool CodexPageArtNeedsRebind(OutGameCodexPageView view)
+        {
+            if (view.races == null || view.revealedCards == null || view.hiddenCards == null) return true;
+            var index = 0;
+            foreach (var entry in CodexEntries)
+            {
+                var race = AssetDatabase.LoadAssetAtPath<VisitorRaceDef>(
+                    "Assets/Resources/OutGameUI/VisitorRaces/Race_" + entry.Race + ".asset");
+                var on = Codex(entry.Art + "-显示");
+                if (on == null) on = Codex(entry.Art + "-显示-1");
+                var off = Codex(entry.Art + "-不显示");
+                if (race == null || off == null) continue; // 素材不全的条目按构建口径跳过
+                if (on == null) on = off;
+                if (index >= view.races.Length) return true;
+                if (view.races[index] != race) return true;
+                if (view.revealedCards[index] != on) return true;
+                if (view.hiddenCards[index] != off) return true;
+                index++;
+            }
+            return index != view.races.Length;
+        }
+
+        /// <summary>图鉴页条目数组重绑（加种族时用）：只重取种族/两张卡面，不碰任何布局。</summary>
+        private static void RebindCodexPageArt(GameObject root, OutGameCodexPageView view)
+        {
+            var races = new System.Collections.Generic.List<VisitorRaceDef>();
+            var revealed = new System.Collections.Generic.List<Sprite>();
+            var hidden = new System.Collections.Generic.List<Sprite>();
+            foreach (var entry in CodexEntries)
+            {
+                var race = AssetDatabase.LoadAssetAtPath<VisitorRaceDef>(
+                    "Assets/Resources/OutGameUI/VisitorRaces/Race_" + entry.Race + ".asset");
+                var on = Codex(entry.Art + "-显示");
+                if (on == null) on = Codex(entry.Art + "-显示-1"); // 狼的彩卡历史文件名带 -1
+                var off = Codex(entry.Art + "-不显示");
+                if (race == null || off == null) continue;
+                races.Add(race);
+                revealed.Add(on != null ? on : off);
+                hidden.Add(off);
+            }
+            view.races = races.ToArray();
+            view.revealedCards = revealed.ToArray();
+            view.hiddenCards = hidden.ToArray();
+        }
+
+        /// <summary>条目数对不上、图为空、或与条目表逐项不符（映射改动），就该重绑。</summary>
         private static bool CodexArtNeedsRebind(VisitorRaceDef[] races, Texture2D[] portraits, Texture2D[] avatars)
         {
             if (races == null || races.Length != CodexEntries.Length) return true;
             if (portraits == null || portraits.Length != CodexEntries.Length) return true;
             if (avatars == null || avatars.Length != CodexEntries.Length) return true;
-            foreach (var texture in portraits) if (texture == null) return true;
-            foreach (var texture in avatars) if (texture == null) return true;
+            for (var i = 0; i < CodexEntries.Length; i++)
+            {
+                if (portraits[i] == null || portraits[i] != DetailTex("右侧立绘", CodexEntries[i].Portrait)) return true;
+                if (avatars[i] == null || avatars[i] != DetailTex("头像", CodexEntries[i].Avatar)) return true;
+            }
             return false;
         }
 
@@ -3641,31 +3779,7 @@ namespace MasterHouse
             // COST 面板提到预览图之上（它建得早，否则会被右页那张大预览压住）
             costPanel.transform.SetAsLastSibling();
 
-            // 获得弹窗（NEW ITEM OBTAINED）：默认隐藏，绑定层开合
-            var popupScrim = Image(root.transform, "ObtainedPopup", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
-                new Color(0, 0, 0, .62f));
-            view.obtainedGroup = popupScrim.gameObject.AddComponent<CanvasGroup>();
-            view.obtainedGroup.alpha = 0f;
-            view.obtainedGroup.blocksRaycasts = false;
-            view.obtainedGroup.interactable = false;
-            // 换 2.0 二次确认底板（2026-08-20）：这个弹窗就是商店的购买确认，空格按下才扣钱
-            var popupPanel = Image(popupScrim.transform, "Panel", new Vector2(.5f, .5f), new Vector2(.5f, .5f),
-                Vector2.zero, new Vector2(ConfirmPanelW, ConfirmPanelH), Color.white);
-            popupPanel.sprite = Confirm2("底板");
-            view.obtainedThumb = Raw(popupPanel.transform, "Thumb", new Vector2(0, 1), new Vector2(0, 1),
-                new Vector2(178, -222), new Vector2(150, 150));
-            var obtainedFitter = view.obtainedThumb.gameObject.AddComponent<AspectRatioFitter>();
-            obtainedFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-            view.obtainedName = Label(popupPanel.transform, "Name", string.Empty, 24, Hex("3E6FA8"),
-                new Vector2(0, 1), new Vector2(0, 1), new Vector2(470, -168), new Vector2(380, 34),
-                TextAnchor.MiddleLeft, FontStyle.Bold);
-            view.obtainedDesc = Label(popupPanel.transform, "Desc", string.Empty, 18,
-                new Color(.28f, .34f, .44f, .95f),
-                new Vector2(0, 1), new Vector2(0, 1), new Vector2(470, -238), new Vector2(380, 92),
-                TextAnchor.UpperLeft, FontStyle.Normal);
-            view.obtainedClose = SpriteButton(popupPanel.transform, "CloseObtained",
-                Confirm2("确认-默认"), Confirm2("确认-hover"),
-                new Vector2(.5f, 0), new Vector2(0, ConfirmBtnY), new Vector2(ConfirmOkW, ConfirmOkH));
+            BuildStoreObtainedPopup(view, root.transform); // 获得物品弹窗（2.0 素材，可单独重建）
             Save(root, path);
         }
 

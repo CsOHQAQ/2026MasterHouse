@@ -21,8 +21,8 @@ MonoBehaviour:
   intro: "\u4E00\u540D\u4F18\u96C5\u4F46\u8BB0\u4EC7\u7684\u94A2\u7434\u8001\u5E08\uFF0C\u8BA8\u538C\u4E00\u4E9B\u6CA1\u54C1\u7684\u5BB6\u4F19\u8BC4\u4EF7\u81EA\u5DF1\u7684\u66F2\u5B50\u4E0D\u597D\u542C\uFF0C\u66F4\u8BA8\u538C\u88AB\u5B66\u751F\u73A9\u6897
     \u2014\u2014\u5BF9\u725B\u5F39\u7434 \uFF01\uFF01\uFF01"
   quote: "\u8BF7\u4E0D\u8981\u5728\u6211\u9762\u524D\u63D0\u5230\u90A3\u4E2A\u8BCD\u3002"
-  waitTalkTimeoutTicks: 3900
-  waitDeliverTimeoutTicks: 7000
-  wanderMaxTicks: 5600
+  waitTalkTimeoutTicks: 780
+  waitDeliverTimeoutTicks: 1400
+  wanderMaxTicks: 1120
   defaultPortraitId: "yak_\u5E73\u9759"
   sheetPath: OutGameUI/Visitors/yak

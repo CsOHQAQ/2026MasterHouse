@@ -86,6 +86,64 @@ namespace MasterHouse
                  "页面上不再单独摆一颗放弃按钮——设计图里只有左下角那颗 ESC（2026-08-20）")]
         public Button abortButton;
 
+        [Header("通关结算弹窗（2026-08-20，版式见 Docs/待办工作流/小游戏结算参考.png）")]
+        [Tooltip("结算弹窗根：默认隐藏。冲泡灌满当帧由代码打开（带入场动画），\n" +
+                 "点【ESC 返回】或按 ESC 键才真正 onFinish——通关不再自动退出")]
+        public RectTransform settleRoot;
+
+        [Tooltip("结算弹窗整体的 CanvasGroup（挂在弹窗根上）：入场淡入用，代码只推 alpha")]
+        public CanvasGroup settleGroup;
+
+        [Tooltip("结算底板节点：入场时连同【ESC 返回】一起从下方浮上来")]
+        public RectTransform settleBoard;
+
+        [Tooltip("入场动画时长（秒）：整体淡入 + 底板与按钮上浮，与二次确认弹窗同观感")]
+        public float settleIntroSeconds = 0.3f;
+
+        [Tooltip("入场上浮的距离（px）")]
+        public float settleIntroRise = 28f;
+
+        [Tooltip("弹窗底部的【ESC 返回】：分已到手，点击 = 结算退出（走 onFinish，不是放弃）")]
+        public Button settleReturnButton;
+
+        [Tooltip("标题下那行结算点评：按总分从 settleFlavorLines 里挑一档，文案由代码填。\n" +
+                 "得分明细在下面三栏统计里已经有了，这行只放调侃")]
+        public Text settleDetailLabel;
+
+        [Tooltip("结算点评文案表（按总分分档，改文案 = 改这里，不用碰代码，见架构 §16.6）：\n" +
+                 "每次取「下限 ≤ 总分」里下限最大的一条，顺序随便填，代码自己挑。\n" +
+                 "表空着或全都够不着 = 那行退回显示「研磨 X ＋ 冲泡 Y ＝ Z 分」。\n" +
+                 "单行不换行（Detail 宽 600px、字号 24），一条控制在 20 个汉字以内")]
+        public CoffeeSettleFlavor[] settleFlavorLines =
+        {
+            new CoffeeSettleFlavor { minScore = 90, text = "香得理直气壮，今天这杯有底气。" },
+            new CoffeeSettleFlavor { minScore = 75, text = "挑不出毛病的一杯，就是有点太乖。" },
+            new CoffeeSettleFlavor { minScore = 60, text = "味道还行，客人应该不会说什么。" },
+            new CoffeeSettleFlavor { minScore = 40, text = "有点涩，配块饼干应该没人发现。" },
+            new CoffeeSettleFlavor { minScore = 0,  text = "你冲泡出了一杯苦苦的咖啡，提神管够。" },
+        };
+
+        [Tooltip("统计面板三栏之一：研磨得分")]
+        public Text settleGrindValue;
+
+        [Tooltip("统计面板三栏之二：冲泡得分")]
+        public Text settlePourValue;
+
+        [Tooltip("统计面板三栏之三：评级（冲泡档位名：优秀/良好/普通）")]
+        public Text settleGradeValue;
+
+        [Tooltip("三颗星，从左到右。素材只有亮星没有灰星——没点亮的用同一张图按 settleStarDimColor 压暗占位")]
+        public Image[] settleStars;
+
+        [Tooltip("总分 ≥ 这个值亮 3 颗星")]
+        public int settleThreeStarScore = 90;
+
+        [Tooltip("总分 ≥ 这个值亮 2 颗星；不足也给 1 颗——没有失败条件，通关就至少一颗")]
+        public int settleTwoStarScore = 60;
+
+        [Tooltip("没点亮的星的乘法染色（同一张亮星素材压暗）")]
+        public Color settleStarDimColor = new Color(0.55f, 0.52f, 0.48f, 0.85f);
+
         [Header("音效（剪辑直配在这里，不进音效表）")]
         [Tooltip("阶段通关音（一次性）：磨豆磨满、冲泡灌满时各响一次。\n" +
                  "默认复用全局的正向提示音 4_ScoreGain；留空 = 不响")]
@@ -133,9 +191,6 @@ namespace MasterHouse
 
         [Tooltip("撞击提示在提示栏停留的秒数，之后恢复环节说明")]
         public float hitMessageSeconds = 1.2f;
-
-        [Tooltip("结算展示（研磨 X + 冲泡 Y = Z 分）停留秒数，之后才真正 onFinish")]
-        public float settleShowSeconds = 1.6f;
 
         [Header("环节过场（磨豆 → 冲泡）")]
         [Tooltip("过场幕布根：整屏米白纸色 + 居中的环节名。默认隐藏，只在换环节那一下放。\n" +
@@ -243,5 +298,22 @@ namespace MasterHouse
 
         [Tooltip("撞障碍时的警示色")]
         public Color messageWarnColor = new Color(0.72f, 0.35f, 0.30f, 1f);
+    }
+
+    /// <summary>
+    /// 结算弹窗那行点评的一档：总分下限 + 文案（CoffeeMinigameView.settleFlavorLines 的表行）。
+    ///
+    /// 内容进资产、不进代码（架构 §16.6）：加档 = 加一行，改口吻 = 改 Inspector。
+    /// 判定用的是**总分**（研磨 0~50 ＋ 冲泡 20/30/50，封顶 100），与星数阈值各算各的——
+    /// 想让点评跟着星走，把下限填成 settleTwoStarScore / settleThreeStarScore 一样的值即可。
+    /// </summary>
+    [System.Serializable]
+    public sealed class CoffeeSettleFlavor
+    {
+        [Tooltip("总分下限（含）。挑的是「够得着的档里下限最大的那条」，所以最低那档填 0 兜底")]
+        public int minScore;
+
+        [Tooltip("这一档显示的点评文案")]
+        public string text;
     }
 }

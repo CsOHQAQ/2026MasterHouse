@@ -19,7 +19,8 @@ namespace MasterHouse
     /// （见 SfxManager 类注释），本类调它们只是"发声"，不读也不写任何业务状态，依赖方向没有掰弯。
     ///
     /// 流程：磨豆子（环上避障，上限 50 分）→ 冲咖啡（匀速移动，三档 50/30/20 分）
-    /// → 结算展示片刻 → onFinish(两环节相加)。没有失败条件。
+    /// → 灌满当帧弹通关结算弹窗（三栏统计 + 按总分点星，入场淡入上浮）→ 点【ESC 返回】
+    /// 或按 ESC 才 onFinish(两环节相加)。没有失败条件。
     ///
     /// ESC / 左下角键位条是**暂停**（2026-08-20 按设计图改）：弹出局内暂停弹窗、整局冻结，
     /// 【继续】回去接着玩，【放弃】才走 onAbort（不结算，访客保持「服务中」，重开全重置）。
@@ -62,8 +63,15 @@ namespace MasterHouse
         private bool transitionSwapped;
 
         private int grindScore;
-        private float settleRemaining;
         private float messageResetRemaining;
+
+        /// <summary>ESC 请求退出的标记（下一帧才 Finish，见 ConsumeEscape 的理由）。</summary>
+        private bool settleExitAsked;
+
+        /// <summary>入场动画：已播秒数，以及底板/按钮的落点（开窗那一刻从 Prefab 上读，尊重手调）。</summary>
+        private float settleIntroElapsed;
+        private Vector2 settleBoardBasePos;
+        private Vector2 settleButtonBasePos;
 
         private Material waterMaterial;
         private float wobblePhase;
@@ -124,7 +132,9 @@ namespace MasterHouse
             view.abortButton.onClick.AddListener(OnAbortClicked);
             view.escButton.onClick.AddListener(TogglePause);
             view.resumeButton.onClick.AddListener(ClosePause);
+            view.settleReturnButton.onClick.AddListener(OnSettleReturnClicked);
             view.pauseRoot.gameObject.SetActive(false);
+            view.settleRoot.gameObject.SetActive(false);
             view.transitionGroup.alpha = 0f;
             view.transitionRoot.gameObject.SetActive(false);
 
@@ -186,8 +196,13 @@ namespace MasterHouse
                     break;
 
                 case EPhase.Settle:
-                    settleRemaining -= dt;
-                    if (settleRemaining <= 0f) Finish();
+                    // ESC 请求的退出在这里兑现（不在收键调用栈里递归弹栈，见 ConsumeEscape）
+                    if (settleExitAsked)
+                    {
+                        Finish();
+                        break;
+                    }
+                    TickSettleIntro(dt);
                     break;
             }
 
@@ -277,7 +292,6 @@ namespace MasterHouse
         private void EnterSettle()
         {
             phase = EPhase.Settle;
-            settleRemaining = Mathf.Max(0f, view.settleShowSeconds);
             SfxManager.PlayOnce(view.stageClearClip, view.stageClearVolume); // ② 冲泡通关（同时是全局结算）
 
             // 结算已定，别让玩家手滑把到手的分弃掉
@@ -293,6 +307,87 @@ namespace MasterHouse
             }
             messageResetRemaining = 0f;
             view.progressFill.anchorMax = new Vector2(1f, 1f);
+
+            // 弹窗当帧就出，不再停留（2026-08-20 反馈「不需要延迟」后去掉）。
+            // 上面那行明细文字仍保留：入场淡入的前几帧遮罩还透着，页面读作完成态更顺
+            OpenSettlePopup();
+        }
+
+        /// <summary>
+        /// 打开通关结算弹窗（2026-08-20 按设计图接入）：填按总分挑的点评与三栏统计（研磨/冲泡/评级）、
+        /// 按总分阈值点星，并从头播入场动画（整体淡入 + 底板与按钮上浮，见 TickSettleIntro）。
+        /// 弹窗一开就等玩家：点【ESC 返回】或按 ESC 键才真正 Finish，通关不再自动退出。
+        /// </summary>
+        private void OpenSettlePopup()
+        {
+            int total = TotalScore();
+            view.settleDetailLabel.text = SettleFlavorText(total);
+            view.settleGrindValue.text = grindScore.ToString();
+            view.settlePourValue.text = pour.Score.ToString();
+            view.settleGradeValue.text = pour.GradeName;
+
+            int stars = total >= view.settleThreeStarScore ? 3
+                : total >= view.settleTwoStarScore ? 2
+                : 1; // 没有失败条件，通关就至少给一颗
+            for (int i = 0; i < view.settleStars.Length; i++)
+                view.settleStars[i].color = i < stars ? Color.white : view.settleStarDimColor;
+
+            // 入场动画从第 0 帧摆好：整体全透、底板与按钮沉到落点下方，再由 TickSettleIntro 推上来。
+            // 落点每次开窗现读——Prefab 上的位置是手调的真相源，不在代码里写死
+            settleIntroElapsed = 0f;
+            settleBoardBasePos = view.settleBoard.anchoredPosition;
+            settleButtonBasePos = ((RectTransform)view.settleReturnButton.transform).anchoredPosition;
+            view.settleGroup.alpha = 0f;
+            view.settleRoot.gameObject.SetActive(true);
+            TickSettleIntro(0f);
+        }
+
+        /// <summary>
+        /// 挑结算那行点评：在 view.settleFlavorLines 里取「下限 ≤ 总分」中下限最大的一条。
+        /// 表的顺序不作数（策划随手插一行也不会挑错），文案本身全在 Inspector 上改。
+        /// 表空着 / 全都够不着（最低那档没填 0）时退回老的得分明细，那行不至于空白。
+        /// </summary>
+        private string SettleFlavorText(int total)
+        {
+            CoffeeSettleFlavor best = null;
+            var lines = view.settleFlavorLines;
+            if (lines != null)
+            {
+                foreach (var line in lines)
+                {
+                    if (line == null || string.IsNullOrEmpty(line.text)) continue;
+                    if (line.minScore > total) continue;
+                    if (best == null || line.minScore > best.minScore) best = line;
+                }
+            }
+
+            return best != null
+                ? best.text
+                : $"研磨 {grindScore} ＋ 冲泡 {pour.Score} ＝ {total} 分";
+        }
+
+        /// <summary>
+        /// 结算弹窗入场（与二次确认弹窗同观感：淡入 + 上浮，缓出曲线）。
+        /// 与过场幕布同例走本组件的 dt 手推，不引 DOTween——本类的时间都自治在 Update 里。
+        /// 播完后幂等：底板与按钮停在落点、alpha 停在 1，重复调用无害。
+        /// </summary>
+        private void TickSettleIntro(float dt)
+        {
+            settleIntroElapsed += dt;
+            float t = Mathf.Clamp01(settleIntroElapsed / Mathf.Max(0.01f, view.settleIntroSeconds));
+            float ease = 1f - (1f - t) * (1f - t) * (1f - t); // 缓出三次方：起步快、收尾轻
+            view.settleGroup.alpha = ease;
+            var lift = new Vector2(0f, view.settleIntroRise * (1f - ease));
+            view.settleBoard.anchoredPosition = settleBoardBasePos - lift;
+            ((RectTransform)view.settleReturnButton.transform).anchoredPosition =
+                settleButtonBasePos - lift;
+        }
+
+        /// <summary>弹窗上的【ESC 返回】：分已到手，结算退出（走 onFinish，不是放弃）。</summary>
+        private void OnSettleReturnClicked()
+        {
+            if (!running || phase != EPhase.Settle) return;
+            Finish();
         }
 
         /// <summary>结算：两环节相加。宿主那边还会再 Clamp 一次，这里也守住 0~100 的契约。</summary>
@@ -326,9 +421,9 @@ namespace MasterHouse
         /// <list type="bullet">
         /// <item>弹窗开着 → 关掉它，本次 ESC 被消费，页面不退；</item>
         /// <item>局面进行中 → 打开弹窗，同样消费；</item>
-        /// <item>结算展示中 → 消费掉，但既不暂停也不放弃，而是**跳过展示**：把倒计时清零，
-        ///   下一帧照常走 Finish。分已经挣到手了，这一下不该把它弄丢
-        ///   （清零而不是当场调 Finish，是为了不在壳的收键调用栈里递归弹栈）。</item>
+        /// <item>结算弹窗开着（灌满当帧就开）→ 消费掉，请求退出，下一帧照常走 Finish。
+        ///   分已经挣到手了，这一下不该把它弄丢
+        ///   （置标记而不是当场调 Finish，是为了不在壳的收键调用栈里递归弹栈）。</item>
         /// <item>已经结束 / 放弃过 → 不消费，交回给壳去弹栈关页面。</item>
         /// </list>
         /// 壳侧的转发见 <see cref="MinigameOverlay.ConsumeEscape"/>——ESC 是页面级语义，
@@ -345,7 +440,7 @@ namespace MasterHouse
 
             if (phase == EPhase.Settle)
             {
-                settleRemaining = 0f;
+                settleExitAsked = true;
                 return true;
             }
 
@@ -640,6 +735,20 @@ namespace MasterHouse
             if (view.transitionRoot == null) missing.Add(nameof(view.transitionRoot));
             if (view.transitionGroup == null) missing.Add(nameof(view.transitionGroup));
             if (view.abortButton == null) missing.Add(nameof(view.abortButton));
+            if (view.settleRoot == null) missing.Add(nameof(view.settleRoot));
+            if (view.settleGroup == null) missing.Add(nameof(view.settleGroup));
+            if (view.settleBoard == null) missing.Add(nameof(view.settleBoard));
+            if (view.settleReturnButton == null) missing.Add(nameof(view.settleReturnButton));
+            if (view.settleDetailLabel == null) missing.Add(nameof(view.settleDetailLabel));
+            if (view.settleGrindValue == null) missing.Add(nameof(view.settleGrindValue));
+            if (view.settlePourValue == null) missing.Add(nameof(view.settlePourValue));
+            if (view.settleGradeValue == null) missing.Add(nameof(view.settleGradeValue));
+            // 数组要整包校验：空数组或任一空槽都算缺（用 Unity 的 == 判空，兜住失引用的假 null）
+            var starsOk = view.settleStars != null && view.settleStars.Length > 0;
+            if (starsOk)
+                foreach (var star in view.settleStars)
+                    if (star == null) starsOk = false;
+            if (!starsOk) missing.Add(nameof(view.settleStars));
             if (missing.Count == 0) return true;
 
             // 2026-08-20 换 2.0 版式后，缺的多半是整页改版带来的新节点——那是「补齐缺失」补不出来的，
