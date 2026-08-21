@@ -25,12 +25,10 @@ namespace MasterHouse
     /// </summary>
     public sealed class CircuitBoard
     {
-        /// <summary>格子中心死区半径（相对格子边长）：press 落在这个圈内算「抓节点」，圈外算「抓最近边的 Pin」。
-        /// 1×1 的十字件四个 Pin 全在同一格上，没有这个死区就永远拖不动它。</summary>
-        private const float NodeGrabDeadZone = 0.30f;
-
         private const float WireWidthFactor = 0.30f;
         private const float DefaultPinSizeInCells = 0.75f;
+        private const float DefaultPinInteractionScale = 1.75f;
+        private const float DefaultNodeDragInteractionScale = 0.65f;
         private const float CellGap = 2f;
         private const float FunctionIconPaddingFactor = 0.18f;
         private const float MessageSeconds = 3.5f;
@@ -285,7 +283,8 @@ namespace MasterHouse
                 return;
             }
 
-            // 落在中心死区：抓件移动（题面的电源电池 CanMove 为 false，MoveNode 会拒）
+            // Pin 未命中且落在节点缩小后的中心区域：抓件移动（题面的电源电池 CanMove 为 false）。
+            if (!IsInNodeDragInteractionArea(node, cell, offset)) return;
             if (node.Def.NodeType != ENodeType.Transit || !node.CanMove) return;
             draggingNode = node;
             dragGrabOffset = cell - node.Origin;
@@ -516,28 +515,52 @@ namespace MasterHouse
             return occupant?.Node;
         }
 
-        /// <summary>
-        /// 这一格上、离按下点最近的那条边所对应的 Pin。
-        /// 按下点落在格心死区内返回 null（表示玩家想抓的是件本身而不是接口）。
-        /// </summary>
-        private static PinData PickPinOnCell(NodeData node, Vector2Int cell, Vector2 offsetInCell)
+        /// <summary>取按下点落入热区的 Pin。同一格有多个 Pin 时取离 Pin 图标中心最近的一个。</summary>
+        private PinData PickPinOnCell(NodeData node, Vector2Int cell, Vector2 offsetInCell)
         {
-            if (offsetInCell.magnitude < NodeGrabDeadZone) return null;
-
             var localCell = cell - node.Origin;
             PinData best = null;
-            float bestDot = float.NegativeInfinity;
+            float bestDistanceSq = float.PositiveInfinity;
+            var style = view.visualStyle;
+            float pinSize = style != null ? Mathf.Max(0f, style.pinSizeInCells) : DefaultPinSizeInCells;
+            float interactionScale = style != null
+                ? Mathf.Max(0f, style.pinInteractionScale)
+                : DefaultPinInteractionScale;
+            float hitRadius = pinSize * interactionScale * .5f;
+            float hitRadiusSq = hitRadius * hitRadius;
             foreach (var pin in node.Pins)
             {
                 if (pin.Layout.LocalCell != localCell) continue;
                 var outward = Direction4.ToOffset(pin.Layout.Facing);
-                // 按下方向与 Pin 朝向的贴合度：同一格上多个 Pin 时取最贴合的那个
-                float dot = offsetInCell.x * outward.x + offsetInCell.y * outward.y;
-                if (dot <= 0f || dot <= bestDot) continue;
-                bestDot = dot;
+                var pinCenter = new Vector2(outward.x, outward.y) * .34f;
+                float distanceSq = (offsetInCell - pinCenter).sqrMagnitude;
+                if (distanceSq > hitRadiusSq || distanceSq >= bestDistanceSq) continue;
+                bestDistanceSq = distanceSq;
                 best = pin;
             }
             return best;
+        }
+
+        /// <summary>
+        /// 节点拖动热区是节点外框按配置缩放后的中心矩形。仍先由 <see cref="PickPinOnCell"/>
+        /// 处理 Pin，所以两个区域重叠时始终优先拉线。PickNode 已确保按下格属于节点形状。
+        /// </summary>
+        private bool IsInNodeDragInteractionArea(NodeData node, Vector2Int cell, Vector2 offsetInCell)
+        {
+            if (!TryGetShapeBounds(node.Def.Shape, out int minX, out int minY, out int width, out int height))
+                return false;
+
+            var style = view.visualStyle;
+            float scale = style != null
+                ? Mathf.Clamp01(style.nodeDragInteractionScale)
+                : DefaultNodeDragInteractionScale;
+            var point = new Vector2(
+                cell.x - node.Origin.x + offsetInCell.x + .5f,
+                cell.y - node.Origin.y + offsetInCell.y + .5f);
+            var center = new Vector2(minX + width * .5f, minY + height * .5f);
+            var halfSize = new Vector2(width * scale * .5f, height * scale * .5f);
+            var delta = point - center;
+            return Mathf.Abs(delta.x) <= halfSize.x && Mathf.Abs(delta.y) <= halfSize.y;
         }
 
         /// <summary>按接线格反查 Pin（排除起点所在节点）。遍历按 NodeId 稳定顺序。</summary>
@@ -1001,9 +1024,22 @@ namespace MasterHouse
 
                 if (cells.Count == 1)
                 {
-                    // 刚按下 Pin、还没经过第二格时，显示一个朝默认方向的断头，给玩家明确的起笔反馈。
-                    sprite = style.wireOpenEndSprite != null ? style.wireOpenEndSprite : style.wireStraightSprite;
-                    rotation = 0f;
+                    if (!isPreview && startPin != null && endPin != null)
+                    {
+                        // 两个 Pin 的外侧接口格重合时，路径合法但只有一格。它是完成的 Pin-to-Pin
+                        // 直连，不应复用“刚起笔”的断头图。专用图留空则降级为普通直线。
+                        sprite = style.wirePinToPinSprite != null
+                            ? style.wirePinToPinSprite
+                            : style.wireStraightSprite;
+                        // StraightPin 的原图是竖向（朝上），与 wireStraightSprite 的朝向约定一致。
+                        rotation = RotationFromUp(Direction4.ToOffset(startPin.Layout.Facing));
+                    }
+                    else
+                    {
+                        // 刚按下 Pin、还没经过第二格时，显示一个朝默认方向的断头，给玩家明确的起笔反馈。
+                        sprite = style.wireOpenEndSprite != null ? style.wireOpenEndSprite : style.wireStraightSprite;
+                        rotation = 0f;
+                    }
                 }
                 else if (i == 0)
                 {

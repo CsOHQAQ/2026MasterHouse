@@ -15,9 +15,12 @@ MonoBehaviour:
   pinSprite: {fileID: 21300000, guid: fb920080e74306b43bb76e6e92bdbcfd, type: 3}
   pinSizeInCells: 0.4
   pinColorMultiplier: {r: 1, g: 1, b: 1, a: 1}
+  pinInteractionScale: 2
+  nodeDragInteractionScale: 0.65
   wireStraightSprite: {fileID: 21300000, guid: ffb63753dfb93bb4581e18b5faba990e, type: 3}
   wireCornerSprite: {fileID: 21300000, guid: 9c5dd81929d32c04dbe68cd2719a218b, type: 3}
   wireConnectedEndSprite: {fileID: 21300000, guid: 267373afb6e69da4abcf5aa9a7156b34, type: 3}
+  wirePinToPinSprite: {fileID: 0}
   wireCornerPinSprite: {fileID: 21300000, guid: 0b214fbe661f4884881ce2684f910a98, type: 3}
   wireOpenEndSprite: {fileID: 21300000, guid: e7e81ba588f632643b6e4d39c1baaaf4, type: 3}
   wirePoweredColor: {r: 0.055802763, g: 0.6226415, b: 0.06959632, a: 0.95}
@@ -47,3 +50,5 @@ MonoBehaviour:
   captionDigitSpacing: 0.05
   captionDigitColor: {r: 1, g: 1, b: 1, a: 1}
   captionSlashSprite: {fileID: 0}
+  captionPowerIcon: {fileID: 0}
+  captionPowerIconSize: 0.45

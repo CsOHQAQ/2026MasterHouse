@@ -21,6 +21,15 @@ namespace MasterHouse
         [Tooltip("全局 Pin 颜色乘数；会与输入/输出/分组的语义颜色相乘。保持白色表示不额外染色。")]
         public Color pinColorMultiplier = Color.white;
 
+        [Header("节点交互易用性配置")]
+        [Min(0f)]
+        [Tooltip("Pin 可点击范围相对 Pin Size In Cells 的倍率。命中 Pin 时优先开始拉线；不改变视觉大小。")]
+        public float pinInteractionScale = 1.75f;
+
+        [Range(0f, 1f)]
+        [Tooltip("节点可开始拖动的中心区域，相对节点整体外框的缩放比例。Pin 命中始终优先于节点拖动。")]
+        public float nodeDragInteractionScale = 0.65f;
+
         [Header("连线")]
         [Tooltip("导线经过直线格时使用的 Sprite。图片默认朝上，运行时会按路径自动旋转。")]
         public Sprite wireStraightSprite;
@@ -30,6 +39,9 @@ namespace MasterHouse
 
         [Tooltip("已完成连线的两端使用的 Sprite。图片默认接口朝右，运行时会朝向对应节点。")]
         public Sprite wireConnectedEndSprite;
+
+        [Tooltip("两个节点的 Pin 共用同一接口格时，已完成直连使用的 Sprite。图片默认朝上（从起始 Pin 指向目标 Pin），运行时会按 Pin 朝向旋转。留空时回退为普通直线。")]
+        public Sprite wirePinToPinSprite;
 
         [Tooltip("连线在端点格转弯后接入 Pin 时，叠加在转角上的接口 Sprite。图片默认接口朝右。")]
         public Sprite wireCornerPinSprite;
