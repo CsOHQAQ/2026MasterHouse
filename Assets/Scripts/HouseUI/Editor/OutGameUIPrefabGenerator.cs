@@ -392,6 +392,8 @@ namespace MasterHouse
             // 图鉴与详情页：重新绑按种族烘的图（2026-08-19 素材改名后补录）。
             // 只重填数组引用，**不碰任何位置尺寸**；上一版生成时还叫旧名的那几张
             // 当时没找到、存成了 null，改名并不会把 null 变回来。
+            repaired |= RepairPrefab<OutGameCodexPageView>(CodexPagePath, RebindCodexPageArt,
+                CodexPageArtNeedsRebind);
             repaired |= RepairPrefab<OutGameCodexDetailView>(CodexDetailPath, RebindCodexDetailArt,
                 view => view.lockedHint == null || view.pageBackPaper == null ||
                         CodexArtNeedsRebind(view.races, view.portraits, view.avatars));
@@ -2990,7 +2992,8 @@ namespace MasterHouse
 
         /// <summary>
         /// 图鉴条目：种族资产 ↔ 卡面素材名。顺序即翻页顺序（跟访客种族表行序）。
-        /// 牦牛（yak）暂无卡面素材，故不收录——素材补齐后在这里加一行即可。
+        /// 牛来（yak）的解锁彩卡（牛来-显示.png）美术还没给，先用剪影卡顶着（见构建处回退）；
+        /// 素材补齐后重跑「重建图鉴页」或等重绑修复即可换上。
         /// </summary>
         private static readonly (string Race, string Art, string Portrait, string Avatar)[] CodexEntries =
         {
@@ -3002,8 +3005,11 @@ namespace MasterHouse
             ("wolf",    "wolf",    "wolf",    "wolf"),
             ("cheetah", "leopard", "leopard", "leopard"),
             ("leopard", "cheetah", "cheetah", "cheetah"),
-            ("ox",      "ox",      "ox",      "ox"),
+            // 牛家定案（2026-08-21 用户定案）：牛莱老师(yak)=白牛=牛来卡；牛小顿(ox)=棕牛=ox卡。
+            // 详情立绘/头像的文件名是交叉的：详情 ox.png 画的是白牛(yak)、详情 yak.png 画的是棕牛(ox)
+            ("ox",      "ox",      "yak",     "yak"),
             ("cat",     "cat",     "cat",     "cat"),
+            ("yak",     "牛来",     "ox",      "ox"),
         };
 
         /// <summary>
@@ -3059,10 +3065,17 @@ namespace MasterHouse
                     "Assets/Resources/OutGameUI/VisitorRaces/Race_" + entry.Race + ".asset");
                 var on = Codex(entry.Art + "-显示");
                 var off = Codex(entry.Art + "-不显示");
-                if (race == null || on == null || off == null)
+                if (race == null || off == null)
                 {
                     Debug.LogWarning($"[OutGameUI] 图鉴条目素材不全，已跳过：{entry.Race}/{entry.Art}");
                     continue;
+                }
+                if (on == null) on = Codex(entry.Art + "-显示-1"); // 狼的彩卡历史文件名带 -1
+                if (on == null)
+                {
+                    // 解锁彩卡缺失：先用剪影卡顶着，素材补齐后重绑即可
+                    Debug.LogWarning($"[OutGameUI] 缺解锁卡面 {entry.Art}-显示，暂用剪影卡顶替");
+                    on = off;
                 }
                 races.Add(race);
                 revealed.Add(on);
@@ -3295,14 +3308,63 @@ namespace MasterHouse
             return label;
         }
 
-        /// <summary>条目数对不上、或者哪张图是空的，就该重绑。</summary>
+        /// <summary>图鉴页数组是否需要重绑：逐项与条目表比对（数量、种族、两张卡面任一不符即重绑）。</summary>
+        private static bool CodexPageArtNeedsRebind(OutGameCodexPageView view)
+        {
+            if (view.races == null || view.revealedCards == null || view.hiddenCards == null) return true;
+            var index = 0;
+            foreach (var entry in CodexEntries)
+            {
+                var race = AssetDatabase.LoadAssetAtPath<VisitorRaceDef>(
+                    "Assets/Resources/OutGameUI/VisitorRaces/Race_" + entry.Race + ".asset");
+                var on = Codex(entry.Art + "-显示");
+                if (on == null) on = Codex(entry.Art + "-显示-1");
+                var off = Codex(entry.Art + "-不显示");
+                if (race == null || off == null) continue; // 素材不全的条目按构建口径跳过
+                if (on == null) on = off;
+                if (index >= view.races.Length) return true;
+                if (view.races[index] != race) return true;
+                if (view.revealedCards[index] != on) return true;
+                if (view.hiddenCards[index] != off) return true;
+                index++;
+            }
+            return index != view.races.Length;
+        }
+
+        /// <summary>图鉴页条目数组重绑（加种族时用）：只重取种族/两张卡面，不碰任何布局。</summary>
+        private static void RebindCodexPageArt(GameObject root, OutGameCodexPageView view)
+        {
+            var races = new System.Collections.Generic.List<VisitorRaceDef>();
+            var revealed = new System.Collections.Generic.List<Sprite>();
+            var hidden = new System.Collections.Generic.List<Sprite>();
+            foreach (var entry in CodexEntries)
+            {
+                var race = AssetDatabase.LoadAssetAtPath<VisitorRaceDef>(
+                    "Assets/Resources/OutGameUI/VisitorRaces/Race_" + entry.Race + ".asset");
+                var on = Codex(entry.Art + "-显示");
+                if (on == null) on = Codex(entry.Art + "-显示-1"); // 狼的彩卡历史文件名带 -1
+                var off = Codex(entry.Art + "-不显示");
+                if (race == null || off == null) continue;
+                races.Add(race);
+                revealed.Add(on != null ? on : off);
+                hidden.Add(off);
+            }
+            view.races = races.ToArray();
+            view.revealedCards = revealed.ToArray();
+            view.hiddenCards = hidden.ToArray();
+        }
+
+        /// <summary>条目数对不上、图为空、或与条目表逐项不符（映射改动），就该重绑。</summary>
         private static bool CodexArtNeedsRebind(VisitorRaceDef[] races, Texture2D[] portraits, Texture2D[] avatars)
         {
             if (races == null || races.Length != CodexEntries.Length) return true;
             if (portraits == null || portraits.Length != CodexEntries.Length) return true;
             if (avatars == null || avatars.Length != CodexEntries.Length) return true;
-            foreach (var texture in portraits) if (texture == null) return true;
-            foreach (var texture in avatars) if (texture == null) return true;
+            for (var i = 0; i < CodexEntries.Length; i++)
+            {
+                if (portraits[i] == null || portraits[i] != DetailTex("右侧立绘", CodexEntries[i].Portrait)) return true;
+                if (avatars[i] == null || avatars[i] != DetailTex("头像", CodexEntries[i].Avatar)) return true;
+            }
             return false;
         }
 
