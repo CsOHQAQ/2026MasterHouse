@@ -20,7 +20,7 @@ MonoBehaviour:
   wireStraightSprite: {fileID: 21300000, guid: ffb63753dfb93bb4581e18b5faba990e, type: 3}
   wireCornerSprite: {fileID: 21300000, guid: 9c5dd81929d32c04dbe68cd2719a218b, type: 3}
   wireConnectedEndSprite: {fileID: 21300000, guid: 267373afb6e69da4abcf5aa9a7156b34, type: 3}
-  wirePinToPinSprite: {fileID: 0}
+  wirePinToPinSprite: {fileID: 21300000, guid: a2410a5b6af03ae4cae3412b401afe20, type: 3}
   wireCornerPinSprite: {fileID: 21300000, guid: 0b214fbe661f4884881ce2684f910a98, type: 3}
   wireOpenEndSprite: {fileID: 21300000, guid: e7e81ba588f632643b6e4d39c1baaaf4, type: 3}
   wirePoweredColor: {r: 0.055802763, g: 0.6226415, b: 0.06959632, a: 0.95}

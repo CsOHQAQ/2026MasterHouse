@@ -1036,9 +1036,13 @@ namespace MasterHouse
                     }
                     else
                     {
-                        // 刚按下 Pin、还没经过第二格时，显示一个朝默认方向的断头，给玩家明确的起笔反馈。
+                        // 刚按下 Pin、还没经过第二格时，尚没有路径的下一步可供朝向。
+                        // 此时沿起始 Pin 的外朝向摆放断头；否则 Blind 会永远保持原图的横向朝右，
+                        // 与上下朝向的 Pin 接触时看起来像没有接上。
                         sprite = style.wireOpenEndSprite != null ? style.wireOpenEndSprite : style.wireStraightSprite;
-                        rotation = 0f;
+                        rotation = startPin != null
+                            ? RotationFromRight(Direction4.ToOffset(startPin.Layout.Facing))
+                            : 0f;
                     }
                 }
                 else if (i == 0)
