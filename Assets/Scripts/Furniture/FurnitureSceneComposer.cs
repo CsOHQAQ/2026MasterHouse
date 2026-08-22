@@ -192,7 +192,8 @@ namespace MasterHouse
                 var entry = table.Find(placement.furnitureId);
                 if (entry == null || entry.sprite == null) continue;
                 if (!BaseAnchor(room, entry, placement, nightAlpha, out var left, out var bottom, out var order)) continue;
-                result.Add((entry, order, new Rect(left, bottom - entry.displayHeight, entry.displayWidth, entry.displayHeight), placement.flipped));
+                var display = FurnitureDisplaySizing.Resolve(entry);
+                result.Add((entry, order, new Rect(left, bottom - display.y, display.x, display.y), placement.flipped));
             }
             foreach (var placement in placements)
             {
@@ -200,7 +201,8 @@ namespace MasterHouse
                 var entry = table.Find(placement.furnitureId);
                 if (entry == null || entry.sprite == null) continue;
                 if (!HostedAnchor(room, table, placements, placement, entry, nightAlpha, out var left, out var bottom, out var order)) continue;
-                result.Add((entry, order, new Rect(left, bottom - entry.displayHeight, entry.displayWidth, entry.displayHeight), placement.flipped));
+                var display = FurnitureDisplaySizing.Resolve(entry);
+                result.Add((entry, order, new Rect(left, bottom - display.y, display.x, display.y), placement.flipped));
             }
             return result;
         }
@@ -276,23 +278,28 @@ namespace MasterHouse
             if (grid == null) return false;
             // 与摆放模式同一套昆夜几何校正，否则两边位置对不上
             grid = FurnitureNightLayout.Adjust(room, grid, nightAlpha);
-            left = grid.x + placement.col * grid.cellWidth + (entry.cols * grid.cellWidth - entry.displayWidth) * .5f;
+            // 家具族表保存的就是细分网格下的最终占格；与摆放控制器统一，不做隐藏倍率。
+            var footCols = entry.cols;
+            var footRows = entry.rows;
+            var display = FurnitureDisplaySizing.Resolve(entry);
+            left = grid.x + placement.col * grid.cellWidth +
+                   (footCols * grid.cellWidth - display.x) * .5f;
             if (grid.surface == FurnitureSurfaceType.Floor)
             {
-                var bottomRow = placement.row + entry.rows;
+                var bottomRow = placement.row + footRows;
                 // 2.5D 假透视：与 FurnitureRuntimeGrid.MapX 同口径（横向按底边行向网格中心收拢）
                 var farScale = grid.farWidthScale <= 0f ? 1f : grid.farWidthScale;
                 var widthScale = Mathf.Lerp(farScale, 1f, grid.rows > 0 ? Mathf.Clamp01((float)bottomRow / grid.rows) : 1f);
                 var gridCenter = grid.x + grid.cols * grid.cellWidth * .5f;
-                left = gridCenter + (left + entry.displayWidth * .5f - gridCenter) * widthScale - entry.displayWidth * .5f;
+                left = gridCenter + (left + display.x * .5f - gridCenter) * widthScale - display.x * .5f;
                 bottom = grid.y + bottomRow * grid.cellHeight;
                 // 与 FurnitureRoomController.AnchorOf 同口径：可叠放（地毯）压在立式家具之下
                 order = entry.stackable ? 70 + bottomRow : 100 + bottomRow * 10;
             }
             else
             {
-                bottom = grid.y + (placement.row + entry.rows) * grid.cellHeight;
-                order = 20 + placement.row + entry.rows;
+                bottom = grid.y + (placement.row + footRows) * grid.cellHeight;
+                order = 20 + placement.row + footRows;
             }
             return true;
         }
@@ -317,10 +324,14 @@ namespace MasterHouse
             var surface = hostEntry?.tableSurface;
             if (surface == null || !surface.enabled) return false;
             if (!BaseAnchor(room, hostEntry, hostPlacement, nightAlpha, out var hostLeft, out var hostBottom, out var hostOrder)) return false;
-            var gridX = hostLeft + surface.offsetX;
-            var gridY = hostBottom - surface.surfaceHeight - surface.cellHeight;
-            left = gridX + placement.col * surface.cellWidth + (entry.cols * surface.cellWidth - entry.displayWidth) * .5f;
-            bottom = gridY + surface.cellHeight;
+            var hostFrameScale = FurnitureDisplaySizing.FrameScale(hostEntry);
+            var cellWidth = surface.cellWidth * hostFrameScale.x;
+            var cellHeight = surface.cellHeight * hostFrameScale.y;
+            var gridX = hostLeft + surface.offsetX * hostFrameScale.x;
+            var gridY = hostBottom - surface.surfaceHeight * hostFrameScale.y - cellHeight;
+            var display = FurnitureDisplaySizing.Resolve(entry);
+            left = gridX + placement.col * cellWidth + (entry.cols * cellWidth - display.x) * .5f;
+            bottom = gridY + cellHeight;
             order = hostOrder + 3;
             return true;
         }

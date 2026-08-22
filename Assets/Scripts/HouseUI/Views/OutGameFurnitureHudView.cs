@@ -9,6 +9,10 @@ namespace MasterHouse
     /// </summary>
     public sealed class OutGameFurnitureHudView : MonoBehaviour
     {
+        [Header("放置模式房间背景")]
+        [Tooltip("按房间表顺序：起居室、卧室、厨房、书房。仅在进入家具放置模式后使用，不影响主宅总览。")]
+        public Sprite[] roomBackgrounds = new Sprite[4];
+
         [Header("顶部（整体可淡出/隐藏）")]
         [Tooltip("顶部容器：拖拽布置时淡出、「隐藏界面」时隐藏")] public CanvasGroup topGroup;
         public Text creditLabel;
