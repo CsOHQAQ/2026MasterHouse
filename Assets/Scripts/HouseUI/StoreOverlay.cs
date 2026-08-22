@@ -26,10 +26,15 @@ namespace MasterHouse
         private static readonly string[] Categories = { "盆栽", "摆件", "桌椅", "壁挂", "灯具" };
 
         /// <summary>
-        /// 不做换色的类目（2026-08-18 反馈）：这些类目里「一族多变体」不是配色关系，
+        /// 不做换色的类目：这些类目里「一族多变体」不是配色关系，
         /// 而是不同的东西（悬挂绿植 01~31 是 22 株不同的植物），所以逐件出卡、不出色块行与 X 键。
         /// </summary>
         private static readonly string[] NoColorCategories = { "盆栽" };
+
+        /// <summary>
+        /// 不做换色聚类的指定家具族。床虽然归在「桌椅」大类，但每张造型都是独立商品，不能合成选色变体。
+        /// </summary>
+        private static readonly string[] NoColorFamilyIds = { "bed_side", "bed_front" };
 
         /// <summary>卡片角标（「已有 n」/「？」）的文字色：2.0 商店主题蓝。</summary>
         private static readonly Color MarkTint = new Color32(0x4A, 0x6F, 0xA5, 0xFF);
@@ -259,8 +264,9 @@ namespace MasterHouse
                 var category = string.IsNullOrEmpty(entry.category) ? "摆件" : entry.category;
                 if (category != Categories[index]) continue;
                 // 族 id 为空是配置事故（导表会 LogError 拦下），这里让它自成一族以免整类家具挤成一张卡；
-                // 不换色的类目（盆栽）逐件成族——每株植物是不同的植物，不是同一件的配色
-                var flat = System.Array.IndexOf(NoColorCategories, category) >= 0;
+                // 不换色的类目（盆栽）或指定家具族（床）逐件成族：它们是独立造型，不是同款配色。
+                var flat = System.Array.IndexOf(NoColorCategories, category) >= 0 ||
+                           System.Array.IndexOf(NoColorFamilyIds, entry.familyId) >= 0;
                 var key = flat || string.IsNullOrEmpty(entry.familyId) ? entry.id : entry.familyId;
                 if (!byKey.TryGetValue(key, out var family))
                 {
