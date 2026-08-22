@@ -227,6 +227,26 @@ namespace MasterHouse
             return refund;
         }
 
+        /// <summary>
+        /// 无偿授予家具（2026-08-22 一轮测试改进 #11：对话赠送事件的入账口）。
+        /// 不走商店三道门（非卖品/声望/货币）——赠送语义就是白给；
+        /// 家具 id 不在表里时拒绝并报错，防止对话表拼错 id 造出永远摆不出的幽灵库存。
+        /// 返回是否入账。
+        /// </summary>
+        public bool GrantFurniture(string furnitureId, int count = 1)
+        {
+            if (string.IsNullOrEmpty(furnitureId) || count <= 0) return false;
+            if (furnitureTable != null && furnitureTable.Find(furnitureId) == null)
+            {
+                Debug.LogError($"[EconomyManager] 赠送家具「{furnitureId}」不在家具表里，已拒绝入账；" +
+                               "请检查对话表里 GrantFurniture 的家具 id");
+                return false;
+            }
+            Data.OwnedFurniture[furnitureId] = OwnedCountOf(furnitureId) + count;
+            RaiseChanged();
+            return true;
+        }
+
         /// <summary>装饰分来源：家具摆放变化后由家具模式回写当前摆放的装饰品得分总和。</summary>
         public void SetFurnitureDecorationScore(int score)
         {

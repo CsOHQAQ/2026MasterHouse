@@ -265,17 +265,17 @@ namespace MasterHouse
             var options = dialogue.CurrentOptions;
             if (options == null || options.Count == 0 || optionSlots.Count == 0) return;
 
-            // 底对齐要先知道总数：空洞的行不占格
+            // 底对齐要先知道总数：空洞的行不占格；被独占规则藏起来的选项（#12 可交付时只显交付）也不占格
             var total = 0;
             foreach (var candidate in options)
-                if (candidate != null)
+                if (candidate != null && dialogue.IsOptionVisible(candidate))
                     total++;
             if (total == 0) return;
 
             for (var i = 0; i < options.Count; i++)
             {
                 var option = options[i];
-                if (option == null) continue;
+                if (option == null || !dialogue.IsOptionVisible(option)) continue;
                 var optionView = SlotFor(shownOptions.Count, total);
                 if (optionView == null) continue;
                 optionView.gameObject.SetActive(true);

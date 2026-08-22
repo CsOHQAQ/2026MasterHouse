@@ -29,6 +29,17 @@ namespace MasterHouse
         private bool immersive;
         private bool furnitureModeOpen;
 
+        // ── 强制分配模式（2026-08-22 一轮测试改进 #8）──
+
+        /// <summary>分配模式开着（接待确认后进入，分完房才退出）；期间除相机外的交互全部挡住。</summary>
+        private bool assignMode;
+
+        /// <summary>正在等分房的访客实例 id（分配模式的对象；-1 = 无）。</summary>
+        private int assignInstanceId = -1;
+
+        /// <summary>场景层读它决定点击房间的语义（分配 vs 聚焦）。</summary>
+        public bool AssignModeActive => assignMode;
+
         /// <summary>
         /// 推镜后触发 TalkTo 的延迟补间（防连点重复对话 bug：同一访客被快速点击两次时，
         /// 第二次点击会在第一次对话已经开始后再把该访客塞进待播队列；
@@ -115,6 +126,7 @@ namespace MasterHouse
             dialogue.PlaybackStarted += OnDialogueStarted;
             dialogue.PlaybackEnded += OnDialogueEnded;
             UI.ShowToast(notice);
+            MaybeEnterAssignMode(); // 页面重建时若有客人还在等分房，直接回到分配模式（#8 不可退出）
         }
 
         protected override void OnExit()
@@ -142,6 +154,9 @@ namespace MasterHouse
             if (view == null) return;
             guestRail.Refresh();
             taskCard.Refresh();
+            // 防御：分配对象消失（GM 清场等）时分配模式失去意义，别把玩家锁死在里面
+            if (assignMode && GameManager.Instance.VisitorManager.Find(assignInstanceId) == null)
+                ExitAssignMode();
         }
 
         private void OnDialogueStarted() => DialogueOverlay.Open(UI);
@@ -155,6 +170,72 @@ namespace MasterHouse
         {
             DialogueOverlay.CloseFromPlaybackEnded();
             MinigameOverlay.ConsumePending(UI);
+            // 接待确认后立即进入分配模式（#8 定案）：【初次见面】里选了「接待」→ 对话收框
+            // → 此刻场上有待分房访客 → 房间高亮、玩家分完才能干别的
+            MaybeEnterAssignMode();
+        }
+
+        // ── 强制分配模式（#8）──
+
+        /// <summary>场上有待分房访客且尚未进入分配模式时进入之（接待对话结束与页面重建两处调）。</summary>
+        private void MaybeEnterAssignMode()
+        {
+            if (assignMode || view == null) return;
+            var visitors = GameManager.Instance.VisitorManager;
+            VisitorInstance awaiting = null;
+            foreach (var instance in visitors.Data.Instances)
+                if (instance.State == EVisitorState.AwaitingRoom)
+                {
+                    awaiting = instance;
+                    break;
+                }
+            if (awaiting == null) return;
+            assignMode = true;
+            assignInstanceId = awaiting.InstanceId;
+            scene.SetAssignHighlights(true);
+            Toast($"点击一间亮起的空客房，安排{awaiting.DisplayName}入住");
+        }
+
+        /// <summary>退出分配模式（分配完成 / 对象消失 / GM 重置）。</summary>
+        private void ExitAssignMode()
+        {
+            if (!assignMode) return;
+            assignMode = false;
+            assignInstanceId = -1;
+            scene.SetAssignHighlights(false);
+        }
+
+        /// <summary>
+        /// 分配模式里点了某个业务房间（HubSceneBinder 分派）：空房 = 分给待分房访客，
+        /// 占用/非法 = Toast 说明理由、模式不退。业务裁决完全复用 MoveVisitorToRoom。
+        /// </summary>
+        public void OnRoomClickedForAssign(int roomIndex)
+        {
+            if (!assignMode) return;
+            var visitors = GameManager.Instance.VisitorManager;
+            var instance = visitors.Find(assignInstanceId);
+            if (instance == null || instance.State != EVisitorState.AwaitingRoom)
+            {
+                ExitAssignMode(); // 对象没了（GM 清场等）：模式失去意义
+                return;
+            }
+            if (!visitors.MoveVisitorToRoom(assignInstanceId, roomIndex))
+            {
+                Toast(RejectReason(instance, roomIndex));
+                return;
+            }
+            var rooms = GameManager.Instance.CodexTable.rooms;
+            Toast($"已把{instance.DisplayName}安排进{rooms[roomIndex].displayName}");
+            ExitAssignMode();
+            scene.FocusRoom(roomIndex); // 推镜跟过去：客人马上要在这间房里说需求
+        }
+
+        /// <summary>分配模式挡交互时的统一提示。</summary>
+        private bool BlockedByAssignMode()
+        {
+            if (!assignMode) return false;
+            Toast("先点击一间亮起的空客房，把等待的客人安顿好");
+            return true;
         }
 
         /// <summary>GM「恢复初始态」：面板本体已重置经济与家具会话，这里补访客/时钟归零与表现重建。</summary>
@@ -165,6 +246,7 @@ namespace MasterHouse
             gm.HouseClockManager.ResetNew();
             gm.DialogueManager.ResetNew(); // 清 recent 环与待播队列，并强制收掉可能开着的对话框
             SelectedInstanceId = -1;
+            ExitAssignMode(); // 全量重置后没有待分房访客，分配模式一并退出
             if (view == null) return;
             scene.RefreshAfterFurniture();
             scene.RebuildStage();
@@ -177,6 +259,7 @@ namespace MasterHouse
         public override bool OnEscape()
         {
             if (furnitureModeOpen) return true; // 家具模式接管输入，壳不动作
+            if (BlockedByAssignMode()) return true; // 分配模式不可退出（#8 定案）：ESC 也只提示
             if (immersive)
             {
                 SetImmersive(false);
@@ -213,7 +296,11 @@ namespace MasterHouse
         public void Toast(string message) => UI.ShowToast(message);
 
         /// <summary>打开访客图鉴（档案面板的入口按钮走这里）。</summary>
-        public void OpenCodex() => CodexOverlay.Open(UI);
+        public void OpenCodex()
+        {
+            if (BlockedByAssignMode()) return;
+            CodexOverlay.Open(UI);
+        }
 
         /// <summary>回标题（顶栏品牌按钮 / ESC 共用）：存档未实现、离开即丢进度，先弹确认（2026-08-16 退出保护）。</summary>
         public void BackToTitle() =>
@@ -225,6 +312,7 @@ namespace MasterHouse
         public void OpenPanel(EHousePanel panel)
         {
             if (furnitureModeOpen) return;
+            if (BlockedByAssignMode()) return;
             if (immersive) SetImmersive(false);
             PanelHost.Open(UI, this, panel);
         }
@@ -239,6 +327,7 @@ namespace MasterHouse
         public void OpenFurnitureDetail(int roomIndex, string furnitureId)
         {
             if (furnitureModeOpen) return;
+            if (BlockedByAssignMode()) return;
             if (immersive) SetImmersive(false);
             PanelHost.Open(UI, this, EHousePanel.Device, roomIndex, furnitureId);
         }
@@ -247,6 +336,7 @@ namespace MasterHouse
         public void OpenSettings()
         {
             if (furnitureModeOpen) return;
+            if (BlockedByAssignMode()) return;
             if (immersive) SetImmersive(false);
             SettingsOverlay.Open(UI);
         }
@@ -282,34 +372,7 @@ namespace MasterHouse
             tierUi.OnTierChanged();
         }
 
-        /// <summary>
-        /// 访客被拖到某房间后松手（舞台层回调）：翻译成业务动作（§8 同口径）。
-        /// 返回业务是否接受这个落点——false 时舞台把演员弹回起手位置。
-        ///
-        /// 被拒时**一定要给出理由**：拖不动的规则（前台不可搬、服务中锁房、一房一客）都是玩法约束，
-        /// 演员默默弹回去只会让玩家以为是操作没成功。
-        /// </summary>
-        public bool OnVisitorDropped(int instanceId, int roomIndex)
-        {
-            var visitor = GameManager.Instance.VisitorManager;
-            var instance = visitor.Find(instanceId);
-            if (instance == null) return false;
-            var fromRoom = instance.RoomIndex;
-            var wasAwaiting = instance.State == EVisitorState.AwaitingRoom;
-
-            if (!visitor.MoveVisitorToRoom(instanceId, roomIndex))
-            {
-                Toast(RejectReason(instance, roomIndex));
-                return false;
-            }
-
-            var rooms = GameManager.Instance.CodexTable.rooms;
-            if (wasAwaiting) Toast($"已把{instance.DisplayName}安排进{rooms[roomIndex].displayName}");
-            else if (fromRoom != roomIndex) Toast($"已把{instance.DisplayName}带到{rooms[roomIndex].displayName}");
-            return true;
-        }
-
-        /// <summary>拖拽被业务拒绝的原因文案（与 VisitorManager.MoveVisitorToRoom 的裁决表一一对应，§5.2）。</summary>
+        /// <summary>分配被业务拒绝的原因文案（与 VisitorManager.MoveVisitorToRoom 的裁决表一一对应，§5.2）。</summary>
         private static string RejectReason(VisitorInstance instance, int roomIndex)
         {
             var visitor = GameManager.Instance.VisitorManager;
@@ -324,7 +387,7 @@ namespace MasterHouse
                 case EVisitorState.AwaitingRoom:
                 case EVisitorState.Wandering:
                     if (roomIndex < VisitorManager.FirstGuestRoomIndex || roomIndex > VisitorManager.LastGuestRoomIndex)
-                        return "起居室是大堂，不能当客房 · 请拖进卧室/厨房/书房";
+                        return "这里不是客房 · 请点击一间亮起的空客房";
                     if (visitor.IsRoomOccupied(roomIndex))
                     {
                         var rooms = GameManager.Instance.CodexTable.rooms;
@@ -401,8 +464,8 @@ namespace MasterHouse
             VisitorManager.ENoTalkReason.NotFrontOfQueue => $"{who}还在后面排队 · 先招呼前面那位",
             VisitorManager.ENoTalkReason.SomeoneAwaitingRoom => "还有一位客人在等房间 · 先把他安顿好再接待下一位",
             VisitorManager.ENoTalkReason.NoFreeRoom => "客房都住满了 · 等有人离开再接待",
-            // 待分房这一态没有对话，唯一的推进方式是把人拖进空房（拒绝也不给：接待时已经保证有房）
-            VisitorManager.ENoTalkReason.AwaitingRoom => $"把{who}拖进一间空客房，他安顿好才会说出需求",
+            // 待分房这一态没有对话，唯一的推进方式是在分配模式里点一间空房（拒绝也不给：接待时已经保证有房）
+            VisitorManager.ENoTalkReason.AwaitingRoom => $"点击一间亮起的空客房，安排{who}入住",
             VisitorManager.ENoTalkReason.SettlingIn => $"{who}还在安顿 · 等他开口再来",
             _ => $"{who} 正心满意足地在屋里逛着。",
         };
@@ -417,7 +480,7 @@ namespace MasterHouse
             var gm = GameManager.Instance;
             if (gm.VisitorManager.HasBlockingVisitors)
             {
-                Toast("还有客人在等房间 · 把他拖进一间空客房再结束今天");
+                Toast("还有客人在等房间 · 先把他安顿进空客房再结束今天");
                 return;
             }
             // 先弹确认（2026-08-14）：真正的日结在玩家点「结束今天」后才执行
@@ -432,7 +495,7 @@ namespace MasterHouse
             var gm = GameManager.Instance;
             if (gm.VisitorManager.HasBlockingVisitors)
             {
-                Toast("还有客人在等房间 · 把他拖进一间空客房再结束今天");
+                Toast("还有客人在等房间 · 先把他安顿进空客房再结束今天");
                 return;
             }
             // **必须先取**：EndDay() 内部已经 clock.NextDay()，之后读 Data.Day 会差一天
@@ -462,6 +525,7 @@ namespace MasterHouse
         public void OnVisitorClicked(int instanceId)
         {
             if (furnitureModeOpen) return;
+            if (BlockedByAssignMode()) return; // 分完房才能招呼别的客人（#8）
             if (immersive) SetImmersive(false);
             SelectGuest(instanceId);
         }
@@ -480,6 +544,7 @@ namespace MasterHouse
         public void OpenFurnitureMode()
         {
             if (furnitureModeOpen) return;
+            if (BlockedByAssignMode()) return;
             furnitureModeOpen = true;
             // 只收起四周 UI，Hub 的聚焦画面留着当背景（2026-08-20 反馈：别变黑）。
             // 画布已改 ScreenSpaceCamera，家具相机会叠在它前面

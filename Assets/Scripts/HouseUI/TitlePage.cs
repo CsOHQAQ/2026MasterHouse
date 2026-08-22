@@ -155,8 +155,9 @@ namespace MasterHouse
             gm.HouseClockManager.ResetNew();
             FurnitureRoomController.ResetSession();
             FurnitureSceneComposer.ClearBaked();
-            // 开场推镜（2026-08-16 登录页重做，取代火烧转场）：镜头推向外景旅馆 → 淡入主楼剖面 → 无缝落到 Hub 总览
-            OpeningZoomFx.Play(UI, () => UI.ShowPage(new HubPage("新的一天开始了 · 欢迎回家")));
+            // 开场播片（2026-08-22 #1：叙事，可点击跳过；素材缺失时自动直通）→ 开场推镜（落地到房子）→ Hub 总览
+            OpeningVideoFx.Play(UI, () =>
+                OpeningZoomFx.Play(UI, () => UI.ShowPage(new HubPage("新的一天开始了 · 欢迎回家"))));
         }
 
         // ── 标题页程序化贴图（复刻网页版渐变/晕影；随本页使用，非布局兜底）──

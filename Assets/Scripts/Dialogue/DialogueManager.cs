@@ -220,6 +220,46 @@ namespace MasterHouse
         public bool IsOptionEnabled(DialogueOption option) =>
             option != null && DialogueFuncs.EvaluateAll(option.conditions, runtime?.Context);
 
+        /// <summary>交付判据的条件函数名（#12 独占规则的键）。交付选项换条件写法时要同步这里。</summary>
+        private const string DeliverConditionFunc = "RoomHasNeedFurniture";
+
+        /// <summary>
+        /// 选项是否可见（2026-08-22 一轮测试改进 #12）：分支里存在「条件含 RoomHasNeedFurniture
+        /// 且当前满足」的交付选项时，仅显示这些选项、其余整体隐藏——家具都摆好了还把
+        /// 「还没准备好」之类的选项亮着，只会引导玩家走弯路。
+        ///
+        /// 运行时固定规则、零改表：以条件函数为键，天然只作用于条件类需求对话；
+        /// 交付条件不满足时一切照旧（交付选项置灰保留可见），
+        /// 校验器「每分支至少一个无条件选项」的防卡死硬规则不受影响。
+        /// </summary>
+        public bool IsOptionVisible(DialogueOption option)
+        {
+            if (option == null) return false;
+            if (runtime == null || !runtime.IsAtBranch) return true;
+            if (IsSatisfiedDeliverOption(option)) return true;
+            var options = runtime.MainStep.options;
+            if (options == null) return true;
+            for (var i = 0; i < options.Count; i++)
+                if (IsSatisfiedDeliverOption(options[i]))
+                    return false; // 有可交付的选项在场：其余选项整体让位
+            return true;
+        }
+
+        /// <summary>是否为「条件含交付判据且条件当前全部满足」的交付选项。</summary>
+        private bool IsSatisfiedDeliverOption(DialogueOption option)
+        {
+            if (option == null || option.conditions == null) return false;
+            var hasDeliverCondition = false;
+            for (var i = 0; i < option.conditions.Count; i++)
+            {
+                var call = option.conditions[i];
+                if (call == null || call.func != DeliverConditionFunc) continue;
+                hasDeliverCondition = true;
+                break;
+            }
+            return hasDeliverCondition && IsOptionEnabled(option);
+        }
+
         /// <summary>选项文本的成文（已替换占位符）。</summary>
         public string FormatOptionText(DialogueOption option) =>
             option != null ? DialogueTextFormatter.Format(option.text, runtime?.Context) : string.Empty;
@@ -272,6 +312,7 @@ namespace MasterHouse
             if (index < 0 || index >= options.Count) return;
             var option = options[index];
             if (option == null || !IsOptionEnabled(option)) return;
+            if (!IsOptionVisible(option)) return; // #12：被独占规则藏起来的选项不可选（防御，View 本就不给它绑点击）
 
             // 位置切进子句，随后的 Continue 会执行掉子句开头的事件并停在第一句台词上；
             // 子句里没有台词（纯事件选项）时自动汇合回主线下一步。

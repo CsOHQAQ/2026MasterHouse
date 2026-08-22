@@ -224,6 +224,7 @@ namespace MasterHouse.EditorTools
             BuildFooter(rootRect, view);
             BuildEscButton(rootRect, view);
             BuildTransition(rootRect, view);
+            BuildCountdown(rootRect, view);
             BuildSettle(rootRect, view);
             BuildPause(rootRect, view);
             AssignAudioClips(view);
@@ -385,6 +386,31 @@ namespace MasterHouse.EditorTools
 
             view.transitionLabel = Label(root, "Title", "② 冲咖啡", 64, InkBlue,
                 new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(900, 110),
+                TextAnchor.MiddleCenter, FontStyle.Bold);
+
+            root.gameObject.SetActive(false); // Prefab 里就是关的，运行时由 CoffeeMinigame 开
+        }
+
+        /// <summary>
+        /// 研磨开局倒计时遮罩（2026-08-22 一轮测试改进 #13）：整屏灰色半透 + 居中大字 3/2/1/开始！，
+        /// 默认隐藏，Launch 后由 CoffeeMinigame 播一遍。灰底用暂停遮罩同款浓度（半透，底下的
+        /// 研磨初始局面与操作说明要透出来给玩家预读），大字用白色——灰底上蓝字对比不够。
+        /// 建在幕布之后、结算弹窗之前：倒计时要盖住 HUD 与 ESC 条，但暂停弹窗必须压得住它。
+        /// </summary>
+        private static void BuildCountdown(RectTransform parent, CoffeeMinigameView view)
+        {
+            var root = Rect(parent, "CountdownRoot", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            view.countdownRoot = root;
+
+            var group = root.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = 1f;
+            view.countdownGroup = group;
+
+            var sheet = ImageOn(root, Scrim);
+            sheet.raycastTarget = true; // 倒计时期间点不到底下的 ESC 与页面
+
+            view.countdownLabel = Label(root, "Count", "3", 160, Color.white,
+                new Vector2(.5f, .5f), new Vector2(.5f, .5f), Vector2.zero, new Vector2(600, 220),
                 TextAnchor.MiddleCenter, FontStyle.Bold);
 
             root.gameObject.SetActive(false); // Prefab 里就是关的，运行时由 CoffeeMinigame 开
@@ -560,6 +586,16 @@ namespace MasterHouse.EditorTools
                     if (view.settleBoard == null && view.settleDetailLabel != null)
                         view.settleBoard = (RectTransform)view.settleDetailLabel.transform.parent;
                     notes.Add("结算弹窗入场动画件（CanvasGroup 与底板引用）");
+                }
+                if (view.countdownRoot == null)
+                {
+                    BuildCountdown((RectTransform)root.transform, view);
+                    // 新节点被追加到末尾，插回结算弹窗前面——结算与暂停必须压在倒计时之上
+                    if (view.settleRoot != null)
+                        view.countdownRoot.SetSiblingIndex(view.settleRoot.GetSiblingIndex());
+                    else if (view.pauseRoot != null)
+                        view.countdownRoot.SetSiblingIndex(view.pauseRoot.GetSiblingIndex());
+                    notes.Add("研磨开局倒计时遮罩");
                 }
                 if (AssignAudioClips(view)) notes.Add("音效剪辑");
 

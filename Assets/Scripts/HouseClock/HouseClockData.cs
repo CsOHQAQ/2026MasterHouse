@@ -50,6 +50,10 @@ namespace MasterHouse
         public int Minute => MinuteOfDay % 60;
         public string TimeText => $"{Hour:00}:{Minute:00}";
 
+        /// <summary>只到小时的显示口径（2026-08-22 一轮测试改进 #6，仅 2.0 时间牌用；格式暂定「14时」，待后续对齐）。
+        /// 别改 TimeText——日历面板等还有别的消费方要分钟。</summary>
+        public string HourText => $"{Hour:00}时";
+
         /// <summary>当前时段：按当天分钟数整数比较划分（§16.4，禁止 float 小时判定）。</summary>
         public EHousePhase CurrentPhase
         {

@@ -53,6 +53,18 @@ namespace MasterHouse
 
         private bool closing;
 
+        // ── 开局教程图（2026-08-22 一轮测试改进 #2）──
+
+        /// <summary>本次运行内已经弹过教程图的关卡（按关卡记；不持久化，存档接入是待定 #9）。</summary>
+        private static readonly System.Collections.Generic.HashSet<MinigameLevelDef> tutorialShown =
+            new System.Collections.Generic.HashSet<MinigameLevelDef>();
+
+        /// <summary>教程图遮罩实例；非空 = 遮罩开着、Launch 还压着没发。</summary>
+        private GameObject tutorial;
+
+        /// <summary>遮罩关闭后要开的那张关卡（教程门只延后 Launch，不改选关结果）。</summary>
+        private MinigameLevelDef pendingLaunchLevel;
+
         private MinigameOverlay(HouseUIManager ui, GameObject instance, MinigameDef def, int visitorInstanceId,
             IMinigame game)
         {
@@ -163,9 +175,95 @@ namespace MasterHouse
             HouseDayLightTint.Attach(instance.transform); // 底图随时钟慢慢变天色
             ui.PushOverlay(overlay);
 
+            // 开局教程门（#2）：关卡配了教程图且本次运行还没看过 → 先盖遮罩，点击任意处才 Launch。
+            // 遮罩期间小游戏未开始（不吃输入、不走它自己的时间），闸门在上面已经关了
+            if (level.tutorialImage != null && !tutorialShown.Contains(level))
+            {
+                tutorialShown.Add(level);
+                overlay.OpenTutorial(level);
+                return;
+            }
+
             // 放在压栈之后：小游戏可能在 Launch 里就同步结束（空关卡等极端情况），
             // 那时 HandleFinish 要弹的栈得先存在
             game.Launch(level, overlay.HandleFinish, overlay.HandleAbort);
+        }
+
+        // ══════════ 开局教程图（#2）══════════
+
+        /// <summary>盖上教程图遮罩并压住 Launch；点击任意处 / ESC 都走 <see cref="CloseTutorialAndLaunch"/>。</summary>
+        private void OpenTutorial(MinigameLevelDef level)
+        {
+            pendingLaunchLevel = level;
+            tutorial = BuildTutorial(level.tutorialImage);
+        }
+
+        /// <summary>关掉教程图遮罩，把压着的 Launch 发出去。页面已在关闭途中时只清遮罩不开局。</summary>
+        private void CloseTutorialAndLaunch()
+        {
+            if (tutorial != null) Object.Destroy(tutorial);
+            tutorial = null;
+            var level = pendingLaunchLevel;
+            pendingLaunchLevel = null;
+            if (closing || settled || level == null) return;
+            game.Launch(level, HandleFinish, HandleAbort);
+        }
+
+        /// <summary>
+        /// 教程图遮罩是宿主层的运行时表现件（同 Toast 一类，不属于任何页面布局）：
+        /// 全屏半透黑底 + 等比居中的教程图 + 底部一行「点击任意处开始」。
+        /// 挂在小游戏实例底下、置顶——随实例一起销毁，Close() 不用单独收拾它。
+        /// </summary>
+        private GameObject BuildTutorial(Sprite sprite)
+        {
+            var root = new GameObject("MinigameTutorial", typeof(RectTransform), typeof(UnityEngine.UI.Image),
+                typeof(UnityEngine.UI.Button));
+            root.layer = 5;
+            var rect = (RectTransform)root.transform;
+            rect.SetParent(instance.transform, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            rect.SetAsLastSibling();
+
+            var scrim = root.GetComponent<UnityEngine.UI.Image>();
+            scrim.color = new Color(0f, 0f, 0f, 0.6f);
+            scrim.raycastTarget = true; // 教程期间点不到底下的小游戏页
+
+            var button = root.GetComponent<UnityEngine.UI.Button>();
+            button.transition = UnityEngine.UI.Selectable.Transition.None;
+            button.onClick.AddListener(CloseTutorialAndLaunch);
+
+            var imageGo = new GameObject("Image", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+            imageGo.layer = 5;
+            var imageRect = (RectTransform)imageGo.transform;
+            imageRect.SetParent(rect, false);
+            imageRect.anchorMin = Vector2.zero;
+            imageRect.anchorMax = Vector2.one;
+            imageRect.offsetMin = Vector2.zero;
+            imageRect.offsetMax = Vector2.zero;
+            var image = imageGo.GetComponent<UnityEngine.UI.Image>();
+            image.sprite = sprite;
+            image.raycastTarget = false;
+            image.preserveAspect = true; // 等比缩放居中，不同比例的图不被拉变形
+
+            var hintGo = new GameObject("Hint", typeof(RectTransform), typeof(UnityEngine.UI.Text));
+            hintGo.layer = 5;
+            var hintRect = (RectTransform)hintGo.transform;
+            hintRect.SetParent(rect, false);
+            hintRect.anchorMin = new Vector2(0.5f, 0f);
+            hintRect.anchorMax = new Vector2(0.5f, 0f);
+            hintRect.anchoredPosition = new Vector2(0f, 48f);
+            hintRect.sizeDelta = new Vector2(600f, 44f);
+            var hint = hintGo.GetComponent<UnityEngine.UI.Text>();
+            hint.text = "点击任意处开始";
+            hint.fontSize = 26;
+            hint.alignment = TextAnchor.MiddleCenter;
+            hint.color = new Color(1f, 1f, 1f, 0.85f);
+            hint.raycastTarget = false;
+            HouseUIUtil.ApplyFallbackFont(rect);
+            return root;
         }
 
         // ══════════ 结束 ══════════
@@ -208,7 +306,16 @@ namespace MasterHouse
         /// ESC 先问小游戏自己（2026-08-20 加局内暂停）：它可能只是想开/关自己的暂停弹窗。
         /// 不消费才落到壳的默认语义——弹栈 = 关页面且不结算（见 Close 注释）。
         /// </summary>
-        public bool ConsumeEscape() => game != null && game.ConsumeEscape();
+        public bool ConsumeEscape()
+        {
+            // 教程图开着：ESC 等价于点击关闭（#2 定案），别把这一下漏给壳去关整页
+            if (tutorial != null)
+            {
+                CloseTutorialAndLaunch();
+                return true;
+            }
+            return game != null && game.ConsumeEscape();
+        }
 
         public void Close()
         {

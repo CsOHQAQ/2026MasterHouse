@@ -30,7 +30,7 @@ namespace MasterHouse
             view = chrome;
             page = owner;
 
-            if (view.clockLabel != null) view.clockLabel.text = Clock.TimeText;
+            if (view.clockLabel != null) view.clockLabel.text = Clock.HourText;
             ApplyPhase(true);
 
             HouseUIUtil.BindButton(view.codexButton, page.OpenCodex);
@@ -48,7 +48,8 @@ namespace MasterHouse
         public void Tick()
         {
             if (view == null) return;
-            if (view.clockLabel != null) view.clockLabel.text = Clock.TimeText;
+            // 一轮测试改进 #6：时间牌只显示小时（分钟继续在业务层走，别处消费方不受影响）
+            if (view.clockLabel != null) view.clockLabel.text = Clock.HourText;
             ApplyPhase(false);
             UpdateRoomBody(true);
         }
