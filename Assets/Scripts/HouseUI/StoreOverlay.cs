@@ -649,9 +649,10 @@ namespace MasterHouse
         {
             if (image == null) return;
             var rect = image.rectTransform;
+            var existing = image.GetComponent<AspectRatioFitter>();
+            var fittedToParent = existing != null && existing.aspectMode != AspectRatioFitter.AspectMode.None;
             if (!fitBoxes.TryGetValue(image, out var box))
             {
-                var existing = image.GetComponent<AspectRatioFitter>();
                 // 用**实际渲染尺寸**测框：Prefab 里若是 stretch 锚点，sizeDelta 表示的是边距而非尺寸
                 var measured = rect.rect.size;
                 box = measured.x > 1f && measured.y > 1f ? measured : rect.sizeDelta;
@@ -661,10 +662,14 @@ namespace MasterHouse
                     rect.parent is RectTransform fittedParent && fittedParent.rect.width > 1f && fittedParent.rect.height > 1f)
                     box = fittedParent.rect.size;
                 if ((box.x <= 1f || box.y <= 1f) && rect.parent is RectTransform parentRect)
+                {
                     box = parentRect.rect.size;
+                    // 动态商店卡首帧尚未经过 Canvas 布局时，父容器 rect 仍可能是 0；
+                    // ThumbArea 是固定锚点，sizeDelta 才是 Prefab 中真实的设计框尺寸。
+                    if (box.x <= 1f || box.y <= 1f)
+                        box = new Vector2(Mathf.Abs(parentRect.sizeDelta.x), Mathf.Abs(parentRect.sizeDelta.y));
+                }
                 if (box.x > 1f && box.y > 1f) fitBoxes[image] = box;
-                // 关掉可能存在的比例组件与父级布局控制，避免两套逻辑打架把图拉回去
-                if (existing != null) existing.enabled = false;
                 if (rect.parent != null && rect.parent.GetComponent<LayoutGroup>() != null)
                 {
                     var element = image.GetComponent<LayoutElement>();
@@ -672,10 +677,20 @@ namespace MasterHouse
                     element.ignoreLayout = true;
                 }
             }
-            var sprite = entry == null ? null
-                : useDetailArtwork
-                    ? entry.storePreviewSprite ?? entry.storeListSprite ?? entry.sprite
-                    : entry.storeListSprite ?? entry.sprite;
+            Sprite sprite = null;
+            if (entry != null)
+            {
+                // UnityEngine.Object 的“Missing/None”引用可能是托管层非 null、原生对象却已为空；
+                // C# 的 ?? 不会调用 Unity 的空值运算符，因此旧写法会停在一个假 null 上，
+                // 后续 has 判定失败，最终只剩商品名和价格。逐级用 Unity 的 != null 判断才会
+                // 正确回退到摆放 Sprite。
+                if (useDetailArtwork && entry.storePreviewSprite != null)
+                    sprite = entry.storePreviewSprite;
+                else if (entry.storeListSprite != null)
+                    sprite = entry.storeListSprite;
+                else
+                    sprite = entry.sprite;
+            }
             var has = sprite != null && sprite.texture != null;
             image.gameObject.SetActive(has);
             if (!has) return;
@@ -690,9 +705,18 @@ namespace MasterHouse
             var target = configured * scale;
             var safetyScale = Mathf.Min(1f, Mathf.Min(box.x / target.x, box.y / target.y));
             target *= safetyScale;
-            // SetSizeWithCurrentAnchors 在固定锚点与 stretch 下都能得到正确的实际尺寸
-            rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, target.x);
-            rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, target.y);
+
+            // AspectRatioFitter 会把 RectTransform 标成 driven；直接禁用后 Unity 会恢复 Prefab
+            // 里序列化的 0×0 Rect，正是商店图片全部消失的根因。先记住显示中心，再改成
+            // 明确的中心锚点和尺寸，图片便不再依赖首帧布局时序。
+            var worldCenter = fittedToParent && rect.parent is RectTransform parent
+                ? parent.TransformPoint(parent.rect.center)
+                : rect.TransformPoint(rect.rect.center);
+            if (existing != null) existing.enabled = false;
+            rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
+            rect.pivot = new Vector2(.5f, .5f);
+            rect.position = worldCenter;
+            rect.sizeDelta = target;
         }
 
         private static Rect TightUvRect(Sprite sprite)
