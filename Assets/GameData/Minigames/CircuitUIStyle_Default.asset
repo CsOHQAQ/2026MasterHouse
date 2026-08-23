@@ -27,6 +27,7 @@ MonoBehaviour:
   palettePieceNormalColor: {r: 1, g: 1, b: 1, a: 1}
   palettePieceSelectedColor: {r: 0.55, g: 1, b: 0.62, a: 1}
   palettePieceDisabledColor: {r: 0.42, g: 0.42, b: 0.46, a: 0.8}
+  hideDepletedPaletteItems: 1
   palettePiecePreviewMaxWidth: 196
   palettePiecePreviewMaxHeight: 132
   palettePieceIconPadding: 14

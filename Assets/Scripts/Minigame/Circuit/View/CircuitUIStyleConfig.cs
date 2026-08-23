@@ -51,6 +51,9 @@ namespace MasterHouse
         public Color palettePieceSelectedColor = new Color(0.55f, 1f, 0.62f, 1f);
         public Color palettePieceDisabledColor = new Color(0.42f, 0.42f, 0.46f, 0.8f);
 
+        [Tooltip("开启后，件库中剩余可摆数量为 0 的节点卡会直接隐藏，布局会自动收拢；关闭则保留置灰的耗尽卡。")]
+        public bool hideDepletedPaletteItems = true;
+
         [Min(0f)]
         [Tooltip("节点预览可使用的最大宽度（Canvas 参考像素）。")]
         public float palettePiecePreviewMaxWidth = 196f;

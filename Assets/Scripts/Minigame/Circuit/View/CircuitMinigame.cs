@@ -738,6 +738,11 @@ namespace MasterHouse
                 int remaining = levelManager.RemainingBuildCount(level, def);
                 int max = MaxCountOf(def);
 
+                // 只收起表现条目，不改件库数据或可建资格；恢复数量时会自动重新出现。
+                bool visible = !style.hideDepletedPaletteItems || remaining > 0;
+                if (item.gameObject.activeSelf != visible) item.gameObject.SetActive(visible);
+                if (!visible) continue;
+
                 if (item.count != null)
                 {
                     item.count.text = $"{max - remaining}/{max}";
