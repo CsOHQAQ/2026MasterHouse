@@ -695,13 +695,26 @@ namespace MasterHouse
             image.gameObject.SetActive(has);
             if (!has) return;
             image.texture = sprite.texture;
-            image.uvRect = TightUvRect(sprite);
+            var uvRect = TightUvRect(sprite);
+            image.uvRect = uvRect;
 
-            var configured = new Vector2(
+            var configuredBounds = new Vector2(
                 Mathf.Max(1f, entry.storeDisplayWidth),
                 Mathf.Max(1f, entry.storeDisplayHeight));
             if (box.x <= 0f || box.y <= 0f) return;
             var scale = Mathf.Min(box.x / StoreDesignCanvas.x, box.y / StoreDesignCanvas.y);
+            // 家具表的商店宽高表示“最多占用多大的现实比例框”，不是要求把图片强拉到该比例。
+            // RawImage 会把 uvRect 铺满自身 Rect，所以必须先按实际采样区域的宽高比 fit 进配置框，
+            // 再做统一画布缩放；否则单人沙发等会被横向撑宽或纵向压扁。
+            var sampledWidth = sprite.texture.width * uvRect.width;
+            var sampledHeight = sprite.texture.height * uvRect.height;
+            var sampledAspect = sampledHeight > .001f ? sampledWidth / sampledHeight : 1f;
+            var configuredAspect = configuredBounds.x / configuredBounds.y;
+            var configured = configuredBounds;
+            if (sampledAspect > configuredAspect)
+                configured.y = configured.x / sampledAspect;
+            else
+                configured.x = configured.y * sampledAspect;
             var target = configured * scale;
             var safetyScale = Mathf.Min(1f, Mathf.Min(box.x / target.x, box.y / target.y));
             target *= safetyScale;
