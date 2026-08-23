@@ -768,7 +768,7 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 用 Sprite 逐字符绘制 Caption 数字（电源供电量 / 电池 received/required）。
+        /// 用 Sprite 逐字符绘制 Caption 数字（电源供电量 / 电池需求或剩余缺口）。
         /// 字符 unrecognized 时静默跳过，不影响前后字符的排列。
         /// </summary>
         private void DrawCaptionSprites(NodeData node, string caption)
@@ -1233,7 +1233,7 @@ namespace MasterHouse
             }
         }
 
-        private static string Caption(NodeData node)
+        private string Caption(NodeData node)
         {
             switch (node.Def.NodeType)
             {
@@ -1250,6 +1250,10 @@ namespace MasterHouse
                     foreach (var entry in conditions)
                         if (entry != null)
                             required = Mathf.Max(required, entry.RequiredAmount);
+                    bool showRemaining = view.visualStyle == null || view.visualStyle.showBatteryRemainingPower;
+                    if (!showRemaining)
+                        return required > 0 ? required.ToString() : null;
+
                     int deficit = Mathf.Max(0, required - node.ReceivedPower);
                     return deficit > 0 ? deficit.ToString() : null;
 

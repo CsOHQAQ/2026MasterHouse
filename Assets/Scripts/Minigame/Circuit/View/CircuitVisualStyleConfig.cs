@@ -97,9 +97,12 @@ namespace MasterHouse
         public float mobilityIconPaddingInCells = 0.12f;
 
         [Header("节点 Caption 数字角标")]
-        [Tooltip("电源/电池右上角 Caption 数字的 0-9 Sprite。电源显示供电量、电池显示 received/required。" +
+        [Tooltip("电源/电池右上角 Caption 数字的 0-9 Sprite。电源显示供电量；电池显示内容由下方开关决定。" +
                  "留空时继续使用文本渲染。")]
         public Sprite[] captionDigits;
+
+        [Tooltip("开启时，电池显示尚未满足的电量（需求 - 当前收到）；关闭时，始终显示配置的最大需求电量。")]
+        public bool showBatteryRemainingPower = true;
 
         [Min(0f)]
         [Tooltip("Caption 数字的边长，以单格边长为单位")]
@@ -112,7 +115,7 @@ namespace MasterHouse
         [Tooltip("Caption 数字染色。保持白色表示不额外染色。")]
         public Color captionDigitColor = Color.white;
 
-        [Tooltip("斜杠 '/' 分隔符 Sprite。电池 Caption 格式为 received/required；留空时跳过斜杠字符。")]
+        [Tooltip("斜杠 '/' 分隔符 Sprite，供未来 Caption 格式扩展使用；留空时跳过斜杠字符。")]
         public Sprite captionSlashSprite;
 
         [Tooltip("电源节点 Caption 左侧的小闪电/电力图标。留空时不显示。")]
