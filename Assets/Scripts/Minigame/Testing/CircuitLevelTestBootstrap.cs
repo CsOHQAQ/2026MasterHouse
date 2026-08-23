@@ -35,6 +35,9 @@ namespace MasterHouse
         public bool launchOnStart = true;
 
         private GameObject activeInstance;
+        private GameObject tutorial;
+        private IMinigame pendingTutorialMinigame;
+        private MinigameLevelDef pendingTutorialLevel;
         private bool hasResult;
         private int lastScore;
         private bool panelVisible = true;
@@ -104,8 +107,70 @@ namespace MasterHouse
                 return;
             }
 
+            // 测试场景不经过正式的 MinigameOverlay，因而要在这里补上同样的开局教程门。
+            // 测试的目的就是连续调图，所以每次 Launch / R 重开都重新弹，不走正式包的首次缓存。
+            if (target.tutorialImage != null)
+            {
+                OpenTutorial(canvas.transform, target, minigame);
+                return;
+            }
+
+            LaunchMinigame(target, minigame);
+        }
+
+        private void LaunchMinigame(MinigameLevelDef target, IMinigame minigame)
+        {
             minigame.Launch(target, HandleFinish, HandleAbort);
             Debug.Log($"[电路关卡测试] 已启动 {target.name}。按 R 随时重开。", target);
+        }
+
+        /// <summary>测试壳的教程门：遮罩位于正式小游戏实例之后，点击后才开始模拟与输入。</summary>
+        private void OpenTutorial(Transform parent, MinigameLevelDef target, IMinigame minigame)
+        {
+            pendingTutorialLevel = target;
+            pendingTutorialMinigame = minigame;
+
+            tutorial = new GameObject("TestTutorial", typeof(RectTransform), typeof(Image), typeof(Button));
+            tutorial.layer = 5;
+            var root = (RectTransform)tutorial.transform;
+            root.SetParent(parent, false);
+            root.anchorMin = Vector2.zero;
+            root.anchorMax = Vector2.one;
+            root.offsetMin = Vector2.zero;
+            root.offsetMax = Vector2.zero;
+            root.SetAsLastSibling();
+
+            var scrim = tutorial.GetComponent<Image>();
+            scrim.color = new Color(0f, 0f, 0f, .6f);
+            scrim.raycastTarget = true;
+            var button = tutorial.GetComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            button.onClick.AddListener(CloseTutorialAndLaunch);
+
+            var imageGo = new GameObject("Image", typeof(RectTransform), typeof(Image));
+            imageGo.layer = 5;
+            var imageRect = (RectTransform)imageGo.transform;
+            imageRect.SetParent(root, false);
+            imageRect.anchorMin = Vector2.zero;
+            imageRect.anchorMax = Vector2.one;
+            imageRect.offsetMin = Vector2.zero;
+            imageRect.offsetMax = Vector2.zero;
+            var image = imageGo.GetComponent<Image>();
+            image.sprite = target.tutorialImage;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+        }
+
+        private void CloseTutorialAndLaunch()
+        {
+            if (tutorial != null) Destroy(tutorial);
+            tutorial = null;
+            var target = pendingTutorialLevel;
+            var minigame = pendingTutorialMinigame;
+            pendingTutorialLevel = null;
+            pendingTutorialMinigame = null;
+            if (target != null && minigame != null)
+                LaunchMinigame(target, minigame);
         }
 
         [ContextMenu("重开当前关卡")]
@@ -267,6 +332,10 @@ namespace MasterHouse
 
         private void DestroyActiveInstance()
         {
+            if (tutorial != null) Destroy(tutorial);
+            tutorial = null;
+            pendingTutorialLevel = null;
+            pendingTutorialMinigame = null;
             if (activeInstance == null) return;
             Destroy(activeInstance);
             activeInstance = null;

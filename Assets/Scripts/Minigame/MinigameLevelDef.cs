@@ -20,7 +20,7 @@ namespace MasterHouse
     public abstract class MinigameLevelDef : ScriptableObject
     {
         [Tooltip("开局教程图（留空不弹）：宿主在开局前盖整屏遮罩显示，点击任意处关闭后才真正开局。\n" +
-                 "本次运行内同一张关卡只弹首次（内存标记，不持久化）；课程包配的是整包一张")]
+                 "正式包内同一张关卡只弹首次（内存标记，不持久化）；Editor 与开发包每次开局都会弹，方便调图；课程包配的是整包一张")]
         public Sprite tutorialImage;
     }
 }

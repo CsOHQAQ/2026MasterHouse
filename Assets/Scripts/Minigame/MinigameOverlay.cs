@@ -177,9 +177,11 @@ namespace MasterHouse
 
             // 开局教程门（#2）：关卡配了教程图且本次运行还没看过 → 先盖遮罩，点击任意处才 Launch。
             // 遮罩期间小游戏未开始（不吃输入、不走它自己的时间），闸门在上面已经关了
-            if (level.tutorialImage != null && !tutorialShown.Contains(level))
+            if (ShouldShowTutorial(level))
             {
+#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
                 tutorialShown.Add(level);
+#endif
                 overlay.OpenTutorial(level);
                 return;
             }
@@ -190,6 +192,20 @@ namespace MasterHouse
         }
 
         // ══════════ 开局教程图（#2）══════════
+
+        /// <summary>
+        /// 正式包内同一关卡只弹首次；Editor / Development Build 每次打开都弹，方便策划连续调图。
+        /// 这个分支只影响表现门，不改变关卡启动与结算逻辑。
+        /// </summary>
+        private static bool ShouldShowTutorial(MinigameLevelDef level)
+        {
+            if (level == null || level.tutorialImage == null) return false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            return true;
+#else
+            return !tutorialShown.Contains(level);
+#endif
+        }
 
         /// <summary>盖上教程图遮罩并压住 Launch；点击任意处 / ESC 都走 <see cref="CloseTutorialAndLaunch"/>。</summary>
         private void OpenTutorial(MinigameLevelDef level)
