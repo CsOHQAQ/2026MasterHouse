@@ -253,8 +253,15 @@ namespace MasterHouse
                 (nightBackgroundRenderer != null ? nightAlpha : 0f);
             // 夜色推移到一定程度就按新几何重建网格并重摆家具（每帧重建太浪费，0.02 一档肉眼看不出跳）
             if (Mathf.Abs(geometryNightAlpha - gridNightAlpha) > GridRebuildStep) RebuildGridsForNight();
-            TintPreserveAlpha(backgroundRenderer, tint);
-            if (nightBackgroundRenderer != null)
+            // 放置模式的完整夜图接管时同步退掉白天底图，避免白天房间框从夜图上下方露出，
+            // 也避免两套房间画面叠加后被误认为一层前景遮罩。
+            var hasNightBackground = nightBackgroundRenderer != null && nightBackgroundRenderer.sprite != null;
+            if (backgroundRenderer != null)
+            {
+                var dayAlpha = hasNightBackground ? 1f - nightAlpha : 1f;
+                backgroundRenderer.color = new Color(tint.r, tint.g, tint.b, dayAlpha);
+            }
+            if (hasNightBackground)
                 nightBackgroundRenderer.color = new Color(1f, 1f, 1f, nightAlpha);
             TintPreserveAlpha(depthBlurRenderer, tint);
             TintPreserveAlpha(focusBlurRenderer, tint);
