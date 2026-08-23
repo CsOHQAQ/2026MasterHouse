@@ -370,7 +370,7 @@ namespace MasterHouse
                 }
                 if (card.thumb != null)
                 {
-                    SetThumb(card.thumb, revealed ? showEntry : null);
+                    SetStoreImage(card.thumb, revealed ? showEntry : null, false);
                     card.thumb.color = Color.white;
                 }
                 // 新设计图的价格样式：纯数字（货币符号画在卡面上），未解禁不显示
@@ -436,7 +436,7 @@ namespace MasterHouse
             var family = SelectedFamilyEntry();
             var entry = CurrentVariant(family);
             var revealed = entry != null && Economy.IsFurnitureRevealed(entry);
-            SetPreview(revealed ? entry : null);
+            SetStoreImage(view.preview, revealed ? entry : null, true);
             if (view.itemName != null)
                 view.itemName.text = entry == null ? string.Empty : revealed ? entry.displayName : "？？？";
             if (view.itemDesc != null)
@@ -641,13 +641,11 @@ namespace MasterHouse
         /// 显示框取自 Prefab 手调的 Rect —— 只读不写，Prefab 布局仍是唯一真相源；
         /// 若 Prefab 上挂了 AspectRatioFitter 则关掉它，避免两套缩放逻辑互相打架。
         /// </summary>
-        private void SetPreview(FurnitureEntry entry) => FitInBox(view.preview, entry);
-
         /// <summary>
         /// 将家具的商店专用尺寸映射进 Prefab 显示框。RawImage 只采样 Sprite 自己的 UV 区域，
         /// 不再把整张纹理或透明画布当成家具尺寸。
         /// </summary>
-        private void FitInBox(RawImage image, FurnitureEntry entry)
+        private void SetStoreImage(RawImage image, FurnitureEntry entry, bool useDetailArtwork)
         {
             if (image == null) return;
             var rect = image.rectTransform;
@@ -674,7 +672,10 @@ namespace MasterHouse
                     element.ignoreLayout = true;
                 }
             }
-            var sprite = entry?.sprite;
+            var sprite = entry == null ? null
+                : useDetailArtwork
+                    ? entry.storePreviewSprite ?? entry.storeListSprite ?? entry.sprite
+                    : entry.storeListSprite ?? entry.sprite;
             var has = sprite != null && sprite.texture != null;
             image.gameObject.SetActive(has);
             if (!has) return;
@@ -708,14 +709,12 @@ namespace MasterHouse
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 
-        private void SetThumb(RawImage image, FurnitureEntry entry) => FitInBox(image, entry);
-
         // ══════════ 获得弹窗 ══════════
 
         private void ShowObtained(Family family, FurnitureEntry entry)
         {
             if (view.obtainedGroup == null) return;
-            FitInBox(view.obtainedThumb, entry); // 弹窗缩略图与商品卡、详情共用商店专用比例
+            SetStoreImage(view.obtainedThumb, entry, true); // 弹窗使用右侧高清展示图
             if (view.obtainedName != null) view.obtainedName.text = entry.displayName;
             if (view.obtainedDesc != null)
                 view.obtainedDesc.text = string.IsNullOrEmpty(entry.description)

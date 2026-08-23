@@ -20,9 +20,8 @@ EXCEL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "Excel", "家�
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "Assets", "Configs", "家具表.csv")
 
 # CSV 列（与 Unity 侧 FurnitureCsvImporter.FurnitureHeader 一致，勿改文字）
-# 2026-08-15 族化：族级列（分类/描述/表面类型/可叠放/占格/装饰分/音效/桌面格）已搬去 Excel/家具族表.xlsx，
-# 本表只剩逐变体不同的列 + 一个「族id」外键；族级值由 Unity 导入时展开填回每一行。
-HEADER = ["id", "英文索引", "显示名", "族id", "显示宽", "显示高", "精灵图", "色值", "商店显示宽", "商店显示高"]
+# 族级公共值仍在家具族表；占格由逐变体最新显示尺寸换算，空值才回退族默认值。
+HEADER = ["id", "英文索引", "显示名", "族id", "显示宽", "显示高", "精灵图", "色值", "商店显示宽", "商店显示高", "商店列表图", "商店详情图", "占格列", "占格行"]
 SHEET = "家具"
 
 

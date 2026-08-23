@@ -20,8 +20,8 @@ namespace MasterHouse
     /// 家具配置表中的一行。
     ///
     /// **注意本类有两种字段**（家具族体系说明 §3.3）：
-    ///   · 变体特有（id / 英文索引 / 显示名 / 显示宽高 / 精灵图 / 色值 / 族id）——策划在家具表.xlsx 里逐行填；
-    ///   · 族级共有（分类 / 描述 / 表面类型 / 可叠放 / 占格 / 装饰分 / 音效 / 桌面格）——**策划不填**，
+    ///   · 变体特有（id / 英文索引 / 显示名 / 显示宽高 / 占格 / 精灵图 / 色值 / 族id）——策划在家具表.xlsx 里逐行填；
+    ///   · 族级共有（分类 / 描述 / 表面类型 / 可叠放 / 装饰分 / 音效 / 桌面格）——**策划不填**，
     ///     导表时由 <c>FurnitureCsvImporter</c> 按 <see cref="familyId"/> 查家具族表.xlsx 后**展开填入**。
     ///
     /// 展开而不是运行时查族表，是为了让商城/摆放/烘焙/装饰分/需求匹配等全部消费方零改动——
@@ -41,12 +41,14 @@ namespace MasterHouse
         public List<FurnitureSurfaceType> surfaces = new List<FurnitureSurfaceType> { FurnitureSurfaceType.Floor };
         [Tooltip("【族级·导表展开】可叠放（地毯类）：平铺在地面、不挡其他家具落格，渲染压在所有立式家具之下；同为可叠放的彼此仍互斥")]
         public bool stackable;
-        [Tooltip("【族级·导表展开】占格：列数")] public int cols = 1;
-        [Tooltip("【族级·导表展开】占格：行数")] public int rows = 1;
+        [Tooltip("按该变体最新显示尺寸换算的占格列数；家具表为空时回退族默认值")] public int cols = 1;
+        [Tooltip("按该变体最新显示尺寸/实际纵深换算的占格行数；家具表为空时回退族默认值")] public int rows = 1;
         [Tooltip("实际显示宽度（场景像素）。与显示高度分别生效，用来校正素材自身比例")] public float displayWidth = 100f;
         [Tooltip("实际显示高度（场景像素）。与显示宽度分别生效，用来校正素材自身比例")] public float displayHeight = 100f;
         [Tooltip("商店预览宽度（独立虚拟画布单位）。只控制商品卡、详情与购买弹窗，不影响房间摆放")] public float storeDisplayWidth = 100f;
         [Tooltip("商店预览高度（独立虚拟画布单位）。只控制商品卡、详情与购买弹窗，不影响房间摆放")] public float storeDisplayHeight = 100f;
+        [Tooltip("商店左侧商品列表专用图；空时回退摆放精灵")] public Sprite storeListSprite;
+        [Tooltip("商店右侧详情展示专用图；空时回退列表图/摆放精灵")] public Sprite storePreviewSprite;
         // 售卖配置（价格 / 解禁声望）已于 2026-08-13 拆去 StoreTable，按 id 关联；读取走 EconomyManager
         [Tooltip("【族级·导表展开】摆放后对 House 装饰分的贡献")] public int decorationScore = 10;
         [Tooltip("家具精灵（Assets/Resources/OutGameUI/Furniture）")] public Sprite sprite;

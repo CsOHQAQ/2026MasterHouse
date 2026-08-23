@@ -1,145 +1,155 @@
-﻿id,英文索引,显示名,族id,显示宽,显示高,精灵图,色值,商店显示宽,商店显示高
-table_lamp_01,table_lamp_01,经典落地灯·01,table_lamp,70,220,Assets/PC ui/Scene/furniture/01_台灯 1.png,#D5B061,70,220
-table_lamp_02,table_lamp_02,经典落地灯·02,table_lamp,70,220,Assets/PC ui/Scene/furniture/02_台灯 1.png,#C0AF97,70,220
-table_lamp_03,table_lamp_03,经典落地灯·03,table_lamp,70,220,Assets/PC ui/Scene/furniture/03_台灯 1.png,#CCA49C,70,220
-table_lamp_04,table_lamp_04,经典落地灯·04,table_lamp,70,220,Assets/PC ui/Scene/furniture/04_台灯 2.png,#9C9F83,70,220
-table_lamp_05,table_lamp_05,经典落地灯·05,table_lamp,70,220,Assets/PC ui/Scene/furniture/05_台灯 1.png,#A3AFBD,70,220
-table_lamp_06,table_lamp_06,经典落地灯·06,table_lamp,70,220,Assets/PC ui/Scene/furniture/06_台灯 1.png,#AB95A0,70,220
-round_table_01,round_table_01,圆桌·01,round_table,135,145,Assets/PC ui/Scene/furniture/01_圆桌 3.png,#8EABC2,145,155
-round_table_02,round_table_02,圆桌·02,round_table,135,145,Assets/PC ui/Scene/furniture/02_圆桌 1.png,#ACB189,145,155
-round_table_03,round_table_03,圆桌·03,round_table,135,145,Assets/PC ui/Scene/furniture/03_圆桌 1.png,#E07A60,145,155
-round_table_04,round_table_04,圆桌·04,round_table,135,145,Assets/PC ui/Scene/furniture/04_圆桌 2.png,#E5D1B2,145,155
-round_table_05,round_table_05,圆桌·05,round_table,135,145,Assets/PC ui/Scene/furniture/05_圆桌 1.png,#697075,145,155
-round_table_06,round_table_06,圆桌·06,round_table,135,145,Assets/PC ui/Scene/furniture/06_圆桌 1.png,#E7C374,145,155
-round_table_07,round_table_07,圆桌·07,round_table,135,145,Assets/PC ui/Scene/furniture/07_圆桌 1.png,#E9BAB1,145,155
-round_table_08,round_table_08,圆桌·08,round_table,135,145,Assets/PC ui/Scene/furniture/08_圆桌 1.png,#B1C7B9,145,155
-crescent_aquarium_01,crescent_aquarium_01,月牙鱼缸·01,crescent_aquarium,50,55,Assets/PC ui/Scene/furniture/01_月牙鱼缸 1.png,#B1C5C6,85,90
-crescent_aquarium_04,crescent_aquarium_04,月牙鱼缸·04,crescent_aquarium,50,55,Assets/PC ui/Scene/furniture/04_月牙鱼缸 1.png,#B4A8B8,85,90
-crescent_aquarium_05,crescent_aquarium_05,月牙鱼缸·05,crescent_aquarium,50,55,Assets/PC ui/Scene/furniture/05_月牙鱼缸 1.png,#D0D3B3,85,90
-crescent_aquarium_07,crescent_aquarium_07,月牙鱼缸·07,crescent_aquarium,50,55,Assets/PC ui/Scene/furniture/07_月牙鱼缸 1.png,#E4D6CA,85,90
-cat_sofa_01,cat_sofa_01,猫耳懒人沙发·01,cat_sofa,145,105,Assets/PC ui/Scene/furniture/01_猫耳懒人沙发 2.png,#96B2CB,165,120
-cat_sofa_02,cat_sofa_02,猫耳懒人沙发·02,cat_sofa,145,105,Assets/PC ui/Scene/furniture/02_猫耳懒人沙发 1.png,#E89276,165,120
-cat_sofa_03,cat_sofa_03,猫耳懒人沙发·03,cat_sofa,145,105,Assets/PC ui/Scene/furniture/03_猫耳懒人沙发 1.png,#A8BEA2,165,120
-cat_sofa_04,cat_sofa_04,猫耳懒人沙发·04,cat_sofa,145,105,Assets/PC ui/Scene/furniture/04_猫耳懒人沙发 1.png,#EDBD6F,165,120
-cat_sofa_05,cat_sofa_05,猫耳懒人沙发·05,cat_sofa,145,105,Assets/PC ui/Scene/furniture/05_猫耳懒人沙发 2.png,#C8B1BF,165,120
-cat_sofa_06,cat_sofa_06,猫耳懒人沙发·06,cat_sofa,145,105,Assets/PC ui/Scene/furniture/06_猫耳懒人沙发 1.png,#B5D4D9,165,120
-cat_sofa_07,cat_sofa_07,猫耳懒人沙发·07,cat_sofa,145,105,Assets/PC ui/Scene/furniture/07_猫耳懒人沙发 1.png,#8FA7BA,165,120
-cat_sofa_08,cat_sofa_08,猫耳懒人沙发·08,cat_sofa,145,105,Assets/PC ui/Scene/furniture/08_猫耳懒人沙发 1.png,#ECD2AA,165,120
-single_sofa_02,single_sofa_02,单人沙发·02,single_sofa,135,150,Assets/PC ui/Scene/furniture/02_单人沙发 1.png,#3B4F63,145,160
-single_sofa_03,single_sofa_03,单人沙发·03,single_sofa,135,150,Assets/PC ui/Scene/furniture/03_单人沙发 1.png,#4E5B37,145,160
-single_sofa_04,single_sofa_04,单人沙发·04,single_sofa,135,150,Assets/PC ui/Scene/furniture/04_单人沙发 1.png,#A87219,145,160
-single_sofa_05,single_sofa_05,单人沙发·05,single_sofa,135,150,Assets/PC ui/Scene/furniture/05_单人沙发 3.png,#664E71,145,160
-single_sofa_06,single_sofa_06,单人沙发·06,single_sofa,135,150,Assets/PC ui/Scene/furniture/06_单人沙发 1.png,#387274,145,160
-single_sofa_07,single_sofa_07,单人沙发·07,single_sofa,135,150,Assets/PC ui/Scene/furniture/07_单人沙发 1.png,#673212,145,160
-single_sofa_08,single_sofa_08,单人沙发·08,single_sofa,135,150,Assets/PC ui/Scene/furniture/08_单人沙发 1.png,#635D58,145,160
-single_sofa_09,single_sofa_09,单人沙发·09,single_sofa,135,150,Assets/PC ui/Scene/furniture/09_单人沙发 2.png,#C7B391,145,160
-single_sofa_10,single_sofa_10,单人沙发·10,single_sofa,135,150,Assets/PC ui/Scene/furniture/10_单人沙发 1.png,#C08883,145,160
-single_sofa_11,single_sofa_11,单人沙发·11,single_sofa,135,150,Assets/PC ui/Scene/furniture/11_单人沙发 1.png,#A24A12,145,160
-single_sofa_12,single_sofa_12,单人沙发·12,single_sofa,135,150,Assets/PC ui/Scene/furniture/12_单人沙发 1.png,#2A2928,145,160
-armchair_01,armchair_01,扶手椅·01,armchair,135,150,Assets/PC ui/Scene/furniture/armchair_01 1.png,#97211E,145,160
-cactus_lamp_04,cactus_lamp_04,仙人掌灯·04,cactus_lamp,45,70,Assets/PC ui/Scene/furniture/cactus_lamp_04 1.png,#8A7C58,75,105
-cactus_lamp_05,cactus_lamp_05,仙人掌灯·05,cactus_lamp,45,70,Assets/PC ui/Scene/furniture/cactus_lamp_05 1.png,#7C6C63,75,105
-cactus_lamp_06,cactus_lamp_06,仙人掌灯·06,cactus_lamp,45,70,Assets/PC ui/Scene/furniture/cactus_lamp_06 1.png,#A1848B,75,105
-cactus_lamp_07,cactus_lamp_07,仙人掌灯·07,cactus_lamp,45,70,Assets/PC ui/Scene/furniture/cactus_lamp_07 1.png,#627A64,75,105
-cactus_lamp_08,cactus_lamp_08,仙人掌灯·08,cactus_lamp,45,70,Assets/PC ui/Scene/furniture/cactus_lamp_08 1.png,#4F6455,75,105
-hanging_plant_01,hanging_plant_01,悬挂绿植·01,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_01 1.png,#AFAE7C,95,140
-hanging_plant_03,hanging_plant_03,悬挂绿植·03,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_03 1.png,#98A187,95,140
-hanging_plant_06,hanging_plant_06,悬挂绿植·06,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_06 1.png,#93988E,95,140
-hanging_plant_07,hanging_plant_07,悬挂绿植·07,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_07 1.png,#A8A97E,95,140
-hanging_plant_08,hanging_plant_08,悬挂绿植·08,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_08 1.png,#C2BB88,95,140
-hanging_plant_09,hanging_plant_09,悬挂绿植·09,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_09 1.png,#BAB47F,95,140
-hanging_plant_11,hanging_plant_11,悬挂绿植·11,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_11 1.png,#B8A895,95,140
-hanging_plant_12,hanging_plant_12,悬挂绿植·12,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_12 1.png,#AFAD8B,95,140
-hanging_plant_13,hanging_plant_13,悬挂绿植·13,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_13 1.png,#AFB789,95,140
-hanging_plant_14,hanging_plant_14,悬挂绿植·14,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_14 1.png,#9CA57F,95,140
-hanging_plant_15,hanging_plant_15,悬挂绿植·15,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_15 1.png,#AAA191,95,140
-hanging_plant_16,hanging_plant_16,悬挂绿植·16,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_16 1.png,#9AA380,95,140
-hanging_plant_17,hanging_plant_17,悬挂绿植·17,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_17 1.png,#D3D09B,95,140
-hanging_plant_18,hanging_plant_18,悬挂绿植·18,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_18 1.png,#C9B0A5,95,140
-hanging_plant_21,hanging_plant_21,悬挂绿植·21,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_21 1.png,#A5AB7D,95,140
-hanging_plant_22,hanging_plant_22,悬挂绿植·22,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_22 1.png,#ADB496,95,140
-hanging_plant_23,hanging_plant_23,悬挂绿植·23,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_23 1.png,#D6D485,95,140
-hanging_plant_24,hanging_plant_24,悬挂绿植·24,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_24 1.png,#B5BEA3,95,140
-hanging_plant_30,hanging_plant_30,悬挂绿植·30,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_30 2.png,#B2AAAE,95,140
-hanging_plant_31,hanging_plant_31,悬挂绿植·31,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_31 1.png,#C3C567,95,140
-hanging_plant_32,hanging_plant_32,悬挂绿植·32,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_32 1.png,#90A69F,95,140
-hanging_plant_36,hanging_plant_36,悬挂绿植·36,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_36 1.png,#9CB1A9,95,140
-landscape_poster_02,landscape_poster_02,风景海报·02,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_02 1.png,#9E9F82,90,135
-landscape_poster_03,landscape_poster_03,风景海报·03,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_03 1.png,#CA9263,90,135
-landscape_poster_04,landscape_poster_04,风景海报·04,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_04 1.png,#776A84,90,135
-landscape_poster_05,landscape_poster_05,风景海报·05,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_05 1.png,#90A2AA,90,135
-landscape_poster_06,landscape_poster_06,风景海报·06,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_06 1.png,#D4A19D,90,135
-landscape_poster_07,landscape_poster_07,风景海报·07,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_07 1.png,#9C958D,90,135
-landscape_poster_08,landscape_poster_08,风景海报·08,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_08 1.png,#DBA759,90,135
-landscape_poster_09,landscape_poster_09,风景海报·09,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_09 1.png,#457273,90,135
-lava_lamp_01,lava_lamp_01,熔岩灯·01,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_01 1.png,#9D7485,65,125
-lava_lamp_02,lava_lamp_02,熔岩灯·02,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_02 1.png,#4589A0,65,125
-lava_lamp_03,lava_lamp_03,熔岩灯·03,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_03 1.png,#A47D46,65,125
-lava_lamp_04,lava_lamp_04,熔岩灯·04,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_04 1.png,#748E4D,65,125
-lava_lamp_05,lava_lamp_05,熔岩灯·05,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_05 1.png,#66559E,65,125
-lava_lamp_06,lava_lamp_06,熔岩灯·06,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_06 1.png,#944F5E,65,125
-lava_lamp_07,lava_lamp_07,熔岩灯·07,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_07 1.png,#A18547,65,125
-lava_lamp_08,lava_lamp_08,熔岩灯·08,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_08 1.png,#7898A9,65,125
-monstera_01,monstera_01,龟背竹·01,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_01 1.png,#A3A987,125,205
-monstera_02,monstera_02,龟背竹·02,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_02 1.png,#ACB093,125,205
-monstera_03,monstera_03,龟背竹·03,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_03 1.png,#6B8075,125,205
-monstera_04,monstera_04,龟背竹·04,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_04 1.png,#A6AC8C,125,205
-monstera_05,monstera_05,龟背竹·05,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_05 1.png,#CBC79C,125,205
-monstera_06,monstera_06,龟背竹·06,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_06 1.png,#A2AA93,125,205
-monstera_08,monstera_08,龟背竹·08,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_08 1.png,#9FA98D,125,205
-orb_decoration_01,orb_decoration_01,球形摆件·01,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_01 1.png,#8895A1,80,85
-orb_decoration_02,orb_decoration_02,球形摆件·02,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_02 1.png,#959C92,80,85
-orb_decoration_03,orb_decoration_03,球形摆件·03,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_03 1.png,#A2A598,80,85
-orb_decoration_04,orb_decoration_04,球形摆件·04,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_04 1.png,#9B9E91,80,85
-orb_decoration_05,orb_decoration_05,球形摆件·05,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_05 1.png,#B6A2A9,80,85
-orb_decoration_06,orb_decoration_06,球形摆件·06,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_06 1.png,#A2A6A7,80,85
-orb_decoration_07,orb_decoration_07,球形摆件·07,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_07 1.png,#A09F97,80,85
-orb_decoration_08,orb_decoration_08,球形摆件·08,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_08 1.png,#9AA095,80,85
-orb_decoration_09,orb_decoration_09,球形摆件·09,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_09 1.png,#99A09B,80,85
-potted_plant_01,potted_plant_01,盆栽植物·01,potted_plant,55,115,Assets/PC ui/Scene/furniture/potted_plant_01 1.png,#AEAC7F,85,150
-potted_plant_02,potted_plant_02,盆栽植物·02,potted_plant,55,115,Assets/PC ui/Scene/furniture/potted_plant_02 1.png,#CABE8B,85,150
-potted_plant_03,potted_plant_03,盆栽植物·03,potted_plant,55,115,Assets/PC ui/Scene/furniture/potted_plant_03 1.png,#DBBF85,85,150
-potted_plant_04,potted_plant_04,盆栽植物·04,potted_plant,55,115,Assets/PC ui/Scene/furniture/potted_plant_04 1.png,#879B91,85,150
-potted_plant_06,potted_plant_06,盆栽植物·06,potted_plant,55,115,Assets/PC ui/Scene/furniture/potted_plant_06 1.png,#A1AA95,85,150
-round_rug_01,round_rug_01,圆形地毯·01,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_01 1.png,#92A8C3,230,90
-round_rug_02,round_rug_02,圆形地毯·02,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_02 1.png,#9CBAAA,230,90
-round_rug_03,round_rug_03,圆形地毯·03,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_03 1.png,#A9BDB2,230,90
-round_rug_04,round_rug_04,圆形地毯·04,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_04 1.png,#DCA88F,230,90
-round_rug_05,round_rug_05,圆形地毯·05,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_05 1.png,#718EAF,230,90
-round_rug_06,round_rug_06,圆形地毯·06,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_06 1.png,#EAD29D,230,90
-round_rug_07,round_rug_07,圆形地毯·07,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_07 1.png,#C5D8E7,230,90
-round_rug_08,round_rug_08,圆形地毯·08,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_08 1.png,#E7C994,230,90
-round_rug_09,round_rug_09,圆形地毯·09,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_09 1.png,#EDD6C3,230,90
-round_rug_10,round_rug_10,圆形地毯·10,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_10 1.png,#BDD1E1,230,90
-vintage_square_clock_02,vintage_square_clock_02,复古方钟·02,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_02 1.png,#454332,95,95
-vintage_square_clock_03,vintage_square_clock_03,复古方钟·03,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_03 1.png,#3E403B,95,95
-vintage_square_clock_04,vintage_square_clock_04,复古方钟·04,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_04 1.png,#3D3429,95,95
-vintage_square_clock_05,vintage_square_clock_05,复古方钟·05,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_05 1.png,#B9A17F,95,95
-vintage_square_clock_06,vintage_square_clock_06,复古方钟·06,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_06 1.png,#593F2A,95,95
-vintage_square_clock_07,vintage_square_clock_07,复古方钟·07,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_07 1.png,#3C3B2E,95,95
-vintage_square_clock_08,vintage_square_clock_08,复古方钟·08,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_08 1.png,#623E34,95,95
-vintage_square_clock_10,vintage_square_clock_10,复古方钟·10,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_10 1.png,#7F5A36,95,95
-vintage_square_clock_11,vintage_square_clock_11,复古方钟·11,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_11 1.png,#595A4E,95,95
-bed_side_01,bed_01,单人床·01,bed_side,220,145,Assets/PC ui/Scene/furniture/bed_01.png,#DECDAF,220,145
-bed_side_02,bed_02,单人床·02,bed_side,220,145,Assets/PC ui/Scene/furniture/bed_02.png,#D6CAB4,220,145
-bed_side_03,bed_03,单人床·03,bed_side,220,145,Assets/PC ui/Scene/furniture/bed_03.png,#D3BB96,220,145
-bed_side_04,bed_04,单人床·04,bed_side,220,145,Assets/PC ui/Scene/furniture/bed_04.png,#BFA57C,220,145
-bed_side_05,bed_05,单人床·05,bed_side,220,145,Assets/PC ui/Scene/furniture/bed_05.png,#AFBDC7,220,145
-bed_front_01,bed_06,床头床·01,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_06.png,#E3D5CA,170,155
-bed_front_02,bed_07,床头床·02,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_07.png,#BFAB8C,170,155
-bed_front_03,bed_08,床头床·03,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_08.png,#BCBBB8,170,155
-bed_front_04,bed_09,床头床·04,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_09.png,#B7B2AC,170,155
-bed_front_05,bed_10,床头床·05,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_10.png,#E9A089,170,155
-bed_front_06,bed_11,床头床·06,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_11.png,#C8D1D9,170,155
-vanity_01,vanity_01,彩色梳妆台·01,vanity,160,175,Assets/PC ui 2.0/特殊家具/彩色简约风化妆台-3 1.png,#DBBF9E,175,185
-retro_radio_01,retro_radio_01,复古收音机·01,retro_radio,55,40,Assets/PC ui 2.0/特殊家具/复古风彩色收音机-1 1.png,#8DA092,100,75
-music_player_01,music_player_01,音乐播放器·01,music_player,155,110,Assets/PC ui 2.0/特殊家具/复古风格音乐播放器家具-1 1.png,#BA9A8D,180,125
-piano_01,piano_01,奶油钢琴·01,piano,220,170,Assets/PC ui 2.0/特殊家具/奶油色系手绘风钢琴-1 1.png,#858B98,220,170
-flashlight_01,flashlight_01,手电筒·01,flashlight,45,24,Assets/PC ui 2.0/特殊家具/手绘风格手电筒-1 1.png,#80A6BA,110,60
-iron_01,iron_01,复古熨斗·01,iron,45,32,Assets/PC ui 2.0/特殊家具/清新简约风熨斗设计-3 1.png,#B2CADB,100,75
-telescope_01,telescope_01,复古望远镜·01,telescope,65,70,Assets/PC ui 2.0/特殊家具/清新配色风格望远镜-2 1.png,#BEA486,95,120
-colorful_cabinet_01,colorful_cabinet_01,彩色柜子·01,colorful_cabinet,195,105,Assets/PC ui 2.0/特殊家具/简约风格彩色柜子-1 1.png,#D0C8AC,210,115
-floor_lamp_01,floor_lamp_01,艺术落地灯·01,floor_lamp,85,205,Assets/PC ui 2.0/特殊家具/简约风格艺术落地灯-2 1.png,#B18F5F,90,215
-chalkboard_01,chalkboard_01,复古黑板·01,chalkboard,180,125,Assets/PC ui 2.0/特殊家具/简约风格黑板设计-1 1.png,#C4905C,195,135
-macaron_sofa_01,macaron_sofa_01,马卡龙沙发·01,macaron_sofa,230,100,Assets/PC ui 2.0/特殊家具/马卡龙色系布艺沙发-2 1.png,#BDCECE,230,100
-metronome_01,metronome_01,节拍器·01,metronome,40,55,Assets/PC ui 2.0/特殊家具/马卡龙色系极简节拍器-2 1.png,#89A1B6,70,100
+﻿id,英文索引,显示名,族id,显示宽,显示高,精灵图,色值,商店显示宽,商店显示高,商店列表图,商店详情图,占格列,占格行
+table_lamp_01,table_lamp_01,经典落地灯·01,table_lamp,70,220,Assets/PC ui/Scene/furniture/01_台灯 1.png,#D5B061,70,220,Assets/PC ui 2.0/store/左侧家具图标/台灯-1.png,Assets/PC ui 2.0/store/右侧家具图标/台灯-1.png,5,5
+table_lamp_02,table_lamp_02,经典落地灯·02,table_lamp,70,220,Assets/PC ui/Scene/furniture/02_台灯 1.png,#C0AF97,70,220,Assets/PC ui 2.0/store/左侧家具图标/台灯-2.png,Assets/PC ui 2.0/store/右侧家具图标/台灯-2.png,5,5
+table_lamp_03,table_lamp_03,经典落地灯·03,table_lamp,70,220,Assets/PC ui/Scene/furniture/03_台灯 1.png,#CCA49C,70,220,Assets/PC ui 2.0/store/左侧家具图标/台灯-3.png,Assets/PC ui 2.0/store/右侧家具图标/台灯-3.png,5,5
+table_lamp_04,table_lamp_04,经典落地灯·04,table_lamp,70,220,Assets/PC ui/Scene/furniture/04_台灯 2.png,#9C9F83,70,220,Assets/PC ui 2.0/store/左侧家具图标/台灯-4.png,Assets/PC ui 2.0/store/右侧家具图标/台灯-4.png,5,5
+table_lamp_05,table_lamp_05,经典落地灯·05,table_lamp,70,220,Assets/PC ui/Scene/furniture/05_台灯 1.png,#A3AFBD,70,220,Assets/PC ui 2.0/store/左侧家具图标/台灯-5.png,Assets/PC ui 2.0/store/右侧家具图标/台灯-5.png,5,5
+table_lamp_06,table_lamp_06,经典落地灯·06,table_lamp,70,220,Assets/PC ui/Scene/furniture/06_台灯 1.png,#AB95A0,70,220,Assets/PC ui 2.0/store/左侧家具图标/台灯-6.png,Assets/PC ui 2.0/store/右侧家具图标/台灯-6.png,5,5
+round_table_01,round_table_01,圆桌·01,round_table,135,145,Assets/PC ui/Scene/furniture/01_圆桌 3.png,#8EABC2,145,155,,,9,7
+round_table_02,round_table_02,圆桌·02,round_table,135,145,Assets/PC ui/Scene/furniture/02_圆桌 1.png,#ACB189,145,155,,,9,7
+round_table_03,round_table_03,圆桌·03,round_table,135,145,Assets/PC ui/Scene/furniture/03_圆桌 1.png,#E07A60,145,155,,,9,7
+round_table_04,round_table_04,圆桌·04,round_table,135,145,Assets/PC ui/Scene/furniture/04_圆桌 2.png,#E5D1B2,145,155,,,9,7
+round_table_05,round_table_05,圆桌·05,round_table,135,145,Assets/PC ui/Scene/furniture/05_圆桌 1.png,#697075,145,155,,,9,7
+round_table_06,round_table_06,圆桌·06,round_table,135,145,Assets/PC ui/Scene/furniture/06_圆桌 1.png,#E7C374,145,155,,,9,7
+round_table_07,round_table_07,圆桌·07,round_table,135,145,Assets/PC ui/Scene/furniture/07_圆桌 1.png,#E9BAB1,145,155,,,9,7
+round_table_08,round_table_08,圆桌·08,round_table,135,145,Assets/PC ui/Scene/furniture/08_圆桌 1.png,#B1C7B9,145,155,,,9,7
+crescent_aquarium_01,crescent_aquarium_01,月牙鱼缸·01,crescent_aquarium,50,55,Assets/PC ui/Scene/furniture/01_月牙鱼缸 1.png,#B1C5C6,85,90,,,4,1
+crescent_aquarium_04,crescent_aquarium_04,月牙鱼缸·04,crescent_aquarium,50,55,Assets/PC ui/Scene/furniture/04_月牙鱼缸 1.png,#B4A8B8,85,90,,,4,1
+crescent_aquarium_05,crescent_aquarium_05,月牙鱼缸·05,crescent_aquarium,50,55,Assets/PC ui/Scene/furniture/05_月牙鱼缸 1.png,#D0D3B3,85,90,,,4,1
+crescent_aquarium_07,crescent_aquarium_07,月牙鱼缸·07,crescent_aquarium,50,55,Assets/PC ui/Scene/furniture/07_月牙鱼缸 1.png,#E4D6CA,85,90,,,4,1
+cat_sofa_01,cat_sofa_01,猫耳懒人沙发·01,cat_sofa,145,105,Assets/PC ui/Scene/furniture/01_猫耳懒人沙发 2.png,#96B2CB,165,120,,,10,7
+cat_sofa_02,cat_sofa_02,猫耳懒人沙发·02,cat_sofa,145,105,Assets/PC ui/Scene/furniture/02_猫耳懒人沙发 1.png,#E89276,165,120,,,10,7
+cat_sofa_03,cat_sofa_03,猫耳懒人沙发·03,cat_sofa,145,105,Assets/PC ui/Scene/furniture/03_猫耳懒人沙发 1.png,#A8BEA2,165,120,,,10,7
+cat_sofa_04,cat_sofa_04,猫耳懒人沙发·04,cat_sofa,145,105,Assets/PC ui/Scene/furniture/04_猫耳懒人沙发 1.png,#EDBD6F,165,120,,,10,7
+cat_sofa_05,cat_sofa_05,猫耳懒人沙发·05,cat_sofa,145,105,Assets/PC ui/Scene/furniture/05_猫耳懒人沙发 2.png,#C8B1BF,165,120,,,10,7
+cat_sofa_06,cat_sofa_06,猫耳懒人沙发·06,cat_sofa,145,105,Assets/PC ui/Scene/furniture/06_猫耳懒人沙发 1.png,#B5D4D9,165,120,,,10,7
+cat_sofa_07,cat_sofa_07,猫耳懒人沙发·07,cat_sofa,145,105,Assets/PC ui/Scene/furniture/07_猫耳懒人沙发 1.png,#8FA7BA,165,120,,,10,7
+cat_sofa_08,cat_sofa_08,猫耳懒人沙发·08,cat_sofa,145,105,Assets/PC ui/Scene/furniture/08_猫耳懒人沙发 1.png,#ECD2AA,165,120,,,10,7
+single_sofa_02,single_sofa_02,单人沙发·02,single_sofa,135,150,Assets/PC ui/Scene/furniture/02_单人沙发 1.png,#3B4F63,145,160,Assets/PC ui 2.0/store/左侧家具图标/armchair_10 3.png,Assets/PC ui 2.0/store/右侧家具图标/armchair_10 2.png,9,7
+single_sofa_03,single_sofa_03,单人沙发·03,single_sofa,135,150,Assets/PC ui/Scene/furniture/03_单人沙发 1.png,#4E5B37,145,160,Assets/PC ui 2.0/store/左侧家具图标/armchair_04 3.png,Assets/PC ui 2.0/store/右侧家具图标/armchair_04 2.png,9,7
+single_sofa_04,single_sofa_04,单人沙发·04,single_sofa,135,150,Assets/PC ui/Scene/furniture/04_单人沙发 1.png,#A87219,145,160,Assets/PC ui 2.0/store/左侧家具图标/armchair_09 3.png,Assets/PC ui 2.0/store/右侧家具图标/armchair_09 2.png,9,7
+single_sofa_05,single_sofa_05,单人沙发·05,single_sofa,135,150,Assets/PC ui/Scene/furniture/05_单人沙发 3.png,#664E71,145,160,Assets/PC ui 2.0/store/左侧家具图标/armchair_05 3.png,Assets/PC ui 2.0/store/右侧家具图标/armchair_05 2.png,9,7
+single_sofa_06,single_sofa_06,单人沙发·06,single_sofa,135,150,Assets/PC ui/Scene/furniture/06_单人沙发 1.png,#387274,145,160,Assets/PC ui 2.0/store/左侧家具图标/armchair_06 3.png,Assets/PC ui 2.0/store/右侧家具图标/armchair_06 2.png,9,7
+single_sofa_07,single_sofa_07,单人沙发·07,single_sofa,135,150,Assets/PC ui/Scene/furniture/07_单人沙发 1.png,#673212,145,160,Assets/PC ui 2.0/store/左侧家具图标/armchair_07 3.png,Assets/PC ui 2.0/store/右侧家具图标/armchair_07 2.png,9,7
+single_sofa_08,single_sofa_08,单人沙发·08,single_sofa,135,150,Assets/PC ui/Scene/furniture/08_单人沙发 1.png,#635D58,145,160,Assets/PC ui 2.0/store/左侧家具图标/armchair_08 3.png,Assets/PC ui 2.0/store/右侧家具图标/armchair_08 2.png,9,7
+single_sofa_09,single_sofa_09,单人沙发·09,single_sofa,135,150,Assets/PC ui/Scene/furniture/09_单人沙发 2.png,#C7B391,145,160,Assets/PC ui 2.0/store/左侧家具图标/armchair_01 3.png,Assets/PC ui 2.0/store/右侧家具图标/armchair_01 2.png,9,7
+single_sofa_10,single_sofa_10,单人沙发·10,single_sofa,135,150,Assets/PC ui/Scene/furniture/10_单人沙发 1.png,#C08883,145,160,Assets/PC ui 2.0/store/左侧家具图标/armchair_02 3.png,Assets/PC ui 2.0/store/右侧家具图标/armchair_02 2.png,9,7
+single_sofa_11,single_sofa_11,单人沙发·11,single_sofa,135,150,Assets/PC ui/Scene/furniture/11_单人沙发 1.png,#A24A12,145,160,Assets/PC ui 2.0/store/左侧家具图标/armchair_11 3.png,Assets/PC ui 2.0/store/右侧家具图标/armchair_11 2.png,9,7
+single_sofa_12,single_sofa_12,单人沙发·12,single_sofa,135,150,Assets/PC ui/Scene/furniture/12_单人沙发 1.png,#2A2928,145,160,Assets/PC ui 2.0/store/左侧家具图标/armchair_12 3.png,Assets/PC ui 2.0/store/右侧家具图标/armchair_12 2.png,9,7
+armchair_01,armchair_01,扶手椅·01,armchair,135,150,Assets/PC ui/Scene/furniture/armchair_01 1.png,#97211E,145,160,Assets/PC ui 2.0/store/左侧家具图标/armchair_03 3.png,Assets/PC ui 2.0/store/右侧家具图标/armchair_03 2.png,9,7
+cactus_lamp_04,cactus_lamp_04,仙人掌灯·04,cactus_lamp,45,70,Assets/PC ui/Scene/furniture/cactus_lamp_04 1.png,#8A7C58,75,105,,,3,1
+cactus_lamp_05,cactus_lamp_05,仙人掌灯·05,cactus_lamp,45,70,Assets/PC ui/Scene/furniture/cactus_lamp_05 1.png,#7C6C63,75,105,,,3,1
+cactus_lamp_06,cactus_lamp_06,仙人掌灯·06,cactus_lamp,45,70,Assets/PC ui/Scene/furniture/cactus_lamp_06 1.png,#A1848B,75,105,,,3,1
+cactus_lamp_07,cactus_lamp_07,仙人掌灯·07,cactus_lamp,45,70,Assets/PC ui/Scene/furniture/cactus_lamp_07 1.png,#627A64,75,105,,,3,1
+cactus_lamp_08,cactus_lamp_08,仙人掌灯·08,cactus_lamp,45,70,Assets/PC ui/Scene/furniture/cactus_lamp_08 1.png,#4F6455,75,105,,,3,1
+hanging_plant_01,hanging_plant_01,悬挂绿植·01,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_01 1.png,#AFAE7C,95,140,,,6,9
+hanging_plant_03,hanging_plant_03,悬挂绿植·03,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_03 1.png,#98A187,95,140,,,6,9
+hanging_plant_06,hanging_plant_06,悬挂绿植·06,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_06 1.png,#93988E,95,140,,,6,9
+hanging_plant_07,hanging_plant_07,悬挂绿植·07,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_07 1.png,#A8A97E,95,140,,,6,9
+hanging_plant_08,hanging_plant_08,悬挂绿植·08,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_08 1.png,#C2BB88,95,140,,,6,9
+hanging_plant_09,hanging_plant_09,悬挂绿植·09,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_09 1.png,#BAB47F,95,140,,,6,9
+hanging_plant_11,hanging_plant_11,悬挂绿植·11,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_11 1.png,#B8A895,95,140,,,6,9
+hanging_plant_12,hanging_plant_12,悬挂绿植·12,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_12 1.png,#AFAD8B,95,140,,,6,9
+hanging_plant_13,hanging_plant_13,悬挂绿植·13,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_13 1.png,#AFB789,95,140,,,6,9
+hanging_plant_14,hanging_plant_14,悬挂绿植·14,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_14 1.png,#9CA57F,95,140,,,6,9
+hanging_plant_15,hanging_plant_15,悬挂绿植·15,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_15 1.png,#AAA191,95,140,,,6,9
+hanging_plant_16,hanging_plant_16,悬挂绿植·16,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_16 1.png,#9AA380,95,140,,,6,9
+hanging_plant_17,hanging_plant_17,悬挂绿植·17,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_17 1.png,#D3D09B,95,140,,,6,9
+hanging_plant_18,hanging_plant_18,悬挂绿植·18,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_18 1.png,#C9B0A5,95,140,,,6,9
+hanging_plant_21,hanging_plant_21,悬挂绿植·21,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_21 1.png,#A5AB7D,95,140,,,6,9
+hanging_plant_22,hanging_plant_22,悬挂绿植·22,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_22 1.png,#ADB496,95,140,,,6,9
+hanging_plant_23,hanging_plant_23,悬挂绿植·23,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_23 1.png,#D6D485,95,140,,,6,9
+hanging_plant_24,hanging_plant_24,悬挂绿植·24,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_24 1.png,#B5BEA3,95,140,,,6,9
+hanging_plant_30,hanging_plant_30,悬挂绿植·30,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_30 2.png,#B2AAAE,95,140,,,6,9
+hanging_plant_31,hanging_plant_31,悬挂绿植·31,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_31 1.png,#C3C567,95,140,,,6,9
+hanging_plant_32,hanging_plant_32,悬挂绿植·32,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_32 1.png,#90A69F,95,140,,,6,9
+hanging_plant_36,hanging_plant_36,悬挂绿植·36,hanging_plant,70,105,Assets/PC ui/Scene/furniture/hanging_plant_36 1.png,#9CB1A9,95,140,,,6,9
+landscape_poster_02,landscape_poster_02,风景海报·02,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_02 1.png,#9E9F82,90,135,,,6,9
+landscape_poster_03,landscape_poster_03,风景海报·03,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_03 1.png,#CA9263,90,135,,,6,9
+landscape_poster_04,landscape_poster_04,风景海报·04,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_04 1.png,#776A84,90,135,,,6,9
+landscape_poster_05,landscape_poster_05,风景海报·05,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_05 1.png,#90A2AA,90,135,,,6,9
+landscape_poster_06,landscape_poster_06,风景海报·06,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_06 1.png,#D4A19D,90,135,,,6,9
+landscape_poster_07,landscape_poster_07,风景海报·07,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_07 1.png,#9C958D,90,135,,,6,9
+landscape_poster_08,landscape_poster_08,风景海报·08,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_08 1.png,#DBA759,90,135,,,6,9
+landscape_poster_09,landscape_poster_09,风景海报·09,landscape_poster,72,105,Assets/PC ui/Scene/furniture/landscape_poster_09 1.png,#457273,90,135,,,6,9
+lava_lamp_01,lava_lamp_01,熔岩灯·01,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_01 1.png,#9D7485,65,125,Assets/PC ui 2.0/store/左侧家具图标/立式灯柱-1.png,Assets/PC ui 2.0/store/右侧家具图标/立式灯柱-1.png,2,1
+lava_lamp_02,lava_lamp_02,熔岩灯·02,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_02 1.png,#4589A0,65,125,Assets/PC ui 2.0/store/左侧家具图标/立式灯柱-2.png,Assets/PC ui 2.0/store/右侧家具图标/立式灯柱-2.png,2,1
+lava_lamp_03,lava_lamp_03,熔岩灯·03,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_03 1.png,#A47D46,65,125,Assets/PC ui 2.0/store/左侧家具图标/立式灯柱-3.png,Assets/PC ui 2.0/store/右侧家具图标/立式灯柱-3.png,2,1
+lava_lamp_04,lava_lamp_04,熔岩灯·04,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_04 1.png,#748E4D,65,125,Assets/PC ui 2.0/store/左侧家具图标/立式灯柱-4.png,Assets/PC ui 2.0/store/右侧家具图标/立式灯柱-4.png,2,1
+lava_lamp_05,lava_lamp_05,熔岩灯·05,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_05 1.png,#66559E,65,125,Assets/PC ui 2.0/store/左侧家具图标/立式灯柱-5.png,Assets/PC ui 2.0/store/右侧家具图标/立式灯柱-5.png,2,1
+lava_lamp_06,lava_lamp_06,熔岩灯·06,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_06 1.png,#944F5E,65,125,Assets/PC ui 2.0/store/左侧家具图标/立式灯柱-6.png,Assets/PC ui 2.0/store/右侧家具图标/立式灯柱-6.png,2,1
+lava_lamp_07,lava_lamp_07,熔岩灯·07,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_07 1.png,#A18547,65,125,Assets/PC ui 2.0/store/左侧家具图标/立式灯柱-7.png,Assets/PC ui 2.0/store/右侧家具图标/立式灯柱-7.png,2,1
+lava_lamp_08,lava_lamp_08,熔岩灯·08,lava_lamp,30,65,Assets/PC ui/Scene/furniture/lava_lamp_08 1.png,#7898A9,65,125,Assets/PC ui 2.0/store/左侧家具图标/立式灯柱-8.png,Assets/PC ui 2.0/store/右侧家具图标/立式灯柱-8.png,2,1
+monstera_01,monstera_01,龟背竹·01,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_01 1.png,#A3A987,125,205,,,8,7
+monstera_02,monstera_02,龟背竹·02,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_02 1.png,#ACB093,125,205,,,8,7
+monstera_03,monstera_03,龟背竹·03,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_03 1.png,#6B8075,125,205,,,8,7
+monstera_04,monstera_04,龟背竹·04,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_04 1.png,#A6AC8C,125,205,,,8,7
+monstera_05,monstera_05,龟背竹·05,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_05 1.png,#CBC79C,125,205,,,8,7
+monstera_06,monstera_06,龟背竹·06,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_06 1.png,#A2AA93,125,205,,,8,7
+monstera_08,monstera_08,龟背竹·08,monstera,115,190,Assets/PC ui/Scene/furniture/monstera_08 1.png,#9FA98D,125,205,,,8,7
+orb_decoration_01,orb_decoration_01,球形摆件·01,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_01 1.png,#8895A1,80,85,,,3,1
+orb_decoration_02,orb_decoration_02,球形摆件·02,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_02 1.png,#959C92,80,85,,,3,1
+orb_decoration_03,orb_decoration_03,球形摆件·03,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_03 1.png,#A2A598,80,85,,,3,1
+orb_decoration_04,orb_decoration_04,球形摆件·04,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_04 1.png,#9B9E91,80,85,,,3,1
+orb_decoration_05,orb_decoration_05,球形摆件·05,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_05 1.png,#B6A2A9,80,85,,,3,1
+orb_decoration_06,orb_decoration_06,球形摆件·06,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_06 1.png,#A2A6A7,80,85,,,3,1
+orb_decoration_07,orb_decoration_07,球形摆件·07,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_07 1.png,#A09F97,80,85,,,3,1
+orb_decoration_08,orb_decoration_08,球形摆件·08,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_08 1.png,#9AA095,80,85,,,3,1
+orb_decoration_09,orb_decoration_09,球形摆件·09,orb_decoration,45,50,Assets/PC ui/Scene/furniture/orb_decoration_09 1.png,#99A09B,80,85,,,3,1
+potted_plant_01,potted_plant_01,盆栽植物·01,potted_plant,55,115,Assets/PC ui/Scene/furniture/potted_plant_01 1.png,#AEAC7F,85,150,,,4,5
+potted_plant_02,potted_plant_02,盆栽植物·02,potted_plant,55,115,Assets/PC ui/Scene/furniture/potted_plant_02 1.png,#CABE8B,85,150,,,4,5
+potted_plant_03,potted_plant_03,盆栽植物·03,potted_plant,55,115,Assets/PC ui/Scene/furniture/potted_plant_03 1.png,#DBBF85,85,150,,,4,5
+potted_plant_04,potted_plant_04,盆栽植物·04,potted_plant,55,115,Assets/PC ui/Scene/furniture/potted_plant_04 1.png,#879B91,85,150,,,4,5
+potted_plant_06,potted_plant_06,盆栽植物·06,potted_plant,55,115,Assets/PC ui/Scene/furniture/potted_plant_06 1.png,#A1AA95,85,150,,,4,5
+round_rug_01,round_rug_01,圆形地毯·01,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_01 1.png,#92A8C3,230,90,,,16,10
+round_rug_02,round_rug_02,圆形地毯·02,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_02 1.png,#9CBAAA,230,90,,,16,10
+round_rug_03,round_rug_03,圆形地毯·03,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_03 1.png,#A9BDB2,230,90,,,16,10
+round_rug_04,round_rug_04,圆形地毯·04,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_04 1.png,#DCA88F,230,90,,,16,10
+round_rug_05,round_rug_05,圆形地毯·05,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_05 1.png,#718EAF,230,90,,,16,10
+round_rug_06,round_rug_06,圆形地毯·06,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_06 1.png,#EAD29D,230,90,,,16,10
+round_rug_07,round_rug_07,圆形地毯·07,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_07 1.png,#C5D8E7,230,90,,,16,10
+round_rug_08,round_rug_08,圆形地毯·08,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_08 1.png,#E7C994,230,90,,,16,10
+round_rug_09,round_rug_09,圆形地毯·09,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_09 1.png,#EDD6C3,230,90,,,16,10
+round_rug_10,round_rug_10,圆形地毯·10,round_rug,240,90,Assets/PC ui/Scene/furniture/round_rug_10 1.png,#BDD1E1,230,90,,,16,10
+vintage_square_clock_02,vintage_square_clock_02,复古方钟·02,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_02 1.png,#454332,95,95,,,6,6
+vintage_square_clock_03,vintage_square_clock_03,复古方钟·03,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_03 1.png,#3E403B,95,95,,,6,6
+vintage_square_clock_04,vintage_square_clock_04,复古方钟·04,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_04 1.png,#3D3429,95,95,,,6,6
+vintage_square_clock_05,vintage_square_clock_05,复古方钟·05,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_05 1.png,#B9A17F,95,95,,,6,6
+vintage_square_clock_06,vintage_square_clock_06,复古方钟·06,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_06 1.png,#593F2A,95,95,,,6,6
+vintage_square_clock_07,vintage_square_clock_07,复古方钟·07,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_07 1.png,#3C3B2E,95,95,,,6,6
+vintage_square_clock_08,vintage_square_clock_08,复古方钟·08,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_08 1.png,#623E34,95,95,,,6,6
+vintage_square_clock_10,vintage_square_clock_10,复古方钟·10,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_10 1.png,#7F5A36,95,95,,,6,6
+vintage_square_clock_11,vintage_square_clock_11,复古方钟·11,vintage_square_clock,70,70,Assets/PC ui/Scene/furniture/vintage_square_clock_11 1.png,#595A4E,95,95,,,6,6
+bed_side_01,bed_01,单人床·01,bed_side,220,145,Assets/PC ui/Scene/furniture/bed_01.png,#DECDAF,220,145,,,15,10
+bed_side_02,bed_02,单人床·02,bed_side,220,145,Assets/PC ui/Scene/furniture/bed_02.png,#D6CAB4,220,145,,,15,10
+bed_side_03,bed_03,单人床·03,bed_side,220,145,Assets/PC ui/Scene/furniture/bed_03.png,#D3BB96,220,145,,,15,10
+bed_side_04,bed_04,单人床·04,bed_side,220,145,Assets/PC ui/Scene/furniture/bed_04.png,#BFA57C,220,145,,,15,10
+bed_side_05,bed_05,单人床·05,bed_side,220,145,Assets/PC ui/Scene/furniture/bed_05.png,#AFBDC7,220,145,,,15,10
+bed_front_01,bed_06,床头床·01,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_06.png,#E3D5CA,170,155,,,11,10
+bed_front_02,bed_07,床头床·02,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_07.png,#BFAB8C,170,155,,,11,10
+bed_front_03,bed_08,床头床·03,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_08.png,#BCBBB8,170,155,,,11,10
+bed_front_04,bed_09,床头床·04,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_09.png,#B7B2AC,170,155,,,11,10
+bed_front_05,bed_10,床头床·05,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_10.png,#E9A089,170,155,,,11,10
+bed_front_06,bed_11,床头床·06,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_11.png,#C8D1D9,170,155,,,11,10
+vanity_01,vanity_01,彩色梳妆台·01,vanity,160,175,Assets/PC ui 2.0/特殊家具/彩色简约风化妆台-3 1.png,#DBBF9E,175,185,,,11,7
+retro_radio_01,retro_radio_01,复古收音机·01,retro_radio,55,40,Assets/PC ui 2.0/特殊家具/复古风彩色收音机-1 1.png,#8DA092,100,75,,,4,1
+music_player_01,music_player_01,音乐播放器·01,music_player,155,110,Assets/PC ui 2.0/特殊家具/复古风格音乐播放器家具-1 1.png,#BA9A8D,180,125,,,11,7
+piano_01,piano_01,奶油钢琴·01,piano,220,170,Assets/PC ui 2.0/特殊家具/奶油色系手绘风钢琴-1 1.png,#858B98,220,170,,,15,9
+flashlight_01,flashlight_01,手电筒·01,flashlight,45,24,Assets/PC ui 2.0/特殊家具/手绘风格手电筒-1 1.png,#80A6BA,110,60,,,3,1
+iron_01,iron_01,复古熨斗·01,iron,45,32,Assets/PC ui 2.0/特殊家具/清新简约风熨斗设计-3 1.png,#B2CADB,100,75,,,3,1
+telescope_01,telescope_01,复古望远镜·01,telescope,65,70,Assets/PC ui 2.0/特殊家具/清新配色风格望远镜-2 1.png,#BEA486,95,120,,,5,1
+colorful_cabinet_01,colorful_cabinet_01,彩色柜子·01,colorful_cabinet,195,105,Assets/PC ui 2.0/特殊家具/简约风格彩色柜子-1 1.png,#D0C8AC,210,115,,,13,7
+floor_lamp_01,floor_lamp_01,艺术落地灯·01,floor_lamp,85,205,Assets/PC ui 2.0/特殊家具/简约风格艺术落地灯-2 1.png,#B18F5F,90,215,,,6,5
+chalkboard_01,chalkboard_01,复古黑板·01,chalkboard,180,125,Assets/PC ui 2.0/特殊家具/简约风格黑板设计-1 1.png,#C4905C,195,135,,,12,5
+macaron_sofa_01,macaron_sofa_01,马卡龙沙发·01,macaron_sofa,230,100,Assets/PC ui 2.0/特殊家具/马卡龙色系布艺沙发-2 1.png,#BDCECE,230,100,,,16,7
+metronome_01,metronome_01,节拍器·01,metronome,40,55,Assets/PC ui 2.0/特殊家具/马卡龙色系极简节拍器-2 1.png,#89A1B6,70,100,,,3,1
+cabinet_01,cabinet_01,立柜·01,cabinet,140,180,Assets/PC ui/Scene/furniture/cabinet_01.png,#DBC4A0,150,190,Assets/PC ui 2.0/store/左侧家具图标/Frame 114.png,Assets/PC ui 2.0/store/右侧家具图标/Frame 104.png,10,7
+cabinet_02,cabinet_02,立柜·02,cabinet,145,180,Assets/PC ui/Scene/furniture/cabinet_02.png,#E8B2A6,155,190,Assets/PC ui 2.0/store/左侧家具图标/Frame 115.png,Assets/PC ui 2.0/store/右侧家具图标/Frame 105.png,10,7
+cabinet_03,cabinet_03,立柜·03,cabinet,180,180,Assets/PC ui/Scene/furniture/cabinet_03.png,#959E78,190,190,Assets/PC ui 2.0/store/左侧家具图标/Frame 113.png,Assets/PC ui 2.0/store/右侧家具图标/Frame 103.png,12,7
+cabinet_04,cabinet_04,立柜·04,cabinet,150,180,Assets/PC ui/Scene/furniture/cabinet_04.png,#ADC2C8,160,190,Assets/PC ui 2.0/store/左侧家具图标/Frame 112.png,Assets/PC ui 2.0/store/右侧家具图标/Frame 102.png,10,7
+cabinet_05,cabinet_05,立柜·05,cabinet,135,180,Assets/PC ui/Scene/furniture/cabinet_05.png,#BFAEC4,145,190,Assets/PC ui 2.0/store/左侧家具图标/Frame 111.png,Assets/PC ui 2.0/store/右侧家具图标/Frame 101.png,9,7
+cabinet_06,cabinet_06,立柜·06,cabinet,130,180,Assets/PC ui/Scene/furniture/cabinet_06.png,#D9A566,135,190,Assets/PC ui 2.0/store/左侧家具图标/Frame 110.png,Assets/PC ui 2.0/store/右侧家具图标/Frame 100.png,9,7
+cabinet_07,cabinet_07,立柜·07,cabinet,160,180,Assets/PC ui/Scene/furniture/cabinet_07.png,#ABBBBF,170,190,Assets/PC ui 2.0/store/左侧家具图标/Frame 109.png,Assets/PC ui 2.0/store/右侧家具图标/Frame 99.png,11,7
+cabinet_08,cabinet_08,立柜·08,cabinet,150,180,Assets/PC ui/Scene/furniture/cabinet_08.png,#BEB0A0,160,190,Assets/PC ui 2.0/store/左侧家具图标/Frame 116.png,Assets/PC ui 2.0/store/右侧家具图标/Frame 106.png,10,7
+cabinet_09,cabinet_09,立柜·09,cabinet,125,180,Assets/PC ui/Scene/furniture/cabinet_09.png,#E59179,130,190,Assets/PC ui 2.0/store/左侧家具图标/Frame 117.png,Assets/PC ui 2.0/store/右侧家具图标/Frame 107.png,9,7
+cabinet_10,cabinet_10,立柜·10,cabinet,150,180,Assets/PC ui/Scene/furniture/cabinet_10.png,#AAC1BF,160,190,Assets/PC ui 2.0/store/左侧家具图标/Frame 108.png,Assets/PC ui 2.0/store/右侧家具图标/Frame 98.png,10,7
