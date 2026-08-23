@@ -34,9 +34,9 @@ MonoBehaviour:
       width: 0.13
       height: 0.089999996
     dayFloorLine: 0.7943
-    nightFloorLine: 0.8015
-    nightWidthScale: 0.99
-    nightShiftX: 13.2
+    nightFloorLine: 0.7943
+    nightWidthScale: 1
+    nightShiftX: 0
     grids:
     - id: wall
       surface: 2
@@ -111,9 +111,9 @@ MonoBehaviour:
       width: 0.13
       height: 0.08
     dayFloorLine: 0.832
-    nightFloorLine: 0.8931
-    nightWidthScale: 1.062
-    nightShiftX: 47.9
+    nightFloorLine: 0.832
+    nightWidthScale: 1
+    nightShiftX: 0
     grids:
     - id: wall
       surface: 2
@@ -188,9 +188,9 @@ MonoBehaviour:
       width: 0.13000001
       height: 0.089999996
     dayFloorLine: 0.7853
-    nightFloorLine: 0.7825
-    nightWidthScale: 1.066
-    nightShiftX: 171.1
+    nightFloorLine: 0.7853
+    nightWidthScale: 1
+    nightShiftX: 0
     grids:
     - id: wall
       surface: 2
@@ -257,7 +257,7 @@ MonoBehaviour:
       width: 0.100000024
       height: 0.089999996
     dayFloorLine: 0.8
-    nightFloorLine: 0.8753
+    nightFloorLine: 0.8
     nightWidthScale: 1
     nightShiftX: 0
     grids:

@@ -247,7 +247,10 @@ namespace MasterHouse
         {
             var (tint, veil) = HouseDayLight.Now();
             var nightAlpha = HouseDayLight.NightRoomAlphaNow();
-            var geometryNightAlpha = nightBackgroundRenderer != null ? nightAlpha : 0f;
+            // Placement night art now shares the daytime room's exact crop and
+            // dimensions, so changing light must not rebuild or move the grids.
+            var geometryNightAlpha = usesPlacementBackground ? 0f :
+                (nightBackgroundRenderer != null ? nightAlpha : 0f);
             // 夜色推移到一定程度就按新几何重建网格并重摆家具（每帧重建太浪费，0.02 一档肉眼看不出跳）
             if (Mathf.Abs(geometryNightAlpha - gridNightAlpha) > GridRebuildStep) RebuildGridsForNight();
             TintPreserveAlpha(backgroundRenderer, tint);
