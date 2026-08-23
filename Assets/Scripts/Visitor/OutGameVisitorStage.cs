@@ -470,7 +470,11 @@ namespace MasterHouse
                         tight.width / texture.width, tight.height / texture.height);
                     image.raycastTarget = false; // 点击仍归家具热点/演员
                     if (info.Flipped) rect.localScale = new Vector3(-1f, 1f, 1f);
-                    var depthY = HubWorldGrid.RoomToWorld(room, new Vector2(info.ViewportRect.center.x, info.ViewportRect.yMin)).y;
+                    var depthViewportY = float.IsNaN(info.DepthViewportY)
+                        ? info.ViewportRect.yMin
+                        : info.DepthViewportY;
+                    var depthY = HubWorldGrid.RoomToWorld(room,
+                        new Vector2(info.ViewportRect.center.x, depthViewportY)).y;
                     furnitureProxies.Add((rect, image, depthY, info.Order));
                 }
             }

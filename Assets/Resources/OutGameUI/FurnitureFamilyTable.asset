@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entries:
   - familyId: table_lamp
-    displayName: "\u53F0\u706F"
+    displayName: "\u7ECF\u5178\u843D\u5730\u706F"
     category: "\u706F\u5177"
     description: 
-    surfaces: 01000000
+    surfaces: 00000000
     stackable: 0
-    cols: 2
-    rows: 1
+    cols: 5
+    rows: 4
     decorationScore: 12
-    pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
+    pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 0
@@ -37,25 +37,25 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 8
+    cols: 9
     rows: 5
     decorationScore: 30
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
     tableSurface:
       enabled: 1
-      cols: 8
+      cols: 9
       cellWidth: 15
-      cellHeight: 20
+      cellHeight: 16
       offsetX: 0
-      surfaceHeight: 135
+      surfaceHeight: 126
   - familyId: crescent_aquarium
     displayName: "\u6708\u7259\u9C7C\u7F38"
     category: "\u6446\u4EF6"
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 3
+    cols: 4
     rows: 1
     decorationScore: 30
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
@@ -73,7 +73,7 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 8
+    cols: 10
     rows: 5
     decorationScore: 25
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
@@ -91,7 +91,7 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 7
+    cols: 9
     rows: 5
     decorationScore: 32
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
@@ -109,7 +109,7 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 7
+    cols: 9
     rows: 5
     decorationScore: 30
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
@@ -145,7 +145,7 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
+    cols: 5
     rows: 7
     decorationScore: 18
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
@@ -164,7 +164,7 @@ MonoBehaviour:
     surfaces: 02000000
     stackable: 0
     cols: 5
-    rows: 8
+    rows: 7
     decorationScore: 15
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
     putdownSound: {fileID: 8300000, guid: 05be7d7a45dc71c41b689374d2baf524, type: 3}
@@ -199,7 +199,7 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 7
+    cols: 8
     rows: 5
     decorationScore: 20
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
@@ -217,7 +217,7 @@ MonoBehaviour:
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 2
+    cols: 3
     rows: 1
     decorationScore: 12
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
@@ -235,7 +235,7 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 3
+    cols: 4
     rows: 4
     decorationScore: 12
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
@@ -253,7 +253,7 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 1
-    cols: 14
+    cols: 16
     rows: 8
     decorationScore: 15
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
@@ -271,7 +271,7 @@ MonoBehaviour:
     description: 
     surfaces: 02000000
     stackable: 0
-    cols: 4
+    cols: 5
     rows: 5
     decorationScore: 12
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
@@ -325,7 +325,7 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
+    cols: 11
     rows: 5
     decorationScore: 35
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
@@ -361,7 +361,7 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
+    cols: 11
     rows: 5
     decorationScore: 20
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
@@ -379,7 +379,7 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 13
+    cols: 15
     rows: 7
     decorationScore: 40
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
@@ -433,7 +433,7 @@ MonoBehaviour:
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 4
+    cols: 5
     rows: 1
     decorationScore: 10
     pickupSound: {fileID: 8300000, guid: a3486f451b0408447b69e1b7ecf88052, type: 3}
@@ -451,7 +451,7 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 12
+    cols: 13
     rows: 5
     decorationScore: 28
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}
@@ -505,7 +505,7 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 12
+    cols: 16
     rows: 5
     decorationScore: 30
     pickupSound: {fileID: 8300000, guid: d266ca6b55b879f4bbdbdbe0e90e7209, type: 3}

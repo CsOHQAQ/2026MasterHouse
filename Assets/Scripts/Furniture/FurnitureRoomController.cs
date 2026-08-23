@@ -372,7 +372,7 @@ namespace MasterHouse
         /// <summary>
         /// 把精灵缩放到指定的场景像素尺寸。必须用 bounds（世界单位）而非 rect（导入后像素）：
         /// 原图超过导入 Max Size 被降采样时，rect 变小但 bounds 不变，用 rect 会把大图放大（如 5120px 房间背景放大 2.5 倍）。
-        /// 房间图层会按指定宽高铺满；家具另走 FurnitureScale，在配置外框内保持素材原比例。
+        /// 房间图层会按指定宽高铺满；家具另走 FurnitureScale，按配置的实际宽高独立校正两轴。
         /// </summary>
         private static Vector3 SpriteScale(Sprite sprite, float scenePxWidth, float scenePxHeight)
         {
@@ -407,13 +407,18 @@ namespace MasterHouse
             return max - min;
         }
 
-        /// <summary>家具按实际图形比例等比缩放；显示宽高只作为最大外框，不再分别拉伸两轴。</summary>
+        /// <summary>
+        /// 家具按表里的实际宽高分别缩放两轴。素材画面比例不等于家具现实比例时，
+        /// 策划可直接用显示宽高做校正；源尺寸仍取 Tight Sprite，透明画布留白不参与计算。
+        /// </summary>
         private static Vector3 FurnitureScale(FurnitureEntry entry)
         {
             var source = FurnitureDisplaySizing.TightSize(entry.sprite);
             var display = FurnitureDisplaySizing.Resolve(entry);
-            var scale = display.x / PixelsPerUnit / Mathf.Max(1e-4f, source.x);
-            return new Vector3(scale, scale, 1f);
+            return new Vector3(
+                display.x / PixelsPerUnit / Mathf.Max(1e-4f, source.x),
+                display.y / PixelsPerUnit / Mathf.Max(1e-4f, source.y),
+                1f);
         }
 
         /// <summary>场景像素（左上原点、Y 向下）→ 世界坐标。</summary>
@@ -568,8 +573,7 @@ namespace MasterHouse
 
             if (entry.tableSurface != null && entry.tableSurface.enabled)
             {
-                // 桌面格坐标原本按配置显示框标注；家具改为保持原图比例后，格宽/格高也要随实际外框缩放，
-                // 否则窄桌的格子会伸到桌面外面。
+                // 桌面格与家具配置显示框使用同一坐标口径；FrameScale 保留为统一换算入口。
                 var frameScale = FurnitureDisplaySizing.FrameScale(entry);
                 var config = new FurnitureGridConfig
                 {
@@ -1248,6 +1252,7 @@ namespace MasterHouse
                 if (placement == null || placement.IsOnHost) continue;
                 var entry = furnitureTable.Find(placement.furnitureId);
                 if (entry == null || !grids.TryGetValue(placement.gridId ?? string.Empty, out var grid)) continue;
+                if (!entry.Supports(grid.Surface)) continue;
                 if (!grid.FootprintFree(placement.col, placement.row, FootprintCols(grid, entry),
                         FootprintRows(grid, entry), null, entry.stackable)) continue;
                 PlaceItem(entry, placement.gridId, placement.col, placement.row, true, placement.flipped);
@@ -1256,7 +1261,7 @@ namespace MasterHouse
             {
                 if (placement == null || !placement.IsOnHost) continue;
                 var entry = furnitureTable.Find(placement.furnitureId);
-                if (entry == null) continue;
+                if (entry == null || !entry.Supports(FurnitureSurfaceType.Table)) continue;
                 // 按**落位坐标**认宿主，不按家具 id（§5.4）：同房间可以摆多件同款，
                 // 按 id 找会把两张桌子上的东西全塞给第一张，挤不下的还会在下面那道 FootprintFree 静默丢失
                 FurnitureRuntimeItem host = null;
