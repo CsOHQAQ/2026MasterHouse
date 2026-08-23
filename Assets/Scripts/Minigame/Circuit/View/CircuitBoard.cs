@@ -29,7 +29,7 @@ namespace MasterHouse
         private const float DefaultPinSizeInCells = 0.75f;
         private const float DefaultPinInteractionScale = 1.75f;
         private const float DefaultNodeDragInteractionScale = 0.65f;
-        private const float CellGap = 2f;
+        private const float DefaultCellGapPixels = 2f;
         private const float FunctionIconPaddingFactor = 0.18f;
         private const float MessageSeconds = 3.5f;
 
@@ -85,6 +85,11 @@ namespace MasterHouse
 
         /// <summary>当前格子边长（像素）。跟随关卡行列数与分辨率变化，件库的跟手图标按它取尺寸。</summary>
         public float CellSize => cellSize;
+
+        /// <summary>棋盘格的视觉间隙。节点与格上叠加物共享它，保证调格缝后仍然对齐。</summary>
+        private float CellGapPixels => view.visualStyle != null
+            ? Mathf.Max(0f, view.visualStyle.cellGapPixels)
+            : DefaultCellGapPixels;
 
         /// <summary>正在描的这条线已经占了几格，没在描线时为 0。
         /// **含起点接线格**——与 <see cref="LinkManager.TryCreateLink"/> 的预算口径一致（§8.3）。</summary>
@@ -613,9 +618,12 @@ namespace MasterHouse
                 var image = gridPool.Next();
                 var style = view.visualStyle;
                 image.sprite = style != null ? style.cellSprite : null;
-                image.color = view.cellColor;
+                image.color = style != null
+                    ? style.cellColor
+                    : new Color(0.25f, 0.25f, 0.25f, 0.20f);
                 var rect = image.rectTransform;
-                rect.sizeDelta = new Vector2(cellSize - CellGap, cellSize - CellGap);
+                float cellVisualSize = Mathf.Max(0f, cellSize - CellGapPixels);
+                rect.sizeDelta = new Vector2(cellVisualSize, cellVisualSize);
                 rect.anchoredPosition = CellToLocal(grid.DeltaPosition);
             }
             gridPool.End();
@@ -657,7 +665,7 @@ namespace MasterHouse
                     {
                         var cBottomLeft = CellToLocal(node.Origin + new Vector2Int(cMinX, cMinY));
                         var cCenter = cBottomLeft + new Vector2((cW - 1) * cellSize, (cH - 1) * cellSize) * .5f;
-                        var cVis = new Vector2(cW * cellSize - CellGap, cH * cellSize - CellGap);
+                        var cVis = new Vector2(cW * cellSize - CellGapPixels, cH * cellSize - CellGapPixels);
                         labelRect.anchoredPosition = new Vector2(
                             cCenter.x + cVis.x * .5f - cellSize * 0.15f,
                             cCenter.y + cVis.y * .5f - cellSize * 0.5f);
@@ -694,7 +702,7 @@ namespace MasterHouse
                 background.preserveAspect = false;
                 background.color = BodyColor(node);
                 var backgroundRect = background.rectTransform;
-                backgroundRect.sizeDelta = new Vector2(width * cellSize - CellGap, height * cellSize - CellGap);
+                backgroundRect.sizeDelta = new Vector2(width * cellSize - CellGapPixels, height * cellSize - CellGapPixels);
                 backgroundRect.anchoredPosition = CellToLocal(node.Origin + new Vector2Int(minX, minY)) +
                                                  new Vector2((width - 1) * cellSize, (height - 1) * cellSize) * .5f;
 
@@ -724,7 +732,8 @@ namespace MasterHouse
                 image.preserveAspect = false;
                 image.color = body;
                 var rect = image.rectTransform;
-                rect.sizeDelta = new Vector2(cellSize - CellGap, cellSize - CellGap);
+                float cellVisualSize = Mathf.Max(0f, cellSize - CellGapPixels);
+                rect.sizeDelta = new Vector2(cellVisualSize, cellVisualSize);
                 rect.anchoredPosition = CellToLocal(cell);
             }
         }
@@ -770,7 +779,7 @@ namespace MasterHouse
 
             var bottomLeft = CellToLocal(node.Origin + new Vector2Int(minX, minY));
             var nodeCenter = bottomLeft + new Vector2((width - 1) * cellSize, (height - 1) * cellSize) * .5f;
-            var visualSize = new Vector2(width * cellSize - CellGap, height * cellSize - CellGap);
+            var visualSize = new Vector2(width * cellSize - CellGapPixels, height * cellSize - CellGapPixels);
 
             float dSize = cellSize * Mathf.Max(0f, style.captionDigitSize);
             float dSpacing = cellSize * Mathf.Max(0f, style.captionDigitSpacing);
@@ -871,7 +880,7 @@ namespace MasterHouse
             var bottomLeftCell = CellToLocal(node.Origin + new Vector2Int(minX, minY));
             var nodeCenter = bottomLeftCell +
                              new Vector2((width - 1) * cellSize, (height - 1) * cellSize) * .5f;
-            var visualSize = new Vector2(width * cellSize - CellGap, height * cellSize - CellGap);
+            var visualSize = new Vector2(width * cellSize - CellGapPixels, height * cellSize - CellGapPixels);
             float size = cellSize * Mathf.Max(0f, style.mobilityIconSizeInCells);
             float padding = cellSize * Mathf.Max(0f, style.mobilityIconPaddingInCells);
 
@@ -948,7 +957,8 @@ namespace MasterHouse
                     var rect = image.rectTransform;
                     rect.localRotation = Quaternion.identity;
                     rect.localScale = Vector3.one;
-                    rect.sizeDelta = new Vector2(cellSize - CellGap, cellSize - CellGap);
+                    float cellVisualSize = Mathf.Max(0f, cellSize - CellGapPixels);
+                    rect.sizeDelta = new Vector2(cellVisualSize, cellVisualSize);
                     rect.anchoredPosition = CellToLocal(cell);
                 }
             }

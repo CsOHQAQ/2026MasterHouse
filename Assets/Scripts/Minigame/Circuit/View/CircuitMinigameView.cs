@@ -174,7 +174,6 @@ namespace MasterHouse
         public Button summaryStayButton;
 
         [Header("占位配色")]
-        public Color cellColor = new Color(0.25f, 0.25f, 0.25f, 0.20f);
         public Color sourceColor = new Color(0.35f, 0.72f, 0.40f, 0.95f);
         public Color batteryColor = new Color(0.34f, 0.52f, 0.85f, 0.95f);
         public Color batteryLitColor = new Color(1f, 0.9f, 0f, 1f);
