@@ -7,7 +7,7 @@ namespace MasterHouse
 {
     /// <summary>
     /// 商店叠加层（2026-08-14 按设计稿重做）：
-    /// **一族一卡 + 选色**——家具 2.0 的素材是「族 × 配色变体」（如台灯 01~06），
+    /// **一族一卡 + 选色**——家具 2.0 的素材是「族 × 配色变体」（如经典落地灯 01~06），
     /// 商店按族出卡，右侧色块行选配色（悬停即预览、点击/X 键选中），买哪个颜色背包里就是哪件
     /// （所有权仍按变体粒度，零结构改动）。
     /// 2026-08-15 族化：族键改读家具表的 <c>familyId</c> 列、族名读家具族表，
@@ -370,7 +370,7 @@ namespace MasterHouse
                 }
                 if (card.thumb != null)
                 {
-                    SetThumb(card.thumb, revealed ? showEntry.sprite : null);
+                    SetThumb(card.thumb, revealed ? showEntry : null);
                     card.thumb.color = Color.white;
                 }
                 // 新设计图的价格样式：纯数字（货币符号画在卡面上），未解禁不显示
@@ -436,7 +436,7 @@ namespace MasterHouse
             var family = SelectedFamilyEntry();
             var entry = CurrentVariant(family);
             var revealed = entry != null && Economy.IsFurnitureRevealed(entry);
-            SetPreview(revealed ? entry?.sprite : null);
+            SetPreview(revealed ? entry : null);
             if (view.itemName != null)
                 view.itemName.text = entry == null ? string.Empty : revealed ? entry.displayName : "？？？";
             if (view.itemDesc != null)
@@ -630,32 +630,42 @@ namespace MasterHouse
             if (previewTransform.GetSiblingIndex() > floor) previewTransform.SetSiblingIndex(floor);
         }
 
-        /// <summary>各自适应图片的显示框上限（首次绑定时按实际渲染尺寸记下，之后按贴图比例内嵌）。</summary>
+        /// <summary>商店预览采用统一虚拟画布，保留不同家具间的相对大小，同时让小摆件仍可辨认。</summary>
+        private static readonly Vector2 StoreDesignCanvas = new Vector2(240f, 220f);
+
+        /// <summary>各自适应图片的显示框上限（首次绑定时按实际渲染尺寸记下）。</summary>
         private readonly Dictionary<RawImage, Vector2> fitBoxes = new Dictionary<RawImage, Vector2>();
 
         /// <summary>
-        /// 右页大预览：按贴图**原始宽高比**在显示框内缩放，绝不拉伸（2026-08-18）。
+        /// 右页大预览：按家具表的商店专用宽高在统一虚拟画布中显示。
         /// 显示框取自 Prefab 手调的 Rect —— 只读不写，Prefab 布局仍是唯一真相源；
         /// 若 Prefab 上挂了 AspectRatioFitter 则关掉它，避免两套缩放逻辑互相打架。
         /// </summary>
-        private void SetPreview(Sprite sprite) => FitInBox(view.preview, sprite);
+        private void SetPreview(FurnitureEntry entry) => FitInBox(view.preview, entry);
 
         /// <summary>
-        /// 按贴图**原始宽高比**在 Prefab 框内缩放，绝不拉伸（2026-08-18；右页大预览与获得弹窗缩略图共用）。
-        /// 框 = Prefab 手调的 Rect（首帧的实际渲染尺寸），只读不写。
+        /// 将家具的商店专用尺寸映射进 Prefab 显示框。RawImage 只采样 Sprite 自己的 UV 区域，
+        /// 不再把整张纹理或透明画布当成家具尺寸。
         /// </summary>
-        private void FitInBox(RawImage image, Sprite sprite)
+        private void FitInBox(RawImage image, FurnitureEntry entry)
         {
             if (image == null) return;
             var rect = image.rectTransform;
             if (!fitBoxes.TryGetValue(image, out var box))
             {
+                var existing = image.GetComponent<AspectRatioFitter>();
                 // 用**实际渲染尺寸**测框：Prefab 里若是 stretch 锚点，sizeDelta 表示的是边距而非尺寸
                 var measured = rect.rect.size;
                 box = measured.x > 1f && measured.y > 1f ? measured : rect.sizeDelta;
+                // 卡片缩略图初始由 FitInParent 控制，此时自身 Rect 可能已被旧比例改成正方形；
+                // 商店尺寸要使用完整 ThumbArea，所以在关闭旧组件前取父级显示框。
+                if (existing != null && existing.aspectMode != AspectRatioFitter.AspectMode.None &&
+                    rect.parent is RectTransform fittedParent && fittedParent.rect.width > 1f && fittedParent.rect.height > 1f)
+                    box = fittedParent.rect.size;
+                if ((box.x <= 1f || box.y <= 1f) && rect.parent is RectTransform parentRect)
+                    box = parentRect.rect.size;
                 if (box.x > 1f && box.y > 1f) fitBoxes[image] = box;
                 // 关掉可能存在的比例组件与父级布局控制，避免两套逻辑打架把图拉回去
-                var existing = image.GetComponent<AspectRatioFitter>();
                 if (existing != null) existing.enabled = false;
                 if (rect.parent != null && rect.parent.GetComponent<LayoutGroup>() != null)
                 {
@@ -664,41 +674,48 @@ namespace MasterHouse
                     element.ignoreLayout = true;
                 }
             }
+            var sprite = entry?.sprite;
             var has = sprite != null && sprite.texture != null;
             image.gameObject.SetActive(has);
             if (!has) return;
             image.texture = sprite.texture;
-            var size = sprite.bounds.size; // 世界单位，与像素同比例且不受导入缩放影响
-            if (size.x <= 0f || size.y <= 0f || box.x <= 0f || box.y <= 0f) return;
-            var ratio = size.x / size.y;
-            var boxRatio = box.x / box.y;
-            var target = ratio > boxRatio
-                ? new Vector2(box.x, box.x / ratio)  // 比框更扁：占满宽
-                : new Vector2(box.y * ratio, box.y); // 比框更高：占满高
+            image.uvRect = TightUvRect(sprite);
+
+            var configured = new Vector2(
+                Mathf.Max(1f, entry.storeDisplayWidth),
+                Mathf.Max(1f, entry.storeDisplayHeight));
+            if (box.x <= 0f || box.y <= 0f) return;
+            var scale = Mathf.Min(box.x / StoreDesignCanvas.x, box.y / StoreDesignCanvas.y);
+            var target = configured * scale;
+            var safetyScale = Mathf.Min(1f, Mathf.Min(box.x / target.x, box.y / target.y));
+            target *= safetyScale;
             // SetSizeWithCurrentAnchors 在固定锚点与 stretch 下都能得到正确的实际尺寸
             rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, target.x);
             rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, target.y);
-            image.uvRect = new Rect(0, 0, 1, 1); // 防手调残留的 uv 缩放造成二次变形
         }
 
-        private static void SetThumb(RawImage image, Sprite sprite)
+        private static Rect TightUvRect(Sprite sprite)
         {
-            if (image == null) return;
-            var has = sprite != null && sprite.texture != null;
-            image.gameObject.SetActive(has);
-            if (!has) return;
-            image.texture = sprite.texture;
-            var fitter = image.GetComponent<AspectRatioFitter>();
-            if (fitter != null && sprite.bounds.size.y > 0f)
-                fitter.aspectRatio = sprite.bounds.size.x / sprite.bounds.size.y;
+            var uv = sprite.uv;
+            if (uv == null || uv.Length == 0) return new Rect(0f, 0f, 1f, 1f);
+            var min = uv[0];
+            var max = uv[0];
+            for (var i = 1; i < uv.Length; i++)
+            {
+                min = Vector2.Min(min, uv[i]);
+                max = Vector2.Max(max, uv[i]);
+            }
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
+
+        private void SetThumb(RawImage image, FurnitureEntry entry) => FitInBox(image, entry);
 
         // ══════════ 获得弹窗 ══════════
 
         private void ShowObtained(Family family, FurnitureEntry entry)
         {
             if (view.obtainedGroup == null) return;
-            FitInBox(view.obtainedThumb, entry.sprite); // 弹窗缩略图同样按原比例内嵌，不拉伸
+            FitInBox(view.obtainedThumb, entry); // 弹窗缩略图与商品卡、详情共用商店专用比例
             if (view.obtainedName != null) view.obtainedName.text = entry.displayName;
             if (view.obtainedDesc != null)
                 view.obtainedDesc.text = string.IsNullOrEmpty(entry.description)

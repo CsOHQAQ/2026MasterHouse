@@ -43,8 +43,10 @@ namespace MasterHouse
         public bool stackable;
         [Tooltip("【族级·导表展开】占格：列数")] public int cols = 1;
         [Tooltip("【族级·导表展开】占格：行数")] public int rows = 1;
-        [Tooltip("最大显示宽度（场景像素）。素材按实际图形比例等比放入宽高外框")] public float displayWidth = 100f;
-        [Tooltip("最大显示高度（场景像素）。素材按实际图形比例等比放入宽高外框")] public float displayHeight = 100f;
+        [Tooltip("实际显示宽度（场景像素）。与显示高度分别生效，用来校正素材自身比例")] public float displayWidth = 100f;
+        [Tooltip("实际显示高度（场景像素）。与显示宽度分别生效，用来校正素材自身比例")] public float displayHeight = 100f;
+        [Tooltip("商店预览宽度（独立虚拟画布单位）。只控制商品卡、详情与购买弹窗，不影响房间摆放")] public float storeDisplayWidth = 100f;
+        [Tooltip("商店预览高度（独立虚拟画布单位）。只控制商品卡、详情与购买弹窗，不影响房间摆放")] public float storeDisplayHeight = 100f;
         // 售卖配置（价格 / 解禁声望）已于 2026-08-13 拆去 StoreTable，按 id 关联；读取走 EconomyManager
         [Tooltip("【族级·导表展开】摆放后对 House 装饰分的贡献")] public int decorationScore = 10;
         [Tooltip("家具精灵（Assets/Resources/OutGameUI/Furniture）")] public Sprite sprite;
@@ -59,48 +61,19 @@ namespace MasterHouse
 
     /// <summary>
     /// 家具在场景里的实际显示尺寸。
-    /// 表里的显示宽高是允许占用的外框；素材按精灵实际图形区等比缩放进该外框，避免分别拉伸 X/Y 导致变形。
+    /// 表里的显示宽高分别控制可见图形的两轴；家具素材的绘制比例不一定等于现实尺寸，
+    /// 因此这里不能强制保持素材原始宽高比。
     /// </summary>
     public static class FurnitureDisplaySizing
     {
-        private struct CachedSize
-        {
-            public Sprite sprite;
-            public float width;
-            public float height;
-            public Vector2 resolved;
-        }
-
-        // Resolve 会在拖拽 Update 中高频调用；缓存顶点包络，避免每帧读取 sprite.vertices 产生数组分配。
-        private static readonly Dictionary<FurnitureEntry, CachedSize> Cache =
-            new Dictionary<FurnitureEntry, CachedSize>();
-
         public static Vector2 Resolve(FurnitureEntry entry)
         {
             if (entry == null) return Vector2.zero;
-            var target = new Vector2(Mathf.Max(0f, entry.displayWidth), Mathf.Max(0f, entry.displayHeight));
-            if (entry.sprite == null || target.x <= 0f || target.y <= 0f) return target;
-
-            if (Cache.TryGetValue(entry, out var cached) && cached.sprite == entry.sprite &&
-                Mathf.Approximately(cached.width, target.x) && Mathf.Approximately(cached.height, target.y))
-                return cached.resolved;
-
-            var source = TightSize(entry.sprite);
-            if (source.x <= 1e-4f || source.y <= 1e-4f) return target;
-            var scale = Mathf.Min(target.x / source.x, target.y / source.y);
-            var resolved = source * scale;
-            Cache[entry] = new CachedSize
-            {
-                sprite = entry.sprite,
-                width = target.x,
-                height = target.y,
-                resolved = resolved,
-            };
-            return resolved;
+            return new Vector2(Mathf.Max(0f, entry.displayWidth), Mathf.Max(0f, entry.displayHeight));
         }
 
         /// <summary>
-        /// 实际显示外框相对配置外框的缩放比。桌面格等附着坐标用它同步跟随等比修正后的家具画面。
+        /// 实际显示外框相对配置外框的缩放比。精确宽高模式下恒为 1；保留此入口供桌面格坐标统一使用。
         /// </summary>
         public static Vector2 FrameScale(FurnitureEntry entry)
         {

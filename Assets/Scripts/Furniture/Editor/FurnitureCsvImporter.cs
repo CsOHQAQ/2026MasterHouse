@@ -92,7 +92,7 @@ namespace MasterHouse.EditorTools
         /// </summary>
         private static readonly string[] FurnitureHeader =
         {
-            "id", "英文索引", "显示名", "族id", "显示宽", "显示高", "精灵图", "色值",
+            "id", "英文索引", "显示名", "族id", "显示宽", "显示高", "精灵图", "色值", "商店显示宽", "商店显示高",
         };
 
         /// <summary>商店表（售卖配置）：按 id 合回 FurnitureTable 对应条目（2026-08-13 从家具表拆出）。</summary>
@@ -231,6 +231,8 @@ namespace MasterHouse.EditorTools
                     familyId = familyId,
                     displayWidth = Float(row, col, "显示宽", 100f),
                     displayHeight = Float(row, col, "显示高", 100f),
+                    storeDisplayWidth = Float(row, col, "商店显示宽", 100f),
+                    storeDisplayHeight = Float(row, col, "商店显示高", 100f),
                     sprite = LoadSprite(Cell(row, col, "精灵图")),
                     swatchColor = ParseColor(Cell(row, col, "色值")),
                     // ── 族级：从族表展开（改这些值请改族表，改这里会被下次导表覆盖）──
@@ -519,7 +521,8 @@ namespace MasterHouse.EditorTools
                 if (e == null) continue;
                 lines.Add(Line(e.id, e.nameKey, e.displayName, e.familyId,
                     e.displayWidth, e.displayHeight,
-                    SpritePath(e.sprite), "#" + ColorUtility.ToHtmlStringRGB(e.swatchColor)));
+                    SpritePath(e.sprite), "#" + ColorUtility.ToHtmlStringRGB(e.swatchColor),
+                    e.storeDisplayWidth, e.storeDisplayHeight));
             }
             WriteCsv(FurnitureCsvPath, lines);
         }
