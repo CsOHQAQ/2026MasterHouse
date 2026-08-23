@@ -2038,10 +2038,10 @@ MonoBehaviour:
   - {fileID: 21300000, guid: a11a80d373c9446fd8914bdd7cd2aed1, type: 3}
   - {fileID: 21300000, guid: 9b385210b20d4434a99bc47eaa240014, type: 3}
   roomNightBackgrounds:
-  - {fileID: 21300000, guid: 85c198a58ee8945a882cb04296751afe, type: 3}
   - {fileID: 21300000, guid: d51b2e8620d8b410da88f53d33a4be32, type: 3}
   - {fileID: 21300000, guid: 34b8d365652ef48e5bc3cdb5d9114c10, type: 3}
   - {fileID: 21300000, guid: b37c1ea20f85c40299a122e315129c1a, type: 3}
+  - {fileID: 21300000, guid: 85c198a58ee8945a882cb04296751afe, type: 3}
   topGroup: {fileID: 700140852772283830}
   creditLabel: {fileID: 8231336622114873277}
   hideUiButton: {fileID: 6047576504646267776}
