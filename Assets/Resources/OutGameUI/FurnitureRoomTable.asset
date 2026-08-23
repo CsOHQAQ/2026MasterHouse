@@ -79,16 +79,16 @@ MonoBehaviour:
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 34
-      row: 7
+      col: 35
+      row: 9
       flipped: 0
     - furnitureId: round_table_01
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 49
-      row: 7
+      col: 51
+      row: 11
       flipped: 0
   - id: bedroom
     displayName: "\u5367\u5BA4"
@@ -148,24 +148,24 @@ MonoBehaviour:
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 18
-      row: 3
+      col: 19
+      row: 5
       flipped: 0
     - furnitureId: cat_sofa_01
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 57
-      row: 3
+      col: 58
+      row: 5
       flipped: 0
     - furnitureId: monstera_01
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 89
-      row: 3
+      col: 92
+      row: 8
       flipped: 0
   - id: kitchen
     displayName: "\u53A8\u623F"
@@ -225,16 +225,16 @@ MonoBehaviour:
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 34
-      row: 3
+      col: 36
+      row: 7
       flipped: 0
     - furnitureId: potted_plant_01
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 81
-      row: 4
+      col: 82
+      row: 7
       flipped: 0
   - id: study
     displayName: "\u4E66\u623F"
@@ -286,16 +286,16 @@ MonoBehaviour:
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 0
-      row: 5
+      col: 2
+      row: 9
       flipped: 0
     - furnitureId: potted_plant_02
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 18
-      row: 0
+      col: 19
+      row: 3
       flipped: 0
     - furnitureId: vintage_square_clock_03
       gridId: wall
@@ -310,6 +310,6 @@ MonoBehaviour:
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 69
-      row: 5
+      col: 70
+      row: 7
       flipped: 0

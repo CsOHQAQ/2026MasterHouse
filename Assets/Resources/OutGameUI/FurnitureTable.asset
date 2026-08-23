@@ -21,8 +21,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 5
-    rows: 5
+    cols: 4
+    rows: 2
     displayWidth: 70
     displayHeight: 220
     storeDisplayWidth: 70
@@ -49,8 +49,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 5
-    rows: 5
+    cols: 4
+    rows: 2
     displayWidth: 70
     displayHeight: 220
     storeDisplayWidth: 70
@@ -77,8 +77,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 5
-    rows: 5
+    cols: 4
+    rows: 2
     displayWidth: 70
     displayHeight: 220
     storeDisplayWidth: 70
@@ -105,8 +105,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 5
-    rows: 5
+    cols: 4
+    rows: 2
     displayWidth: 70
     displayHeight: 220
     storeDisplayWidth: 70
@@ -133,8 +133,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 5
-    rows: 5
+    cols: 4
+    rows: 2
     displayWidth: 70
     displayHeight: 220
     storeDisplayWidth: 70
@@ -161,8 +161,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 5
-    rows: 5
+    cols: 4
+    rows: 2
     displayWidth: 70
     displayHeight: 220
     storeDisplayWidth: 70
@@ -189,8 +189,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 6
+    rows: 3
     displayWidth: 135
     displayHeight: 145
     storeDisplayWidth: 145
@@ -217,8 +217,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 6
+    rows: 3
     displayWidth: 135
     displayHeight: 145
     storeDisplayWidth: 145
@@ -245,8 +245,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 6
+    rows: 3
     displayWidth: 135
     displayHeight: 145
     storeDisplayWidth: 145
@@ -273,8 +273,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 6
+    rows: 3
     displayWidth: 135
     displayHeight: 145
     storeDisplayWidth: 145
@@ -301,8 +301,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 6
+    rows: 3
     displayWidth: 135
     displayHeight: 145
     storeDisplayWidth: 145
@@ -329,8 +329,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 6
+    rows: 3
     displayWidth: 135
     displayHeight: 145
     storeDisplayWidth: 145
@@ -357,8 +357,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 6
+    rows: 3
     displayWidth: 135
     displayHeight: 145
     storeDisplayWidth: 145
@@ -385,8 +385,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 6
+    rows: 3
     displayWidth: 135
     displayHeight: 145
     storeDisplayWidth: 145
@@ -413,7 +413,7 @@ MonoBehaviour:
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 4
+    cols: 3
     rows: 1
     displayWidth: 50
     displayHeight: 55
@@ -441,7 +441,7 @@ MonoBehaviour:
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 4
+    cols: 3
     rows: 1
     displayWidth: 50
     displayHeight: 55
@@ -469,7 +469,7 @@ MonoBehaviour:
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 4
+    cols: 3
     rows: 1
     displayWidth: 50
     displayHeight: 55
@@ -497,7 +497,7 @@ MonoBehaviour:
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 4
+    cols: 3
     rows: 1
     displayWidth: 50
     displayHeight: 55
@@ -525,8 +525,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 10
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 145
     displayHeight: 105
     storeDisplayWidth: 165
@@ -553,8 +553,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 10
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 145
     displayHeight: 105
     storeDisplayWidth: 165
@@ -581,8 +581,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 10
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 145
     displayHeight: 105
     storeDisplayWidth: 165
@@ -609,8 +609,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 10
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 145
     displayHeight: 105
     storeDisplayWidth: 165
@@ -637,8 +637,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 10
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 145
     displayHeight: 105
     storeDisplayWidth: 165
@@ -665,8 +665,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 10
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 145
     displayHeight: 105
     storeDisplayWidth: 165
@@ -693,8 +693,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 10
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 145
     displayHeight: 105
     storeDisplayWidth: 165
@@ -721,8 +721,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 10
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 145
     displayHeight: 105
     storeDisplayWidth: 165
@@ -749,8 +749,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 135
     displayHeight: 150
     storeDisplayWidth: 145
@@ -777,8 +777,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 135
     displayHeight: 150
     storeDisplayWidth: 145
@@ -805,8 +805,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 135
     displayHeight: 150
     storeDisplayWidth: 145
@@ -833,8 +833,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 135
     displayHeight: 150
     storeDisplayWidth: 145
@@ -861,8 +861,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 135
     displayHeight: 150
     storeDisplayWidth: 145
@@ -889,8 +889,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 135
     displayHeight: 150
     storeDisplayWidth: 145
@@ -917,8 +917,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 135
     displayHeight: 150
     storeDisplayWidth: 145
@@ -945,8 +945,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 135
     displayHeight: 150
     storeDisplayWidth: 145
@@ -973,8 +973,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 135
     displayHeight: 150
     storeDisplayWidth: 145
@@ -1001,8 +1001,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 135
     displayHeight: 150
     storeDisplayWidth: 145
@@ -1029,8 +1029,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 135
     displayHeight: 150
     storeDisplayWidth: 145
@@ -1057,8 +1057,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 9
-    rows: 7
+    cols: 8
+    rows: 5
     displayWidth: 135
     displayHeight: 150
     storeDisplayWidth: 145
@@ -1085,7 +1085,7 @@ MonoBehaviour:
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 3
+    cols: 2
     rows: 1
     displayWidth: 45
     displayHeight: 70
@@ -1113,7 +1113,7 @@ MonoBehaviour:
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 3
+    cols: 2
     rows: 1
     displayWidth: 45
     displayHeight: 70
@@ -1141,7 +1141,7 @@ MonoBehaviour:
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 3
+    cols: 2
     rows: 1
     displayWidth: 45
     displayHeight: 70
@@ -1169,7 +1169,7 @@ MonoBehaviour:
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 3
+    cols: 2
     rows: 1
     displayWidth: 45
     displayHeight: 70
@@ -1197,7 +1197,7 @@ MonoBehaviour:
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 3
+    cols: 2
     rows: 1
     displayWidth: 45
     displayHeight: 70
@@ -2289,8 +2289,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 8
-    rows: 7
+    cols: 3
+    rows: 2
     displayWidth: 115
     displayHeight: 190
     storeDisplayWidth: 125
@@ -2317,8 +2317,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 8
-    rows: 7
+    cols: 3
+    rows: 2
     displayWidth: 115
     displayHeight: 190
     storeDisplayWidth: 125
@@ -2345,8 +2345,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 8
-    rows: 7
+    cols: 3
+    rows: 2
     displayWidth: 115
     displayHeight: 190
     storeDisplayWidth: 125
@@ -2373,8 +2373,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 8
-    rows: 7
+    cols: 3
+    rows: 2
     displayWidth: 115
     displayHeight: 190
     storeDisplayWidth: 125
@@ -2401,8 +2401,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 8
-    rows: 7
+    cols: 3
+    rows: 2
     displayWidth: 115
     displayHeight: 190
     storeDisplayWidth: 125
@@ -2429,8 +2429,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 8
-    rows: 7
+    cols: 3
+    rows: 2
     displayWidth: 115
     displayHeight: 190
     storeDisplayWidth: 125
@@ -2457,8 +2457,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 8
-    rows: 7
+    cols: 3
+    rows: 2
     displayWidth: 115
     displayHeight: 190
     storeDisplayWidth: 125
@@ -2737,8 +2737,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 4
-    rows: 5
+    cols: 2
+    rows: 2
     displayWidth: 55
     displayHeight: 115
     storeDisplayWidth: 85
@@ -2765,8 +2765,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 4
-    rows: 5
+    cols: 2
+    rows: 2
     displayWidth: 55
     displayHeight: 115
     storeDisplayWidth: 85
@@ -2793,8 +2793,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 4
-    rows: 5
+    cols: 2
+    rows: 2
     displayWidth: 55
     displayHeight: 115
     storeDisplayWidth: 85
@@ -2821,8 +2821,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 4
-    rows: 5
+    cols: 2
+    rows: 2
     displayWidth: 55
     displayHeight: 115
     storeDisplayWidth: 85
@@ -2849,8 +2849,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 4
-    rows: 5
+    cols: 2
+    rows: 2
     displayWidth: 55
     displayHeight: 115
     storeDisplayWidth: 85
@@ -2878,7 +2878,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 1
     cols: 16
-    rows: 10
+    rows: 8
     displayWidth: 240
     displayHeight: 90
     storeDisplayWidth: 230
@@ -2906,7 +2906,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 1
     cols: 16
-    rows: 10
+    rows: 8
     displayWidth: 240
     displayHeight: 90
     storeDisplayWidth: 230
@@ -2934,7 +2934,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 1
     cols: 16
-    rows: 10
+    rows: 8
     displayWidth: 240
     displayHeight: 90
     storeDisplayWidth: 230
@@ -2962,7 +2962,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 1
     cols: 16
-    rows: 10
+    rows: 8
     displayWidth: 240
     displayHeight: 90
     storeDisplayWidth: 230
@@ -2990,7 +2990,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 1
     cols: 16
-    rows: 10
+    rows: 8
     displayWidth: 240
     displayHeight: 90
     storeDisplayWidth: 230
@@ -3018,7 +3018,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 1
     cols: 16
-    rows: 10
+    rows: 8
     displayWidth: 240
     displayHeight: 90
     storeDisplayWidth: 230
@@ -3046,7 +3046,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 1
     cols: 16
-    rows: 10
+    rows: 8
     displayWidth: 240
     displayHeight: 90
     storeDisplayWidth: 230
@@ -3074,7 +3074,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 1
     cols: 16
-    rows: 10
+    rows: 8
     displayWidth: 240
     displayHeight: 90
     storeDisplayWidth: 230
@@ -3102,7 +3102,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 1
     cols: 16
-    rows: 10
+    rows: 8
     displayWidth: 240
     displayHeight: 90
     storeDisplayWidth: 230
@@ -3130,7 +3130,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 1
     cols: 16
-    rows: 10
+    rows: 8
     displayWidth: 240
     displayHeight: 90
     storeDisplayWidth: 230
@@ -3410,7 +3410,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 15
-    rows: 10
+    rows: 8
     displayWidth: 220
     displayHeight: 145
     storeDisplayWidth: 220
@@ -3438,7 +3438,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 15
-    rows: 10
+    rows: 8
     displayWidth: 220
     displayHeight: 145
     storeDisplayWidth: 220
@@ -3466,7 +3466,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 15
-    rows: 10
+    rows: 8
     displayWidth: 220
     displayHeight: 145
     storeDisplayWidth: 220
@@ -3494,7 +3494,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 15
-    rows: 10
+    rows: 8
     displayWidth: 220
     displayHeight: 145
     storeDisplayWidth: 220
@@ -3522,7 +3522,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 15
-    rows: 10
+    rows: 8
     displayWidth: 220
     displayHeight: 145
     storeDisplayWidth: 220
@@ -3550,7 +3550,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 11
-    rows: 10
+    rows: 8
     displayWidth: 160
     displayHeight: 150
     storeDisplayWidth: 170
@@ -3578,7 +3578,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 11
-    rows: 10
+    rows: 8
     displayWidth: 160
     displayHeight: 150
     storeDisplayWidth: 170
@@ -3606,7 +3606,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 11
-    rows: 10
+    rows: 8
     displayWidth: 160
     displayHeight: 150
     storeDisplayWidth: 170
@@ -3634,7 +3634,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 11
-    rows: 10
+    rows: 8
     displayWidth: 160
     displayHeight: 150
     storeDisplayWidth: 170
@@ -3662,7 +3662,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 11
-    rows: 10
+    rows: 8
     displayWidth: 160
     displayHeight: 150
     storeDisplayWidth: 170
@@ -3690,7 +3690,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 11
-    rows: 10
+    rows: 8
     displayWidth: 160
     displayHeight: 150
     storeDisplayWidth: 170
@@ -3718,7 +3718,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 11
-    rows: 7
+    rows: 4
     displayWidth: 160
     displayHeight: 175
     storeDisplayWidth: 175
@@ -3773,8 +3773,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 11
-    rows: 7
+    cols: 10
+    rows: 4
     displayWidth: 155
     displayHeight: 110
     storeDisplayWidth: 180
@@ -3801,8 +3801,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 15
-    rows: 9
+    cols: 12
+    rows: 6
     displayWidth: 220
     displayHeight: 170
     storeDisplayWidth: 220
@@ -3857,7 +3857,7 @@ MonoBehaviour:
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 3
+    cols: 2
     rows: 1
     displayWidth: 45
     displayHeight: 32
@@ -3885,7 +3885,7 @@ MonoBehaviour:
     description: 
     surfaces: 01000000
     stackable: 0
-    cols: 5
+    cols: 3
     rows: 1
     displayWidth: 65
     displayHeight: 70
@@ -3914,7 +3914,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 13
-    rows: 7
+    rows: 4
     displayWidth: 195
     displayHeight: 105
     storeDisplayWidth: 210
@@ -3941,8 +3941,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 6
-    rows: 5
+    cols: 4
+    rows: 2
     displayWidth: 85
     displayHeight: 205
     storeDisplayWidth: 90
@@ -3970,7 +3970,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 12
-    rows: 5
+    rows: 3
     displayWidth: 180
     displayHeight: 125
     storeDisplayWidth: 195
@@ -3997,8 +3997,8 @@ MonoBehaviour:
     description: 
     surfaces: 00000000
     stackable: 0
-    cols: 16
-    rows: 7
+    cols: 15
+    rows: 5
     displayWidth: 230
     displayHeight: 100
     storeDisplayWidth: 230
@@ -4054,7 +4054,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 10
-    rows: 7
+    rows: 4
     displayWidth: 140
     displayHeight: 180
     storeDisplayWidth: 150
@@ -4082,7 +4082,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 10
-    rows: 7
+    rows: 4
     displayWidth: 145
     displayHeight: 180
     storeDisplayWidth: 155
@@ -4110,7 +4110,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 12
-    rows: 7
+    rows: 4
     displayWidth: 180
     displayHeight: 180
     storeDisplayWidth: 190
@@ -4138,7 +4138,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 10
-    rows: 7
+    rows: 4
     displayWidth: 150
     displayHeight: 180
     storeDisplayWidth: 160
@@ -4166,7 +4166,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 9
-    rows: 7
+    rows: 4
     displayWidth: 135
     displayHeight: 180
     storeDisplayWidth: 145
@@ -4194,7 +4194,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 9
-    rows: 7
+    rows: 4
     displayWidth: 130
     displayHeight: 180
     storeDisplayWidth: 135
@@ -4222,7 +4222,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 11
-    rows: 7
+    rows: 4
     displayWidth: 160
     displayHeight: 180
     storeDisplayWidth: 170
@@ -4250,7 +4250,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 10
-    rows: 7
+    rows: 4
     displayWidth: 150
     displayHeight: 180
     storeDisplayWidth: 160
@@ -4278,7 +4278,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 9
-    rows: 7
+    rows: 4
     displayWidth: 125
     displayHeight: 180
     storeDisplayWidth: 130
@@ -4306,7 +4306,7 @@ MonoBehaviour:
     surfaces: 00000000
     stackable: 0
     cols: 10
-    rows: 7
+    rows: 4
     displayWidth: 150
     displayHeight: 180
     storeDisplayWidth: 160

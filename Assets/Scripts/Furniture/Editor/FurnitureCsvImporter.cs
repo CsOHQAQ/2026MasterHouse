@@ -88,7 +88,8 @@ namespace MasterHouse.EditorTools
 
         /// <summary>
         /// 家具表（只剩**逐变体不同**的列）：族级列已搬去族表，
-        /// 占格因不同变体宽度可能不同，仍由家具表逐行保存；空值回退族表默认值。
+        /// 占格按家具底部实际接地/接桌轮廓配置；不同变体的底座宽度可能不同，
+        /// 因此仍由家具表逐行保存，空值回退族表默认值。显示宽高只控制图片，不参与占格换算。
         /// </summary>
         private static readonly string[] FurnitureHeader =
         {

@@ -20,7 +20,8 @@ EXCEL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "Excel", "家�
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "Assets", "Configs", "家具表.csv")
 
 # CSV 列（与 Unity 侧 FurnitureCsvImporter.FurnitureHeader 一致，勿改文字）
-# 族级公共值仍在家具族表；占格由逐变体最新显示尺寸换算，空值才回退族默认值。
+# 族级公共值仍在家具族表；占格按逐变体底部实际接地/接桌轮廓配置，
+# 与整张图片及显示尺寸解耦，空值才回退族默认值。
 HEADER = ["id", "英文索引", "显示名", "族id", "显示宽", "显示高", "精灵图", "色值", "商店显示宽", "商店显示高", "商店列表图", "商店详情图", "占格列", "占格行"]
 SHEET = "家具"
 

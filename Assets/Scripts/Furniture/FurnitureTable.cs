@@ -41,8 +41,8 @@ namespace MasterHouse
         public List<FurnitureSurfaceType> surfaces = new List<FurnitureSurfaceType> { FurnitureSurfaceType.Floor };
         [Tooltip("【族级·导表展开】可叠放（地毯类）：平铺在地面、不挡其他家具落格，渲染压在所有立式家具之下；同为可叠放的彼此仍互斥")]
         public bool stackable;
-        [Tooltip("按该变体最新显示尺寸换算的占格列数；家具表为空时回退族默认值")] public int cols = 1;
-        [Tooltip("按该变体最新显示尺寸/实际纵深换算的占格行数；家具表为空时回退族默认值")] public int rows = 1;
+        [Tooltip("家具底部实际接地/接桌轮廓占用的格子列数；不按整张图片或显示宽度换算，家具表为空时回退族默认值")] public int cols = 1;
+        [Tooltip("家具底部实际接地纵深占用的格子行数；桌面家具运行时固定为 1 行，壁挂家具按墙面可见轮廓，家具表为空时回退族默认值")] public int rows = 1;
         [Tooltip("实际显示宽度（场景像素）。与显示高度分别生效，用来校正素材自身比例")] public float displayWidth = 100f;
         [Tooltip("实际显示高度（场景像素）。与显示宽度分别生效，用来校正素材自身比例")] public float displayHeight = 100f;
         [Tooltip("商店预览宽度（独立虚拟画布单位）。只控制商品卡、详情与购买弹窗，不影响房间摆放")] public float storeDisplayWidth = 100f;
