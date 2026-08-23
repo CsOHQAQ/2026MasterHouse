@@ -184,17 +184,13 @@ namespace MasterHouse
             usesPlacementBackground = placementBackground != room.background;
             backgroundRenderer = CreateLayer("Background", placementBackground, OrderBackground, ZBackground, 1f,
                 fitWidth: usesPlacementBackground);
-            // 新版放置模式背景目前只有日间图。使用它时不再叠总览专用的旧夜景裁片，
-            // 否则夜色渐入会在完整 16:9 背景中间盖上一块超宽旧房间。
-            if (!usesPlacementBackground)
+            var nightBackground = PlacementNightBackground();
+            if (nightBackground != null)
             {
-                var nightBackground = Resources.Load<Sprite>($"OutGameUI/RoomNight/room-night-{roomIndex + 1:00}");
-                if (nightBackground != null)
-                    nightBackgroundRenderer = CreateLayer("NightBackground", nightBackground,
-                        OrderNightBackground, ZNightBackground, 0f);
-                else
-                    Debug.LogWarning($"[Furniture] 夜间房间图缺失：room-night-{roomIndex + 1:00}");
+                nightBackgroundRenderer = CreateLayer("NightBackground", nightBackground,
+                    OrderNightBackground, ZNightBackground, 0f, fitWidth: usesPlacementBackground);
             }
+            else Debug.LogWarning($"[Furniture] 夜间房间图缺失：room {roomIndex + 1}");
             if (room.depthBlurOverlay != null)
                 depthBlurRenderer = CreateLayer("DepthBlur", room.depthBlurOverlay, OrderDepthBlur, ZDepthBlur, 1f);
             if (room.focusBlurOverlay != null)
@@ -220,6 +216,19 @@ namespace MasterHouse
                 : room.background;
         }
 
+        private Sprite PlacementNightBackground()
+        {
+            var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.FurnitureHud);
+            var view = prefab != null ? prefab.GetComponent<OutGameFurnitureHudView>() : null;
+            var backgrounds = view != null ? view.roomNightBackgrounds : null;
+            if (backgrounds != null && roomIndex >= 0 && roomIndex < backgrounds.Length &&
+                backgrounds[roomIndex] != null)
+                return backgrounds[roomIndex];
+            return usesPlacementBackground
+                ? null
+                : Resources.Load<Sprite>($"OutGameUI/RoomNight/room-night-{roomIndex + 1:00}");
+        }
+
         /// <summary>网格当前是按哪个夜色权重建的（夜色推移超过一档就重建）。</summary>
         private float gridNightAlpha = -1f;
         private const float GridRebuildStep = .02f;
@@ -238,7 +247,7 @@ namespace MasterHouse
         {
             var (tint, veil) = HouseDayLight.Now();
             var nightAlpha = HouseDayLight.NightRoomAlphaNow();
-            var geometryNightAlpha = usesPlacementBackground ? 0f : nightAlpha;
+            var geometryNightAlpha = nightBackgroundRenderer != null ? nightAlpha : 0f;
             // 夜色推移到一定程度就按新几何重建网格并重摆家具（每帧重建太浪费，0.02 一档肉眼看不出跳）
             if (Mathf.Abs(geometryNightAlpha - gridNightAlpha) > GridRebuildStep) RebuildGridsForNight();
             TintPreserveAlpha(backgroundRenderer, tint);
@@ -301,10 +310,9 @@ namespace MasterHouse
                 if (config == null || string.IsNullOrEmpty(config.id)) continue;
                 var order = config.surface == FurnitureSurfaceType.Floor ? OrderFloorGrid : OrderWallGrid;
                 var z = config.surface == FurnitureSurfaceType.Floor ? 0f : ZWall - .01f;
-                // 新版放置背景与 Hub 总览背景的墙脚线、墙宽和地面透视都不同，不能共用房间表里的
-                // Hub 几何。放置模式按四张完整背景逐张标定；总览仍走原配置及昼夜校正。
+                // 房间表中的网格已经按四张完整放置背景逐张标定；旧背景回退时才做昼夜几何校正。
                 var effectiveConfig = usesPlacementBackground
-                    ? PlacementGridConfig(config)
+                    ? config
                     : FurnitureNightLayout.Adjust(room, config, gridNightAlpha);
                 var grid = new FurnitureRuntimeGrid(
                     effectiveConfig, PxToWorld, z);
@@ -314,55 +322,6 @@ namespace MasterHouse
             foreach (var blocked in room.blockedCells)
                 if (blocked != null && grids.TryGetValue(blocked.gridId, out var grid))
                     grid.MarkSceneBlocked(blocked.col, blocked.row);
-        }
-
-        /// <summary>
-        /// 新版放置模式背景按宽度等比铺到 1672px 舞台中，因此这里的坐标就是玩家实际看见的裁切结果。
-        /// 行列数保持与房间表一致，已有布局的 col/row 语义不变；只替换可见范围与地面透视。
-        /// </summary>
-        private FurnitureGridConfig PlacementGridConfig(FurnitureGridConfig source)
-        {
-            if (source.surface != FurnitureSurfaceType.Floor && source.surface != FurnitureSurfaceType.Wall)
-                return source;
-
-            switch (room.id)
-            {
-                case "living":
-                    return source.surface == FurnitureSurfaceType.Floor
-                        ? PlacementGrid(source, 102, 12, 14.7843f, 14.8333f, 82f, 452f, .603f)
-                        : PlacementGrid(source, 68, 28, 13.3824f, 14.2857f, 374f, 52f);
-                case "bedroom":
-                    return source.surface == FurnitureSurfaceType.Floor
-                        ? PlacementGrid(source, 102, 10, 14.7843f, 13.2f, 82f, 503f, .62f)
-                        : PlacementGrid(source, 56, 26, 13.2321f, 15.1538f, 335f, 109f);
-                case "kitchen":
-                    return source.surface == FurnitureSurfaceType.Floor
-                        ? PlacementGrid(source, 102, 12, 14.7843f, 10.75f, 82f, 498f, .56f)
-                        : PlacementGrid(source, 48, 28, 12.6458f, 13.0714f, 648f, 132f);
-                case "study":
-                    return source.surface == FurnitureSurfaceType.Floor
-                        ? PlacementGrid(source, 102, 12, 14.7059f, 12.8333f, 86f, 469f, .69f)
-                        : PlacementGrid(source, 92, 28, 11.2935f, 15.7857f, 313f, 27f);
-                default:
-                    return source;
-            }
-        }
-
-        private static FurnitureGridConfig PlacementGrid(FurnitureGridConfig source, int cols, int rows,
-            float cellWidth, float cellHeight, float x, float y, float farWidthScale = 1f)
-        {
-            return new FurnitureGridConfig
-            {
-                id = source.id,
-                surface = source.surface,
-                cols = cols,
-                rows = rows,
-                cellWidth = cellWidth,
-                cellHeight = cellHeight,
-                x = x,
-                y = y,
-                farWidthScale = farWidthScale,
-            };
         }
 
         #endregion
