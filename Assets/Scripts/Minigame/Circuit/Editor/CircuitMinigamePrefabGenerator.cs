@@ -604,7 +604,9 @@ namespace MasterHouse.EditorTools
             // 它的位置与大小由 Prefab 说了算；格子大小由 CircuitBoard 按关卡行列数在运行时算。
             // 2026-08-16 右边界从 760 收到 540，让出 360 宽给课程包的教学栏——
             // 单关模式下教学栏整体隐藏，那一列就是空白，不额外把棋盘撑回去（布局只有一套，不按模式重排）
-            var area = Rect(parent, "BoardArea", new Vector2(0, 0), new Vector2(1, 1), new Vector2(70, 10), new Vector2(-980, -220));
+            // 纵向安全区为 [200, 880]：顶部状态条底边约为 940，底部按钮顶边约为 165。
+            // 不能把状态条/按钮所在的区域计入自适应空间，否则高画布会遮挡 UI。
+            var area = Rect(parent, "BoardArea", new Vector2(0, 0), new Vector2(1, 1), new Vector2(70, 0), new Vector2(-980, -400));
             view.boardArea = area;
 
             view.gridRoot = Rect(area, "GridRoot", Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
