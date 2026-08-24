@@ -142,25 +142,21 @@ namespace MasterHouse
             // 收集绘制项：背景 + 家具（按层级排序后自后向前绘制）
             var draws = Collect(table, room, nightAlpha);
             // 光影：立式家具（地面/桌面带，order ≥ 100）脚下垫柔和投影，插到该件之下（order-1）
-            var shadowSprite = Resources.Load<Sprite>("OutGameUI/soft-shadow");
+            var shadowSprite = Resources.Load<Sprite>(FurnitureRoomController.ShadowSpritePath);
             if (shadowSprite != null)
             {
+                // 美术贴图自带「接地处深、边缘散开」的浓淡层次，画一遍即可（旧的程序化软影才需要叠两遍）
+                var shadowAspect = shadowSprite.rect.height / Mathf.Max(1f, shadowSprite.rect.width);
                 var shadows = new List<(FurnitureEntry entry, int order, Rect rect, bool flipped, float depthBottom)>();
                 foreach (var draw in draws)
                 {
                     if (draw.order < 100 || draw.entry.stackable) continue;
-                    // 2026-08-17 加强：投影更宽更实，且**叠两遍**（软影贴图单遍太淡，家具像浮在地上）
-                    var shadowW = draw.rect.width * 1.22f;
-                    var shadowH = shadowW * .3f;
-                    var shadowRect = new Rect(draw.rect.x - (shadowW - draw.rect.width) * .5f,
-                        draw.rect.yMax - shadowH * .55f, shadowW, shadowH);
-                    shadows.Add((null, draw.order - 2, shadowRect, false, draw.depthBottom));
-                    // 第二遍略小、更集中，形成「接地处更深、边缘散开」的层次
-                    var coreW = draw.rect.width * .86f;
-                    var coreH = coreW * .28f;
+                    // 只由家具宽度定尺寸，高度按贴图原始比例等比跟随；中心压在家具底边线上（此处 Y 向下，yMax 即底边）
+                    var shadowW = draw.rect.width * FurnitureRoomController.ShadowWidthScale;
+                    var shadowH = shadowW * shadowAspect;
                     shadows.Add((null, draw.order - 1,
-                        new Rect(draw.rect.x + (draw.rect.width - coreW) * .5f,
-                            draw.rect.yMax - coreH * .5f, coreW, coreH), false, draw.depthBottom));
+                        new Rect(draw.rect.x - (shadowW - draw.rect.width) * .5f,
+                            draw.rect.yMax - shadowH * .5f, shadowW, shadowH), false, draw.depthBottom));
                 }
                 draws.AddRange(shadows);
             }

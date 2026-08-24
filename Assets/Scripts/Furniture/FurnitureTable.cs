@@ -86,19 +86,31 @@ namespace MasterHouse
                 entry.displayHeight > 1e-4f ? display.y / entry.displayHeight : 1f);
         }
 
-        /// <summary>精灵实际图形区的世界尺寸；使用顶点包络，不把透明画布留白算进家具。</summary>
-        public static Vector2 TightSize(Sprite sprite)
+        /// <summary>
+        /// 精灵实际图形区在**精灵局部空间**（原点 = 轴心）的包络：顶点包络，不含透明画布留白。
+        /// 需要「家具真实脚底 / 中轴」而不只是尺寸时用它——素材普遍是 1024 大画布加留白，
+        /// 用 <c>sprite.bounds</c> 拿到的底边在留白里，挂上去的东西会整体沉下去。
+        /// </summary>
+        public static Bounds TightBounds(Sprite sprite)
         {
-            if (sprite == null) return Vector2.zero;
+            if (sprite == null) return new Bounds(Vector3.zero, Vector3.zero);
             var vertices = sprite.vertices;
-            if (vertices == null || vertices.Length == 0) return sprite.bounds.size;
+            if (vertices == null || vertices.Length == 0) return sprite.bounds;
             Vector2 min = vertices[0], max = vertices[0];
             foreach (var vertex in vertices)
             {
                 min = Vector2.Min(min, vertex);
                 max = Vector2.Max(max, vertex);
             }
-            return max - min;
+            var bounds = new Bounds();
+            bounds.SetMinMax(min, max);
+            return bounds;
+        }
+
+        /// <summary>精灵实际图形区的世界尺寸；使用顶点包络，不把透明画布留白算进家具。</summary>
+        public static Vector2 TightSize(Sprite sprite)
+        {
+            return sprite == null ? Vector2.zero : (Vector2)TightBounds(sprite).size;
         }
     }
 
