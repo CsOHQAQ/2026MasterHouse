@@ -19,6 +19,10 @@ namespace MasterHouse
         private const float SnapMarginPx = 50f;
         private const float DoubleClickSeconds = .35f;
 
+        // 家具落地投影：美术软阴影贴图 + 相对家具显示宽的外扩系数（略宽一圈，让底边外能看见影缘）
+        internal const string ShadowSpritePath = "OutGameUI/furniture-shadow";
+        internal const float ShadowWidthScale = 1.08f;
+
         // 渲染次序（同一 sortingLayer 内）
         private const int OrderBackground = 0;
         private const int OrderNightBackground = 1;
@@ -474,27 +478,31 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 柔和椭圆投影：宽 = 家具显示宽、高 = 宽 × 0.22，中心压在家具底边线上。
-        /// 素材自带黑色渐隐 alpha（Resources/OutGameUI/soft-shadow）；挂在家具根下随缩放反算局部值。
+        /// 家具落地投影：直接用美术给的软阴影贴图（<see cref="ShadowSpritePath"/>，自带浓淡与渐隐 alpha）。
+        /// **只由家具宽度定尺寸**——宽 = 家具显示宽 × <see cref="ShadowWidthScale"/>，
+        /// 高按贴图自身宽高比等比跟随（不拉伸变形），中心压在家具底边线上。
+        /// 挂在家具根下，父级 <see cref="FurnitureScale"/> 已把家具拉到显示尺寸，这里把目标世界尺寸反算回局部值。
+        /// **口径必须与 FurnitureScale 一致取 Tight 包络**：家具素材普遍是 1024 大画布加透明留白，
+        /// 用 <c>sprite.bounds</c>（整张画布）反算会让影子跟着留白一起被撑宽、并沉到脚底以下的空白里。
         /// </summary>
         private static SpriteRenderer CreateShadow(FurnitureRuntimeItem item)
         {
-            var sprite = Resources.Load<Sprite>("OutGameUI/soft-shadow");
+            var sprite = Resources.Load<Sprite>(ShadowSpritePath);
             if (sprite == null || item.Entry.sprite == null) return null;
             var go = new GameObject("Shadow") { layer = FurnitureSceneLayer };
             go.transform.SetParent(item.Root.transform, false);
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sprite = sprite;
-            var itemBounds = item.Entry.sprite.bounds.size;
+            var tight = FurnitureDisplaySizing.TightBounds(item.Entry.sprite); // 家具真实图形区（轴心为原点）
             var shadowBounds = sprite.bounds.size;
             var display = FurnitureDisplaySizing.Resolve(item.Entry);
-            // 父级缩放已把家具 bounds 拉到显示尺寸，这里把目标世界尺寸换算回局部缩放；
-            // 影子比家具略宽（×1.08）、扁度 0.26，往下多探一点让家具底边外能看见明显的影缘
-            var localX = 1.08f * itemBounds.x / Mathf.Max(.0001f, shadowBounds.x);
-            var localY = display.x * .26f / Mathf.Max(1f, display.y)
-                         * itemBounds.y / Mathf.Max(.0001f, shadowBounds.y);
+            var aspect = shadowBounds.y / Mathf.Max(.0001f, shadowBounds.x); // 贴图原始扁度
+            var localX = ShadowWidthScale * tight.size.x / Mathf.Max(.0001f, shadowBounds.x);
+            var localY = ShadowWidthScale * aspect * display.x / Mathf.Max(1f, display.y)
+                         * tight.size.y / Mathf.Max(.0001f, shadowBounds.y);
             go.transform.localScale = new Vector3(localX, localY, 1f);
-            go.transform.localPosition = new Vector3(0f, -itemBounds.y * .5f, 0f); // 椭圆中心落在底边线
+            // 影子中心压在家具**真实脚底**（图形区底边）、并对齐图形区中轴，而不是画布底边/中心
+            go.transform.localPosition = new Vector3(tight.center.x, tight.min.y, 0f);
             return renderer;
         }
 
