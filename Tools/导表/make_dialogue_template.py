@@ -90,6 +90,7 @@ ACTIONS = [
     ("StartMinigame", "开始小游戏（小游戏类需求的开局口）"),
     ("AddCurrency(N)", "增减货币。**奖励类**"),
     ("AddReputation(N)", "增减声望。**奖励类**"),
+    ("GrantFurniture(家具id,数量)", "赠送家具进库存，数量可省略 = 1。**奖励类**"),
     ("Log(文本)", "往 Console 打一条日志，自查分支走向用"),
 ]
 

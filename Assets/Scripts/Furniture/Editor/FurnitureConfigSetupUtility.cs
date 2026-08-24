@@ -146,6 +146,8 @@ namespace MasterHouse.EditorTools
                 rows = rows,
                 displayWidth = width,
                 displayHeight = height,
+                storeDisplayWidth = width,
+                storeDisplayHeight = height,
                 decorationScore = decorationScore,
                 sprite = LoadSprite(id),
                 tableSurface = table ?? new FurnitureTableSurfaceConfig(),

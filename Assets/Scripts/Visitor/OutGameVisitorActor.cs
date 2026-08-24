@@ -23,8 +23,6 @@ namespace MasterHouse
         private const float FarScale = .6f;
         /// <summary>名牌底边与**头顶**的间距（名牌 pivot 在底边，所以这个数就是肉眼看到的空隙）。</summary>
         private const float CardOffsetY = 22f;
-        /// <summary>注意标记的挂点（气泡在右、标记在左；气泡换成 60 宽的贴图后再往左让了一截，两者不叠）。</summary>
-        private static readonly Vector2 MarkerOffset = new Vector2(-32f, 4f);
         private const float NearY = .04f;          // 深度带：y 越小离镜头越近
         private const float FarY = .34f;
 
@@ -44,10 +42,6 @@ namespace MasterHouse
         private Text cardLabel;
         private CanvasGroup choiceGroup;
         private OutGameVisitorBubble bubble;
-        private RectTransform markerRect;
-        private CanvasGroup markerGroup;
-        private Text markerLabel;
-        private string markerMark = "";
         private bool choiceOpen;
         private float choiceTimer;
         private Action onClicked;
@@ -98,15 +92,6 @@ namespace MasterHouse
 
         /// <summary>所在房间（Hub 四宫格下标；表现层副本，业务真相在 VisitorInstance.RoomIndex）。</summary>
         public int RoomIndex { get; private set; }
-
-        /// <summary>玩家正拖着这只访客（拖拽期间状态机停走、点击吞掉）。</summary>
-        public bool Dragging { get; private set; }
-
-        /// <summary>业务访客在等待/闲逛时可被拖到其他房间；邻居与过场状态不可拖。</summary>
-        /// <summary>可拖拽 = 等分房（分房手势）或停留游走（换房）；前台排队的**接待后才能拖**、
-        /// 服务中锁房不可拖（2026-08-16 修复：未对话的访客不再能被拖动）。</summary>
-        public bool IsDraggable => !ambient && IsInteractable &&
-            (businessState == (int)EVisitorState.AwaitingRoom || businessState == (int)EVisitorState.Wandering);
 
         public bool IsInteractable => state == ActorState.Waiting || state == ActorState.Wandering;
 
@@ -174,9 +159,9 @@ namespace MasterHouse
             button.transition = Selectable.Transition.None;
             button.onClick.AddListener(OnClickSelf);
 
-            // 头顶气泡（在名牌卡之前创建，悬停时名牌盖在气泡上）
-            // 气泡以自身底边贴近演员头顶，稍微右移避免挡住脸。
-            bubble = OutGameVisitorBubble.Create(transform, new Vector2(18, 4), CanBubble);
+            // 头顶气泡（在名牌卡之前创建，悬停时名牌盖在气泡上）：
+            // 「···」可交互提示 + 闲聊文字两套视觉合一（#5），气泡以自身底边贴近演员头顶，稍微右移避免挡住脸。
+            bubble = OutGameVisitorBubble.Create(transform, new Vector2(18, 4));
 
             // 头顶悬停卡：访客名 + 当前状态
             var card = F.Panel(transform, "Card", new Vector2(.5f, 1), new Vector2(.5f, 1),
@@ -191,8 +176,8 @@ namespace MasterHouse
             cardGroup.blocksRaycasts = false;
             cardGroup.interactable = false;
 
+            // 黄色感叹号标记已随 #5 退役：「此刻点他有对话」改由「···」气泡常驻承担（见 RefreshTalkState）
             if (ambient) BuildChoicePopup();
-            else BuildAttentionMarker();
 
             var trigger = gameObject.AddComponent<EventTrigger>();
             var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
@@ -227,60 +212,21 @@ namespace MasterHouse
         }
 
         /// <summary>
-        /// 头顶「该你出手了」标记（2026-08-19 反馈：安顿中的客人也冒气泡，玩家点了却没有对话）。
-        ///
-        /// **它是唯一承载「可交互」语义的表现**，与访客卡上的「！」同判据（VisitorManager.NoTalkReason）。
-        /// 情绪气泡由此彻底退回氛围：气泡冒不冒跟点不点得动无关，两者不再互相冒充。
-        /// </summary>
-        private void BuildAttentionMarker()
-        {
-            var panel = F.Panel(transform, "Attention", new Vector2(.5f, 1), new Vector2(.5f, 1),
-                MarkerOffset, new Vector2(34, 40), new Color(.99f, .84f, .35f, .96f));
-            panel.raycastTarget = false;
-            panel.rectTransform.pivot = new Vector2(.5f, 0f); // 底边挂点，口径与气泡/名牌一致
-            markerRect = panel.rectTransform;
-            F.Outline(panel.gameObject, new Color(.35f, .18f, .05f, .5f), new Vector2(1, -1));
-            markerLabel = F.Label(panel.transform, "Mark", "", 24, F.Hex("3F292E"),
-                TextAnchor.MiddleCenter, FontStyle.Bold);
-            markerLabel.raycastTarget = false;
-            markerGroup = F.Group(panel.gameObject, 0f);
-            markerGroup.blocksRaycasts = false;
-            markerGroup.interactable = false;
-        }
-
-        /// <summary>
-        /// 标记字形：有话要说时才亮「！」，其余一律空串 = 不亮。
-        /// 「等分房」不再单给指路字形（2026-08-19 反馈）：黄色标记只代表「点我有对话」这一件事，
-        /// 不兼职提示手势；那一态头顶只剩自发气泡（见 CanBubble）。
-        /// </summary>
-        private static string AttentionMarkOf(VisitorManager.ENoTalkReason? reason) =>
-            reason == VisitorManager.ENoTalkReason.None ? "！" : "";
-
-        /// <summary>标记的显隐（内容变了才动画；空串 = 收起并停掉脉动）。</summary>
-        private void SetAttentionMark(string mark)
-        {
-            if (markerGroup == null || markerMark == mark) return;
-            markerMark = mark;
-            var show = !string.IsNullOrEmpty(mark);
-            if (show) markerLabel.text = mark;
-            markerGroup.DOKill();
-            markerGroup.DOFade(show ? 1f : 0f, .2f).SetUpdate(true);
-            markerRect.DOKill();
-            markerRect.localScale = Vector3.one;
-            // 脉动只做缩放：位置每帧由 ApplyDepth 按头顶留白重摆，动它会打架
-            if (show)
-                markerRect.DOScale(1.14f, .55f).SetLoops(-1, LoopType.Yoyo)
-                    .SetEase(Ease.InOutSine).SetUpdate(true);
-        }
-
-        /// <summary>
-        /// 轮询业务判据（每帧，业务访客专用）：判据变了刷名牌文案，标记按判据 + 演员是否已就位显隐。
+        /// 轮询业务判据（每帧）：判据变了刷名牌文案；「此刻点他有对话」由「···」气泡常驻承担
+        /// （#5 取代原黄色感叹号），与访客卡同判据（VisitorManager.NoTalkReason）。
         /// 「安顿 → 开口示意」在业务上**不是状态切换**（两段都是 Serving，区别只在 NeedPromptTick），
         /// SyncBusinessState 那条路根本收不到通知，所以只能这样轮询。
         /// </summary>
         private void RefreshTalkState()
         {
-            if (noTalkReason == null) return;
+            if (bubble == null) return;
+            if (noTalkReason == null)
+            {
+                // 邻居：在门口等去留决定时可点（去留弹窗），同样用「···」示意；弹窗已开就不再示意
+                if (ambient)
+                    bubble.SetTalkReady(state == ActorState.Waiting && !choiceOpen);
+                return;
+            }
             var reason = noTalkReason();
             if (talkReason != reason)
             {
@@ -288,13 +234,11 @@ namespace MasterHouse
                 UpdateStatusCard();
             }
             // 还在进场/庆祝/离场的路上就先不召唤：那时点了也被 IsInteractable 拦下
-            SetAttentionMark(IsInteractable && !Dragging ? AttentionMarkOf(reason) : "");
+            bubble.SetTalkReady(IsInteractable && reason == VisitorManager.ENoTalkReason.None);
         }
 
         private void OnClickSelf()
         {
-            // uGUI 的 Click 在 EndDrag 之前派发，拖拽中标记仍在——正好用它吞掉拖完抬手的误点
-            if (Dragging) return;
             if (!IsInteractable) return;
             if (!ambient)
             {
@@ -339,57 +283,9 @@ namespace MasterHouse
             EnterLeaving();
         }
 
-        // ── 玩家拖拽换房（2026-08-13 四宫格）：舞台层做屏幕→世界换算，这里只管表现状态 ──
+        // ── 玩家拖拽换房已整体退役（2026-08-22 #8）：分房改走 HubPage 的强制分配模式 ──
 
-        /// <summary>拖拽起手时的落脚点，业务拒绝换房时原样弹回（见 CancelPlayerDrag）。</summary>
-        private Vector2 dragOriginPosition;
-        private int dragOriginRoom;
-
-        /// <summary>开始拖拽：状态机停走，吞掉随后的点击（拖完抬手不该触发对话）。</summary>
-        public void BeginPlayerDrag()
-        {
-            if (!IsDraggable) return;
-            Dragging = true;
-            StopMoving();
-            dragOriginPosition = ScenePosition;
-            dragOriginRoom = RoomIndex;
-        }
-
-        /// <summary>拖拽跟随：舞台层换算好的 (房间, 房内归一化坐标)。跨房时名牌上的房间名实时跟着换。</summary>
-        public void UpdatePlayerDrag(int roomIndex, Vector2 localPosition)
-        {
-            if (!Dragging) return;
-            var roomChanged = RoomIndex != roomIndex;
-            RoomIndex = roomIndex;
-            ScenePosition = localPosition;
-            if (roomChanged) UpdateStatusCard();
-        }
-
-        /// <summary>拖拽结束（业务已接受落点）。</summary>
-        public void EndPlayerDrag()
-        {
-            if (!Dragging) return;
-            Dragging = false;
-            if (state == ActorState.Wandering) stateTimer = UnityEngine.Random.Range(1.5f, 3f); // 落地后歇口气再逛
-        }
-
-        /// <summary>
-        /// 业务拒绝换房：原样弹回拖拽起手时的位置。
-        ///
-        /// 跨房间被拒时舞台层的每帧实例同步本来就会把演员拉回业务房间，但**同房间内被拒不会**
-        /// （actor.RoomIndex 与 instance.RoomIndex 一致，同步逻辑看不出差别）——
-        /// 前台访客在起居室内被拖动正是这种情况，不弹回的话他就离开排队站位杵在地上了。
-        /// </summary>
-        public void CancelPlayerDrag()
-        {
-            Dragging = false;
-            RoomIndex = dragOriginRoom;
-            ScenePosition = dragOriginPosition;
-            StopMoving();
-            UpdateStatusCard();
-        }
-
-        /// <summary>直接落位到某房间（业务同步/拖拽弹回共用；不走进门流程）。</summary>
+        /// <summary>直接落位到某房间（业务同步用；不走进门流程）。</summary>
         public void TeleportToRoom(int roomIndex, Vector2 localPosition)
         {
             RoomIndex = roomIndex;
@@ -413,8 +309,6 @@ namespace MasterHouse
             DOTween.Kill(this);
             if (cardGroup != null) cardGroup.DOKill();
             if (choiceGroup != null) choiceGroup.DOKill();
-            if (markerGroup != null) markerGroup.DOKill();
-            if (markerRect != null) markerRect.DOKill(); // 脉动是无限循环，不杀会留在 DOTween 里
         }
 
         /// <summary>
@@ -437,7 +331,7 @@ namespace MasterHouse
                 case EVisitorState.FrontDesk:
                     break; // 初始状态：进门 → 前台等待，由 Arriving→Waiting 流程呈现
                 case EVisitorState.AwaitingRoom:
-                    break; // 接待完仍在门口排队等分房（§5.3），站位不动——玩家把他拖走才算数
+                    break; // 接待完仍在门口排队等分房（§5.3），站位不动——分配模式点了空房才算数
                 case EVisitorState.Serving:
                     EnterWandering(.2f); // 分房落定：走进那间客房（房间由舞台层按 instance.RoomIndex 同步）
                     break;
@@ -470,11 +364,11 @@ namespace MasterHouse
 
         /// <summary>
         /// 闲逛冒泡（§9：复用头顶那一套气泡，不新建第二套）。
-        /// 台词文字已取消（2026-08-20），业务层给的只剩「什么时候冒、冒多久」。
+        /// 台词文字恢复显示（#5，2026-08-22）：业务层把选好格式好的那句话连同展示时长一起递过来。
         /// </summary>
-        public void ShowBubble(float holdSeconds)
+        public void ShowBubble(string line, float holdSeconds)
         {
-            if (bubble != null) bubble.ShowFor(holdSeconds);
+            if (bubble != null) bubble.ShowLine(line, holdSeconds);
         }
 
         /// <summary>完成服务：播放一次庆祝动作，然后继续游走。</summary>
@@ -500,15 +394,7 @@ namespace MasterHouse
         private void Update()
         {
             var dt = Time.unscaledDeltaTime;
-            RefreshTalkState(); // 业务判据 → 头顶标记与名牌文案（拖拽中也要跑，好把标记收起来）
-            if (Dragging)
-            {
-                // 拖拽期间状态机整体停走，位置完全由玩家指针接管。
-                // 这里不能再调 ApplyDepth：舞台层虽已锁定 localScale，ApplyDepth 还会
-                // 通过 sizeDelta 做第二层缩放，导致访客往房间深处拖时依然变小。
-                group.blocksRaycasts = true;
-                return;
-            }
+            RefreshTalkState(); // 业务判据 → 头顶「···」提示与名牌文案
             if (choiceOpen)
             {
                 choiceTimer -= dt;
@@ -840,7 +726,6 @@ namespace MasterHouse
             // 按它下压挂点，名牌才是贴着头而不是浮在半空（2026-08-18 反馈）
             var headDrop = Mathf.Clamp01(awaitSheet != null ? awaitSheet.headPadding : 0f) * height;
             if (cardRect != null) cardRect.anchoredPosition = new Vector2(0f, CardOffsetY - headDrop);
-            if (markerRect != null) markerRect.anchoredPosition = MarkerOffset - new Vector2(0f, headDrop);
             if (bubble != null) bubble.SetHeadDrop(headDrop);
         }
 
@@ -864,30 +749,6 @@ namespace MasterHouse
                 bobPhase = 0f;
                 spriteRect.anchoredPosition = Vector2.zero;
             }
-        }
-
-        /// <summary>
-        /// 这一轮该不该自发冒泡：只看状态，**不再挑内容**——气泡已改成一张统一贴图，不显示文字（2026-08-20）。
-        ///
-        /// **纯氛围，不承担「可以点我」的语义**——那是头顶注意标记的活（AttentionMarkOf）：
-        /// 气泡挂的是自己的墙钟计时器（每几秒一冒，与业务 tick 无关），安顿中的客人照样冒，
-        /// 玩家却点不动他，「有气泡却没有对话」的误导就是这么来的（2026-08-19 反馈）。
-        /// 有需求时**照样冒**（2026-08-20）：气泡已是统一贴图，不再冒充「可以点我」，跟头顶的「！」并存不冲突。
-        /// </summary>
-        private bool CanBubble()
-        {
-            if (choiceOpen || state == ActorState.Hidden) return false;
-            if (ambient)
-                return state == ActorState.Waiting || state == ActorState.Wandering || state == ActorState.Leaving;
-            // 在场的业务态一律冒泡（含安顿中、开口示意后、待告别）；
-            // Departed 与「尚未同步」只在走人的路上冒。
-            return businessState switch
-            {
-                (int)EVisitorState.FrontDesk or (int)EVisitorState.AwaitingRoom
-                    or (int)EVisitorState.Serving or (int)EVisitorState.Wandering
-                    or (int)EVisitorState.AwaitingFarewell => true,
-                _ => state == ActorState.Leaving,
-            };
         }
 
         private void UpdateStatusCard()
@@ -929,7 +790,7 @@ namespace MasterHouse
                     VisitorManager.ENoTalkReason.NotFrontOfQueue => "门口排队中 · 等前面那位",
                     VisitorManager.ENoTalkReason.SomeoneAwaitingRoom => "门口等着 · 先安顿上一位",
                     VisitorManager.ENoTalkReason.NoFreeRoom => "门口等着 · 客房已住满",
-                    VisitorManager.ENoTalkReason.AwaitingRoom => "等待安排房间 · 拖进一间空房",
+                    VisitorManager.ENoTalkReason.AwaitingRoom => "等待安排房间 · 点击一间空房",
                     VisitorManager.ENoTalkReason.SettlingIn => "正在安顿 · 等他开口再来",
                     VisitorManager.ENoTalkReason.Wandering => "心满意足 · 屋内闲逛中",
                     _ => "刚刚进门", // talkReason 尚未轮询（建层的头一帧）

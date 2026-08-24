@@ -95,6 +95,10 @@ crashlytics-build.properties
 
 ~$*
 
+# macOS Finder metadata and local generated verification exports
+.DS_Store
+/outputs/
+
 # 编辑器工作区配置（各人环境不同，不入库）
 .vscode/
 .idea/

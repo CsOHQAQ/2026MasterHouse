@@ -14,8 +14,8 @@ namespace MasterHouse
     /// ②串门邻居（ambient）：随机轮换进场，在门口排队等玩家决定去留（名册在 VisitorTuningConfig）；只待在起居室。
     /// ③四宫格世界（2026-08-13）：舞台层挂在世界根下、覆盖全部 4 个房间；演员持 (房间, 房内归一化坐标)，
     ///   经 HubWorldGrid 换算成世界锚点，平移缩放由世界根的 transform 承担（不再做 uvRect 数学）。
-    /// ④拖拽换房：按住业务访客拖到别的房间松手 → 经页面回调走 VisitorManager.MoveVisitorToRoom；
-    ///   业务层拒绝时下一帧的实例同步会把演员弹回原房间。
+    /// ④~~拖拽换房~~ **已整体退役（2026-08-22 一轮测试改进 #8）**：分房改为接待后的强制分配模式
+    ///   （点击空房，见 HubPage），闲逛换房能力随拖拽一并取消。
     /// 大门与前台在起居室（房间 0）。
     /// </summary>
     internal sealed class OutGameVisitorStage : MonoBehaviour
@@ -98,22 +98,8 @@ namespace MasterHouse
         private RectTransform worldRoot;
         private RectTransform layerRoot;
         private Action<int> onGuestClicked;
-        /// <summary>
-        /// 拖拽松手回调（instanceId, 目标房间）→ 业务是否接受这个落点。
-        /// 页面翻译成 VisitorManager.MoveVisitorToRoom；返回 false 时演员弹回拖拽起手位置。
-        /// </summary>
-        private Func<int, int, bool> onGuestDropped;
         private bool initialSpawnDone;
         private int frontDeskSlot;
-        /// <summary>正被玩家拖拽的演员（RTS 边缘推屏用：相机层每帧据此重投影，保证访客钉在指针下）。</summary>
-        private OutGameVisitorActor draggingActor;
-        /// <summary>拖拽起手时的局部缩放；拖拽全程锁定，避免随指针纵向位置发生透视缩放。</summary>
-        private Vector3 dragLockedLocalScale = Vector3.one;
-        /// <summary>抓取偏移（世界归一化坐标）：起手时演员落脚点相对指针的差，拖拽全程保持。</summary>
-        private Vector2 dragGrabOffset;
-
-        /// <summary>是否有访客正在被拖拽（HubSceneBinder 边缘推屏的开关）。</summary>
-        public bool HasActiveDrag => draggingActor != null && draggingActor.Dragging;
 
         /// <summary>取某业务访客当前的世界归一化站位（相机「聚焦访客」用；不在场返回 false）。</summary>
         public bool TryGetActorWorld(int instanceId, out Vector2 world01)
@@ -124,12 +110,6 @@ namespace MasterHouse
             return true;
         }
 
-        /// <summary>按当前鼠标位置重投影被拖拽的访客（相机平移/缩放后由相机层每帧调用；无拖拽时空转）。</summary>
-        public void RefreshDragProjection()
-        {
-            if (!HasActiveDrag) return;
-            ProjectDrag(draggingActor, Input.mousePosition);
-        }
         private readonly List<OutGameVisitorActor> actors = new List<OutGameVisitorActor>();
         /// <summary>业务演员：instanceId → 演员。</summary>
         private readonly Dictionary<int, OutGameVisitorActor> businessActors = new Dictionary<int, OutGameVisitorActor>();
@@ -141,8 +121,7 @@ namespace MasterHouse
 
         /// <summary>在四宫格世界根下创建访客层（覆盖全部房间）。业务访客按 VisitorManager 的在场实例生成：
         /// 建层时已在场 → 按 (状态, 房间) 直接落位；此后新实例由 Update 轮询捕捉，从起居室大门走进前台。</summary>
-        public static OutGameVisitorStage Build(RectTransform worldRoot, Action<int> onGuestClicked,
-            Func<int, int, bool> onGuestDropped)
+        public static OutGameVisitorStage Build(RectTransform worldRoot, Action<int> onGuestClicked)
         {
             var existing = worldRoot.Find("VisitorStage");
             if (existing != null) Destroy(existing.gameObject);
@@ -151,7 +130,6 @@ namespace MasterHouse
             stage.worldRoot = worldRoot;
             stage.layerRoot = root;
             stage.onGuestClicked = onGuestClicked;
-            stage.onGuestDropped = onGuestDropped;
             // 建层时已在场的实例：直接落位淡入（错峰）
             var spawned = 0;
             foreach (var instance in Visitor.Data.Instances)
@@ -169,8 +147,8 @@ namespace MasterHouse
                 for (var k = 0; k < Mathf.Min(MaxAmbient, order.Count); k++)
                     stage.SpawnAmbient(order[k], 5f + k * 3.5f + UnityEngine.Random.Range(0f, 2f));
             }
-            // 闲逛冒泡直接订对话系统的气泡通道：什么时候冒由 DialogueManager 定（§8），
-            // 舞台只负责把这一下推给对应演员（台词文字已取消，2026-08-20）
+            // 闲逛冒泡直接订对话系统的气泡通道：什么时候冒、说哪句由 DialogueManager 定（§8），
+            // 舞台只负责把台词推给对应演员（#5 文字恢复显示，2026-08-22）
             if (GameManager.Instance != null && GameManager.Instance.DialogueManager != null)
                 GameManager.Instance.DialogueManager.BubbleRequested += stage.OnBubbleRequested;
             stage.RebuildFurnitureProxies(); // 家具深度代理（2026-08-16 访客与家具分层）
@@ -183,16 +161,15 @@ namespace MasterHouse
                 GameManager.Instance.DialogueManager.BubbleRequested -= OnBubbleRequested;
         }
 
-        /// <summary>闲逛冒泡（§8 满意后闲逛触发点）：推给对应演员冒一次头顶气泡（文字已取消，只用其时机）。</summary>
+        /// <summary>闲逛冒泡（§8 满意后闲逛触发点）：把选好的那句台词推给对应演员的文字气泡（#5 恢复显示）。</summary>
         private void OnBubbleRequested(VisitorInstance instance, string line)
         {
-            // line 只当触发信号：抽不到台词说明这一下不该冒（内容不再显示）
             if (instance == null || string.IsNullOrEmpty(line)) return;
             if (!businessActors.TryGetValue(instance.InstanceId, out var actor) || actor == null) return;
             // 气泡停留时长按 tick 配置（§4.5），表现层换算成秒（表现层豁免，§16.4）
             var ticksPerSecond = GameConfig.Instance != null ? Mathf.Max(1, GameConfig.Instance.TicksPerSecond) : 10;
             var holdTicks = Tuning != null ? Tuning.bubbleHoldTicks : 40;
-            actor.ShowBubble(holdTicks / (float)ticksPerSecond);
+            actor.ShowBubble(line, holdTicks / (float)ticksPerSecond);
         }
 
         /// <summary>生成一位业务访客演员：出现在起居室入口区并**在门口等待接待**（请进来了才进屋，接待成功
@@ -214,7 +191,6 @@ namespace MasterHouse
                 noTalkReason: () => TalkStateOf(instanceId));
             if (actor == null) return;
             actor.SyncBusinessState(instance.State);
-            AttachDrag(actor, instanceId);
             actors.Add(actor);
             businessActors[instanceId] = actor;
         }
@@ -234,47 +210,7 @@ namespace MasterHouse
                 : visitor.NoTalkReason(visitor.Find(instanceId));
         }
 
-        // ── 拖拽换房（§16.4：拖动只改表现坐标，松手经页面回调走业务方法）──
-
-        /// <summary>给业务访客演员挂拖拽事件（演员建层时已有 EventTrigger，直接续加条目）。</summary>
-        private void AttachDrag(OutGameVisitorActor actor, int instanceId)
-        {
-            var trigger = actor.gameObject.GetComponent<UnityEngine.EventSystems.EventTrigger>();
-            if (trigger == null) trigger = actor.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
-            AddTrigger(trigger, UnityEngine.EventSystems.EventTriggerType.BeginDrag,
-                data =>
-                {
-                    if (actor == null) return;
-                    actor.BeginPlayerDrag();
-                    if (!actor.Dragging) return;
-                    draggingActor = actor;
-                    // 保留起手前由深度透视计算出的视觉尺寸；拖拽期间不再重算。
-                    dragLockedLocalScale = actor.transform.localScale;
-                    // 抓取偏移（2026-08-14 跟手修复）：记住「演员落脚点 − 指针」的世界差，
-                    // 拖拽全程按这个差跟随——否则起手瞬间演员脚底会吸到指针上，视觉上就是一跳
-                    dragGrabOffset = Vector2.zero;
-                    if (data is UnityEngine.EventSystems.PointerEventData pointer
-                        && TryScreenToWorld(pointer.position, out var grabWorld))
-                        dragGrabOffset = HubWorldGrid.RoomToWorld(actor.RoomIndex, actor.ScenePosition) - grabWorld;
-                });
-            AddTrigger(trigger, UnityEngine.EventSystems.EventTriggerType.Drag, data =>
-            {
-                if (actor != null && data is UnityEngine.EventSystems.PointerEventData pointer)
-                    DragActor(actor, pointer);
-            });
-            AddTrigger(trigger, UnityEngine.EventSystems.EventTriggerType.EndDrag,
-                data => { if (actor != null) DropActor(actor, instanceId,
-                    data as UnityEngine.EventSystems.PointerEventData); });
-        }
-
-        private static void AddTrigger(UnityEngine.EventSystems.EventTrigger trigger,
-            UnityEngine.EventSystems.EventTriggerType type,
-            UnityEngine.Events.UnityAction<UnityEngine.EventSystems.BaseEventData> callback)
-        {
-            var entry = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = type };
-            entry.callback.AddListener(callback);
-            trigger.triggers.Add(entry);
-        }
+        // ── 拖拽换房已整体退役（#8）：分房走 HubPage 的强制分配模式，几何工具（可走椭圆）保留 ──
 
         /// <summary>
         /// 访客可走体积（2026-08-18 按美术红框重做）：一块**贴地的透视椭圆**。
@@ -361,7 +297,7 @@ namespace MasterHouse
             Mathf.Pow(Mathf.Pow(Mathf.Abs(disc.x), WalkOvalPower) +
                       Mathf.Pow(Mathf.Abs(disc.y), WalkOvalPower), 1f / WalkOvalPower);
 
-        /// <summary>把点钳进可走椭圆（拖拽松手落位用）：越界的沿着中心方向收回边界上。</summary>
+        /// <summary>把点钳进可走椭圆：越界的沿着中心方向收回边界上。</summary>
         internal static Vector2 ClampWalk(int roomIndex, Vector2 point)
         {
             var volume = WalkVolumeOf(roomIndex);
@@ -419,83 +355,6 @@ namespace MasterHouse
             return new Vector2(area.xMin + f.x * area.width, area.yMin + f.y * area.height);
         }
 
-        /// <summary>拖拽跟随（uGUI Drag 事件路径）。</summary>
-        private void DragActor(OutGameVisitorActor actor, UnityEngine.EventSystems.PointerEventData pointer)
-        {
-            ProjectDrag(actor, pointer.position);
-        }
-
-        /// <summary>屏幕坐标 → 世界归一化坐标（壳 Canvas 为 Overlay 模式，无相机参与换算）。</summary>
-        private bool TryScreenToWorld(Vector2 screenPosition, out Vector2 world)
-        {
-            world = default;
-            if (worldRoot == null) return false;
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    worldRoot, screenPosition, HouseUIUtil.CameraOf(worldRoot), out var local)) return false;
-            var rect = worldRoot.rect;
-            world = new Vector2(
-                Mathf.Clamp01((local.x - rect.xMin) / Mathf.Max(rect.width, 1f)),
-                Mathf.Clamp01((local.y - rect.yMin) / Mathf.Max(rect.height, 1f)));
-            return true;
-        }
-
-        /// <summary>拖拽跟随：指针世界坐标 + 抓取偏移 → (房间, 房内坐标)。
-        /// 拖拽事件与 RTS 边缘推屏的每帧重投影共用。
-        /// 拖拽中**不**钳活动区（演员是被拎在手里的，自由跟手；硬钳的话跨房瞬间会在两个红框区之间瞬移），
-        /// 活动区约束推迟到松手落位（见 DropActor 的 ClampWalk，会收进那个房间的可走椭圆里）。</summary>
-        private void ProjectDrag(OutGameVisitorActor actor, Vector2 screenPosition)
-        {
-            if (actor == null || !actor.Dragging) return;
-            if (!TryScreenToWorld(screenPosition, out var world)) return;
-            world.x = Mathf.Clamp01(world.x + dragGrabOffset.x);
-            world.y = Mathf.Clamp01(world.y + dragGrabOffset.y);
-            // 指针在墙体/天空等无效区时沿用当前房间坐标系（拖拽本就自由跟手，落位时才裁决）
-            var room = HubWorldGrid.RoomAt(world);
-            if (room == HubWorldGrid.None) room = actor.RoomIndex;
-            actor.UpdatePlayerDrag(room, HubWorldGrid.WorldToLocal(room, world));
-        }
-
-        /// <summary>
-        /// 松手：表现先落位，业务经页面回调裁决（§5.2 按状态分派）。
-        /// 业务拒绝时立刻弹回起手位置——跨房间的情况实例同步下一帧也会纠正，
-        /// 但同房间内被拒（前台访客在起居室里被拖动）只能靠这条路。
-        /// </summary>
-        private void DropActor(OutGameVisitorActor actor, int instanceId,
-            UnityEngine.EventSystems.PointerEventData pointer = null)
-        {
-            if (draggingActor == actor)
-            {
-                draggingActor = null; // 边缘推屏停表
-                dragLockedLocalScale = Vector3.one;
-            }
-            if (!actor.Dragging) return;
-            // 归属以**指针松手的位置**为准（2026-08-18 反馈）：原来看的是演员脚底落点，
-            // 等于要求整只访客都挪进房间才算数，贴着房间边缘松手会被判成没进去。
-            var room = actor.RoomIndex;
-            var pointerWorld = Vector2.zero;
-            var hasPointerWorld = pointer != null && TryScreenToWorld(pointer.position, out pointerWorld);
-            if (hasPointerWorld)
-            {
-                var pointerRoom = HubWorldGrid.RoomAt(pointerWorld);
-                if (pointerRoom != HubWorldGrid.None) room = pointerRoom;
-            }
-            // 丢在接待室或无效区 = 不换房，弹回起手位置（接待室不是业务房间，分不了房）
-            if (room < 0 || room >= HubWorldGrid.RoomCount)
-            {
-                actor.CancelPlayerDrag();
-                return;
-            }
-            // 落位钳回可走椭圆（拖拽中自由跟手，约束在这里补上）；
-            // 换了房就按指针位置换算到新房间的坐标系，不要拿旧房间的坐标直接套
-            var localPoint = hasPointerWorld
-                ? HubWorldGrid.WorldToLocal(room, pointerWorld)
-                : actor.ScenePosition;
-            actor.UpdatePlayerDrag(room, ClampWalk(room, localPoint));
-            var accepted = onGuestDropped != null && onGuestDropped(instanceId, room);
-            if (accepted) actor.EndPlayerDrag();
-            else actor.CancelPlayerDrag();
-        }
-
         private void SpawnAmbient(int rosterIndex, float delay)
         {
             var neighbor = Tuning.ambientVisitors[rosterIndex];
@@ -526,13 +385,13 @@ namespace MasterHouse
                 if (businessActors.TryGetValue(instance.InstanceId, out var actor) && actor != null)
                 {
                     actor.SyncBusinessState(instance.State);
-                    // 房间同步：业务真相在 instance.RoomIndex（拖拽被业务层拒绝时这里把演员弹回原房间；
+                    // 房间同步：业务真相在 instance.RoomIndex（分配模式点房落位后这里把演员送进那间房；
                     // 舞台重建回填时把演员落到上次所在的房间）。
                     // 前台排队/等分房两态还没有真正的房间，表现上住在底层接待室（2026-08-16 主楼场景）
                     var homeRoom = instance.State == EVisitorState.FrontDesk || instance.State == EVisitorState.AwaitingRoom
                         ? HubWorldGrid.Reception
                         : instance.RoomIndex;
-                    if (!actor.Dragging && actor.RoomIndex != homeRoom)
+                    if (actor.RoomIndex != homeRoom)
                         actor.TeleportToRoom(homeRoom, RandomWalkPoint(homeRoom));
                 }
                 else
@@ -611,7 +470,11 @@ namespace MasterHouse
                         tight.width / texture.width, tight.height / texture.height);
                     image.raycastTarget = false; // 点击仍归家具热点/演员
                     if (info.Flipped) rect.localScale = new Vector3(-1f, 1f, 1f);
-                    var depthY = HubWorldGrid.RoomToWorld(room, new Vector2(info.ViewportRect.center.x, info.ViewportRect.yMin)).y;
+                    var depthViewportY = float.IsNaN(info.DepthViewportY)
+                        ? info.ViewportRect.yMin
+                        : info.DepthViewportY;
+                    var depthY = HubWorldGrid.RoomToWorld(room,
+                        new Vector2(info.ViewportRect.center.x, depthViewportY)).y;
                     furnitureProxies.Add((rect, image, depthY, info.Order));
                 }
             }
@@ -622,7 +485,7 @@ namespace MasterHouse
             actors.RemoveAll(actor => actor == null);
 
             // 统一深度排序：家具代理 + 访客按脚底世界 y 从远到近排兄弟序（y 大在前、被 y 小的遮挡）；
-            // 拖拽中的访客压最上层；家具代理随昼夜调色与烘焙底图保持一致
+            // 家具代理随昼夜调色与烘焙底图保持一致
             depthSortCache.Clear();
             var tint = HouseDayLight.Now().tint;
             foreach (var proxy in furnitureProxies)
@@ -640,17 +503,9 @@ namespace MasterHouse
                 rect.anchoredPosition = Vector2.zero;
                 // 演员统一世界缩放 × 假透视深度（2026-08-16）：基准不随房间变化，
                 // 地面带内脚底越靠里越小；**离开地面（超过地面带远沿）后定格**不再继续缩
-                if (actor.Dragging && actor == draggingActor)
-                {
-                    rect.localScale = dragLockedLocalScale;
-                }
-                else
-                {
-                    var cappedY = Mathf.Min(actor.ScenePosition.y, WalkVolumeOf(actor.RoomIndex).yFar);
-                    rect.localScale = Vector3.one * (ActorWorldScale * DepthScaleAt(cappedY));
-                }
-                var depthY = actor.Dragging ? float.MinValue : anchor.y; // 拖拽中永远压最上
-                depthSortCache.Add((rect, depthY, int.MaxValue));
+                var cappedY = Mathf.Min(actor.ScenePosition.y, WalkVolumeOf(actor.RoomIndex).yFar);
+                rect.localScale = Vector3.one * (ActorWorldScale * DepthScaleAt(cappedY));
+                depthSortCache.Add((rect, anchor.y, int.MaxValue));
             }
             depthSortCache.Sort((a, b) =>
             {

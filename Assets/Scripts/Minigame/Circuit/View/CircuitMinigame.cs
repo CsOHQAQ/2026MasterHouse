@@ -74,6 +74,8 @@ namespace MasterHouse
         private Color defaultLevelBackgroundColor;
         private Sprite defaultDecorativeBackgroundSprite;
         private Color defaultDecorativeBackgroundColor;
+        private Color linkBudgetUsedNormalColor;
+        private bool hasLinkBudgetUsedNormalColor;
 
         private bool IsLastLesson => currentIndex >= levels.Count - 1;
         private bool HasFormalResultPopup =>
@@ -105,6 +107,7 @@ namespace MasterHouse
 
             CacheDefaultLevelBackground();
             ApplyUiStyle();
+            CacheLinkBudgetUsedNormalColor();
 
             if (!ResolveLessons(levelDef))
             {
@@ -546,9 +549,32 @@ namespace MasterHouse
             int budget = level.LinkCellBudget;
 
             var used = pending > 0 ? $"{committed}(+{pending})" : committed.ToString();
-            view.topStatusBar.linkBudgetLabel.text = budget > 0 ? $"已消耗格子数 ({used}/{budget})" : $"已消耗格子数 ({used})";
+            if (view.topStatusBar.linkBudgetUsedValue != null)
+            {
+                if (!hasLinkBudgetUsedNormalColor) CacheLinkBudgetUsedNormalColor();
+                view.topStatusBar.linkBudgetUsedValue.text = used;
+                view.topStatusBar.linkBudgetUsedValue.color = budget > 0 && total > budget
+                    ? view.topStatusBar.linkBudgetUsedOverflowColor
+                    : linkBudgetUsedNormalColor;
+                if (view.topStatusBar.linkBudgetTotalValue != null)
+                    view.topStatusBar.linkBudgetTotalValue.text = budget > 0 ? $"/ {budget}" : string.Empty;
+                return;
+            }
+
+            // 兼容尚未升级为「标题 / 已用值 / 总数」三段文本的旧顶部状态条 Prefab。
+            view.topStatusBar.linkBudgetLabel.text = budget > 0
+                ? $"剩余可用格子数 {used}/{budget}"
+                : $"剩余可用格子数 {used}";
 
             // Budget 颜色由 Prefab Inspector 手动配置，运行时不再覆盖
+        }
+
+        /// <summary>正常态颜色以 Prefab 中已用值 Text 的颜色为准，超预算结束后恢复该值。</summary>
+        private void CacheLinkBudgetUsedNormalColor()
+        {
+            if (view?.topStatusBar?.linkBudgetUsedValue == null) return;
+            linkBudgetUsedNormalColor = view.topStatusBar.linkBudgetUsedValue.color;
+            hasLinkBudgetUsedNormalColor = true;
         }
 
         // ══════════ 件库 ══════════
@@ -711,6 +737,11 @@ namespace MasterHouse
                 var def = paletteDefs[i];
                 int remaining = levelManager.RemainingBuildCount(level, def);
                 int max = MaxCountOf(def);
+
+                // 只收起表现条目，不改件库数据或可建资格；恢复数量时会自动重新出现。
+                bool visible = !style.hideDepletedPaletteItems || remaining > 0;
+                if (item.gameObject.activeSelf != visible) item.gameObject.SetActive(visible);
+                if (!visible) continue;
 
                 if (item.count != null)
                 {
@@ -903,6 +934,8 @@ namespace MasterHouse
                 // 这里只负责替换字体，避免运行时将 Prefab 里调好的颜色盖掉。
                 if (bar.progressLabel != null && style.uiFont != null) bar.progressLabel.font = style.uiFont;
                 if (bar.linkBudgetLabel != null && style.uiFont != null) bar.linkBudgetLabel.font = style.uiFont;
+                if (bar.linkBudgetUsedValue != null && style.uiFont != null) bar.linkBudgetUsedValue.font = style.uiFont;
+                if (bar.linkBudgetTotalValue != null && style.uiFont != null) bar.linkBudgetTotalValue.font = style.uiFont;
                 if (bar.pieceBudgetLabel != null && style.uiFont != null) bar.pieceBudgetLabel.font = style.uiFont;
                 if (bar.litLabel != null && style.uiFont != null) bar.litLabel.font = style.uiFont;
                 if (bar.titleLabel != null && style.uiFont != null) bar.titleLabel.font = style.uiFont;

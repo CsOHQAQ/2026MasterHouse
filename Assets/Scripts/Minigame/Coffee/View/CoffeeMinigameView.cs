@@ -212,6 +212,26 @@ namespace MasterHouse
         [Tooltip("幕布淡出秒数。出场比入场慢一点，新画面是「揭开」而不是「闪现」")]
         public float transitionOutSeconds = 0.5f;
 
+        [Header("研磨开局倒计时（2026-08-22 一轮测试改进 #13）")]
+        [Tooltip("倒计时遮罩根：整屏灰色半透 + 居中大字。默认隐藏，开局播一遍 3/2/1/开始！。\n" +
+                 "它压在 HUD 之上、结算与暂停弹窗之下——倒计时期间页面读作「预备」，但暂停仍要能盖住它")]
+        public RectTransform countdownRoot;
+
+        [Tooltip("倒计时的 CanvasGroup：结尾整体淡出用，灰底与大字一起退")]
+        public CanvasGroup countdownGroup;
+
+        [Tooltip("倒计时正中的大字（3 / 2 / 1 / 开始！），文案由代码写")]
+        public Text countdownLabel;
+
+        [Tooltip("每个数字的停留秒数")]
+        public float countdownStepSeconds = 0.8f;
+
+        [Tooltip("「开始！」的停留秒数，之后遮罩淡出、研磨才接管输入")]
+        public float countdownGoSeconds = 0.6f;
+
+        [Tooltip("结尾遮罩淡出秒数（淡出播完才真正开局，这段仍不吃输入）")]
+        public float countdownFadeOutSeconds = 0.25f;
+
         [Header("水面表现（不影响判定；俯视：液面从杯心扩展，倒水点高频冒波元叠出尾迹）")]
         [Tooltip("边缘晃动速度下限（弧度/秒；滑窗方差=0 时，2026-08-17 访谈：速度由方差线性归一驱动）")]
         public float waterWobbleSpeedMin = 1.5f;

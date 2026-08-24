@@ -34,28 +34,28 @@ MonoBehaviour:
       width: 0.13
       height: 0.089999996
     dayFloorLine: 0.7943
-    nightFloorLine: 0.8015
-    nightWidthScale: 0.99
-    nightShiftX: 13.2
+    nightFloorLine: 0.7943
+    nightWidthScale: 1
+    nightShiftX: 0
     grids:
     - id: wall
       surface: 2
-      cols: 34
-      rows: 14
-      cellWidth: 30
-      cellHeight: 30
-      x: 316
-      y: 75
+      cols: 76
+      rows: 33
+      cellWidth: 12
+      cellHeight: 12
+      x: 373
+      y: 52
       farWidthScale: 1
     - id: floor
       surface: 0
-      cols: 53
-      rows: 5
-      cellWidth: 30
-      cellHeight: 21.6
-      x: 40
-      y: 500
-      farWidthScale: 0.65
+      cols: 101
+      rows: 15
+      cellWidth: 15
+      cellHeight: 12
+      x: 78.5
+      y: 452
+      farWidthScale: 0.603
     blockedCells: []
     initialPlacements:
     - furnitureId: landscape_poster_02
@@ -63,32 +63,32 @@ MonoBehaviour:
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 8
-      row: 3
+      col: 18
+      row: 6
       flipped: 0
     - furnitureId: hanging_plant_01
       gridId: wall
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 25
-      row: 3
+      col: 56
+      row: 6
       flipped: 0
     - furnitureId: armchair_01
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 17
-      row: 3
+      col: 35
+      row: 9
       flipped: 0
     - furnitureId: round_table_01
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 25
-      row: 3
+      col: 51
+      row: 11
       flipped: 0
   - id: bedroom
     displayName: "\u5367\u5BA4"
@@ -111,28 +111,28 @@ MonoBehaviour:
       width: 0.13
       height: 0.08
     dayFloorLine: 0.832
-    nightFloorLine: 0.8931
-    nightWidthScale: 1.062
-    nightShiftX: 47.9
+    nightFloorLine: 0.832
+    nightWidthScale: 1
+    nightShiftX: 0
     grids:
     - id: wall
       surface: 2
-      cols: 28
-      rows: 13
-      cellWidth: 30
-      cellHeight: 30
-      x: 242
+      cols: 62
+      rows: 33
+      cellWidth: 12
+      cellHeight: 12
+      x: 333.5
       y: 109
       farWidthScale: 1
     - id: floor
       surface: 0
-      cols: 53
-      rows: 4
-      cellWidth: 30
-      cellHeight: 21
-      x: 40
-      y: 530
-      farWidthScale: 0.74
+      cols: 101
+      rows: 11
+      cellWidth: 15
+      cellHeight: 12
+      x: 78.5
+      y: 503
+      farWidthScale: 0.62
     blockedCells: []
     initialPlacements:
     - furnitureId: landscape_poster_03
@@ -140,32 +140,32 @@ MonoBehaviour:
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 16
-      row: 2
+      col: 35
+      row: 5
       flipped: 0
     - furnitureId: single_sofa_02
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 9
-      row: 2
+      col: 19
+      row: 5
       flipped: 0
     - furnitureId: cat_sofa_01
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 29
-      row: 2
+      col: 58
+      row: 5
       flipped: 0
     - furnitureId: monstera_01
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 45
-      row: 2
+      col: 92
+      row: 8
       flipped: 0
   - id: kitchen
     displayName: "\u53A8\u623F"
@@ -188,28 +188,28 @@ MonoBehaviour:
       width: 0.13000001
       height: 0.089999996
     dayFloorLine: 0.7853
-    nightFloorLine: 0.7825
-    nightWidthScale: 1.066
-    nightShiftX: 171.1
+    nightFloorLine: 0.7853
+    nightWidthScale: 1
+    nightShiftX: 0
     grids:
     - id: wall
       surface: 2
-      cols: 24
-      rows: 14
-      cellWidth: 30
-      cellHeight: 30
-      x: 562
-      y: 75
+      cols: 51
+      rows: 31
+      cellWidth: 12
+      cellHeight: 12
+      x: 645.5
+      y: 132
       farWidthScale: 1
     - id: floor
       surface: 0
-      cols: 53
-      rows: 5
-      cellWidth: 30
-      cellHeight: 20.8
-      x: 40
-      y: 502
-      farWidthScale: 0.65
+      cols: 101
+      rows: 11
+      cellWidth: 15
+      cellHeight: 12
+      x: 78.5
+      y: 498
+      farWidthScale: 0.56
     blockedCells: []
     initialPlacements:
     - furnitureId: vintage_square_clock_02
@@ -217,24 +217,24 @@ MonoBehaviour:
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 19
-      row: 4
+      col: 40
+      row: 8
       flipped: 0
     - furnitureId: round_table_02
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 17
-      row: 3
+      col: 36
+      row: 7
       flipped: 0
     - furnitureId: potted_plant_01
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 41
-      row: 3
+      col: 82
+      row: 7
       flipped: 0
   - id: study
     displayName: "\u4E66\u623F"
@@ -257,28 +257,28 @@ MonoBehaviour:
       width: 0.100000024
       height: 0.089999996
     dayFloorLine: 0.8
-    nightFloorLine: 0.8753
+    nightFloorLine: 0.8
     nightWidthScale: 1
     nightShiftX: 0
     grids:
     - id: wall
       surface: 2
-      cols: 46
-      rows: 14
-      cellWidth: 30
-      cellHeight: 30
-      x: 130
-      y: 59
+      cols: 87
+      rows: 37
+      cellWidth: 12
+      cellHeight: 12
+      x: 310.5
+      y: 27
       farWidthScale: 1
     - id: floor
       surface: 0
-      cols: 53
-      rows: 5
-      cellWidth: 30
-      cellHeight: 20.1
-      x: 40
-      y: 502
-      farWidthScale: 0.88
+      cols: 100
+      rows: 13
+      cellWidth: 15
+      cellHeight: 12
+      x: 86
+      y: 469
+      farWidthScale: 0.69
     blockedCells: []
     initialPlacements:
     - furnitureId: round_table_03
@@ -286,30 +286,30 @@ MonoBehaviour:
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 0
-      row: 3
+      col: 2
+      row: 9
       flipped: 0
     - furnitureId: potted_plant_02
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 9
-      row: 0
+      col: 19
+      row: 3
       flipped: 0
     - furnitureId: vintage_square_clock_03
       gridId: wall
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 35
-      row: 4
+      col: 66
+      row: 11
       flipped: 0
     - furnitureId: single_sofa_04
       gridId: floor
       hostGridId: 
       hostCol: 0
       hostRow: 0
-      col: 35
-      row: 3
+      col: 70
+      row: 7
       flipped: 0

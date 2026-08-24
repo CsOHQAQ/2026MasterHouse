@@ -32,8 +32,9 @@ namespace MasterHouse
         /// <summary>
         /// 前台同时容纳的访客上限（§5.4）。计数口径包含「前台等待接待」与「等待分配房间」两态——
         /// 两者都站在起居室入口区，视觉上就是同一条门口队伍（2026-08-13 访谈定案）。
+        /// 2026-08-22 一轮测试改进 #4：2→1，待客室同时只允许一位等待访客（接待节奏完全串行）。
         /// </summary>
-        public const int FrontDeskCapacity = 2;
+        public const int FrontDeskCapacity = 1;
 
         private readonly VisitorScheduleTable schedule;
         private readonly VisitorTuningConfig tuning;

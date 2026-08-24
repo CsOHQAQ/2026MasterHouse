@@ -20,6 +20,10 @@ namespace MasterHouse
     {
         private const float OverviewZoom = 1f; // 恰好看全整栋主楼剖面
         private const float MaxZoom = 6f;      // 比「单房推满视口宽」再深一档
+        /// <summary>滚轮每格的缩放系数（2026-08-22 一轮测试改进 #9：0.16 → 0.11 整体调柔）。</summary>
+        private const float ZoomSensitivity = .11f;
+        /// <summary>滚轮二→三吸附推镜的时长（2026-08-22 反馈「卡点太长」：默认 0.55s 的一半）。</summary>
+        private const float ScrollSnapFocusSeconds = .28f;
         /// <summary>外景下层栈桥独立对齐：柱距比主楼宽约 5.56%，以中心横向收缩；平台顶面向下校正约 23 px。</summary>
         private const float LowerStructureScaleX = .9444f;
         private const float LowerStructureShiftX = -.0007f;
@@ -48,8 +52,6 @@ namespace MasterHouse
         /// 复用开场推镜的对齐变换（反向），进出取景一致。此档的最小缩放。</summary>
         private static float ExteriorMinZoom => 1f / OpeningZoomFx.AlignScale;
         /// <summary>拖访客的 RTS 边缘推屏：指针距场景边缘阈值（视口像素）与推屏速度（视口像素/秒）。</summary>
-        private const float EdgeScrollMargin = 56f;
-        private const float EdgeScrollSpeed = 1100f;
         /// <summary>点击/拖拽的分界：松手时位移小于它才算一次点击（9px 见方）。平移、双击、开家具详情三处共用。</summary>
         private const float ClickThresholdSq = 81f;
         /// <summary>双击间隔（与家具模式的双击收纳同一个手感，见 FurnitureRoomController.DoubleClickSeconds）。</summary>
@@ -586,8 +588,29 @@ namespace MasterHouse
                 zoomAnchorViewport = pointerLocal;
                 zoomAnchorWorld = (pointerLocal - camPan) / camZoom;
                 zoomAnchored = true;
-                targetZoom = SnapOutOfGhostBand(
-                    Mathf.Clamp(targetZoom * (1f + scroll * .16f), ExteriorMinZoom, MaxZoom), scroll);
+                var desired = Mathf.Clamp(targetZoom * (1f + scroll * ZoomSensitivity), ExteriorMinZoom, MaxZoom);
+                var assisted = false;
+                if (scroll > 0f && targetZoom < LodBandLow - .001f && desired > LodBandLow)
+                {
+                    // #9 二→三吸附：上行冲过聚焦分界的那一步不再以鼠标为锚干放大，
+                    // 而是推镜到**鼠标悬停房间**的标准取景（含接待室）；
+                    // 指针没悬在任何房间上则照旧走重影带吸附（落在 2×）
+                    var hovered = RoomUnderPointer(pointerLocal, viewport);
+                    if (hovered != HubWorldGrid.None)
+                    {
+                        zoomAnchored = false;
+                        SfxManager.Play(ESfx.PageTransition);
+                        FocusRoom(hovered, ScrollSnapFocusSeconds); // 滚轮吸附走减半时长（2026-08-22 反馈）
+                        assisted = true;
+                    }
+                }
+                else if (scroll < 0f && targetZoom > OverviewZoom + .001f && desired < OverviewZoom)
+                {
+                    // #9 一/二档卡点（下行）：三→一的路上先在总览标准（1×）停一挡，再滚才进外景。
+                    // 上行的同一挡由重影带吸附天然形成（带上界就是总览），不用另写
+                    desired = OverviewZoom;
+                }
+                if (!assisted) targetZoom = SnapOutOfGhostBand(desired, scroll);
             }
             ApplyZoomEasing();
 
@@ -614,30 +637,24 @@ namespace MasterHouse
                 lastPointerLocal = pointerLocal;
             }
 
-            // RTS 边缘推屏（2026-08-14）：拖着访客顶到场景边缘时相机朝该方向平移；
-            // uGUI 的 Drag 事件只在指针移动时触发，这里每帧重投影把访客钉在指针下
-            if (stage != null && stage.HasActiveDrag)
-            {
-                var edge = Vector2.zero;
-                if (pointerLocal.x < EdgeScrollMargin) edge.x = -1f;
-                else if (pointerLocal.x > viewport.x - EdgeScrollMargin) edge.x = 1f;
-                if (pointerLocal.y < EdgeScrollMargin) edge.y = -1f;
-                else if (pointerLocal.y > viewport.y - EdgeScrollMargin) edge.y = 1f;
-                if (edge != Vector2.zero)
-                {
-                    KillFocusTween();
-                    camPan -= edge * (EdgeScrollSpeed * Time.unscaledDeltaTime);
-                }
-                ClampCamera(viewport);
-                ApplyCamera();
-                DetectCurrentRoom(viewport);
-                stage.RefreshDragProjection();
-                return; // 拖拽期间不再处理普通平移（按下起点已被演员射线挡掉，这里双保险）
-            }
+            // RTS 边缘推屏已随访客拖拽整体退役（2026-08-22 #8）
 
             ClampCamera(viewport);
             ApplyCamera();
             DetectCurrentRoom(viewport);
+            // 悬停高亮只在分配模式启用（2026-08-22 反馈）：平时不显示；
+            // 滚轮二→三吸附仍以悬停房间为目标，只是没有常驻视觉
+            UpdateAssignHover(pointerLocal, insideScene);
+        }
+
+        /// <summary>指针世界坐标落在哪个区域（业务房间/接待室；墙体天空 = None）。</summary>
+        private int RoomUnderPointer(Vector2 pointerLocal, Vector2 viewport)
+        {
+            var worldPoint = (pointerLocal - camPan) / camZoom;
+            var world01 = new Vector2(
+                Mathf.Clamp01(worldPoint.x / viewport.x),
+                Mathf.Clamp01(worldPoint.y / viewport.y));
+            return HubWorldGrid.RoomAt(world01);
         }
 
         /// <summary>
@@ -656,6 +673,15 @@ namespace MasterHouse
                 Mathf.Clamp01(worldPoint.x / viewport.x),
                 Mathf.Clamp01(worldPoint.y / viewport.y));
             var clickedRoom = hotspot != null ? hotspot.RoomIndex : HubWorldGrid.RoomAt(world01);
+
+            // 分配模式（#8）：点中业务房间 → 交给页面裁决（空房=分配，占用=Toast 说明）；
+            // 相机不动、双击缩放也不参与——这一态下点击只有「选房」一个语义
+            if (page.AssignModeActive)
+            {
+                if (clickedRoom >= 0 && clickedRoom < HubWorldGrid.RoomCount)
+                    page.OnRoomClickedForAssign(clickedRoom);
+                return;
+            }
             // 当前聚焦对象 = 视口中心所在区域（总览/外景态没有聚焦对象）
             var centerPoint = (viewport * .5f - camPan) / camZoom;
             var center01 = new Vector2(
@@ -725,8 +751,9 @@ namespace MasterHouse
         }
 
         /// <summary>房间导航/方向键/访客聚焦共用：相机平滑推到目标区域的**标准取景**（区域宽推满视口宽）。
-        /// 不再保留更深的当前缩放（2026-08-16：带着客房深缩放跳接待厅会糊成特写）。</summary>
-        public void FocusRoom(int roomIndex)
+        /// 不再保留更深的当前缩放（2026-08-16：带着客房深缩放跳接待厅会糊成特写）。
+        /// duration 可调（2026-08-22 反馈）：滚轮吸附那条路用减半时长，点击/键盘聚焦保持默认节奏。</summary>
+        public void FocusRoom(int roomIndex, float duration = .55f)
         {
             if (worldRoot == null || sceneRoot == null) return;
             var viewport = sceneRoot.rect.size;
@@ -752,7 +779,7 @@ namespace MasterHouse
                 ClampCamera(size);
                 ApplyCamera();
                 DetectCurrentRoom(size);
-            }, 1f, .55f).SetEase(Ease.InOutCubic).SetUpdate(true);
+            }, 1f, duration).SetEase(Ease.InOutCubic).SetUpdate(true);
         }
 
         /// <summary>无动画直达（建层初始化/布局未就绪时的回退）。</summary>
@@ -910,11 +937,9 @@ namespace MasterHouse
         {
             if (EventSystem.current == null || !EventSystem.current.IsPointerOverGameObject()) return false;
             if (HotspotUnderPointer() != null) return false;
-            // 拖不动的访客（服务中锁房的、邻居、过场中的）同样不算「挡住」（2026-08-18 反馈）：
-            // 它们会吃掉 uGUI 的拖拽事件但自己又不动，压在它们身上按下就变成既拖不动人、
-            // 也拖不动画面。让这一下落回相机平移。
-            var actor = ActorUnderPointer();
-            return actor == null || actor.IsDraggable;
+            // 访客一律不算「挡住」（2026-08-22 #8 拖拽退役后统一口径）：压在演员身上按下照样平移相机，
+            // 点没点中他由松手时的位移阈值 + 演员自己的 Button 裁决。
+            return ActorUnderPointer() == null;
         }
 
         /// <summary>指针下的访客演员（没有则 null）。</summary>
@@ -936,6 +961,91 @@ namespace MasterHouse
 
         /// <summary>页面退出时的清理（HubPage.OnExit 调）：杀掉仍在跑的推镜补间，防目标销毁后空跑。</summary>
         public void Dispose() => KillFocusTween();
+
+        // ══════════ 房间高亮（#8 分配模式**专用**；2026-08-22 反馈：平时不显示任何悬停高亮）══════════
+
+        /// <summary>
+        /// 悬停框美术（源在 Assets/PC ui 2.0/房间悬停框，这里加载 Resources 下的副本——换图时两处一起换）。
+        /// 下标即业务房间：0 左上=二层左边、1 右上=二层右边、2 左下=一层左侧、3 右下=一层右侧；
+        /// 「大厅」那张对应接待室，接待室不参与分房、暂未使用。
+        /// </summary>
+        private static readonly string[] RoomHoverArt =
+        {
+            "OutGameUI/RoomHover/二层左边",
+            "OutGameUI/RoomHover/二层右边",
+            "OutGameUI/RoomHover/一层左侧",
+            "OutGameUI/RoomHover/一层右侧",
+        };
+
+        /// <summary>可分配空房的常亮透明度 / 鼠标悬停那间的透明度（美术图较亮，先按这两档压；观感不对调这里）。</summary>
+        private const float AssignHighlightIdleAlpha = .35f;
+        private const float AssignHighlightHoverAlpha = .85f;
+
+        private RectTransform highlightRoot;
+        private readonly RawImage[] roomHighlights = new RawImage[HubWorldGrid.RoomCount];
+        private bool assignHighlightsOn;
+
+        /// <summary>高亮件懒建：洗色层之上、热点与演员之下——提示要压住房间美术，但不能抢交互层的射线。</summary>
+        private void EnsureRoomHighlights()
+        {
+            if (highlightRoot != null || worldRoot == null) return;
+            highlightRoot = HouseUIRuntime.Stretch(worldRoot, "RoomHighlights");
+            if (sceneWash != null)
+                highlightRoot.SetSiblingIndex(sceneWash.transform.GetSiblingIndex() + 1);
+            for (var room = 0; room < HubWorldGrid.RoomCount && room < RoomHoverArt.Length; room++)
+            {
+                var texture = Resources.Load<Texture2D>(RoomHoverArt[room]);
+                if (texture == null)
+                {
+                    Debug.LogError($"[HouseUI] 房间悬停框素材缺失：Resources/{RoomHoverArt[room]}" +
+                                   "（§16.2 缺件报错，不做程序化回退）");
+                    continue;
+                }
+                var region = HubWorldGrid.RegionOf(room);
+                var rect = HouseUIRuntime.Rect(highlightRoot, "Room" + room,
+                    region.min, region.max, Vector2.zero, Vector2.zero);
+                var image = rect.gameObject.AddComponent<RawImage>();
+                image.texture = texture;
+                image.color = new Color(1f, 1f, 1f, AssignHighlightIdleAlpha);
+                image.raycastTarget = false;
+                rect.gameObject.SetActive(false);
+                roomHighlights[room] = image;
+            }
+        }
+
+        /// <summary>分配模式的空房高亮（#8）：可分配空客房各自亮起悬停框图；off = 全部收起。</summary>
+        public void SetAssignHighlights(bool on)
+        {
+            EnsureRoomHighlights();
+            assignHighlightsOn = on;
+            var visitors = GameManager.Instance != null ? GameManager.Instance.VisitorManager : null;
+            for (var room = 0; room < HubWorldGrid.RoomCount; room++)
+            {
+                var highlight = roomHighlights[room];
+                if (highlight == null) continue;
+                var assignable = on && visitors != null &&
+                                 room >= VisitorManager.FirstGuestRoomIndex &&
+                                 room <= VisitorManager.LastGuestRoomIndex &&
+                                 !visitors.IsRoomOccupied(room);
+                highlight.gameObject.SetActive(assignable);
+                if (assignable) highlight.color = new Color(1f, 1f, 1f, AssignHighlightIdleAlpha);
+            }
+        }
+
+        /// <summary>每帧（仅分配模式）：鼠标悬停的那间空房提到高透明度，其余保持常亮档。</summary>
+        private void UpdateAssignHover(Vector2 pointerLocal, bool insideScene)
+        {
+            if (!assignHighlightsOn) return;
+            var hovered = insideScene ? RoomUnderPointer(pointerLocal, sceneRoot.rect.size) : HubWorldGrid.None;
+            for (var room = 0; room < HubWorldGrid.RoomCount; room++)
+            {
+                var highlight = roomHighlights[room];
+                if (highlight == null || !highlight.gameObject.activeSelf) continue;
+                var alpha = room == hovered ? AssignHighlightHoverAlpha : AssignHighlightIdleAlpha;
+                if (!Mathf.Approximately(highlight.color.a, alpha))
+                    highlight.color = new Color(1f, 1f, 1f, alpha);
+            }
+        }
 
         // ══════════ 内容 ══════════
 
@@ -1039,7 +1149,7 @@ namespace MasterHouse
         private void BuildVisitorStage()
         {
             if (worldRoot == null) return;
-            stage = OutGameVisitorStage.Build(worldRoot, page.OnVisitorClicked, page.OnVisitorDropped);
+            stage = OutGameVisitorStage.Build(worldRoot, page.OnVisitorClicked);
         }
 
         /// <summary>场景说明卡与设备热点按钮（Prefab 字段可能因手动编辑缺失，逐项判空）。相机换房时刷新。</summary>

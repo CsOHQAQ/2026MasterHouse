@@ -15,16 +15,21 @@ MonoBehaviour:
   pinSprite: {fileID: 21300000, guid: fb920080e74306b43bb76e6e92bdbcfd, type: 3}
   pinSizeInCells: 0.4
   pinColorMultiplier: {r: 1, g: 1, b: 1, a: 1}
+  pinInteractionScale: 2
+  nodeDragInteractionScale: 0.65
   wireStraightSprite: {fileID: 21300000, guid: ffb63753dfb93bb4581e18b5faba990e, type: 3}
   wireCornerSprite: {fileID: 21300000, guid: 9c5dd81929d32c04dbe68cd2719a218b, type: 3}
   wireConnectedEndSprite: {fileID: 21300000, guid: 267373afb6e69da4abcf5aa9a7156b34, type: 3}
+  wirePinToPinSprite: {fileID: 21300000, guid: a2410a5b6af03ae4cae3412b401afe20, type: 3}
   wireCornerPinSprite: {fileID: 21300000, guid: 0b214fbe661f4884881ce2684f910a98, type: 3}
   wireOpenEndSprite: {fileID: 21300000, guid: e7e81ba588f632643b6e4d39c1baaaf4, type: 3}
   wirePoweredColor: {r: 0.055802763, g: 0.6226415, b: 0.06959632, a: 0.95}
   wireUnpoweredColor: {r: 0.45, g: 0.47, b: 0.52, a: 0.85}
   wirePreviewColor: {r: 0.93530995, g: 0.8028257, b: 0.21554974, a: 0.75}
   wireOverflowColor: {r: 0.92, g: 0.35, b: 0.32, a: 0.55}
-  cellSprite: {fileID: 0}
+  cellSprite: {fileID: 21300000, guid: 8b0f16bb87c1f0f499d2c680d329a113, type: 3}
+  cellColor: {r: 1, g: 1, b: 1, a: 0.92941177}
+  cellGapPixels: 2
   levelBackgroundSprite: {fileID: 0}
   movableIcon: {fileID: 21300000, guid: 4ae15d92bc7ed6f4480ac63aed2e1fb5, type: 3}
   immovableIcon: {fileID: 21300000, guid: b5c8598e6593e2b4eb4a203a56607480, type: 3}
@@ -43,7 +48,10 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 58a9f0210ede0014789f1ada24e985ba, type: 3}
   - {fileID: 21300000, guid: ea54897cdaee4744ea2d84ebd5700eb8, type: 3}
   - {fileID: 21300000, guid: 63430095c720bba4ebf9577d0a2810b6, type: 3}
+  showBatteryRemainingPower: 0
   captionDigitSize: 0.4
   captionDigitSpacing: 0.05
   captionDigitColor: {r: 1, g: 1, b: 1, a: 1}
   captionSlashSprite: {fileID: 0}
+  captionPowerIcon: {fileID: 0}
+  captionPowerIconSize: 0.45

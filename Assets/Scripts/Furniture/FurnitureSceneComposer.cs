@@ -14,13 +14,20 @@ namespace MasterHouse
         public readonly int Order;
         /// <summary>水平翻转（深度代理要与烘焙像素重合，必须同向）。</summary>
         public readonly bool Flipped;
+        /// <summary>
+        /// 深度代理使用的房内归一化 Y。桌面家具继承宿主脚底深度，不能使用自身在桌面上的底边，
+        /// 否则会被判断成在桌子后方，随后遭宿主代理覆盖。
+        /// </summary>
+        public readonly float DepthViewportY;
 
-        public PlacedFurnitureInfo(FurnitureEntry entry, Rect viewportRect, int order = 0, bool flipped = false)
+        public PlacedFurnitureInfo(FurnitureEntry entry, Rect viewportRect, int order = 0, bool flipped = false,
+            float depthViewportY = float.NaN)
         {
             Entry = entry;
             ViewportRect = viewportRect;
             Order = order;
             Flipped = flipped;
+            DepthViewportY = depthViewportY;
         }
     }
 
@@ -138,7 +145,7 @@ namespace MasterHouse
             var shadowSprite = Resources.Load<Sprite>("OutGameUI/soft-shadow");
             if (shadowSprite != null)
             {
-                var shadows = new List<(FurnitureEntry entry, int order, Rect rect, bool flipped)>();
+                var shadows = new List<(FurnitureEntry entry, int order, Rect rect, bool flipped, float depthBottom)>();
                 foreach (var draw in draws)
                 {
                     if (draw.order < 100 || draw.entry.stackable) continue;
@@ -147,13 +154,13 @@ namespace MasterHouse
                     var shadowH = shadowW * .3f;
                     var shadowRect = new Rect(draw.rect.x - (shadowW - draw.rect.width) * .5f,
                         draw.rect.yMax - shadowH * .55f, shadowW, shadowH);
-                    shadows.Add((null, draw.order - 2, shadowRect, false));
+                    shadows.Add((null, draw.order - 2, shadowRect, false, draw.depthBottom));
                     // 第二遍略小、更集中，形成「接地处更深、边缘散开」的层次
                     var coreW = draw.rect.width * .86f;
                     var coreH = coreW * .28f;
                     shadows.Add((null, draw.order - 1,
                         new Rect(draw.rect.x + (draw.rect.width - coreW) * .5f,
-                            draw.rect.yMax - coreH * .5f, coreW, coreH), false));
+                            draw.rect.yMax - coreH * .5f, coreW, coreH), false, draw.depthBottom));
                 }
                 draws.AddRange(shadows);
             }
@@ -182,25 +189,31 @@ namespace MasterHouse
         }
 
         /// <summary>当前布局中每件家具的场景像素矩形（与合成图一致的锚点数学）。</summary>
-        private static List<(FurnitureEntry entry, int order, Rect rect, bool flipped)> Collect(FurnitureTable table, FurnitureRoomEntry room, float nightAlpha)
+        private static List<(FurnitureEntry entry, int order, Rect rect, bool flipped, float depthBottom)> Collect(
+            FurnitureTable table, FurnitureRoomEntry room, float nightAlpha)
         {
             var placements = FurnitureRoomController.CaptureSessionPlacements(room.id) ?? room.initialPlacements;
-            var result = new List<(FurnitureEntry, int, Rect, bool)>();
+            var result = new List<(FurnitureEntry, int, Rect, bool, float)>();
             foreach (var placement in placements)
             {
                 if (placement == null || placement.IsOnHost) continue;
                 var entry = table.Find(placement.furnitureId);
                 if (entry == null || entry.sprite == null) continue;
                 if (!BaseAnchor(room, entry, placement, nightAlpha, out var left, out var bottom, out var order)) continue;
-                result.Add((entry, order, new Rect(left, bottom - entry.displayHeight, entry.displayWidth, entry.displayHeight), placement.flipped));
+                var display = FurnitureDisplaySizing.Resolve(entry);
+                result.Add((entry, order, new Rect(left, bottom - display.y, display.x, display.y),
+                    placement.flipped, bottom));
             }
             foreach (var placement in placements)
             {
                 if (placement == null || !placement.IsOnHost) continue;
                 var entry = table.Find(placement.furnitureId);
                 if (entry == null || entry.sprite == null) continue;
-                if (!HostedAnchor(room, table, placements, placement, entry, nightAlpha, out var left, out var bottom, out var order)) continue;
-                result.Add((entry, order, new Rect(left, bottom - entry.displayHeight, entry.displayWidth, entry.displayHeight), placement.flipped));
+                if (!HostedAnchor(room, table, placements, placement, entry, nightAlpha, out var left,
+                        out var bottom, out var depthBottom, out var order)) continue;
+                var display = FurnitureDisplaySizing.Resolve(entry);
+                result.Add((entry, order, new Rect(left, bottom - display.y, display.x, display.y),
+                    placement.flipped, depthBottom));
             }
             return result;
         }
@@ -217,14 +230,15 @@ namespace MasterHouse
             var nightAlpha = bakedNightAlpha.TryGetValue(room.id, out var bakedAlpha)
                 ? bakedAlpha
                 : FurnitureNightLayout.NightAlphaNow();
-            foreach (var (entry, order, rect, flipped) in Collect(table, room, nightAlpha))
+            foreach (var (entry, order, rect, flipped, depthBottom) in Collect(table, room, nightAlpha))
             {
                 var viewport = new Rect(
                     rect.x / room.sceneWidth,
                     1f - (rect.y + rect.height) / room.sceneHeight,
                     rect.width / room.sceneWidth,
                     rect.height / room.sceneHeight);
-                result.Add(new PlacedFurnitureInfo(entry, viewport, order, flipped));
+                result.Add(new PlacedFurnitureInfo(entry, viewport, order, flipped,
+                    1f - depthBottom / room.sceneHeight));
             }
             return result;
         }
@@ -273,36 +287,42 @@ namespace MasterHouse
             left = bottom = 0f;
             order = 0;
             var grid = FindGrid(room, placement.gridId);
-            if (grid == null) return false;
+            if (grid == null || !entry.Supports(grid.surface)) return false;
             // 与摆放模式同一套昆夜几何校正，否则两边位置对不上
             grid = FurnitureNightLayout.Adjust(room, grid, nightAlpha);
-            left = grid.x + placement.col * grid.cellWidth + (entry.cols * grid.cellWidth - entry.displayWidth) * .5f;
+            // 家具族表保存的就是细分网格下的最终占格；与摆放控制器统一，不做隐藏倍率。
+            var footCols = entry.cols;
+            var footRows = entry.rows;
+            var display = FurnitureDisplaySizing.Resolve(entry);
+            left = grid.x + placement.col * grid.cellWidth +
+                   (footCols * grid.cellWidth - display.x) * .5f;
             if (grid.surface == FurnitureSurfaceType.Floor)
             {
-                var bottomRow = placement.row + entry.rows;
+                var bottomRow = placement.row + footRows;
                 // 2.5D 假透视：与 FurnitureRuntimeGrid.MapX 同口径（横向按底边行向网格中心收拢）
                 var farScale = grid.farWidthScale <= 0f ? 1f : grid.farWidthScale;
                 var widthScale = Mathf.Lerp(farScale, 1f, grid.rows > 0 ? Mathf.Clamp01((float)bottomRow / grid.rows) : 1f);
                 var gridCenter = grid.x + grid.cols * grid.cellWidth * .5f;
-                left = gridCenter + (left + entry.displayWidth * .5f - gridCenter) * widthScale - entry.displayWidth * .5f;
+                left = gridCenter + (left + display.x * .5f - gridCenter) * widthScale - display.x * .5f;
                 bottom = grid.y + bottomRow * grid.cellHeight;
                 // 与 FurnitureRoomController.AnchorOf 同口径：可叠放（地毯）压在立式家具之下
                 order = entry.stackable ? 70 + bottomRow : 100 + bottomRow * 10;
             }
             else
             {
-                bottom = grid.y + (placement.row + entry.rows) * grid.cellHeight;
-                order = 20 + placement.row + entry.rows;
+                bottom = grid.y + (placement.row + footRows) * grid.cellHeight;
+                order = 20 + placement.row + footRows;
             }
             return true;
         }
 
         private static bool HostedAnchor(FurnitureRoomEntry room, FurnitureTable table,
             List<FurniturePlacementConfig> placements, FurniturePlacementConfig placement, FurnitureEntry entry,
-            float nightAlpha, out float left, out float bottom, out int order)
+            float nightAlpha, out float left, out float bottom, out float depthBottom, out int order)
         {
-            left = bottom = 0f;
+            left = bottom = depthBottom = 0f;
             order = 0;
+            if (!entry.Supports(FurnitureSurfaceType.Table)) return false;
             // 按落位坐标认宿主，与 FurnitureRoomController.RestoreState 同口径（§5.4）——
             // 这里是锚点数学的第二份实现（§16.7 已知技术债），改一边必须同步另一边
             FurniturePlacementConfig hostPlacement = null;
@@ -317,10 +337,16 @@ namespace MasterHouse
             var surface = hostEntry?.tableSurface;
             if (surface == null || !surface.enabled) return false;
             if (!BaseAnchor(room, hostEntry, hostPlacement, nightAlpha, out var hostLeft, out var hostBottom, out var hostOrder)) return false;
-            var gridX = hostLeft + surface.offsetX;
-            var gridY = hostBottom - surface.surfaceHeight - surface.cellHeight;
-            left = gridX + placement.col * surface.cellWidth + (entry.cols * surface.cellWidth - entry.displayWidth) * .5f;
-            bottom = gridY + surface.cellHeight;
+            var hostFrameScale = FurnitureDisplaySizing.FrameScale(hostEntry);
+            var cellWidth = surface.cellWidth * hostFrameScale.x;
+            var cellHeight = surface.cellHeight * hostFrameScale.y;
+            var gridX = hostLeft + surface.offsetX * hostFrameScale.x;
+            var gridY = hostBottom - surface.surfaceHeight * hostFrameScale.y - cellHeight;
+            var display = FurnitureDisplaySizing.Resolve(entry);
+            left = gridX + placement.col * cellWidth + (entry.cols * cellWidth - display.x) * .5f;
+            bottom = gridY + cellHeight;
+            // 桌上物与宿主属于同一个地面深度组；代理层同深度时再按 order 让桌上物盖在桌面上。
+            depthBottom = hostBottom;
             order = hostOrder + 3;
             return true;
         }

@@ -87,12 +87,13 @@ namespace MasterHouse.EditorTools
         };
 
         /// <summary>
-        /// 家具表（只剩**逐变体不同**的列，2026-08-15 族化）：族级列已搬去族表，
-        /// 由导入时按「族id」展开填回 FurnitureEntry，故此表不再有分类/表面/占格/装饰分/音效/桌面格。
+        /// 家具表（只剩**逐变体不同**的列）：族级列已搬去族表，
+        /// 占格按家具底部实际接地/接桌轮廓配置；不同变体的底座宽度可能不同，
+        /// 因此仍由家具表逐行保存，空值回退族表默认值。显示宽高只控制图片，不参与占格换算。
         /// </summary>
         private static readonly string[] FurnitureHeader =
         {
-            "id", "英文索引", "显示名", "族id", "显示宽", "显示高", "精灵图", "色值",
+            "id", "英文索引", "显示名", "族id", "显示宽", "显示高", "精灵图", "色值", "商店显示宽", "商店显示高", "商店列表图", "商店详情图", "占格列", "占格行",
         };
 
         /// <summary>商店表（售卖配置）：按 id 合回 FurnitureTable 对应条目（2026-08-13 从家具表拆出）。</summary>
@@ -231,15 +232,19 @@ namespace MasterHouse.EditorTools
                     familyId = familyId,
                     displayWidth = Float(row, col, "显示宽", 100f),
                     displayHeight = Float(row, col, "显示高", 100f),
+                    cols = Int(row, col, "占格列", family.cols),
+                    rows = Int(row, col, "占格行", family.rows),
+                    storeDisplayWidth = Float(row, col, "商店显示宽", 100f),
+                    storeDisplayHeight = Float(row, col, "商店显示高", 100f),
                     sprite = LoadSprite(Cell(row, col, "精灵图")),
+                    storeListSprite = LoadSprite(Cell(row, col, "商店列表图")),
+                    storePreviewSprite = LoadSprite(Cell(row, col, "商店详情图")),
                     swatchColor = ParseColor(Cell(row, col, "色值")),
                     // ── 族级：从族表展开（改这些值请改族表，改这里会被下次导表覆盖）──
                     category = family.category,
                     description = family.description,
                     surfaces = new List<FurnitureSurfaceType>(family.surfaces ?? new List<FurnitureSurfaceType>()),
                     stackable = family.stackable,
-                    cols = family.cols,
-                    rows = family.rows,
                     decorationScore = family.decorationScore,
                     pickupSound = family.pickupSound,
                     putdownSound = family.putdownSound,
@@ -519,7 +524,10 @@ namespace MasterHouse.EditorTools
                 if (e == null) continue;
                 lines.Add(Line(e.id, e.nameKey, e.displayName, e.familyId,
                     e.displayWidth, e.displayHeight,
-                    SpritePath(e.sprite), "#" + ColorUtility.ToHtmlStringRGB(e.swatchColor)));
+                    SpritePath(e.sprite), "#" + ColorUtility.ToHtmlStringRGB(e.swatchColor),
+                    e.storeDisplayWidth, e.storeDisplayHeight,
+                    SpritePath(e.storeListSprite), SpritePath(e.storePreviewSprite),
+                    e.cols, e.rows));
             }
             WriteCsv(FurnitureCsvPath, lines);
         }

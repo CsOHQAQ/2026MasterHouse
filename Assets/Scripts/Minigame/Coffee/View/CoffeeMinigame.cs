@@ -29,7 +29,7 @@ namespace MasterHouse
     [RequireComponent(typeof(CoffeeMinigameView))]
     public sealed class CoffeeMinigame : MonoBehaviour, IMinigame
     {
-        private enum EPhase { Grind, Transition, Pour, Settle }
+        private enum EPhase { Countdown, Grind, Transition, Pour, Settle }
 
         private const string GrindPhaseTitle = "① 磨豆子";
         private const string PourPhaseTitle = "② 冲咖啡";
@@ -61,6 +61,9 @@ namespace MasterHouse
         /// <summary>过场已经走了多久，以及环节根是否已经在幕布后面换过（见 TickTransition）。</summary>
         private float transitionElapsed;
         private bool transitionSwapped;
+
+        /// <summary>开局倒计时已经走了多久（一轮测试改进 #13；暂停期间不推进）。</summary>
+        private float countdownElapsed;
 
         private int grindScore;
         private float messageResetRemaining;
@@ -138,9 +141,9 @@ namespace MasterHouse
             view.transitionGroup.alpha = 0f;
             view.transitionRoot.gameObject.SetActive(false);
 
-            phase = EPhase.Grind;
             view.grindRoot.gameObject.SetActive(true);
             view.pourRoot.gameObject.SetActive(false);
+            EnterCountdown(); // 研磨前先播 3/2/1/开始！（#13）；HUD 与提示行按研磨态显示，透过灰底可读
             ShowPhaseMessage();
             RefreshHud();
 
@@ -174,6 +177,10 @@ namespace MasterHouse
 
             switch (phase)
             {
+                case EPhase.Countdown:
+                    TickCountdown(dt);
+                    break;
+
                 case EPhase.Grind:
                     grind.RelayoutIfResized();
                     // 左下角那颗 ESC 压在页面上，而磨豆读的是裸鼠标：点它的那一下不该顺带切一次环
@@ -211,6 +218,75 @@ namespace MasterHouse
 
             // 放在环节切换之后：磨满的那一帧已经切到冲泡，研磨声当帧就停
             UpdateLoopSfx();
+        }
+
+        // ══════════ 开局倒计时（一轮测试改进 #13）══════════
+
+        /// <summary>
+        /// 研磨开始前的 3/2/1/开始！：灰色半透遮罩压住整页（含 HUD 与 ESC 条），
+        /// 期间不读输入、研磨不走时间；「开始！」停留完遮罩淡出，淡出播完才交给研磨。
+        /// 时间走本组件的 dt，所以按 ESC 弹暂停时倒计时跟着冻结。
+        /// </summary>
+        private void EnterCountdown()
+        {
+            phase = EPhase.Countdown;
+            countdownElapsed = 0f;
+            view.countdownGroup.alpha = 1f;
+            view.countdownRoot.gameObject.SetActive(true);
+            ApplyCountdown(0f);
+        }
+
+        private void TickCountdown(float dt)
+        {
+            countdownElapsed += dt;
+            ApplyCountdown(countdownElapsed);
+        }
+
+        private void ApplyCountdown(float elapsed)
+        {
+            float step = Mathf.Max(0.1f, view.countdownStepSeconds);
+            float go = Mathf.Max(0.1f, view.countdownGoSeconds);
+
+            if (elapsed < step * 3f)
+            {
+                int index = Mathf.Min(2, (int)(elapsed / step));
+                SetCountdownText((3 - index).ToString(), elapsed - index * step);
+                return;
+            }
+
+            float sinceGo = elapsed - step * 3f;
+            if (sinceGo < go)
+            {
+                SetCountdownText("开始！", sinceGo);
+                return;
+            }
+
+            float fadeT = (sinceGo - go) / Mathf.Max(0.01f, view.countdownFadeOutSeconds);
+            if (fadeT < 1f)
+            {
+                view.countdownGroup.alpha = 1f - fadeT;
+                return;
+            }
+            EnterGrind();
+        }
+
+        /// <summary>换字 + 每个字入场小弹一下（前 0.15 秒从 1.25 缩回 1，缓出），观感同结算弹窗那路手推动画。</summary>
+        private void SetCountdownText(string text, float sinceStep)
+        {
+            if (view.countdownLabel == null) return;
+            if (view.countdownLabel.text != text) view.countdownLabel.text = text;
+            float t = Mathf.Clamp01(sinceStep / 0.15f);
+            float ease = 1f - (1f - t) * (1f - t);
+            view.countdownLabel.transform.localScale = Vector3.one * Mathf.Lerp(1.25f, 1f, ease);
+        }
+
+        /// <summary>倒计时播完，研磨正式接管输入。</summary>
+        private void EnterGrind()
+        {
+            phase = EPhase.Grind;
+            view.countdownRoot.gameObject.SetActive(false);
+            ShowPhaseMessage();
+            RefreshHud();
         }
 
         // ══════════ 环节切换 ══════════
@@ -502,7 +578,8 @@ namespace MasterHouse
         {
             if (view.messageLabel == null) return;
             view.messageLabel.color = view.messageNormalColor;
-            if (phase != EPhase.Grind)
+            // 倒计时读作研磨态：灰底半透，底下的操作说明先给玩家看着（#13）
+            if (phase != EPhase.Grind && phase != EPhase.Countdown)
             {
                 view.messageLabel.text = "按住左键，在杯内匀速移动，速度越均匀得分越高！";
                 return;
@@ -516,15 +593,17 @@ namespace MasterHouse
 
         private void RefreshHud()
         {
-            float progress = phase == EPhase.Grind ? grind.Progress : pour.Progress;
+            // 倒计时读作研磨态（#13）：HUD 在灰底下露出研磨的初始面貌
+            bool grindSide = phase == EPhase.Grind || phase == EPhase.Countdown;
+            float progress = grindSide ? grind.Progress : pour.Progress;
             view.progressFill.anchorMax = new Vector2(Mathf.Clamp01(progress), 1f);
 
             if (view.phaseLabel != null)
-                view.phaseLabel.text = phase == EPhase.Grind ? GrindPhaseTitle : PourPhaseTitle;
+                view.phaseLabel.text = grindSide ? GrindPhaseTitle : PourPhaseTitle;
 
             // 底卡只有 188 宽（素材原尺寸 ÷ 2.667），这两行都得短——长句放底部提示行
             if (view.scoreLabel != null)
-                view.scoreLabel.text = phase == EPhase.Grind
+                view.scoreLabel.text = grindSide
                     ? $"得分 {grind.Score}/{level.GrindMaxScore}"
                     : $"研磨 {grindScore} 分";
 
@@ -734,6 +813,10 @@ namespace MasterHouse
             if (view.resumeButton == null) missing.Add(nameof(view.resumeButton));
             if (view.transitionRoot == null) missing.Add(nameof(view.transitionRoot));
             if (view.transitionGroup == null) missing.Add(nameof(view.transitionGroup));
+            // 开局倒计时件（#13）：缺了走「补齐缺失」菜单就能补出来，不必重建
+            if (view.countdownRoot == null) missing.Add(nameof(view.countdownRoot));
+            if (view.countdownGroup == null) missing.Add(nameof(view.countdownGroup));
+            if (view.countdownLabel == null) missing.Add(nameof(view.countdownLabel));
             if (view.abortButton == null) missing.Add(nameof(view.abortButton));
             if (view.settleRoot == null) missing.Add(nameof(view.settleRoot));
             if (view.settleGroup == null) missing.Add(nameof(view.settleGroup));

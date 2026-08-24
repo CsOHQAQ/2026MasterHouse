@@ -2705,6 +2705,13 @@ namespace MasterHouse
         {
             var root = Root("FurnitureHudPage");
             var view = root.AddComponent<OutGameFurnitureHudView>();
+            view.roomBackgrounds = new[]
+            {
+                Place2("放置模式-房间背景/image 408"), // 起居室
+                Place2("放置模式-房间背景/image 411"), // 卧室
+                Place2("放置模式-房间背景/image 409"), // 厨房
+                Place2("放置模式-房间背景/image 413"), // 书房
+            };
 
             // ── 顶部容器（拖拽时淡出 / 隐藏界面时隐藏）：整套 HUD 都挂在它下面 ──
             var chrome = Rect(root.transform, "TopChrome", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);

@@ -12,6 +12,58 @@ namespace MasterHouse.EditorTools
     public static class CircuitTopStatusBarFixer
     {
         private const string PrefabPath = "Assets/GameData/Minigames/CircuitTopStatusBar.prefab";
+        private const string LinkBudgetBackgroundSpritePath = "Assets/PC ui 2.0/关卡/剩余格子数.png";
+
+        [MenuItem("MasterHouse/小游戏/为顶部状态条添加导线预算底板")]
+        public static void AddLinkBudgetBackground()
+        {
+            var contents = PrefabUtility.LoadPrefabContents(PrefabPath);
+            try
+            {
+                var view = contents.GetComponent<CircuitTopStatusBarView>();
+                if (view == null || view.linkBudgetLabel == null)
+                {
+                    Debug.LogError("顶部状态条缺少 CircuitTopStatusBarView 或 LinkBudget 文本引用。");
+                    return;
+                }
+
+                var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(LinkBudgetBackgroundSpritePath);
+                if (sprite == null)
+                {
+                    Debug.LogError("找不到导线预算底板图片: " + LinkBudgetBackgroundSpritePath);
+                    return;
+                }
+
+                var backgroundGO = FindOrCreateChild(contents, "LinkBudgetBackground");
+                var backgroundRT = backgroundGO.GetComponent<RectTransform>();
+                var labelRT = view.linkBudgetLabel.rectTransform;
+                backgroundRT.anchorMin = labelRT.anchorMin;
+                backgroundRT.anchorMax = labelRT.anchorMax;
+                backgroundRT.anchoredPosition = labelRT.anchoredPosition;
+                backgroundRT.sizeDelta = labelRT.sizeDelta + new Vector2(42f, 28f);
+                backgroundRT.pivot = labelRT.pivot;
+                backgroundRT.localScale = Vector3.one;
+
+                var background = backgroundGO.GetComponent<Image>();
+                if (background == null) background = backgroundGO.AddComponent<Image>();
+                background.sprite = sprite;
+                background.type = Image.Type.Simple;
+                background.preserveAspect = false;
+                background.color = Color.white;
+                background.raycastTarget = false;
+                backgroundGO.transform.SetSiblingIndex(view.linkBudgetLabel.transform.GetSiblingIndex());
+                view.linkBudgetBackground = background;
+
+                EditorUtility.SetDirty(contents);
+                PrefabUtility.SaveAsPrefabAsset(contents, PrefabPath);
+                AssetDatabase.Refresh();
+                Debug.Log("[顶部状态条] 已添加导线预算底板。");
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
+        }
 
         [MenuItem("MasterHouse/小游戏/修复顶部状态条布局")]
         public static void FixTopStatusBar()

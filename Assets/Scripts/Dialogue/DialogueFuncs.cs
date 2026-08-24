@@ -223,6 +223,23 @@ namespace MasterHouse
                     },
                     "增减声望（正给负扣，下限 0）", "数量", 1, isReward: true),
 
+                ["GrantFurniture"] = new DialogueActionDef(
+                    (ctx, a) =>
+                    {
+                        if (ctx?.Economy == null) { Warn("赠送家具", "上下文缺 EconomyManager"); return; }
+                        var id = a.Str(0).Trim();
+                        var count = Mathf.Max(1, a.Int(1, 1));
+                        // id 不在家具表时 Economy 侧拒绝入账并报错指路，这里不再重复 Toast 打扰玩家
+                        if (!ctx.Economy.GrantFurniture(id, count)) return;
+                        // 获得反馈（一轮测试改进 #11 定案）：先用 Toast；
+                        // 商店那套「获得物品弹窗」深绑在商店页 Prefab 内，本轮不拆出来复用
+                        var table = GameManager.Instance != null ? GameManager.Instance.FurnitureTable : null;
+                        var entry = table != null ? table.Find(id) : null;
+                        var name = entry != null && !string.IsNullOrEmpty(entry.displayName) ? entry.displayName : id;
+                        Toast(count > 1 ? $"获得 {name} ×{count}" : $"获得 {name}");
+                    },
+                    "赠送家具（直接进库存，可去收纳栏摆放）", "家具id[,数量]（数量留空=1）", 2, isReward: true),
+
                 ["Log"] = new DialogueActionDef(
                     (ctx, a) =>
                     {

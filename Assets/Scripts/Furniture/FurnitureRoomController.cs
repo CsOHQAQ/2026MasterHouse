@@ -94,6 +94,7 @@ namespace MasterHouse
         private SpriteRenderer nightBackgroundRenderer;
         private SpriteRenderer depthBlurRenderer;
         private SpriteRenderer dayVeilRenderer;
+        private bool usesPlacementBackground;
 
         private readonly Dictionary<string, FurnitureRuntimeGrid> grids = new Dictionary<string, FurnitureRuntimeGrid>();
         private readonly Dictionary<string, FurnitureRuntimeItem> items = new Dictionary<string, FurnitureRuntimeItem>();
@@ -179,13 +180,17 @@ namespace MasterHouse
 
         private void BuildBackground()
         {
-            backgroundRenderer = CreateLayer("Background", room.background, OrderBackground, ZBackground, 1f);
-            var nightBackground = Resources.Load<Sprite>($"OutGameUI/RoomNight/room-night-{roomIndex + 1:00}");
+            var placementBackground = PlacementBackground();
+            usesPlacementBackground = placementBackground != room.background;
+            backgroundRenderer = CreateLayer("Background", placementBackground, OrderBackground, ZBackground, 1f,
+                fitWidth: usesPlacementBackground);
+            var nightBackground = PlacementNightBackground();
             if (nightBackground != null)
+            {
                 nightBackgroundRenderer = CreateLayer("NightBackground", nightBackground,
-                    OrderNightBackground, ZNightBackground, 0f);
-            else
-                Debug.LogWarning($"[Furniture] 夜间房间图缺失：room-night-{roomIndex + 1:00}");
+                    OrderNightBackground, ZNightBackground, 0f, fitWidth: usesPlacementBackground);
+            }
+            else Debug.LogWarning($"[Furniture] 夜间房间图缺失：room {roomIndex + 1}");
             if (room.depthBlurOverlay != null)
                 depthBlurRenderer = CreateLayer("DepthBlur", room.depthBlurOverlay, OrderDepthBlur, ZDepthBlur, 1f);
             if (room.focusBlurOverlay != null)
@@ -194,6 +199,34 @@ namespace MasterHouse
             // 背景与家具乘调色；深夜罩色单独一层盖在全部场景内容之上（HUD 是独立 Canvas 不受影响）
             dayVeilRenderer = CreateLayer("DayVeil", HouseUIRuntime.WhiteSprite, OrderDayVeil, ZDayVeil, 0f);
             ApplyDayLight();
+        }
+
+        /// <summary>
+        /// 放置模式背景由 FurnitureHudPage Prefab 持有，和主宅总览房间表分离。
+        /// Prefab 没配或索引越界时回退到房间表背景，保证旧资源仍可正常进入布置模式。
+        /// </summary>
+        private Sprite PlacementBackground()
+        {
+            var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.FurnitureHud);
+            var view = prefab != null ? prefab.GetComponent<OutGameFurnitureHudView>() : null;
+            var backgrounds = view != null ? view.roomBackgrounds : null;
+            return backgrounds != null && roomIndex >= 0 && roomIndex < backgrounds.Length &&
+                   backgrounds[roomIndex] != null
+                ? backgrounds[roomIndex]
+                : room.background;
+        }
+
+        private Sprite PlacementNightBackground()
+        {
+            var prefab = Resources.Load<GameObject>(OutGamePrefabResourcePaths.FurnitureHud);
+            var view = prefab != null ? prefab.GetComponent<OutGameFurnitureHudView>() : null;
+            var backgrounds = view != null ? view.roomNightBackgrounds : null;
+            if (backgrounds != null && roomIndex >= 0 && roomIndex < backgrounds.Length &&
+                backgrounds[roomIndex] != null)
+                return backgrounds[roomIndex];
+            return usesPlacementBackground
+                ? null
+                : Resources.Load<Sprite>($"OutGameUI/RoomNight/room-night-{roomIndex + 1:00}");
         }
 
         /// <summary>网格当前是按哪个夜色权重建的（夜色推移超过一档就重建）。</summary>
@@ -214,10 +247,21 @@ namespace MasterHouse
         {
             var (tint, veil) = HouseDayLight.Now();
             var nightAlpha = HouseDayLight.NightRoomAlphaNow();
+            // Placement night art now shares the daytime room's exact crop and
+            // dimensions, so changing light must not rebuild or move the grids.
+            var geometryNightAlpha = usesPlacementBackground ? 0f :
+                (nightBackgroundRenderer != null ? nightAlpha : 0f);
             // 夜色推移到一定程度就按新几何重建网格并重摆家具（每帧重建太浪费，0.02 一档肉眼看不出跳）
-            if (Mathf.Abs(nightAlpha - gridNightAlpha) > GridRebuildStep) RebuildGridsForNight();
-            TintPreserveAlpha(backgroundRenderer, tint);
-            if (nightBackgroundRenderer != null)
+            if (Mathf.Abs(geometryNightAlpha - gridNightAlpha) > GridRebuildStep) RebuildGridsForNight();
+            // 放置模式的完整夜图接管时同步退掉白天底图，避免白天房间框从夜图上下方露出，
+            // 也避免两套房间画面叠加后被误认为一层前景遮罩。
+            var hasNightBackground = nightBackgroundRenderer != null && nightBackgroundRenderer.sprite != null;
+            if (backgroundRenderer != null)
+            {
+                var dayAlpha = hasNightBackground ? 1f - nightAlpha : 1f;
+                backgroundRenderer.color = new Color(tint.r, tint.g, tint.b, dayAlpha);
+            }
+            if (hasNightBackground)
                 nightBackgroundRenderer.color = new Color(1f, 1f, 1f, nightAlpha);
             TintPreserveAlpha(depthBlurRenderer, tint);
             TintPreserveAlpha(focusBlurRenderer, tint);
@@ -233,7 +277,8 @@ namespace MasterHouse
             renderer.color = new Color(tint.r, tint.g, tint.b, renderer.color.a);
         }
 
-        private SpriteRenderer CreateLayer(string name, Sprite sprite, int order, float z, float alpha)
+        private SpriteRenderer CreateLayer(string name, Sprite sprite, int order, float z, float alpha,
+            bool fitWidth = false)
         {
             var go = new GameObject(name) { layer = FurnitureSceneLayer };
             go.transform.SetParent(stageRoot, false);
@@ -247,7 +292,9 @@ namespace MasterHouse
             }
             renderer.sprite = sprite;
             go.transform.position = PxToWorld(room.sceneWidth * .5f, room.sceneHeight * .5f, z);
-            go.transform.localScale = SpriteScale(sprite, room.sceneWidth, room.sceneHeight);
+            go.transform.localScale = fitWidth
+                ? SpriteScaleByWidth(sprite, room.sceneWidth)
+                : SpriteScale(sprite, room.sceneWidth, room.sceneHeight);
             return renderer;
         }
 
@@ -267,15 +314,18 @@ namespace MasterHouse
 
         private void BuildGrids()
         {
-            gridNightAlpha = FurnitureNightLayout.NightAlphaNow();
+            gridNightAlpha = usesPlacementBackground ? 0f : FurnitureNightLayout.NightAlphaNow();
             foreach (var config in room.grids)
             {
                 if (config == null || string.IsNullOrEmpty(config.id)) continue;
                 var order = config.surface == FurnitureSurfaceType.Floor ? OrderFloorGrid : OrderWallGrid;
                 var z = config.surface == FurnitureSurfaceType.Floor ? 0f : ZWall - .01f;
-                // 夜里两张房间图的墙脚线不一样，网格按夜色权重校正过再建（否则地面格会爬到墙上）
+                // 房间表中的网格已经按四张完整放置背景逐张标定；旧背景回退时才做昼夜几何校正。
+                var effectiveConfig = usesPlacementBackground
+                    ? config
+                    : FurnitureNightLayout.Adjust(room, config, gridNightAlpha);
                 var grid = new FurnitureRuntimeGrid(
-                    FurnitureNightLayout.Adjust(room, config, gridNightAlpha), PxToWorld, z);
+                    effectiveConfig, PxToWorld, z);
                 grid.BuildVisual(stageRoot, F.WhiteSprite, order);
                 grids[grid.Id] = grid;
             }
@@ -291,9 +341,7 @@ namespace MasterHouse
         /// <summary>
         /// 把精灵缩放到指定的场景像素尺寸。必须用 bounds（世界单位）而非 rect（导入后像素）：
         /// 原图超过导入 Max Size 被降采样时，rect 变小但 bounds 不变，用 rect 会把大图放大（如 5120px 房间背景放大 2.5 倍）。
-        /// ⚠ 口径与 FurnitureSceneComposer.DrawSprite 一致：拉伸填满 displayWidth×displayHeight
-        ///（2026-08-20 曾改等比、导致摆放模式和局外烘焙图大小不一致，已回退）。
-        /// 家具比例不对去表里改 displayWidth/Height，别在这儿加等比。
+        /// 房间图层会按指定宽高铺满；家具另走 FurnitureScale，按配置的实际宽高独立校正两轴。
         /// </summary>
         private static Vector3 SpriteScale(Sprite sprite, float scenePxWidth, float scenePxHeight)
         {
@@ -304,6 +352,14 @@ namespace MasterHouse
             return new Vector3(
                 scenePxWidth / PixelsPerUnit / Mathf.Max(1e-4f, size.x),
                 scenePxHeight / PixelsPerUnit / Mathf.Max(1e-4f, size.y), 1f);
+        }
+
+        /// <summary>按场景宽度等比缩放完整背景；相机初始视野会按屏幕比例补足上下区域。</summary>
+        private static Vector3 SpriteScaleByWidth(Sprite sprite, float scenePxWidth)
+        {
+            var size = TightSize(sprite);
+            var scale = scenePxWidth / PixelsPerUnit / Mathf.Max(1e-4f, size.x);
+            return new Vector3(scale, scale, 1f);
         }
 
         /// <summary>sprite 图形区的世界尺寸（顶点包络；导入降采样不影响，顶点保持设计尺寸）。</summary>
@@ -318,6 +374,20 @@ namespace MasterHouse
                 max = Vector2.Max(max, v);
             }
             return max - min;
+        }
+
+        /// <summary>
+        /// 家具按表里的实际宽高分别缩放两轴。素材画面比例不等于家具现实比例时，
+        /// 策划可直接用显示宽高做校正；源尺寸仍取 Tight Sprite，透明画布留白不参与计算。
+        /// </summary>
+        private static Vector3 FurnitureScale(FurnitureEntry entry)
+        {
+            var source = FurnitureDisplaySizing.TightSize(entry.sprite);
+            var display = FurnitureDisplaySizing.Resolve(entry);
+            return new Vector3(
+                display.x / PixelsPerUnit / Mathf.Max(1e-4f, source.x),
+                display.y / PixelsPerUnit / Mathf.Max(1e-4f, source.y),
+                1f);
         }
 
         /// <summary>场景像素（左上原点、Y 向下）→ 世界坐标。</summary>
@@ -342,6 +412,14 @@ namespace MasterHouse
 
         private static string TableGridId(string itemId) => "tbl_" + itemId;
 
+        // 家具族表直接保存细分后的最终占格，不再在运行时暗乘 2；这样策划表里看到的数值
+        // 就是拖拽预览与碰撞实际使用的格数。桌面格是一条单行承载带，纵向固定占 1 行。
+        private static int FootprintCols(FurnitureRuntimeGrid grid, FurnitureEntry entry) =>
+            entry.cols;
+
+        private static int FootprintRows(FurnitureRuntimeGrid grid, FurnitureEntry entry) =>
+            grid.Surface == FurnitureSurfaceType.Table ? 1 : entry.rows;
+
         private List<FurnitureRuntimeItem> ChildrenOf(FurnitureRuntimeItem host)
         {
             var result = new List<FurnitureRuntimeItem>();
@@ -355,12 +433,15 @@ namespace MasterHouse
         {
             var grid = grids[item.GridId];
             var entry = item.Entry;
-            leftPx = grid.X + item.Col * grid.CellWidth + (entry.cols * grid.CellWidth - entry.displayWidth) * .5f;
+            var display = FurnitureDisplaySizing.Resolve(entry);
+            var footCols = FootprintCols(grid, entry);
+            var footRows = FootprintRows(grid, entry);
+            leftPx = grid.X + item.Col * grid.CellWidth + (footCols * grid.CellWidth - display.x) * .5f;
             if (grid.Surface == FurnitureSurfaceType.Floor)
             {
-                var bottomRow = item.Row + entry.rows;
+                var bottomRow = item.Row + footRows;
                 // 2.5D 假透视：家具中心随其底边行向网格中心收拢（与格子视觉同一映射）
-                leftPx = grid.MapX(leftPx + entry.displayWidth * .5f, bottomRow) - entry.displayWidth * .5f;
+                leftPx = grid.MapX(leftPx + display.x * .5f, bottomRow) - display.x * .5f;
                 bottomPy = grid.Y + bottomRow * grid.CellHeight;
                 // 可叠放（地毯）平铺地面：始终压在立式家具之下（带内仍按深度行排前后）
                 order = entry.stackable ? OrderFloorStackableBase + bottomRow : OrderFloorItemBase + bottomRow * 10;
@@ -369,8 +450,8 @@ namespace MasterHouse
             }
             if (grid.Surface == FurnitureSurfaceType.Wall)
             {
-                bottomPy = grid.Y + (item.Row + entry.rows) * grid.CellHeight;
-                order = OrderWallItemBase + item.Row + entry.rows;
+                bottomPy = grid.Y + (item.Row + footRows) * grid.CellHeight;
+                order = OrderWallItemBase + item.Row + footRows;
                 z = ZWall;
                 return;
             }
@@ -385,8 +466,9 @@ namespace MasterHouse
         private void LayoutItem(FurnitureRuntimeItem item)
         {
             AnchorOf(item, out var left, out var bottom, out var order, out var z);
+            var display = FurnitureDisplaySizing.Resolve(item.Entry);
             item.Root.transform.position = PxToWorld(
-                left + item.Entry.displayWidth * .5f, bottom - item.Entry.displayHeight * .5f, z);
+                left + display.x * .5f, bottom - display.y * .5f, z);
             item.Renderer.sortingOrder = order;
             if (item.Shadow != null) item.Shadow.sortingOrder = order - 1; // 投影压在自己脚下、盖住地毯
         }
@@ -405,10 +487,11 @@ namespace MasterHouse
             renderer.sprite = sprite;
             var itemBounds = item.Entry.sprite.bounds.size;
             var shadowBounds = sprite.bounds.size;
+            var display = FurnitureDisplaySizing.Resolve(item.Entry);
             // 父级缩放已把家具 bounds 拉到显示尺寸，这里把目标世界尺寸换算回局部缩放；
             // 影子比家具略宽（×1.08）、扁度 0.26，往下多探一点让家具底边外能看见明显的影缘
             var localX = 1.08f * itemBounds.x / Mathf.Max(.0001f, shadowBounds.x);
-            var localY = item.Entry.displayWidth * .26f / Mathf.Max(1f, item.Entry.displayHeight)
+            var localY = display.x * .26f / Mathf.Max(1f, display.y)
                          * itemBounds.y / Mathf.Max(.0001f, shadowBounds.y);
             go.transform.localScale = new Vector3(localX, localY, 1f);
             go.transform.localPosition = new Vector3(0f, -itemBounds.y * .5f, 0f); // 椭圆中心落在底边线
@@ -421,7 +504,9 @@ namespace MasterHouse
             if (config == null || !config.enabled) return;
             if (!grids.TryGetValue(TableGridId(host.Id), out var grid)) return;
             AnchorOf(host, out var left, out var bottom, out var order, out _);
-            grid.SetOrigin(left + config.offsetX, bottom - config.surfaceHeight - config.cellHeight);
+            var frameScale = FurnitureDisplaySizing.FrameScale(host.Entry);
+            grid.SetOrigin(left + config.offsetX * frameScale.x,
+                bottom - config.surfaceHeight * frameScale.y - grid.CellHeight);
             grid.SetSortingOrder(order + 2);
             foreach (var child in ChildrenOf(host)) LayoutItem(child);
         }
@@ -430,6 +515,8 @@ namespace MasterHouse
             bool flipped = false)
         {
             var grid = grids[gridId];
+            var footCols = FootprintCols(grid, entry);
+            var footRows = FootprintRows(grid, entry);
             var item = new FurnitureRuntimeItem
             {
                 Id = "it" + nextItemId++,
@@ -445,26 +532,28 @@ namespace MasterHouse
             item.Renderer.sprite = entry.sprite;
             item.Renderer.flipX = flipped;
             if (entry.sprite != null)
-                item.Root.transform.localScale = SpriteScale(entry.sprite, entry.displayWidth, entry.displayHeight);
+                item.Root.transform.localScale = FurnitureScale(entry);
             // 光影：落地/桌面家具脚下垫柔和椭圆投影（壁挂与地毯类不投）
             if (!entry.stackable && grid.Surface != FurnitureSurfaceType.Wall)
                 item.Shadow = CreateShadow(item);
             items[item.Id] = item;
             placedCountsDirty = true; // 余量缓存跟着 items 走，标脏就贴在改集合的这一行旁边
-            grid.SetOccupied(col, row, entry.cols, entry.rows, item.Id, true, entry.stackable);
+            grid.SetOccupied(col, row, footCols, footRows, item.Id, true, entry.stackable);
 
             if (entry.tableSurface != null && entry.tableSurface.enabled)
             {
+                // 桌面格与家具配置显示框使用同一坐标口径；FrameScale 保留为统一换算入口。
+                var frameScale = FurnitureDisplaySizing.FrameScale(entry);
                 var config = new FurnitureGridConfig
                 {
                     id = TableGridId(item.Id),
                     surface = FurnitureSurfaceType.Table,
                     cols = entry.tableSurface.cols,
                     rows = 1,
-                    cellWidth = entry.tableSurface.cellWidth,
-                    cellHeight = entry.tableSurface.cellHeight,
+                    cellWidth = entry.tableSurface.cellWidth * frameScale.x,
+                    cellHeight = entry.tableSurface.cellHeight * frameScale.y,
                 };
-                var tableGrid = new FurnitureRuntimeGrid(config, PxToWorld, ZFloorPerRow * (row + entry.rows) - .01f);
+                var tableGrid = new FurnitureRuntimeGrid(config, PxToWorld, ZFloorPerRow * (row + footRows) - .01f);
                 tableGrid.HostItemId = item.Id;
                 tableGrid.BuildVisual(stageRoot, F.WhiteSprite, OrderFloorItemBase);
                 grids[tableGrid.Id] = tableGrid;
@@ -497,7 +586,8 @@ namespace MasterHouse
                 }
             }
             if (grids.TryGetValue(item.GridId, out var grid))
-                grid.SetOccupied(item.Col, item.Row, item.Entry.cols, item.Entry.rows, item.Id, false, item.Entry.stackable);
+                grid.SetOccupied(item.Col, item.Row, FootprintCols(grid, item.Entry), FootprintRows(grid, item.Entry),
+                    item.Id, false, item.Entry.stackable);
             Destroy(item.Root);
             items.Remove(item.Id);
             placedCountsDirty = true; // 同 PlaceItem：items 一变余量就得重算
@@ -514,11 +604,14 @@ namespace MasterHouse
         private void MoveItem(FurnitureRuntimeItem item, string gridId, int col, int row)
         {
             if (grids.TryGetValue(item.GridId, out var from))
-                from.SetOccupied(item.Col, item.Row, item.Entry.cols, item.Entry.rows, item.Id, false, item.Entry.stackable);
+                from.SetOccupied(item.Col, item.Row, FootprintCols(from, item.Entry), FootprintRows(from, item.Entry),
+                    item.Id, false, item.Entry.stackable);
             item.GridId = gridId;
             item.Col = col;
             item.Row = row;
-            grids[gridId].SetOccupied(col, row, item.Entry.cols, item.Entry.rows, item.Id, true, item.Entry.stackable);
+            var target = grids[gridId];
+            target.SetOccupied(col, row, FootprintCols(target, item.Entry), FootprintRows(target, item.Entry),
+                item.Id, true, item.Entry.stackable);
             LayoutItem(item);
             SyncTableGrid(item);
             item.Root.transform.DOPunchScale(Vector3.one * .045f, .28f, 6, .7f).SetTarget(this);
@@ -633,8 +726,9 @@ namespace MasterHouse
             foreach (var item in items.Values)
             {
                 AnchorOf(item, out var left, out var bottom, out var order, out _);
-                if (scenePx.x >= left && scenePx.x <= left + item.Entry.displayWidth &&
-                    scenePx.y >= bottom - item.Entry.displayHeight && scenePx.y <= bottom &&
+                var display = FurnitureDisplaySizing.Resolve(item.Entry);
+                if (scenePx.x >= left && scenePx.x <= left + display.x &&
+                    scenePx.y >= bottom - display.y && scenePx.y <= bottom &&
                     order > hitOrder)
                 {
                     hit = item;
@@ -699,7 +793,7 @@ namespace MasterHouse
             drag.GhostRenderer.sortingOrder = OrderGhost;
             drag.GhostRenderer.color = new Color(1f, 1f, 1f, .85f);
             if (entry.sprite != null)
-                drag.Ghost.transform.localScale = SpriteScale(entry.sprite, entry.displayWidth, entry.displayHeight);
+                drag.Ghost.transform.localScale = FurnitureScale(entry);
 
             if (item != null)
             {
@@ -707,9 +801,11 @@ namespace MasterHouse
                 if (entry.tableSurface != null && entry.tableSurface.enabled)
                 {
                     AnchorOf(item, out var hostLeft, out var hostBottom, out _, out _);
+                    var hostDisplay = FurnitureDisplaySizing.Resolve(entry);
                     foreach (var child in ChildrenOf(item))
                     {
                         AnchorOf(child, out var childLeft, out var childBottom, out _, out _);
+                        var childDisplay = FurnitureDisplaySizing.Resolve(child.Entry);
                         var childGhost = new GameObject("GhostChild_" + child.Entry.id) { layer = FurnitureSceneLayer };
                         childGhost.transform.SetParent(drag.Ghost.transform, false);
                         var renderer = childGhost.AddComponent<SpriteRenderer>();
@@ -718,13 +814,13 @@ namespace MasterHouse
                         renderer.color = new Color(1f, 1f, 1f, .85f);
                         // 子物体位置相对宿主锚点（像素差换算为本地偏移；父物体已缩放，先除回）
                         var hostScale = drag.Ghost.transform.localScale;
-                        var offsetX = (childLeft + child.Entry.displayWidth * .5f) - (hostLeft + entry.displayWidth * .5f);
-                        var offsetY = (hostBottom - entry.displayHeight * .5f) - (childBottom - child.Entry.displayHeight * .5f);
+                        var offsetX = (childLeft + childDisplay.x * .5f) - (hostLeft + hostDisplay.x * .5f);
+                        var offsetY = (hostBottom - hostDisplay.y * .5f) - (childBottom - childDisplay.y * .5f);
                         childGhost.transform.localPosition = new Vector3(
                             offsetX / PixelsPerUnit / hostScale.x, offsetY / PixelsPerUnit / hostScale.y, 0f);
                         if (child.Entry.sprite != null)
                         {
-                            var childScale = SpriteScale(child.Entry.sprite, child.Entry.displayWidth, child.Entry.displayHeight);
+                            var childScale = FurnitureScale(child.Entry);
                             childGhost.transform.localScale = new Vector3(
                                 childScale.x / hostScale.x, childScale.y / hostScale.y, 1f);
                         }
@@ -732,7 +828,9 @@ namespace MasterHouse
                     }
                     if (grids.TryGetValue(TableGridId(item.Id), out var tableGrid)) tableGrid.SetVisible(false);
                 }
-                grids[item.GridId].SetOccupied(item.Col, item.Row, entry.cols, entry.rows, item.Id, false, entry.stackable);
+                var sourceGrid = grids[item.GridId];
+                sourceGrid.SetOccupied(item.Col, item.Row, FootprintCols(sourceGrid, entry),
+                    FootprintRows(sourceGrid, entry), item.Id, false, entry.stackable);
                 item.Root.SetActive(false);
             }
 
@@ -749,9 +847,10 @@ namespace MasterHouse
         private void UpdateDrag()
         {
             var entry = drag.Entry;
+            var display = FurnitureDisplaySizing.Resolve(entry);
             var px = MouseScenePx();
-            var wantLeft = px.x - entry.displayWidth * .5f;
-            var wantBottom = px.y + entry.displayHeight * .25f;
+            var wantLeft = px.x - display.x * .5f;
+            var wantBottom = px.y + display.y * .25f;
 
             // 拖回收纳优先：指针悬在收纳栏面板上即判定收回（面板亮粉提示）。
             // 收纳栏正后方的地板行想摆放：先「隐藏界面」或滚轮放大，让收纳栏离开指针下方。
@@ -763,7 +862,7 @@ namespace MasterHouse
             if (drag.OverInventory)
             {
                 drag.Ghost.transform.position = PxToWorld(
-                    wantLeft + entry.displayWidth * .5f, wantBottom - entry.displayHeight * .5f, ZGhost);
+                    wantLeft + display.x * .5f, wantBottom - display.y * .5f, ZGhost);
                 drag.GhostRenderer.color = new Color(1f, 1f, 1f, .85f);
                 return;
             }
@@ -790,32 +889,37 @@ namespace MasterHouse
             }
             if (best != null)
             {
-                var footWidth = entry.cols * best.CellWidth;
-                var footHeight = entry.rows * best.CellHeight;
+                var footCols = FootprintCols(best, entry);
+                var footRows = FootprintRows(best, entry);
+                var footWidth = footCols * best.CellWidth;
+                var footHeight = footRows * best.CellHeight;
                 var row = Mathf.Clamp(Mathf.RoundToInt(
-                    (wantBottom - footHeight - best.Y) / best.CellHeight), 0, best.Rows - entry.rows);
+                    (wantBottom - footHeight - best.Y) / best.CellHeight), 0, best.Rows - footRows);
                 // 假透视反算：指针中心先还原到均匀网格坐标（按该落点的底边行），再算列
-                var desiredCenter = best.InvMapX(wantLeft + entry.displayWidth * .5f, row + entry.rows);
+                var desiredCenter = best.InvMapX(wantLeft + display.x * .5f, row + footRows);
                 var col = Mathf.Clamp(Mathf.RoundToInt(
-                    (desiredCenter - footWidth * .5f - best.X) / best.CellWidth), 0, best.Cols - entry.cols);
+                    (desiredCenter - footWidth * .5f - best.X) / best.CellWidth), 0, best.Cols - footCols);
                 drag.CandidateGrid = best;
                 drag.CandidateCol = col;
                 drag.CandidateRow = row;
-                drag.CandidateOk = best.FootprintFree(col, row, entry.cols, entry.rows, drag.Item?.Id, entry.stackable);
-                best.PaintPreview(col, row, entry.cols, entry.rows, drag.CandidateOk);
+                drag.CandidateOk = best.FootprintFree(col, row, footCols, footRows, drag.Item?.Id, entry.stackable);
+                best.PaintPreview(col, row, footCols, footRows, drag.CandidateOk);
             }
 
             float ghostLeft, ghostBottom;
             if (drag.CandidateGrid != null)
             {
                 var grid = drag.CandidateGrid;
-                ghostLeft = grid.X + drag.CandidateCol * grid.CellWidth + (entry.cols * grid.CellWidth - entry.displayWidth) * .5f;
+                var footCols = FootprintCols(grid, entry);
+                var footRows = FootprintRows(grid, entry);
+                ghostLeft = grid.X + drag.CandidateCol * grid.CellWidth +
+                            (footCols * grid.CellWidth - display.x) * .5f;
                 if (grid.Surface == FurnitureSurfaceType.Floor) // 假透视：幽灵与最终落位同一映射
-                    ghostLeft = grid.MapX(ghostLeft + entry.displayWidth * .5f, drag.CandidateRow + entry.rows)
-                                - entry.displayWidth * .5f;
+                    ghostLeft = grid.MapX(ghostLeft + display.x * .5f, drag.CandidateRow + footRows)
+                                - display.x * .5f;
                 ghostBottom = grid.Surface == FurnitureSurfaceType.Table
                     ? grid.Y + grid.CellHeight
-                    : grid.Y + (drag.CandidateRow + entry.rows) * grid.CellHeight;
+                    : grid.Y + (drag.CandidateRow + footRows) * grid.CellHeight;
             }
             else
             {
@@ -823,7 +927,7 @@ namespace MasterHouse
                 ghostBottom = wantBottom;
             }
             drag.Ghost.transform.position = PxToWorld(
-                ghostLeft + entry.displayWidth * .5f, ghostBottom - entry.displayHeight * .5f, ZGhost);
+                ghostLeft + display.x * .5f, ghostBottom - display.y * .5f, ZGhost);
             var invalid = !drag.OverInventory && !(drag.CandidateGrid != null && drag.CandidateOk);
             drag.GhostRenderer.color = invalid ? new Color(1f, .58f, .52f, .85f) : new Color(1f, 1f, 1f, .85f);
         }
@@ -844,8 +948,9 @@ namespace MasterHouse
             {
                 if (state.Item == null) return;
                 state.Item.Root.SetActive(true);
-                grids[state.Item.GridId].SetOccupied(state.Item.Col, state.Item.Row,
-                    state.Entry.cols, state.Entry.rows, state.Item.Id, true, state.Entry.stackable);
+                var grid = grids[state.Item.GridId];
+                grid.SetOccupied(state.Item.Col, state.Item.Row, FootprintCols(grid, state.Entry),
+                    FootprintRows(grid, state.Entry), state.Item.Id, true, state.Entry.stackable);
                 if (state.Entry.tableSurface != null && state.Entry.tableSurface.enabled)
                 {
                     if (grids.TryGetValue(TableGridId(state.Item.Id), out var tableGrid)) tableGrid.SetVisible(true);
@@ -1116,14 +1221,16 @@ namespace MasterHouse
                 if (placement == null || placement.IsOnHost) continue;
                 var entry = furnitureTable.Find(placement.furnitureId);
                 if (entry == null || !grids.TryGetValue(placement.gridId ?? string.Empty, out var grid)) continue;
-                if (!grid.FootprintFree(placement.col, placement.row, entry.cols, entry.rows, null, entry.stackable)) continue;
+                if (!entry.Supports(grid.Surface)) continue;
+                if (!grid.FootprintFree(placement.col, placement.row, FootprintCols(grid, entry),
+                        FootprintRows(grid, entry), null, entry.stackable)) continue;
                 PlaceItem(entry, placement.gridId, placement.col, placement.row, true, placement.flipped);
             }
             foreach (var placement in placements)
             {
                 if (placement == null || !placement.IsOnHost) continue;
                 var entry = furnitureTable.Find(placement.furnitureId);
-                if (entry == null) continue;
+                if (entry == null || !entry.Supports(FurnitureSurfaceType.Table)) continue;
                 // 按**落位坐标**认宿主，不按家具 id（§5.4）：同房间可以摆多件同款，
                 // 按 id 找会把两张桌子上的东西全塞给第一张，挤不下的还会在下面那道 FootprintFree 静默丢失
                 FurnitureRuntimeItem host = null;
@@ -1131,7 +1238,8 @@ namespace MasterHouse
                     if (!item.IsOnTableGrid && item.GridId == placement.hostGridId &&
                         item.Col == placement.hostCol && item.Row == placement.hostRow) { host = item; break; }
                 if (host == null || !grids.TryGetValue(TableGridId(host.Id), out var grid)) continue;
-                if (!grid.FootprintFree(placement.col, placement.row, entry.cols, entry.rows, null, entry.stackable)) continue;
+                if (!grid.FootprintFree(placement.col, placement.row, FootprintCols(grid, entry),
+                        FootprintRows(grid, entry), null, entry.stackable)) continue;
                 PlaceItem(entry, grid.Id, placement.col, placement.row, true, placement.flipped);
             }
         }
