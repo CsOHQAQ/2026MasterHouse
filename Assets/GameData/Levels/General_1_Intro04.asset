@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 185ed5bc5ce815f48a5b9b0699cb5bb0, type: 3}
   m_Name: General_1_Intro04
   m_EditorClassIdentifier: 
+  tutorialImage: {fileID: 21300000, guid: d7fb327f2ca55bb4bb293c533122d88f, type: 3}
   DeveloperNotes: "\u7B80\u5355\u65B0\u624B\u5173\uFF1A\u719F\u6089\u5206\u6D41\u5668\uFF0C\u5E94\u7528\u8FDE\u7EBF\u957F\u5EA6"
   Canvas:
     Grids:
@@ -263,6 +264,7 @@ MonoBehaviour:
       Type: 0
     - DeltaPosition: {x: 15, y: 0}
       Type: 0
+  BackgroundSprite: {fileID: 0}
   PresetNodes:
   - Node: {fileID: 11400000, guid: 8b5c893f1ff22974d951fba325494e07, type: 2}
     Cell: {x: 1, y: 1}
