@@ -125,12 +125,12 @@ bed_side_02,bed_02,单人床·02,bed_side,220,145,Assets/PC ui/Scene/furniture/b
 bed_side_03,bed_03,单人床·03,bed_side,220,145,Assets/PC ui/Scene/furniture/bed_03.png,#D3BB96,220,145,,,15,8
 bed_side_04,bed_04,单人床·04,bed_side,220,145,Assets/PC ui/Scene/furniture/bed_04.png,#BFA57C,220,145,,,15,8
 bed_side_05,bed_05,单人床·05,bed_side,220,145,Assets/PC ui/Scene/furniture/bed_05.png,#AFBDC7,220,145,,,15,8
-bed_front_01,bed_06,床头床·01,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_06.png,#E3D5CA,170,155,,,11,8
-bed_front_02,bed_07,床头床·02,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_07.png,#BFAB8C,170,155,,,11,8
-bed_front_03,bed_08,床头床·03,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_08.png,#BCBBB8,170,155,,,11,8
-bed_front_04,bed_09,床头床·04,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_09.png,#B7B2AC,170,155,,,11,8
-bed_front_05,bed_10,床头床·05,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_10.png,#E9A089,170,155,,,11,8
-bed_front_06,bed_11,床头床·06,bed_front,160,150,Assets/PC ui/Scene/furniture/bed_11.png,#C8D1D9,170,155,,,11,8
+bed_front_01,bed_06,床头床·01,bed_front,320,300,Assets/PC ui/Scene/furniture/bed_06.png,#E3D5CA,170,155,,,11,8
+bed_front_02,bed_07,床头床·02,bed_front,320,300,Assets/PC ui/Scene/furniture/bed_07.png,#BFAB8C,170,155,,,11,8
+bed_front_03,bed_08,床头床·03,bed_front,320,300,Assets/PC ui/Scene/furniture/bed_08.png,#BCBBB8,170,155,,,11,8
+bed_front_04,bed_09,床头床·04,bed_front,320,300,Assets/PC ui/Scene/furniture/bed_09.png,#B7B2AC,170,155,,,11,8
+bed_front_05,bed_10,床头床·05,bed_front,320,300,Assets/PC ui/Scene/furniture/bed_10.png,#E9A089,170,155,,,11,8
+bed_front_06,bed_11,床头床·06,bed_front,320,300,Assets/PC ui/Scene/furniture/bed_11.png,#C8D1D9,170,155,,,11,8
 vanity_01,vanity_01,彩色梳妆台·01,vanity,160,175,Assets/PC ui 2.0/特殊家具/彩色简约风化妆台-3 1.png,#DBBF9E,175,185,,,11,4
 retro_radio_01,retro_radio_01,复古收音机·01,retro_radio,55,40,Assets/PC ui 2.0/特殊家具/复古风彩色收音机-1 1.png,#8DA092,100,75,,,4,1
 music_player_01,music_player_01,音乐播放器·01,music_player,155,110,Assets/PC ui 2.0/特殊家具/复古风格音乐播放器家具-1 1.png,#BA9A8D,180,125,,,10,4

@@ -3551,8 +3551,8 @@ MonoBehaviour:
     stackable: 0
     cols: 11
     rows: 8
-    displayWidth: 160
-    displayHeight: 150
+    displayWidth: 320
+    displayHeight: 300
     storeDisplayWidth: 170
     storeDisplayHeight: 155
     storeListSprite: {fileID: 0}
@@ -3579,8 +3579,8 @@ MonoBehaviour:
     stackable: 0
     cols: 11
     rows: 8
-    displayWidth: 160
-    displayHeight: 150
+    displayWidth: 320
+    displayHeight: 300
     storeDisplayWidth: 170
     storeDisplayHeight: 155
     storeListSprite: {fileID: 0}
@@ -3607,8 +3607,8 @@ MonoBehaviour:
     stackable: 0
     cols: 11
     rows: 8
-    displayWidth: 160
-    displayHeight: 150
+    displayWidth: 320
+    displayHeight: 300
     storeDisplayWidth: 170
     storeDisplayHeight: 155
     storeListSprite: {fileID: 0}
@@ -3635,8 +3635,8 @@ MonoBehaviour:
     stackable: 0
     cols: 11
     rows: 8
-    displayWidth: 160
-    displayHeight: 150
+    displayWidth: 320
+    displayHeight: 300
     storeDisplayWidth: 170
     storeDisplayHeight: 155
     storeListSprite: {fileID: 0}
@@ -3663,8 +3663,8 @@ MonoBehaviour:
     stackable: 0
     cols: 11
     rows: 8
-    displayWidth: 160
-    displayHeight: 150
+    displayWidth: 320
+    displayHeight: 300
     storeDisplayWidth: 170
     storeDisplayHeight: 155
     storeListSprite: {fileID: 0}
@@ -3691,8 +3691,8 @@ MonoBehaviour:
     stackable: 0
     cols: 11
     rows: 8
-    displayWidth: 160
-    displayHeight: 150
+    displayWidth: 320
+    displayHeight: 300
     storeDisplayWidth: 170
     storeDisplayHeight: 155
     storeListSprite: {fileID: 0}
