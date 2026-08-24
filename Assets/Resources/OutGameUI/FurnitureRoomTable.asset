@@ -58,6 +58,14 @@ MonoBehaviour:
       farWidthScale: 0.603
     blockedCells: []
     initialPlacements:
+    - furnitureId: bed_front_01
+      gridId: floor
+      hostGridId: 
+      hostCol: 0
+      hostRow: 0
+      col: 45
+      row: 0
+      flipped: 0
     - furnitureId: landscape_poster_02
       gridId: wall
       hostGridId: 
@@ -135,6 +143,14 @@ MonoBehaviour:
       farWidthScale: 0.62
     blockedCells: []
     initialPlacements:
+    - furnitureId: bed_front_02
+      gridId: floor
+      hostGridId: 
+      hostCol: 0
+      hostRow: 0
+      col: 45
+      row: 0
+      flipped: 0
     - furnitureId: landscape_poster_03
       gridId: wall
       hostGridId: 
@@ -212,6 +228,14 @@ MonoBehaviour:
       farWidthScale: 0.56
     blockedCells: []
     initialPlacements:
+    - furnitureId: bed_front_03
+      gridId: floor
+      hostGridId: 
+      hostCol: 0
+      hostRow: 0
+      col: 45
+      row: 0
+      flipped: 0
     - furnitureId: vintage_square_clock_02
       gridId: wall
       hostGridId: 
@@ -281,6 +305,14 @@ MonoBehaviour:
       farWidthScale: 0.69
     blockedCells: []
     initialPlacements:
+    - furnitureId: bed_front_04
+      gridId: floor
+      hostGridId: 
+      hostCol: 0
+      hostRow: 0
+      col: 44
+      row: 0
+      flipped: 0
     - furnitureId: round_table_03
       gridId: floor
       hostGridId: 
